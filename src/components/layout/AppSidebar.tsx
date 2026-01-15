@@ -25,10 +25,13 @@ import {
   UserPlus,
   Menu,
   X,
+  LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useAuth } from "@/contexts/AuthContext";
+import { useUserRole } from "@/hooks/useUserRole";
 
 interface NavItemProps {
   to: string;
@@ -104,6 +107,22 @@ const modulesSections: ModuleSection[] = [
 export function AppSidebar() {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [expandedModules, setExpandedModules] = useState(false);
+  const { user, signOut } = useAuth();
+  const { data: userRole } = useUserRole();
+
+  const userInitials = user?.user_metadata?.full_name
+    ?.split(' ')
+    .map((n: string) => n[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2) || user?.email?.slice(0, 2).toUpperCase() || 'U';
+
+  const displayName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User';
+  const roleLabel = userRole?.role?.replace('_', ' ') || 'Staff';
+
+  const handleSignOut = async () => {
+    await signOut();
+  };
 
   return (
     <>
@@ -210,12 +229,21 @@ export function AppSidebar() {
             <div className="p-4 border-t border-sidebar-border">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-full bg-sidebar-accent flex items-center justify-center">
-                  <span className="text-xs font-medium text-sidebar-foreground">HP</span>
+                  <span className="text-xs font-medium text-sidebar-foreground">{userInitials}</span>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-sidebar-foreground truncate">HPG User</p>
-                  <p className="text-xs text-sidebar-muted truncate">Staff Member</p>
+                  <p className="text-sm font-medium text-sidebar-foreground truncate">{displayName}</p>
+                  <p className="text-xs text-sidebar-muted truncate capitalize">{roleLabel}</p>
                 </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-sidebar-muted hover:text-sidebar-foreground hover:bg-sidebar-accent"
+                  onClick={handleSignOut}
+                  title="Sign out"
+                >
+                  <LogOut className="w-4 h-4" />
+                </Button>
               </div>
             </div>
           )}
