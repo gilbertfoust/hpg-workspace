@@ -10,6 +10,7 @@ import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import NGOs from "./pages/NGOs";
+import NGODetail from "./pages/NGODetail";
 import WorkItems from "./pages/WorkItems";
 import Forms from "./pages/Forms";
 import Documents from "./pages/Documents";
