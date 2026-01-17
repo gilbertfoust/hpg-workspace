@@ -55,6 +55,7 @@ const App = () => (
             {/* Protected main pages */}
             <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
             <Route path="/ngos" element={<ProtectedRoute><NGOs /></ProtectedRoute>} />
+            <Route path="/ngos/:id" element={<ProtectedRoute><NGODetail /></ProtectedRoute>} />
             <Route path="/work-items" element={<ProtectedRoute><WorkItems /></ProtectedRoute>} />
             <Route path="/forms" element={<ProtectedRoute><Forms /></ProtectedRoute>} />
             <Route path="/documents" element={<ProtectedRoute><Documents /></ProtectedRoute>} />
