@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import ConfigCheckPanel from "@/components/admin/ConfigCheckPanel";
 import {
   Users,
   Building,
@@ -271,6 +272,9 @@ export default function Admin() {
         {/* Settings Tab */}
         <TabsContent value="settings">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Config Check Panel */}
+            <ConfigCheckPanel />
+
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
