@@ -55,6 +55,22 @@ export const useFormSubmissions = (filters?: { ngo_id?: string; form_template_id
   });
 };
 
+export interface FormSubmissionWithSchema extends FormSubmission {
+  form_template?: {
+    name: string;
+    module: string;
+    schema_json?: {
+      fields: Array<{
+        name: string;
+        type: string;
+        label: string;
+        required?: boolean;
+        options?: string[];
+      }>;
+    };
+  };
+}
+
 export const useFormSubmission = (id: string) => {
   return useQuery({
     queryKey: ['form-submissions', 'detail', id],
@@ -69,7 +85,7 @@ export const useFormSubmission = (id: string) => {
         .single();
       
       if (error) throw error;
-      return data as FormSubmission;
+      return data as FormSubmissionWithSchema;
     },
     enabled: !!id,
   });
