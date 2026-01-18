@@ -1,73 +1,159 @@
-# Welcome to your Lovable project
+# HPG Workstation — Org Coordination OS
 
-## Project info
+A comprehensive organizational coordination system for managing NGO relationships, work items, documents, approvals, and cross-departmental workflows.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+## Project Info
 
-## How can I edit this code?
+**Live URL**: https://hpg-workspace.lovable.app  
+**Preview URL**: https://id-preview--b124dc6a-4095-4aa4-a2a8-11419602e543.lovable.app
 
-There are several ways of editing your application.
+## Technology Stack
 
-**Use Lovable**
+- **Frontend**: React 18 + TypeScript + Vite
+- **Styling**: Tailwind CSS + shadcn/ui components
+- **Backend**: Lovable Cloud (Supabase-powered)
+- **State Management**: TanStack Query (React Query)
+- **Routing**: React Router v6
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+## Environment Variables
 
-Changes made via Lovable will be committed automatically to this repo.
+The application requires the following environment variables:
 
-**Use your preferred IDE**
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `VITE_SUPABASE_URL` | ✅ Yes | Backend API URL |
+| `VITE_SUPABASE_PUBLISHABLE_KEY` | ✅ Yes | Public API key for client-side auth |
+| `VITE_SUPABASE_PROJECT_ID` | ✅ Yes | Project identifier |
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+### For Edge Functions Only (Server-Side)
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `SUPABASE_SERVICE_ROLE_KEY` | Optional | Service role key for admin operations (never expose client-side) |
 
-Follow these steps:
+> ⚠️ **Security**: Never commit secrets to the repository. All secrets are managed via Lovable Cloud.
+
+## Local Development
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
+# Clone the repository
 git clone <YOUR_GIT_URL>
+cd hpg-workspace
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+# Install dependencies
+npm install
 
-# Step 3: Install the necessary dependencies.
-npm i
+# Create a .env file (copy from .env.example if available)
+# Or the Lovable Cloud will auto-inject environment variables
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# Start development server
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+The app will be available at `http://localhost:8080`
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## Deployment
 
-**Use GitHub Codespaces**
+This project is deployed via **Lovable Cloud**, which provides:
+- Automatic deployments on push to main branch
+- Managed backend infrastructure
+- Automatic SSL certificates
+- Environment variable management
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+### Manual Deployment Steps
 
-## What technologies are used for this project?
+1. Push changes to the `main` branch
+2. Lovable Cloud automatically builds and deploys
+3. Visit the live URL to verify changes
 
-This project is built with:
+### Verifying Configuration
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+1. Log in to the application
+2. Navigate to **Admin → Settings**
+3. Check the **Configuration Status** panel
+4. All environment variables should show "Present"
 
-## How can I deploy this project?
+## Database Schema
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+### Core Tables
 
-## Can I connect a custom domain to my Lovable project?
+| Table | Description |
+|-------|-------------|
+| `ngos` | NGO organizations being coordinated |
+| `work_items` | Tasks, deliverables, and action items |
+| `documents` | File metadata and review status |
+| `contacts` | People associated with NGOs |
+| `org_units` | Internal departments/teams |
+| `profiles` | User profile information |
+| `user_roles` | Role-based access control |
+| `approvals` | Approval workflow records |
+| `audit_log` | Change tracking for compliance |
+| `form_templates` | Dynamic form definitions |
+| `form_submissions` | Submitted form data |
+| `template_groups` | Work item template bundles |
+| `comments` | Work item discussions |
 
-Yes, you can!
+### User Roles
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+| Role | Access Level |
+|------|--------------|
+| `super_admin` | Full system access |
+| `admin_pm` | Administrative oversight |
+| `executive_secretariat` | Executive-level access |
+| `ngo_coordinator` | Assigned NGO management |
+| `department_lead` | Department-scoped access |
+| `staff_member` | Basic staff access |
+| `external_ngo` | External NGO user (limited) |
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+## Row-Level Security (RLS)
+
+All tables have RLS policies enforcing:
+- Users see only data they're authorized to access
+- Super admins have unrestricted access
+- Department leads see department-scoped data
+- NGO coordinators see assigned NGO data
+- External users see only their linked NGO data
+
+## Project Structure
+
+```
+src/
+├── components/
+│   ├── admin/          # Admin panel components
+│   ├── auth/           # Authentication components
+│   ├── common/         # Shared UI components
+│   ├── layout/         # Layout components
+│   ├── ngo/            # NGO-related components
+│   ├── ui/             # shadcn/ui primitives
+│   └── work-items/     # Work item components
+├── contexts/           # React contexts (Auth)
+├── hooks/              # Custom React hooks
+├── integrations/       # External integrations
+├── lib/                # Utility functions
+└── pages/              # Route pages
+```
+
+## Testing the Live Site
+
+### Phase 1 Verification Checklist
+
+- [ ] Auth page loads at `/auth`
+- [ ] Sign up creates a new account
+- [ ] Sign in works with valid credentials
+- [ ] Session persists on page refresh
+- [ ] Sign out clears session
+- [ ] Protected routes redirect to `/auth`
+- [ ] Admin → Settings shows Config Status panel
+- [ ] All environment variables show "Present"
+
+## Contributing
+
+1. Make changes incrementally
+2. Never break the existing build
+3. Hide incomplete features behind "Coming Soon" flags
+4. Use migration-first approach for database changes
+5. Never commit secrets
+
+## License
+
+Proprietary - HPG Internal Use Only
