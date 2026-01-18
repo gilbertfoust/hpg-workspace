@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { User, Session } from '@supabase/supabase-js';
+import type { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 
 interface AuthContextType {
@@ -13,12 +13,11 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Helper to create a consistent error when Supabase is not configured
+// Single flag we use everywhere to decide if Supabase is really available
+const supabaseReady = !!supabase;
+
 const supabaseNotConfiguredError = () =>
   new Error('Supabase is not configured for this environment.');
-
-// We treat "supabase is truthy" as "backend is available"
-const supabaseReady = !!supabase;
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -26,8 +25,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // If Supabase is not configured (e.g., Lovable preview), do not try to call supabase.auth
-    if (!supabaseReady) {
+    // If Supabase is not wired (e.g., Lovable preview without env), do not touch supabase.auth
+    if (!supabaseReady || !supabase) {
       setUser(null);
       setSession(null);
       setLoading(false);
@@ -64,6 +63,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       email,
       password,
     });
+
     return { error: error as Error | null };
   };
 
@@ -82,28 +82,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         },
       },
     });
+
     return { error: error as Error | null };
   };
 
   const signOut = async () => {
     if (!supabaseReady || !supabase) {
-      // In a preview environment with no Supabase, just resolve
+      // In environments without Supabase (Lovable preview), just no-op
       return;
     }
+
     await supabase.auth.signOut();
   };
 
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        session,
-        loading,
-        signIn,
-        signUp,
-        signOut,
-      }}
-    >
+    <AuthContext.Provider value={{ user, session, loading, signIn, signUp, signOut }}>
       {children}
     </AuthContext.Provider>
   );
@@ -116,4 +109,5 @@ export const useAuth = () => {
   }
   return context;
 };
+
 
