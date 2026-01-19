@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import type { User, Session } from '@supabase/supabase-js';
-import { supabase } from '@/integrations/supabase/client';
+import { getSupabaseNotConfiguredError, supabase } from '@/integrations/supabase/client';
 
 interface AuthContextType {
   user: User | null;
@@ -17,7 +17,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 const supabaseReady = !!supabase;
 
 const supabaseNotConfiguredError = () =>
-  new Error('Supabase is not configured for this environment.');
+  getSupabaseNotConfiguredError();
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -109,5 +109,4 @@ export const useAuth = () => {
   }
   return context;
 };
-
 

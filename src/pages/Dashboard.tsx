@@ -21,6 +21,8 @@ import { useNavigate } from "react-router-dom";
 import { useWorkItems, useWorkItemStats } from "@/hooks/useWorkItems";
 import { useNGOStats, useNGOs } from "@/hooks/useNGOs";
 import { format } from "date-fns";
+import { isSupabaseNotConfiguredError } from "@/integrations/supabase/client";
+import { SupabaseNotConfiguredNotice } from "@/components/common/SupabaseNotConfiguredNotice";
 
 const statusMap: Record<string, "approved" | "in-progress" | "rejected" | "draft" | "waiting-ngo" | "under-review"> = {
   not_started: "draft",
@@ -44,10 +46,27 @@ const priorityMap: Record<string, "low" | "medium" | "high"> = {
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const { data: workItemStats, isLoading: statsLoading } = useWorkItemStats();
-  const { data: ngoStats, isLoading: ngoStatsLoading } = useNGOStats();
-  const { data: workItems, isLoading: workItemsLoading } = useWorkItems();
-  const { data: ngos } = useNGOs();
+  const { data: workItemStats, isLoading: statsLoading, error: workItemStatsError } = useWorkItemStats();
+  const { data: ngoStats, isLoading: ngoStatsLoading, error: ngoStatsError } = useNGOStats();
+  const { data: workItems, isLoading: workItemsLoading, error: workItemsError } = useWorkItems();
+  const { data: ngos, error: ngosError } = useNGOs();
+
+  const supabaseNotConfigured =
+    isSupabaseNotConfiguredError(workItemStatsError) ||
+    isSupabaseNotConfiguredError(ngoStatsError) ||
+    isSupabaseNotConfiguredError(workItemsError) ||
+    isSupabaseNotConfiguredError(ngosError);
+
+  if (supabaseNotConfigured) {
+    return (
+      <MainLayout
+        title="Executive Dashboard"
+        subtitle="Overview of HPG operations and pending actions"
+      >
+        <SupabaseNotConfiguredNotice />
+      </MainLayout>
+    );
+  }
 
   // Get work items due soon (next 7 days)
   const today = new Date();
