@@ -68,9 +68,10 @@ export const useNGO = (id: string) => {
         .from('ngos')
         .select('*')
         .eq('id', id)
-        .single();
+        .maybeSingle();
       
       if (error) throw error;
+      if (!data) throw new Error('NGO not found');
       return data as NGO;
     },
     enabled: !!id,
