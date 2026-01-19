@@ -31,6 +31,8 @@ import { NGODocumentsTab } from "@/components/ngo/NGODocumentsTab";
 import { NGOCalendarTab } from "@/components/ngo/NGOCalendarTab";
 import { NGOActivityTab } from "@/components/ngo/NGOActivityTab";
 import { NGOEditSheet } from "@/components/ngo/NGOEditSheet";
+import { isSupabaseNotConfiguredError } from "@/integrations/supabase/client";
+import { SupabaseNotConfiguredNotice } from "@/components/common/SupabaseNotConfiguredNotice";
 
 const statusMap: Record<string, "approved" | "in-progress" | "rejected" | "draft" | "waiting-ngo"> = {
   active: "approved",
@@ -56,6 +58,14 @@ export default function NGODetail() {
           <Skeleton className="h-12" />
           <Skeleton className="h-96" />
         </div>
+      </MainLayout>
+    );
+  }
+
+  if (isSupabaseNotConfiguredError(error)) {
+    return (
+      <MainLayout title="NGO">
+        <SupabaseNotConfiguredNotice />
       </MainLayout>
     );
   }

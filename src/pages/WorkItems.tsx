@@ -36,6 +36,8 @@ import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { useWorkItems, WorkItemStatus, ModuleType, Priority } from "@/hooks/useWorkItems";
 import { useNGOs } from "@/hooks/useNGOs";
+import { isSupabaseNotConfiguredError } from "@/integrations/supabase/client";
+import { SupabaseNotConfiguredNotice } from "@/components/common/SupabaseNotConfiguredNotice";
 
 const modules: { value: string; label: string }[] = [
   { value: "all", label: "All Modules" },
@@ -102,7 +104,15 @@ export default function WorkItems() {
   }, [selectedModule, selectedStatus]);
 
   const { data: workItems, isLoading, error } = useWorkItems(filters);
-  const { data: ngos } = useNGOs();
+  const { data: ngos, error: ngosError } = useNGOs();
+
+  if (isSupabaseNotConfiguredError(error) || isSupabaseNotConfiguredError(ngosError)) {
+    return (
+      <MainLayout title="Work Items" subtitle="Manage and track all assignments across departments">
+        <SupabaseNotConfiguredNotice />
+      </MainLayout>
+    );
+  }
 
   // Create NGO lookup map
   const ngoMap = useMemo(() => {

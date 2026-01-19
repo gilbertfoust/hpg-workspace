@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { getSupabaseNotConfiguredError, supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
 export type DocumentCategory = 
@@ -37,10 +37,17 @@ export interface CreateDocumentInput {
   uploaded_by_user_id?: string;
 }
 
+const ensureSupabase = () => {
+  if (!supabase) {
+    throw getSupabaseNotConfiguredError();
+  }
+};
+
 export const useDocuments = (filters?: { ngo_id?: string; work_item_id?: string; category?: DocumentCategory }) => {
   return useQuery({
     queryKey: ['documents', filters],
     queryFn: async () => {
+      ensureSupabase();
       let query = supabase.from('documents').select('*');
       
       if (filters?.ngo_id) {
@@ -65,6 +72,7 @@ export const useDocument = (id: string) => {
   return useQuery({
     queryKey: ['documents', 'detail', id],
     queryFn: async () => {
+      ensureSupabase();
       const { data, error } = await supabase
         .from('documents')
         .select('*')
@@ -84,6 +92,7 @@ export const useCreateDocument = () => {
 
   return useMutation({
     mutationFn: async (input: CreateDocumentInput) => {
+      ensureSupabase();
       const { data, error } = await supabase
         .from('documents')
         .insert(input)
@@ -116,6 +125,7 @@ export const useUpdateDocument = () => {
 
   return useMutation({
     mutationFn: async ({ id, ...input }: Partial<Document> & { id: string }) => {
+      ensureSupabase();
       const { data, error } = await supabase
         .from('documents')
         .update(input)
