@@ -64,6 +64,7 @@ export interface WorkItem {
 export interface CreateWorkItemInput {
   title: string;
   module: ModuleType;
+  type?: string;
   ngo_id?: string;
   description?: string;
   department_id?: string;
