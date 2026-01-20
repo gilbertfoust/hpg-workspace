@@ -16,7 +16,7 @@ import WorkItems from "./pages/WorkItems";
 import Forms from "./pages/Forms";
 import Documents from "./pages/Documents";
 import CalendarPage from "./pages/CalendarPage";
-import Reports from "./pages/Reports";
+import ReportsDashboard from "./pages/ReportsDashboard";
 import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 
@@ -62,7 +62,7 @@ const App = () => (
               <Route path="/forms" element={<ProtectedRoute><Forms /></ProtectedRoute>} />
               <Route path="/documents" element={<ProtectedRoute><Documents /></ProtectedRoute>} />
               <Route path="/calendar" element={<ProtectedRoute><CalendarPage /></ProtectedRoute>} />
-              <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
+              <Route path="/reports" element={<ProtectedRoute><ReportsDashboard /></ProtectedRoute>} />
               <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
               
               {/* Protected module pages */}

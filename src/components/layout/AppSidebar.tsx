@@ -185,6 +185,15 @@ export function AppSidebar() {
               <NavItem to="/documents" icon={<FolderOpen className="w-4 h-4" />} label={isCollapsed ? "" : "Documents"} />
               <NavItem to="/calendar" icon={<Calendar className="w-4 h-4" />} label={isCollapsed ? "" : "Calendar"} />
 
+              {!isCollapsed && (
+                <div className="pt-4">
+                  <p className="nav-section-title">Executive</p>
+                  <div className="space-y-1">
+                    <NavItem to="/reports" icon={<BarChart3 className="w-4 h-4" />} label="Reports" />
+                  </div>
+                </div>
+              )}
+
               {/* Modules Section */}
               {!isCollapsed && (
                 <div className="pt-4">
@@ -218,7 +227,9 @@ export function AppSidebar() {
 
               {/* Footer Navigation */}
               <div className="pt-4 mt-4 border-t border-sidebar-border">
-                <NavItem to="/reports" icon={<BarChart3 className="w-4 h-4" />} label={isCollapsed ? "" : "Reports"} />
+                {isCollapsed && (
+                  <NavItem to="/reports" icon={<BarChart3 className="w-4 h-4" />} label="" />
+                )}
                 <NavItem to="/admin" icon={<Settings className="w-4 h-4" />} label={isCollapsed ? "" : "Admin"} />
               </div>
             </nav>
