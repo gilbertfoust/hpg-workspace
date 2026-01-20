@@ -543,6 +543,57 @@ export type Database = {
           },
         ]
       }
+      reminders: {
+        Row: {
+          channel: string | null
+          created_at: string
+          id: string
+          remind_at: string
+          seen_at: string | null
+          status: string | null
+          updated_at: string | null
+          user_id: string
+          work_item_id: string
+        }
+        Insert: {
+          channel?: string | null
+          created_at?: string
+          id?: string
+          remind_at: string
+          seen_at?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id: string
+          work_item_id: string
+        }
+        Update: {
+          channel?: string | null
+          created_at?: string
+          id?: string
+          remind_at?: string
+          seen_at?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string
+          work_item_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reminders_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reminders_work_item_id_fkey"
+            columns: ["work_item_id"]
+            isOneToOne: false
+            referencedRelation: "work_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       template_groups: {
         Row: {
           category: string | null

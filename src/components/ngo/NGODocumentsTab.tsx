@@ -21,16 +21,30 @@ import {
   Download,
   Eye,
   MoreHorizontal,
-  FolderOpen
+  FolderOpen,
+  Trash2,
+  Loader2
 } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { format } from "date-fns";
-import { useDocuments, DocumentCategory } from "@/hooks/useDocuments";
+import { useDocuments, useDocumentUrl, useDeleteDocument, DocumentCategory, Document } from "@/hooks/useDocuments";
+import { DocumentUploadDialog } from "./DocumentUploadDialog";
 
 interface NGODocumentsTabProps {
   ngoId: string;
@@ -51,9 +65,12 @@ const categoryLabels: Record<DocumentCategory, string> = {
 };
 
 const reviewStatusStyles: Record<string, string> = {
-  pending: "bg-amber-100 text-amber-700",
-  approved: "bg-emerald-100 text-emerald-700",
-  rejected: "bg-red-100 text-red-700",
+  pending: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
+  Pending: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
+  approved: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
+  Approved: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
+  rejected: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
+  Rejected: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
 };
 
 function getFileIcon(fileType: string | null) {
@@ -81,6 +98,10 @@ function formatFileSize(bytes: number | null): string {
 export function NGODocumentsTab({ ngoId }: NGODocumentsTabProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<DocumentCategory | "all">("all");
+  const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [documentToDelete, setDocumentToDelete] = useState<Document | null>(null);
+  const [loadingDocId, setLoadingDocId] = useState<string | null>(null);
 
   const filters = {
     ngo_id: ngoId,
@@ -88,10 +109,37 @@ export function NGODocumentsTab({ ngoId }: NGODocumentsTabProps) {
   };
 
   const { data: documents, isLoading } = useDocuments(filters);
+  const { downloadDocument, previewDocument } = useDocumentUrl();
+  const deleteMutation = useDeleteDocument();
 
   const filteredDocs = documents?.filter(doc =>
     doc.file_name.toLowerCase().includes(searchQuery.toLowerCase())
   ) || [];
+
+  const handlePreview = async (doc: Document) => {
+    setLoadingDocId(doc.id);
+    await previewDocument(doc.file_path);
+    setLoadingDocId(null);
+  };
+
+  const handleDownload = async (doc: Document) => {
+    setLoadingDocId(doc.id);
+    await downloadDocument(doc.file_path, doc.file_name);
+    setLoadingDocId(null);
+  };
+
+  const handleDeleteClick = (doc: Document) => {
+    setDocumentToDelete(doc);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (documentToDelete) {
+      await deleteMutation.mutateAsync(documentToDelete);
+      setDeleteDialogOpen(false);
+      setDocumentToDelete(null);
+    }
+  };
 
   return (
     <div className="space-y-4">
@@ -121,7 +169,7 @@ export function NGODocumentsTab({ ngoId }: NGODocumentsTabProps) {
             </SelectContent>
           </Select>
         </div>
-        <Button>
+        <Button onClick={() => setUploadDialogOpen(true)}>
           <Upload className="w-4 h-4 mr-2" />
           Upload Document
         </Button>
@@ -172,17 +220,29 @@ export function NGODocumentsTab({ ngoId }: NGODocumentsTabProps) {
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" size="icon" className="h-8 w-8">
-                        <MoreHorizontal className="w-4 h-4" />
+                        {loadingDocId === doc.id ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <MoreHorizontal className="w-4 h-4" />
+                        )}
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handlePreview(doc)}>
                         <Eye className="w-4 h-4 mr-2" />
                         Preview
                       </DropdownMenuItem>
-                      <DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleDownload(doc)}>
                         <Download className="w-4 h-4 mr-2" />
                         Download
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        className="text-destructive focus:text-destructive"
+                        onClick={() => handleDeleteClick(doc)}
+                      >
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        Delete
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -205,7 +265,7 @@ export function NGODocumentsTab({ ngoId }: NGODocumentsTabProps) {
                   ? "Upload documents to keep track of important files" 
                   : "Try adjusting your search or filters"}
               </p>
-              <Button>
+              <Button onClick={() => setUploadDialogOpen(true)}>
                 <Upload className="w-4 h-4 mr-2" />
                 Upload Document
               </Button>
@@ -213,6 +273,41 @@ export function NGODocumentsTab({ ngoId }: NGODocumentsTabProps) {
           </CardContent>
         </Card>
       )}
+
+      {/* Upload Dialog */}
+      <DocumentUploadDialog
+        open={uploadDialogOpen}
+        onOpenChange={setUploadDialogOpen}
+        ngoId={ngoId}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Document</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{documentToDelete?.file_name}"? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteMutation.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                "Delete"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

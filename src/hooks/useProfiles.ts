@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { getSupabaseNotConfiguredError, supabase } from '@/integrations/supabase/client';
 
 export interface Profile {
   id: string;
@@ -11,10 +11,17 @@ export interface Profile {
   updated_at: string;
 }
 
+const ensureSupabase = () => {
+  if (!supabase) {
+    throw getSupabaseNotConfiguredError();
+  }
+};
+
 export const useProfiles = () => {
   return useQuery({
     queryKey: ['profiles'],
     queryFn: async () => {
+      ensureSupabase();
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -30,6 +37,7 @@ export const useProfile = (id: string) => {
   return useQuery({
     queryKey: ['profiles', id],
     queryFn: async () => {
+      ensureSupabase();
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -47,6 +55,7 @@ export const useInternalUsers = () => {
   return useQuery({
     queryKey: ['internal-users'],
     queryFn: async () => {
+      ensureSupabase();
       // Get profiles that have internal roles
       const { data: userRoles, error: rolesError } = await supabase
         .from('user_roles')
