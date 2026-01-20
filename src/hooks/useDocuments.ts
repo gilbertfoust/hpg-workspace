@@ -37,6 +37,16 @@ export interface CreateDocumentInput {
   uploaded_by_user_id?: string;
 }
 
+export interface DocumentFilters {
+  ngo_id?: string;
+  work_item_id?: string;
+  category?: DocumentCategory;
+  review_status?: string;
+  uploaded_by_user_id?: string;
+  uploaded_from?: string;
+  uploaded_to?: string;
+}
+
 const BUCKET_NAME = 'ngo-documents';
 
 const ensureSupabase = () => {
@@ -45,7 +55,7 @@ const ensureSupabase = () => {
   }
 };
 
-export const useDocuments = (filters?: { ngo_id?: string; work_item_id?: string; category?: DocumentCategory }) => {
+export const useDocuments = (filters?: DocumentFilters) => {
   return useQuery({
     queryKey: ['documents', filters],
     queryFn: async () => {
@@ -60,6 +70,18 @@ export const useDocuments = (filters?: { ngo_id?: string; work_item_id?: string;
       }
       if (filters?.category) {
         query = query.eq('category', filters.category);
+      }
+      if (filters?.review_status) {
+        query = query.eq('review_status', filters.review_status);
+      }
+      if (filters?.uploaded_by_user_id) {
+        query = query.eq('uploaded_by_user_id', filters.uploaded_by_user_id);
+      }
+      if (filters?.uploaded_from) {
+        query = query.gte('uploaded_at', filters.uploaded_from);
+      }
+      if (filters?.uploaded_to) {
+        query = query.lte('uploaded_at', filters.uploaded_to);
       }
       
       const { data, error } = await query.order('uploaded_at', { ascending: false });
@@ -217,10 +239,23 @@ export const useUploadDocument = () => {
         throw dbError;
       }
 
+      if (workItemId) {
+        const { error: workItemError } = await supabase
+          .from('work_items')
+          .update({ evidence_status: 'uploaded' })
+          .eq('id', workItemId);
+
+        if (workItemError) {
+          throw workItemError;
+        }
+      }
+
       return data as Document;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['documents'] });
+      queryClient.invalidateQueries({ queryKey: ['work-items'] });
+      queryClient.invalidateQueries({ queryKey: ['work-item-stats'] });
       toast({
         title: 'Document uploaded',
         description: 'The document has been successfully uploaded.',

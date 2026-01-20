@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/select";
 import { Upload, File, X, Loader2 } from "lucide-react";
 import { useUploadDocument, DocumentCategory } from "@/hooks/useDocuments";
+import { useWorkItems } from "@/hooks/useWorkItems";
 
 interface DocumentUploadDialogProps {
   open: boolean;
@@ -63,9 +64,11 @@ export function DocumentUploadDialog({
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [category, setCategory] = useState<DocumentCategory>("other");
   const [isDragging, setIsDragging] = useState(false);
+  const [selectedWorkItemId, setSelectedWorkItemId] = useState<string>("none");
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const uploadMutation = useUploadDocument();
+  const { data: workItems } = useWorkItems({ ngo_id: ngoId });
 
   const handleFileSelect = (files: FileList | null) => {
     if (files && files.length > 0) {
@@ -97,7 +100,7 @@ export function DocumentUploadDialog({
         file: selectedFile,
         ngoId,
         category,
-        workItemId,
+        workItemId: workItemId || (selectedWorkItemId !== "none" ? selectedWorkItemId : undefined),
       });
       
       // Reset and close
@@ -113,6 +116,7 @@ export function DocumentUploadDialog({
     if (!uploadMutation.isPending) {
       setSelectedFile(null);
       setCategory("other");
+      setSelectedWorkItemId("none");
       onOpenChange(false);
     }
   };
@@ -208,6 +212,25 @@ export function DocumentUploadDialog({
               </SelectContent>
             </Select>
           </div>
+
+          {!workItemId && (
+            <div className="space-y-2">
+              <Label htmlFor="workItem">Link to Work Item (optional)</Label>
+              <Select value={selectedWorkItemId} onValueChange={setSelectedWorkItemId}>
+                <SelectTrigger id="workItem">
+                  <SelectValue placeholder="Select a work item" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No work item</SelectItem>
+                  {(workItems || []).map((item) => (
+                    <SelectItem key={item.id} value={item.id}>
+                      {item.title}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
         </div>
 
         <DialogFooter>
