@@ -1,239 +1,137 @@
+import { useMemo, useState } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  FileText,
-  Plus,
-  Users,
-  Briefcase,
-  DollarSign,
-  Scale,
-  Megaphone,
-  MessageSquare,
-  GraduationCap,
-  Wrench,
-  Monitor,
-  Handshake,
-  UserPlus,
-  ArrowRight,
-  Clock,
-} from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { FileText, ArrowRight } from "lucide-react";
+import { useFormTemplates, FormTemplate } from "@/hooks/useFormTemplates";
+import { isSupabaseNotConfiguredError } from "@/integrations/supabase/client";
+import { SupabaseNotConfiguredNotice } from "@/components/common/SupabaseNotConfiguredNotice";
+import { FormRunnerSheet } from "@/components/forms/FormRunnerSheet";
 
-interface FormTemplate {
-  id: string;
-  name: string;
-  description: string;
-  module: string;
-  icon: React.ReactNode;
-  lastUsed?: string;
-  drafts?: number;
-}
+const moduleLabels: Record<string, string> = {
+  ngo_coordination: "NGO Coordination",
+  administration: "Administration",
+  operations: "Operations",
+  program: "Program",
+  curriculum: "Curriculum",
+  development: "Development",
+  partnership: "Partnership",
+  marketing: "Marketing",
+  communications: "Communications",
+  hr: "HR",
+  it: "IT",
+  finance: "Finance",
+  legal: "Legal",
+};
 
-const formTemplates: FormTemplate[] = [
-  {
-    id: "1",
-    name: "NGO Intake Form",
-    description: "Register a new NGO partner with contact and jurisdiction details",
-    module: "NGO Coordination",
-    icon: <Users className="w-5 h-5" />,
-    lastUsed: "2 days ago",
-  },
-  {
-    id: "2",
-    name: "Monthly NGO Check-in",
-    description: "Record monthly status, activities, and support needs",
-    module: "NGO Coordination",
-    icon: <Users className="w-5 h-5" />,
-    lastUsed: "1 week ago",
-  },
-  {
-    id: "3",
-    name: "Document Request",
-    description: "Request specific documents from an NGO partner",
-    module: "NGO Coordination",
-    icon: <Users className="w-5 h-5" />,
-  },
-  {
-    id: "4",
-    name: "Expense Request",
-    description: "Submit expense reimbursement with receipt attachments",
-    module: "Finance",
-    icon: <DollarSign className="w-5 h-5" />,
-    drafts: 2,
-  },
-  {
-    id: "5",
-    name: "Payment Processing",
-    description: "Request payment processing for approved expenses",
-    module: "Finance",
-    icon: <DollarSign className="w-5 h-5" />,
-  },
-  {
-    id: "6",
-    name: "Grant Research Update",
-    description: "Document grant opportunity research findings",
-    module: "Development",
-    icon: <DollarSign className="w-5 h-5" />,
-  },
-  {
-    id: "7",
-    name: "LOI/Proposal Submission",
-    description: "Submit letter of intent or grant proposal for review",
-    module: "Development",
-    icon: <DollarSign className="w-5 h-5" />,
-    lastUsed: "3 days ago",
-  },
-  {
-    id: "8",
-    name: "Contract Review Request",
-    description: "Request legal review of contracts or agreements",
-    module: "Legal",
-    icon: <Scale className="w-5 h-5" />,
-  },
-  {
-    id: "9",
-    name: "Compliance Filing Proof",
-    description: "Submit evidence of regulatory filing completion",
-    module: "Legal",
-    icon: <Scale className="w-5 h-5" />,
-  },
-  {
-    id: "10",
-    name: "Marketing Request",
-    description: "Request marketing support for campaigns or assets",
-    module: "Marketing",
-    icon: <Megaphone className="w-5 h-5" />,
-  },
-  {
-    id: "11",
-    name: "IT Access Request",
-    description: "Request access to tools, systems, or accounts",
-    module: "IT",
-    icon: <Monitor className="w-5 h-5" />,
-    lastUsed: "1 day ago",
-  },
-  {
-    id: "12",
-    name: "Support Ticket",
-    description: "Submit IT support request or report an issue",
-    module: "IT",
-    icon: <Monitor className="w-5 h-5" />,
-  },
-  {
-    id: "13",
-    name: "Application Intake",
-    description: "Process new job applications",
-    module: "HR",
-    icon: <UserPlus className="w-5 h-5" />,
-  },
-  {
-    id: "14",
-    name: "Interview Scorecard",
-    description: "Record interview feedback and scoring",
-    module: "HR",
-    icon: <UserPlus className="w-5 h-5" />,
-  },
-  {
-    id: "15",
-    name: "Meeting Minutes",
-    description: "Upload and link meeting minutes to relevant items",
-    module: "Administration",
-    icon: <Briefcase className="w-5 h-5" />,
-  },
-];
-
-const modules = [
-  { name: "All Forms", count: formTemplates.length },
-  { name: "NGO Coordination", count: 3 },
-  { name: "Finance", count: 2 },
-  { name: "Development", count: 2 },
-  { name: "Legal", count: 2 },
-  { name: "Marketing", count: 1 },
-  { name: "IT", count: 2 },
-  { name: "HR", count: 2 },
-  { name: "Administration", count: 1 },
-];
+const formatModuleLabel = (module: string) =>
+  moduleLabels[module] || module.replace(/_/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
 
 export default function Forms() {
+  const { data: templates, isLoading, error } = useFormTemplates();
+  const [selectedTemplate, setSelectedTemplate] = useState<FormTemplate | null>(null);
+  const [sheetOpen, setSheetOpen] = useState(false);
+
+  const groupedTemplates = useMemo(() => {
+    const groups = new Map<string, FormTemplate[]>();
+    (templates || []).forEach((template) => {
+      const label = formatModuleLabel(template.module);
+      if (!groups.has(label)) {
+        groups.set(label, []);
+      }
+      groups.get(label)?.push(template);
+    });
+    return Array.from(groups.entries()).sort(([a], [b]) => a.localeCompare(b));
+  }, [templates]);
+
+  const handleLaunch = (template: FormTemplate) => {
+    setSelectedTemplate(template);
+    setSheetOpen(true);
+  };
+
+  if (isSupabaseNotConfiguredError(error)) {
+    return (
+      <MainLayout title="Forms" subtitle="Launch forms to create work items and submit data">
+        <SupabaseNotConfiguredNotice />
+      </MainLayout>
+    );
+  }
+
   return (
     <MainLayout
       title="Forms"
       subtitle="Launch forms to create work items and submit data"
-      actions={
-        <Button variant="outline">
-          <Clock className="w-4 h-4 mr-2" />
-          My Drafts (2)
-        </Button>
-      }
     >
-      <Tabs defaultValue="All Forms" className="space-y-6">
-        <TabsList className="flex flex-wrap h-auto gap-1 bg-transparent p-0">
-          {modules.map((module) => (
-            <TabsTrigger
-              key={module.name}
-              value={module.name}
-              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-            >
-              {module.name}
-              <Badge variant="secondary" className="ml-2 text-xs">
-                {module.count}
-              </Badge>
-            </TabsTrigger>
+      {isLoading && (
+        <div className="space-y-4">
+          {[1, 2, 3].map((index) => (
+            <Skeleton key={index} className="h-24" />
           ))}
-        </TabsList>
+        </div>
+      )}
 
-        {modules.map((module) => (
-          <TabsContent key={module.name} value={module.name}>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {formTemplates
-                .filter(
-                  (form) =>
-                    module.name === "All Forms" || form.module === module.name
-                )
-                .map((form) => (
-                  <Card key={form.id} className="module-card group">
+      {!isLoading && groupedTemplates.length === 0 && (
+        <Card>
+          <CardContent className="py-10 text-center">
+            <FileText className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
+            <p className="text-muted-foreground">No form templates are available.</p>
+          </CardContent>
+        </Card>
+      )}
+
+      {!isLoading && groupedTemplates.length > 0 && (
+        <div className="space-y-8">
+          {groupedTemplates.map(([module, moduleTemplates]) => (
+            <section key={module} className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-lg font-semibold">{module}</h2>
+                  <p className="text-sm text-muted-foreground">
+                    {moduleTemplates.length} template{moduleTemplates.length !== 1 ? "s" : ""}
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {moduleTemplates.map((template) => (
+                  <Card key={template.id} className="module-card group">
                     <CardHeader className="pb-3">
                       <div className="flex items-start justify-between">
                         <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
-                          {form.icon}
+                          <FileText className="w-5 h-5" />
                         </div>
-                        {form.drafts && form.drafts > 0 && (
-                          <Badge variant="secondary" className="text-xs">
-                            {form.drafts} draft{form.drafts > 1 ? "s" : ""}
-                          </Badge>
-                        )}
+                        <Badge variant="outline" className="text-xs capitalize">
+                          {formatModuleLabel(template.module)}
+                        </Badge>
                       </div>
                       <CardTitle className="text-base mt-3 group-hover:text-primary transition-colors">
-                        {form.name}
+                        {template.name}
                       </CardTitle>
                       <CardDescription className="text-sm">
-                        {form.description}
+                        {template.description || "No description provided"}
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="pt-0">
-                      <div className="flex items-center justify-between">
-                        <Badge variant="outline" className="text-xs font-normal">
-                          {form.module}
-                        </Badge>
-                        {form.lastUsed && (
-                          <span className="text-xs text-muted-foreground">
-                            Used {form.lastUsed}
-                          </span>
-                        )}
-                      </div>
-                      <Button className="w-full mt-4" variant="outline">
+                      <Button className="w-full mt-4" variant="outline" onClick={() => handleLaunch(template)}>
                         Launch Form
                         <ArrowRight className="w-4 h-4 ml-2" />
                       </Button>
                     </CardContent>
                   </Card>
                 ))}
-            </div>
-          </TabsContent>
-        ))}
-      </Tabs>
+              </div>
+            </section>
+          ))}
+        </div>
+      )}
+
+      <FormRunnerSheet
+        open={sheetOpen}
+        onOpenChange={setSheetOpen}
+        template={selectedTemplate}
+      />
     </MainLayout>
   );
 }

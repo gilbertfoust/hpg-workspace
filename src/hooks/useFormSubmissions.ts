@@ -27,6 +27,7 @@ export interface CreateFormSubmissionInput {
   submitted_by_user_id?: string;
   payload_json?: Json;
   submission_status?: string;
+  submitted_at?: string | null;
 }
 
 const ensureSupabase = () => {
