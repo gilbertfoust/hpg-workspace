@@ -2,9 +2,10 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { HashRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
+import { isSupabaseConfigured } from "@/lib/supabaseClient";
 
 // Pages
 import Auth from "./pages/Auth";
@@ -38,53 +39,74 @@ import {
 
 const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            {/* Auth page */}
-            <Route path="/auth" element={<Auth />} />
-            
-            {/* Redirect root to dashboard */}
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
-            
-            {/* Protected main pages */}
-            <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-            <Route path="/ngos" element={<ProtectedRoute><NGOs /></ProtectedRoute>} />
-            <Route path="/ngos/:id" element={<ProtectedRoute><NGODetail /></ProtectedRoute>} />
-            <Route path="/work-items" element={<ProtectedRoute><WorkItems /></ProtectedRoute>} />
-            <Route path="/forms" element={<ProtectedRoute><Forms /></ProtectedRoute>} />
-            <Route path="/documents" element={<ProtectedRoute><Documents /></ProtectedRoute>} />
-            <Route path="/calendar" element={<ProtectedRoute><CalendarPage /></ProtectedRoute>} />
-            <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
-            <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
-            
-            {/* Protected module pages */}
-            <Route path="/modules/ngo-coordination" element={<ProtectedRoute><NGOCoordinationModule /></ProtectedRoute>} />
-            <Route path="/modules/administration" element={<ProtectedRoute><AdministrationModule /></ProtectedRoute>} />
-            <Route path="/modules/operations" element={<ProtectedRoute><OperationsModule /></ProtectedRoute>} />
-            <Route path="/modules/program" element={<ProtectedRoute><ProgramModule /></ProtectedRoute>} />
-            <Route path="/modules/curriculum" element={<ProtectedRoute><CurriculumModule /></ProtectedRoute>} />
-            <Route path="/modules/development" element={<ProtectedRoute><DevelopmentModule /></ProtectedRoute>} />
-            <Route path="/modules/partnerships" element={<ProtectedRoute><PartnershipsModule /></ProtectedRoute>} />
-            <Route path="/modules/marketing" element={<ProtectedRoute><MarketingModule /></ProtectedRoute>} />
-            <Route path="/modules/communications" element={<ProtectedRoute><CommunicationsModule /></ProtectedRoute>} />
-            <Route path="/modules/hr" element={<ProtectedRoute><HRModule /></ProtectedRoute>} />
-            <Route path="/modules/it" element={<ProtectedRoute><ITModule /></ProtectedRoute>} />
-            <Route path="/modules/finance" element={<ProtectedRoute><FinanceModule /></ProtectedRoute>} />
-            <Route path="/modules/legal" element={<ProtectedRoute><LegalModule /></ProtectedRoute>} />
-            
-            {/* Catch-all */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
-    </AuthProvider>
-  </QueryClientProvider>
-);
+const App = () => {
+  if (!isSupabaseConfigured) {
+    return (
+      <div className="min-h-screen bg-background text-foreground flex items-center justify-center p-6">
+        <div className="max-w-xl rounded-xl border bg-card p-6 shadow-sm">
+          <h1 className="text-2xl font-semibold mb-2">Supabase configuration required</h1>
+          <p className="text-muted-foreground mb-4">
+            Add <code className="font-mono">VITE_SUPABASE_URL</code> and{" "}
+            <code className="font-mono">VITE_SUPABASE_ANON_KEY</code> to your environment.
+            Copy <code className="font-mono">.env.example</code> to{" "}
+            <code className="font-mono">.env.local</code> and fill in the values.
+          </p>
+          <p className="text-sm text-muted-foreground">
+            The app will load normally once those variables are set.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <HashRouter>
+            <Routes>
+              {/* Auth page */}
+              <Route path="/auth" element={<Auth />} />
+              
+              {/* Redirect root to dashboard */}
+              <Route path="/" element={<Navigate to="/dashboard" replace />} />
+              
+              {/* Protected main pages */}
+              <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+              <Route path="/ngos" element={<ProtectedRoute><NGOs /></ProtectedRoute>} />
+              <Route path="/ngos/:id" element={<ProtectedRoute><NGODetail /></ProtectedRoute>} />
+              <Route path="/work-items" element={<ProtectedRoute><WorkItems /></ProtectedRoute>} />
+              <Route path="/forms" element={<ProtectedRoute><Forms /></ProtectedRoute>} />
+              <Route path="/documents" element={<ProtectedRoute><Documents /></ProtectedRoute>} />
+              <Route path="/calendar" element={<ProtectedRoute><CalendarPage /></ProtectedRoute>} />
+              <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
+              <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
+              
+              {/* Protected module pages */}
+              <Route path="/modules/ngo-coordination" element={<ProtectedRoute><NGOCoordinationModule /></ProtectedRoute>} />
+              <Route path="/modules/administration" element={<ProtectedRoute><AdministrationModule /></ProtectedRoute>} />
+              <Route path="/modules/operations" element={<ProtectedRoute><OperationsModule /></ProtectedRoute>} />
+              <Route path="/modules/program" element={<ProtectedRoute><ProgramModule /></ProtectedRoute>} />
+              <Route path="/modules/curriculum" element={<ProtectedRoute><CurriculumModule /></ProtectedRoute>} />
+              <Route path="/modules/development" element={<ProtectedRoute><DevelopmentModule /></ProtectedRoute>} />
+              <Route path="/modules/partnerships" element={<ProtectedRoute><PartnershipsModule /></ProtectedRoute>} />
+              <Route path="/modules/marketing" element={<ProtectedRoute><MarketingModule /></ProtectedRoute>} />
+              <Route path="/modules/communications" element={<ProtectedRoute><CommunicationsModule /></ProtectedRoute>} />
+              <Route path="/modules/hr" element={<ProtectedRoute><HRModule /></ProtectedRoute>} />
+              <Route path="/modules/it" element={<ProtectedRoute><ITModule /></ProtectedRoute>} />
+              <Route path="/modules/finance" element={<ProtectedRoute><FinanceModule /></ProtectedRoute>} />
+              <Route path="/modules/legal" element={<ProtectedRoute><LegalModule /></ProtectedRoute>} />
+              
+              {/* Catch-all */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </HashRouter>
+        </TooltipProvider>
+      </AuthProvider>
+    </QueryClientProvider>
+  );
+};
 
 export default App;

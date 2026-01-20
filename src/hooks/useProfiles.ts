@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/lib/supabaseClient';
 
 export interface Profile {
   id: string;
@@ -7,6 +7,7 @@ export interface Profile {
   email: string | null;
   avatar_url: string | null;
   department_id: string | null;
+  role?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -47,30 +48,14 @@ export const useInternalUsers = () => {
   return useQuery({
     queryKey: ['internal-users'],
     queryFn: async () => {
-      // Get profiles that have internal roles
-      const { data: userRoles, error: rolesError } = await supabase
-        .from('user_roles')
-        .select('user_id, role')
-        .not('role', 'eq', 'external_ngo');
-      
-      if (rolesError) throw rolesError;
-      
-      if (!userRoles || userRoles.length === 0) return [];
-      
-      const userIds = [...new Set(userRoles.map(ur => ur.user_id))];
-      
-      const { data: profiles, error: profilesError } = await supabase
+      const { data: profiles, error } = await supabase
         .from('profiles')
         .select('*')
-        .in('id', userIds);
+        .neq('role', 'external_portal');
       
-      if (profilesError) throw profilesError;
+      if (error) throw error;
       
-      // Attach roles to profiles
-      return (profiles || []).map(profile => ({
-        ...profile,
-        roles: userRoles.filter(ur => ur.user_id === profile.id).map(ur => ur.role),
-      }));
+      return profiles || [];
     },
   });
 };

@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/contexts/AuthContext';
 
 export type AppRole = 
@@ -7,15 +7,13 @@ export type AppRole =
   | 'admin_pm'
   | 'ngo_coordinator'
   | 'department_lead'
-  | 'staff_member'
+  | 'staff'
   | 'executive_secretariat'
-  | 'external_ngo';
+  | 'external_portal';
 
 export interface UserRole {
   id: string;
-  user_id: string;
   role: AppRole;
-  created_at: string;
 }
 
 export const useUserRole = () => {
@@ -27,13 +25,14 @@ export const useUserRole = () => {
       if (!user?.id) return null;
       
       const { data, error } = await supabase
-        .from('user_roles')
-        .select('*')
-        .eq('user_id', user.id)
+        .from('profiles')
+        .select('id, role')
+        .eq('id', user.id)
         .maybeSingle();
       
       if (error) throw error;
-      return data as UserRole | null;
+      if (!data) return null;
+      return { id: data.id, role: data.role } as UserRole;
     },
     enabled: !!user?.id,
   });
@@ -49,7 +48,7 @@ export const useIsInternalUser = () => {
     'admin_pm',
     'ngo_coordinator',
     'department_lead',
-    'staff_member',
+    'staff',
     'executive_secretariat',
   ];
   

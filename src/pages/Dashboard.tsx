@@ -22,24 +22,37 @@ import { useWorkItems, useWorkItemStats } from "@/hooks/useWorkItems";
 import { useNGOStats, useNGOs } from "@/hooks/useNGOs";
 import { format } from "date-fns";
 
-const statusMap: Record<string, "approved" | "in-progress" | "rejected" | "draft" | "waiting-ngo" | "under-review"> = {
-  not_started: "draft",
-  in_progress: "in-progress",
-  waiting_on_ngo: "waiting-ngo",
-  waiting_on_hpg: "waiting-ngo",
-  submitted: "in-progress",
-  under_review: "under-review",
-  approved: "approved",
-  rejected: "rejected",
-  complete: "approved",
-  canceled: "rejected",
-  draft: "draft",
+const statusMap: Record<
+  string,
+  | "approved"
+  | "in-progress"
+  | "rejected"
+  | "draft"
+  | "waiting-ngo"
+  | "waiting-hpg"
+  | "under-review"
+  | "submitted"
+  | "not-started"
+  | "complete"
+  | "canceled"
+> = {
+  Draft: "draft",
+  "Not Started": "not-started",
+  "In Progress": "in-progress",
+  "Waiting on NGO": "waiting-ngo",
+  "Waiting on HPG": "waiting-hpg",
+  Submitted: "submitted",
+  "Under Review": "under-review",
+  Approved: "approved",
+  Rejected: "rejected",
+  Complete: "complete",
+  Canceled: "canceled",
 };
 
-const priorityMap: Record<string, "low" | "medium" | "high"> = {
-  low: "low",
-  medium: "medium",
-  high: "high",
+const priorityMap: Record<string, "Low" | "Med" | "High"> = {
+  Low: "Low",
+  Med: "Med",
+  High: "High",
 };
 
 export default function Dashboard() {
@@ -55,17 +68,17 @@ export default function Dashboard() {
   const dueSoonItems = workItems?.filter(item => {
     if (!item.due_date) return false;
     const dueDate = new Date(item.due_date);
-    return dueDate >= today && dueDate <= in7Days && !['complete', 'canceled'].includes(item.status);
+    return dueDate >= today && dueDate <= in7Days && !['Complete', 'Canceled'].includes(item.status);
   }).slice(0, 5) || [];
 
   // Get at-risk NGOs
-  const atRiskNGOs = ngos?.filter(ngo => ngo.status === 'at_risk') || [];
+  const atRiskNGOs = ngos?.filter(ngo => ngo.status === 'At-Risk') || [];
 
   // Get overdue items
   const overdueItems = workItems?.filter(item => {
     if (!item.due_date) return false;
     const dueDate = new Date(item.due_date);
-    return dueDate < today && !['complete', 'canceled'].includes(item.status);
+    return dueDate < today && !['Complete', 'Canceled'].includes(item.status);
   }) || [];
 
   return (
@@ -200,7 +213,7 @@ export default function Dashboard() {
                           <td className="font-medium">{item.title}</td>
                           <td className="text-muted-foreground capitalize">{item.module.replace('_', ' ')}</td>
                           <td><StatusChip status={statusMap[item.status] || "draft"} /></td>
-                          <td><PriorityBadge priority={priorityMap[item.priority] || "medium"} /></td>
+                          <td><PriorityBadge priority={priorityMap[item.priority] || "Med"} /></td>
                           <td className="text-muted-foreground">
                             {item.due_date ? format(new Date(item.due_date), 'MMM d, yyyy') : '-'}
                           </td>

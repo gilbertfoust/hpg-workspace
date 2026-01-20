@@ -33,12 +33,12 @@ import { NGOActivityTab } from "@/components/ngo/NGOActivityTab";
 import { NGOEditSheet } from "@/components/ngo/NGOEditSheet";
 
 const statusMap: Record<string, "approved" | "in-progress" | "rejected" | "draft" | "waiting-ngo"> = {
-  active: "approved",
-  onboarding: "in-progress",
-  at_risk: "rejected",
-  prospect: "draft",
-  offboarding: "waiting-ngo",
-  closed: "rejected",
+  Active: "approved",
+  Onboarding: "in-progress",
+  "At-Risk": "rejected",
+  Prospect: "draft",
+  Offboarding: "waiting-ngo",
+  Closed: "rejected",
 };
 
 export default function NGODetail() {

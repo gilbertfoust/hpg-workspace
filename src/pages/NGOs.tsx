@@ -42,30 +42,30 @@ import { useNavigate } from "react-router-dom";
 import { useNGOs, useCreateNGO, NGOStatus, FiscalType } from "@/hooks/useNGOs";
 
 const statusMap: Record<string, "approved" | "in-progress" | "rejected" | "draft" | "waiting-ngo"> = {
-  active: "approved",
-  onboarding: "in-progress",
-  at_risk: "rejected",
-  prospect: "draft",
-  offboarding: "waiting-ngo",
-  closed: "rejected",
+  Active: "approved",
+  Onboarding: "in-progress",
+  "At-Risk": "rejected",
+  Prospect: "draft",
+  Offboarding: "waiting-ngo",
+  Closed: "rejected",
 };
 
 const bundles = ["All Bundles", "Detroit", "Chicago", "US", "Mexican", "African", "Asian"];
 const statuses = ["All Statuses", "Prospect", "Onboarding", "Active", "At-Risk", "Offboarding", "Closed"];
 
 const statusValueMap: Record<string, NGOStatus> = {
-  "Prospect": "prospect",
-  "Onboarding": "onboarding",
-  "Active": "active",
-  "At-Risk": "at_risk",
-  "Offboarding": "offboarding",
-  "Closed": "closed",
+  "Prospect": "Prospect",
+  "Onboarding": "Onboarding",
+  "Active": "Active",
+  "At-Risk": "At-Risk",
+  "Offboarding": "Offboarding",
+  "Closed": "Closed",
 };
 
 const fiscalTypes: { label: string; value: FiscalType }[] = [
-  { label: "Model A", value: "model_a" },
-  { label: "Model C", value: "model_c" },
-  { label: "Other", value: "other" },
+  { label: "Model A", value: "Model A" },
+  { label: "Model C", value: "Model C" },
+  { label: "Other", value: "Other" },
 ];
 
 export default function NGOs() {
@@ -87,8 +87,8 @@ export default function NGOs() {
     state_province: "",
     city: "",
     website: "",
-    fiscal_type: "model_c" as FiscalType,
-    status: "prospect" as NGOStatus,
+    fiscal_type: "Model C" as FiscalType,
+    status: "Prospect" as NGOStatus,
     notes: "",
   });
 
@@ -131,8 +131,8 @@ export default function NGOs() {
       state_province: "",
       city: "",
       website: "",
-      fiscal_type: "model_c",
-      status: "prospect",
+      fiscal_type: "Model C",
+      status: "Prospect",
       notes: "",
     });
   };
@@ -258,10 +258,10 @@ export default function NGOs() {
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="prospect">Prospect</SelectItem>
-                      <SelectItem value="onboarding">Onboarding</SelectItem>
-                      <SelectItem value="active">Active</SelectItem>
+                  <SelectContent>
+                      <SelectItem value="Prospect">Prospect</SelectItem>
+                      <SelectItem value="Onboarding">Onboarding</SelectItem>
+                      <SelectItem value="Active">Active</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -388,7 +388,7 @@ export default function NGOs() {
                   <div className="flex items-center gap-2">
                     <StatusChip status={statusMap[ngo.status] || "draft"} />
                     <span className="text-xs text-muted-foreground capitalize">
-                      {ngo.fiscal_type?.replace('_', ' ')}
+                      {ngo.fiscal_type}
                     </span>
                   </div>
                 </div>
