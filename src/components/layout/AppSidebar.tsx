@@ -86,10 +86,10 @@ const modulesSections: ModuleSection[] = [
     ],
   },
   {
-    title: "Growth",
+    title: "Development",
     items: [
-      { to: "/modules/development", icon: <DollarSign className="w-4 h-4" />, label: "Development" },
-      { to: "/modules/partnerships", icon: <Handshake className="w-4 h-4" />, label: "Partnerships" },
+      { to: "/development", icon: <DollarSign className="w-4 h-4" />, label: "Development" },
+      { to: "/partnerships", icon: <Handshake className="w-4 h-4" />, label: "Partnerships" },
       { to: "/modules/marketing", icon: <Megaphone className="w-4 h-4" />, label: "Marketing" },
       { to: "/modules/communications", icon: <MessageSquare className="w-4 h-4" />, label: "Communications" },
     ],

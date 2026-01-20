@@ -22,6 +22,8 @@ import ReportsDashboard from "./pages/ReportsDashboard";
 import Admin from "./pages/Admin";
 import AdminConfigHome from "./pages/AdminConfig/AdminConfigHome";
 import NotFound from "./pages/NotFound";
+import DevelopmentDashboard from "./pages/DevelopmentDashboard";
+import PartnershipsDashboard from "./pages/PartnershipsDashboard";
 import Portal from "./pages/Portal";
 import NGOCoordination from "./pages/NGOCoordination";
 import ITDashboard from "./pages/ITDashboard";
@@ -69,6 +71,8 @@ const App = () => (
             <Route path="/calendar" element={<ProtectedRoute><CalendarPage /></ProtectedRoute>} />
             <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
             <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
+            <Route path="/development" element={<ProtectedRoute><DevelopmentDashboard /></ProtectedRoute>} />
+            <Route path="/partnerships" element={<ProtectedRoute><PartnershipsDashboard /></ProtectedRoute>} />
             <Route path="/it" element={<ProtectedRoute><ITDashboard /></ProtectedRoute>} />
             <Route path="/hr" element={<ProtectedRoute><HRDashboard /></ProtectedRoute>} />
             
