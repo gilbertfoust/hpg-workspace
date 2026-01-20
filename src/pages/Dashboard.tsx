@@ -96,6 +96,7 @@ export default function Dashboard() {
       title="Executive Dashboard"
       subtitle="Overview of HPG operations and pending actions"
       actions={
+        <Button onClick={() => navigate('/my-queue')}>
         <Button onClick={() => navigate("/work-items")}>
           <ClipboardList className="w-4 h-4 mr-2" />
           My Queue
@@ -505,6 +506,8 @@ export default function Dashboard() {
       </div>
 
       {/* Quick Access Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
+        <Card className="module-card cursor-pointer" onClick={() => navigate('/ngos')}>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
         <Card className="module-card cursor-pointer" onClick={() => navigate("/ngos")}>
           <CardContent className="pt-6">
@@ -530,6 +533,7 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
+        <Card className="module-card cursor-pointer" onClick={() => navigate('/my-queue')}>
         <Card className="module-card cursor-pointer" onClick={() => navigate("/work-items")}>
           <CardContent className="pt-6">
             <div className="flex items-center gap-3 mb-3">
@@ -537,8 +541,8 @@ export default function Dashboard() {
                 <ClipboardList className="w-5 h-5 text-warning" />
               </div>
               <div>
-                <h3 className="font-medium">Work Items</h3>
-                <p className="text-sm text-muted-foreground">Task management</p>
+                <h3 className="font-medium">My Queue</h3>
+                <p className="text-sm text-muted-foreground">Your assignments</p>
               </div>
             </div>
             <div className="space-y-2 mt-4">
@@ -554,6 +558,26 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
+        <Card className="module-card cursor-pointer" onClick={() => navigate('/dept-queue')}>
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 rounded-lg bg-info/10 flex items-center justify-center">
+                <Users className="w-5 h-5 text-info" />
+              </div>
+              <div>
+                <h3 className="font-medium">Dept Queue</h3>
+                <p className="text-sm text-muted-foreground">Team priorities</p>
+              </div>
+            </div>
+            <div className="mt-4">
+              <p className="text-sm text-muted-foreground">
+                Review department work items and manage upcoming deadlines.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="module-card cursor-pointer" onClick={() => navigate('/forms')}>
         <Card className="module-card cursor-pointer" onClick={() => navigate("/reports")}>
           <CardContent className="pt-6">
             <div className="flex items-center gap-3 mb-3">
