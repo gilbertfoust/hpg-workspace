@@ -98,7 +98,7 @@ const modulesSections: ModuleSection[] = [
     title: "Support",
     items: [
       { to: "/modules/hr", icon: <UserPlus className="w-4 h-4" />, label: "HR" },
-      { to: "/modules/it", icon: <Monitor className="w-4 h-4" />, label: "IT" },
+      { to: "/it", icon: <Monitor className="w-4 h-4" />, label: "IT" },
       { to: "/modules/finance", icon: <DollarSign className="w-4 h-4" />, label: "Finance" },
       { to: "/modules/legal", icon: <Scale className="w-4 h-4" />, label: "Legal" },
     ],
@@ -113,6 +113,7 @@ export function AppSidebar() {
   const isAdmin = userRole?.role
     ? ['super_admin', 'admin_pm', 'executive_secretariat'].includes(userRole.role)
     : false;
+  const canAccessAdminConfig = userRole?.role === 'super_admin' || userRole?.role === 'admin_pm';
 
   const userInitials = user?.user_metadata?.full_name
     ?.split(' ')
@@ -159,15 +160,14 @@ export function AppSidebar() {
         <div className="flex flex-col h-full">
           {/* Logo / Header */}
           <div className="flex items-center gap-3 px-4 py-4 border-b border-sidebar-border">
-            <div className="w-8 h-8 rounded-lg bg-sidebar-primary flex items-center justify-center">
-              <Building2 className="w-5 h-5 text-sidebar-primary-foreground" />
-            </div>
-            {!isCollapsed && (
-              <div className="flex-1 min-w-0">
-                <h1 className="text-sm font-semibold text-sidebar-foreground truncate">HPG Workstation</h1>
-                <p className="text-xs text-sidebar-muted truncate">Org Coordination OS</p>
-              </div>
-            )}
+            <img
+              src="https://img1.wsimg.com/isteam/ip/8d5502d6-d937-4d80-bd56-8074053e4d77/Humanity%20Pathways%20Global.jpg/:/rs=h:175,m"
+              alt="Humanity Pathways Global"
+              className={cn(
+                "w-auto max-w-full object-contain",
+                isCollapsed ? "h-8" : "h-10 max-w-[180px]"
+              )}
+            />
             <Button
               variant="ghost"
               size="icon"
@@ -188,6 +188,16 @@ export function AppSidebar() {
               <NavItem to="/forms" icon={<FileText className="w-4 h-4" />} label={isCollapsed ? "" : "Forms"} />
               <NavItem to="/documents" icon={<FolderOpen className="w-4 h-4" />} label={isCollapsed ? "" : "Documents"} />
               <NavItem to="/calendar" icon={<Calendar className="w-4 h-4" />} label={isCollapsed ? "" : "Calendar"} />
+              <NavItem to="/hr" icon={<UserPlus className="w-4 h-4" />} label={isCollapsed ? "" : "HR"} />
+
+              {!isCollapsed && (
+                <div className="pt-4">
+                  <p className="nav-section-title">Executive</p>
+                  <div className="space-y-1">
+                    <NavItem to="/reports" icon={<BarChart3 className="w-4 h-4" />} label="Reports" />
+                  </div>
+                </div>
+              )}
 
               {/* Modules Section */}
               {!isCollapsed && (
@@ -222,13 +232,20 @@ export function AppSidebar() {
 
               {/* Footer Navigation */}
               <div className="pt-4 mt-4 border-t border-sidebar-border">
-                <NavItem to="/reports" icon={<BarChart3 className="w-4 h-4" />} label={isCollapsed ? "" : "Reports"} />
+                {isCollapsed && (
+                  <NavItem to="/reports" icon={<BarChart3 className="w-4 h-4" />} label="" />
+                )}
                 <NavItem to="/admin" icon={<Settings className="w-4 h-4" />} label={isCollapsed ? "" : "Admin"} />
                 {isAdmin && (
                   <NavItem
                     to="/admin/quick-start"
                     icon={<Database className="w-4 h-4" />}
                     label={isCollapsed ? "" : "Quick Start"}
+                {canAccessAdminConfig && (
+                  <NavItem
+                    to="/admin/config"
+                    icon={<Settings className="w-4 h-4" />}
+                    label={isCollapsed ? "" : "Admin / Config"}
                   />
                 )}
               </div>
