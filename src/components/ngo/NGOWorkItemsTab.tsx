@@ -36,28 +36,41 @@ interface NGOWorkItemsTabProps {
   ngoId: string;
 }
 
-const statusMap: Record<string, "approved" | "in-progress" | "rejected" | "draft" | "waiting-ngo" | "waiting-hpg" | "under-review" | "submitted"> = {
-  draft: "draft",
-  not_started: "draft",
-  in_progress: "in-progress",
-  waiting_on_ngo: "waiting-ngo",
-  waiting_on_hpg: "waiting-hpg",
-  submitted: "submitted",
-  under_review: "under-review",
-  approved: "approved",
-  rejected: "rejected",
-  complete: "approved",
-  canceled: "draft",
+const statusMap: Record<
+  string,
+  | "approved"
+  | "in-progress"
+  | "rejected"
+  | "draft"
+  | "waiting-ngo"
+  | "waiting-hpg"
+  | "under-review"
+  | "submitted"
+  | "not-started"
+  | "complete"
+  | "canceled"
+> = {
+  Draft: "draft",
+  "Not Started": "not-started",
+  "In Progress": "in-progress",
+  "Waiting on NGO": "waiting-ngo",
+  "Waiting on HPG": "waiting-hpg",
+  Submitted: "submitted",
+  "Under Review": "under-review",
+  Approved: "approved",
+  Rejected: "rejected",
+  Complete: "complete",
+  Canceled: "canceled",
 };
 
 const statusOptions: { label: string; value: WorkItemStatus | "all" }[] = [
   { label: "All Statuses", value: "all" },
-  { label: "Not Started", value: "not_started" },
-  { label: "In Progress", value: "in_progress" },
-  { label: "Waiting on NGO", value: "waiting_on_ngo" },
-  { label: "Waiting on HPG", value: "waiting_on_hpg" },
-  { label: "Under Review", value: "under_review" },
-  { label: "Complete", value: "complete" },
+  { label: "Not Started", value: "Not Started" },
+  { label: "In Progress", value: "In Progress" },
+  { label: "Waiting on NGO", value: "Waiting on NGO" },
+  { label: "Waiting on HPG", value: "Waiting on HPG" },
+  { label: "Under Review", value: "Under Review" },
+  { label: "Complete", value: "Complete" },
 ];
 
 const moduleOptions: { label: string; value: ModuleType | "all" }[] = [

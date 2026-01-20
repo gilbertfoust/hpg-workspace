@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/lib/supabaseClient';
 import { getSupabaseNotConfiguredError, supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -34,15 +35,35 @@ export const useComments = (work_item_id: string) => {
       ensureSupabase();
       const { data, error } = await supabase
         .from('comments')
-        .select(`
-          *,
-          author:profiles!comments_author_user_id_fkey(full_name, email, avatar_url)
-        `)
+        .select('*')
         .eq('work_item_id', work_item_id)
         .order('created_at', { ascending: true });
       
       if (error) throw error;
-      return data as Comment[];
+      const authorIds = [...new Set((data || []).map((comment) => comment.author_user_id))];
+
+      if (authorIds.length === 0) {
+        return data as Comment[];
+      }
+
+      const { data: authors, error: authorError } = await supabase
+        .from('profiles')
+        .select('id, full_name, email, avatar_url')
+        .in('id', authorIds);
+
+      if (authorError) throw authorError;
+
+      const authorMap = new Map(
+        (authors || []).map((author) => [
+          author.id,
+          { full_name: author.full_name, email: author.email, avatar_url: author.avatar_url },
+        ])
+      );
+
+      return (data || []).map((comment) => ({
+        ...comment,
+        author: authorMap.get(comment.author_user_id),
+      })) as Comment[];
     },
     enabled: !!work_item_id,
   });
@@ -67,16 +88,36 @@ export const useCommentsForNGO = (ngo_id: string) => {
       
       const { data, error } = await supabase
         .from('comments')
-        .select(`
-          *,
-          author:profiles!comments_author_user_id_fkey(full_name, email, avatar_url)
-        `)
+        .select('*')
         .in('work_item_id', workItemIds)
         .order('created_at', { ascending: false })
         .limit(50);
       
       if (error) throw error;
-      return data as Comment[];
+      const authorIds = [...new Set((data || []).map((comment) => comment.author_user_id))];
+
+      if (authorIds.length === 0) {
+        return data as Comment[];
+      }
+
+      const { data: authors, error: authorError } = await supabase
+        .from('profiles')
+        .select('id, full_name, email, avatar_url')
+        .in('id', authorIds);
+
+      if (authorError) throw authorError;
+
+      const authorMap = new Map(
+        (authors || []).map((author) => [
+          author.id,
+          { full_name: author.full_name, email: author.email, avatar_url: author.avatar_url },
+        ])
+      );
+
+      return (data || []).map((comment) => ({
+        ...comment,
+        author: authorMap.get(comment.author_user_id),
+      })) as Comment[];
     },
     enabled: !!ngo_id,
   });

@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/lib/supabaseClient';
 import { getSupabaseNotConfiguredError, supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
@@ -13,19 +14,19 @@ export type CreateWorkItemInput = Database['public']['Tables']['work_items']['In
 import { scheduleDefaultReminderForWorkItem } from '@/lib/reminders';
 
 export type WorkItemStatus = 
-  | 'draft'
-  | 'not_started'
-  | 'in_progress'
-  | 'waiting_on_ngo'
-  | 'waiting_on_hpg'
-  | 'submitted'
-  | 'under_review'
-  | 'approved'
-  | 'rejected'
-  | 'complete'
-  | 'canceled';
+  | 'Draft'
+  | 'Not Started'
+  | 'In Progress'
+  | 'Waiting on NGO'
+  | 'Waiting on HPG'
+  | 'Submitted'
+  | 'Under Review'
+  | 'Approved'
+  | 'Rejected'
+  | 'Complete'
+  | 'Canceled';
 
-export type Priority = 'low' | 'medium' | 'high';
+export type Priority = 'Low' | 'Med' | 'High';
 export type EvidenceStatus = 'missing' | 'uploaded' | 'under_review' | 'approved' | 'rejected';
 export type ModuleType = 
   | 'ngo_coordination'
@@ -100,6 +101,7 @@ export const useWorkItems = (filters?: {
   owner_user_id?: string;
   evidence_required?: boolean;
   evidence_status?: EvidenceStatus;
+  department_id?: string;
   type?: string;
 }) => {
   return useQuery({
@@ -131,6 +133,8 @@ export const useWorkItems = (filters?: {
       }
       if (filters?.evidence_status) {
         query = query.eq('evidence_status', filters.evidence_status);
+      if (filters?.department_id) {
+        query = query.eq('department_id', filters.department_id);
       if (filters?.type) {
         query = query.eq('type', filters.type);
       }
@@ -179,6 +183,26 @@ export const useCreateWorkItem = () => {
         .single();
       
       if (error) throw error;
+
+      const { error: auditError } = await supabase
+        .from('audit_log')
+        .insert({
+          actor_user_id: user?.id,
+          action_type: 'create',
+          entity_type: 'work_item',
+          entity_id: data.id,
+          before_json: null,
+          after_json: {
+            title: data.title,
+            status: data.status,
+            ngo_id: data.ngo_id,
+          },
+        });
+
+      if (auditError) {
+        console.error('Failed to write audit log', auditError);
+      }
+      return data as WorkItem;
       const workItem = data as WorkItem;
       await scheduleDefaultReminderForWorkItem(workItem);
       return workItem;
@@ -205,10 +229,17 @@ export const useCreateWorkItem = () => {
 export const useUpdateWorkItem = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { user } = useAuth();
 
   return useMutation({
     mutationFn: async ({ id, ...input }: Database['public']['Tables']['work_items']['Update'] & { id: string }) => {
     mutationFn: async ({ id, ...input }: Partial<WorkItem> & { id: string }) => {
+      const { data: beforeData } = await supabase
+        .from('work_items')
+        .select('*')
+        .eq('id', id)
+        .single();
+
       ensureSupabase();
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { approval_policy, ...safeInput } = input;
@@ -220,6 +251,24 @@ export const useUpdateWorkItem = () => {
         .single();
       
       if (error) throw error;
+
+      const { error: auditError } = await supabase
+        .from('audit_log')
+        .insert({
+          actor_user_id: user?.id,
+          action_type: 'update',
+          entity_type: 'work_item',
+          entity_id: data.id,
+          before_json: beforeData
+            ? { title: beforeData.title, status: beforeData.status, owner_user_id: beforeData.owner_user_id }
+            : null,
+          after_json: { title: data.title, status: data.status, owner_user_id: data.owner_user_id },
+        });
+
+      if (auditError) {
+        console.error('Failed to write audit log', auditError);
+      }
+      return data as WorkItem;
       const workItem = data as WorkItem;
       if ("due_date" in input && workItem.due_date) {
         await scheduleDefaultReminderForWorkItem(workItem);
@@ -261,7 +310,14 @@ export const useWorkItemStats = () => {
       const in7Days = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
       const in30Days = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000);
       
-      const activeStatuses: WorkItemStatus[] = ['not_started', 'in_progress', 'waiting_on_ngo', 'waiting_on_hpg', 'submitted', 'under_review'];
+      const activeStatuses: WorkItemStatus[] = [
+        'Not Started',
+        'In Progress',
+        'Waiting on NGO',
+        'Waiting on HPG',
+        'Submitted',
+        'Under Review',
+      ];
       
       const activeItems = data.filter(item => item.status && activeStatuses.includes(item.status as WorkItemStatus));
       
@@ -289,7 +345,7 @@ export const useWorkItemStats = () => {
           item.status &&
           activeStatuses.includes(item.status as WorkItemStatus)
         ).length,
-        complete: data.filter(item => item.status === 'complete').length,
+        complete: data.filter(item => item.status === 'Complete').length,
       };
       
       return stats;
@@ -310,7 +366,7 @@ export const useMyWorkItems = () => {
         .from('work_items')
         .select('*')
         .eq('owner_user_id', user.id)
-        .not('status', 'in', '("complete","canceled")')
+        .not('status', 'in', '("Complete","Canceled")')
         .order('due_date', { ascending: true, nullsFirst: false });
       
       if (error) throw error;

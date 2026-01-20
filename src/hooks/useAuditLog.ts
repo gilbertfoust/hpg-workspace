@@ -1,13 +1,14 @@
 import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/lib/supabaseClient';
 import { getSupabaseNotConfiguredError, supabase } from '@/integrations/supabase/client';
 import type { Json } from '@/integrations/supabase/types';
 
 export interface AuditLogEntry {
   id: string;
   entity_type: string;
-  entity_id: string | null;
+  entity_id: string;
   action_type: string;
-  actor_user_id: string | null;
+  actor_user_id: string;
   before_json: Json | null;
   after_json: Json | null;
   reason: string | null;
