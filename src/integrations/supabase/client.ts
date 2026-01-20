@@ -7,21 +7,29 @@ import type { Database } from './types';
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
-// Debug log so we can see what Lovable actually sees
-console.log("ENV CHECK (supabase client)", {
-  VITE_SUPABASE_URL: SUPABASE_URL,
-  VITE_SUPABASE_PUBLISHABLE_KEY: SUPABASE_PUBLISHABLE_KEY ? "set" : "missing",
-});
+export const SUPABASE_NOT_CONFIGURED_MESSAGE =
+  'Supabase is not configured for this environment.';
 
 // Only create the client if env vars are present.
 // If not, export null so the app can at least render without a hard crash.
-export const supabase =
-  SUPABASE_URL && SUPABASE_PUBLISHABLE_KEY
-    ? createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
-        auth: {
-          storage: localStorage,
-          persistSession: true,
-          autoRefreshToken: true,
-        },
-      })
-    : null;
+export const supabase = SUPABASE_URL && SUPABASE_PUBLISHABLE_KEY
+  ? createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+      auth: {
+        storage: localStorage,
+        persistSession: true,
+        autoRefreshToken: true,
+      },
+    })
+  : null;
+
+export const getSupabaseNotConfiguredError = () =>
+  new Error(SUPABASE_NOT_CONFIGURED_MESSAGE);
+
+export const isSupabaseNotConfiguredError = (error: unknown) =>
+  error instanceof Error && error.message === SUPABASE_NOT_CONFIGURED_MESSAGE;
+
+if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
+  console.warn(
+    'Supabase not configured: missing VITE_SUPABASE_URL or VITE_SUPABASE_PUBLISHABLE_KEY'
+  );
+}

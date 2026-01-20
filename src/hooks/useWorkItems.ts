@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { getSupabaseNotConfiguredError, supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -76,6 +76,12 @@ export interface CreateWorkItemInput {
   external_visible?: boolean;
 }
 
+const ensureSupabase = () => {
+  if (!supabase) {
+    throw getSupabaseNotConfiguredError();
+  }
+};
+
 export const useWorkItems = (filters?: {
   ngo_id?: string;
   status?: WorkItemStatus[];
@@ -85,6 +91,7 @@ export const useWorkItems = (filters?: {
   return useQuery({
     queryKey: ['work-items', filters],
     queryFn: async () => {
+      ensureSupabase();
       let query = supabase
         .from('work_items')
         .select('*')
@@ -115,6 +122,7 @@ export const useWorkItem = (id: string) => {
   return useQuery({
     queryKey: ['work-items', id],
     queryFn: async () => {
+      ensureSupabase();
       const { data, error } = await supabase
         .from('work_items')
         .select('*')
@@ -135,6 +143,7 @@ export const useCreateWorkItem = () => {
 
   return useMutation({
     mutationFn: async (input: CreateWorkItemInput) => {
+      ensureSupabase();
       const { data, error } = await supabase
         .from('work_items')
         .insert({
@@ -171,6 +180,7 @@ export const useUpdateWorkItem = () => {
 
   return useMutation({
     mutationFn: async ({ id, ...input }: Partial<WorkItem> & { id: string }) => {
+      ensureSupabase();
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { approval_policy, ...safeInput } = input;
       const { data, error } = await supabase
@@ -206,6 +216,7 @@ export const useWorkItemStats = () => {
   return useQuery({
     queryKey: ['work-item-stats'],
     queryFn: async () => {
+      ensureSupabase();
       const { data, error } = await supabase
         .from('work_items')
         .select('status, due_date, evidence_required, evidence_status');
@@ -258,6 +269,7 @@ export const useMyWorkItems = () => {
     queryKey: ['my-work-items', user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
+      ensureSupabase();
       
       const { data, error } = await supabase
         .from('work_items')
