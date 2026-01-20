@@ -19,10 +19,10 @@ import CalendarPage from "./pages/CalendarPage";
 import Reports from "./pages/Reports";
 import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
+import NGOCoordination from "./pages/NGOCoordination";
 
 // Module pages
 import {
-  NGOCoordinationModule,
   AdministrationModule,
   OperationsModule,
   ProgramModule,
@@ -64,9 +64,10 @@ const App = () => (
               <Route path="/calendar" element={<ProtectedRoute><CalendarPage /></ProtectedRoute>} />
               <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
               <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
+              <Route path="/ngo-coordination" element={<ProtectedRoute><NGOCoordination /></ProtectedRoute>} />
               
               {/* Protected module pages */}
-              <Route path="/modules/ngo-coordination" element={<ProtectedRoute><NGOCoordinationModule /></ProtectedRoute>} />
+              <Route path="/modules/ngo-coordination" element={<Navigate to="/ngo-coordination" replace />} />
               <Route path="/modules/administration" element={<ProtectedRoute><AdministrationModule /></ProtectedRoute>} />
               <Route path="/modules/operations" element={<ProtectedRoute><OperationsModule /></ProtectedRoute>} />
               <Route path="/modules/program" element={<ProtectedRoute><ProgramModule /></ProtectedRoute>} />

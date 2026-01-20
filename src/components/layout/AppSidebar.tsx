@@ -72,7 +72,7 @@ const modulesSections: ModuleSection[] = [
   {
     title: "Core Operations",
     items: [
-      { to: "/modules/ngo-coordination", icon: <Users className="w-4 h-4" />, label: "NGO Coordination" },
+      { to: "/ngo-coordination", icon: <Users className="w-4 h-4" />, label: "NGO Coordination" },
       { to: "/modules/administration", icon: <Briefcase className="w-4 h-4" />, label: "Administration" },
       { to: "/modules/operations", icon: <Wrench className="w-4 h-4" />, label: "Operations" },
     ],
