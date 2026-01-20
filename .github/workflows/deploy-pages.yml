@@ -29,12 +29,14 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-- name: Build
-  run: npm run build
-  env:
-    GITHUB_PAGES: "true"
-    VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-    VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+      - name: Build
+        run: npm run build
+        env:
+          # Tell Vite to use /hpg-workspace/ as base ONLY in this build
+          GITHUB_PAGES: "true"
+          # Inject Supabase envs from repository secrets
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
