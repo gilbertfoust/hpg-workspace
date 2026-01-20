@@ -64,6 +64,7 @@ export interface WorkItem {
 export interface CreateWorkItemInput {
   title: string;
   module: ModuleType;
+  type?: string;
   ngo_id?: string;
   description?: string;
   department_id?: string;
@@ -81,6 +82,7 @@ export const useWorkItems = (filters?: {
   status?: WorkItemStatus[];
   module?: ModuleType;
   owner_user_id?: string;
+  type?: string;
 }) => {
   return useQuery({
     queryKey: ['work-items', filters],
@@ -101,6 +103,9 @@ export const useWorkItems = (filters?: {
       }
       if (filters?.owner_user_id) {
         query = query.eq('owner_user_id', filters.owner_user_id);
+      }
+      if (filters?.type) {
+        query = query.eq('type', filters.type);
       }
       
       const { data, error } = await query;
