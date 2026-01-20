@@ -14,7 +14,6 @@ import {
   Users,
   TrendingUp,
   ArrowRight,
-  Calendar,
   ClipboardList,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -92,7 +91,7 @@ export default function Dashboard() {
       title="Executive Dashboard"
       subtitle="Overview of HPG operations and pending actions"
       actions={
-        <Button onClick={() => navigate('/work-items')}>
+        <Button onClick={() => navigate('/my-queue')}>
           <ClipboardList className="w-4 h-4 mr-2" />
           My Queue
         </Button>
@@ -313,7 +312,7 @@ export default function Dashboard() {
       </Tabs>
 
       {/* Quick Access Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
         <Card className="module-card cursor-pointer" onClick={() => navigate('/ngos')}>
           <CardContent className="pt-6">
             <div className="flex items-center gap-3 mb-3">
@@ -342,15 +341,15 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        <Card className="module-card cursor-pointer" onClick={() => navigate('/work-items')}>
+        <Card className="module-card cursor-pointer" onClick={() => navigate('/my-queue')}>
           <CardContent className="pt-6">
             <div className="flex items-center gap-3 mb-3">
               <div className="w-10 h-10 rounded-lg bg-warning/10 flex items-center justify-center">
                 <ClipboardList className="w-5 h-5 text-warning" />
               </div>
               <div>
-                <h3 className="font-medium">Work Items</h3>
-                <p className="text-sm text-muted-foreground">Task management</p>
+                <h3 className="font-medium">My Queue</h3>
+                <p className="text-sm text-muted-foreground">Your assignments</p>
               </div>
             </div>
             <div className="space-y-2 mt-4">
@@ -366,6 +365,25 @@ export default function Dashboard() {
                 <span>Overdue</span>
                 <span className="text-destructive">{workItemStats?.overdue || 0}</span>
               </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="module-card cursor-pointer" onClick={() => navigate('/dept-queue')}>
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 rounded-lg bg-info/10 flex items-center justify-center">
+                <Users className="w-5 h-5 text-info" />
+              </div>
+              <div>
+                <h3 className="font-medium">Dept Queue</h3>
+                <p className="text-sm text-muted-foreground">Team priorities</p>
+              </div>
+            </div>
+            <div className="mt-4">
+              <p className="text-sm text-muted-foreground">
+                Review department work items and manage upcoming deadlines.
+              </p>
             </div>
           </CardContent>
         </Card>

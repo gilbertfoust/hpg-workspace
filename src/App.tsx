@@ -13,6 +13,8 @@ import Dashboard from "./pages/Dashboard";
 import NGOs from "./pages/NGOs";
 import NGODetail from "./pages/NGODetail";
 import WorkItems from "./pages/WorkItems";
+import MyQueue from "./pages/MyQueue";
+import DeptQueue from "./pages/DeptQueue";
 import Forms from "./pages/Forms";
 import Documents from "./pages/Documents";
 import CalendarPage from "./pages/CalendarPage";
@@ -59,6 +61,8 @@ const App = () => (
               <Route path="/ngos" element={<ProtectedRoute><NGOs /></ProtectedRoute>} />
               <Route path="/ngos/:id" element={<ProtectedRoute><NGODetail /></ProtectedRoute>} />
               <Route path="/work-items" element={<ProtectedRoute><WorkItems /></ProtectedRoute>} />
+              <Route path="/my-queue" element={<ProtectedRoute><MyQueue /></ProtectedRoute>} />
+              <Route path="/dept-queue" element={<ProtectedRoute><DeptQueue /></ProtectedRoute>} />
               <Route path="/forms" element={<ProtectedRoute><Forms /></ProtectedRoute>} />
               <Route path="/documents" element={<ProtectedRoute><Documents /></ProtectedRoute>} />
               <Route path="/calendar" element={<ProtectedRoute><CalendarPage /></ProtectedRoute>} />
