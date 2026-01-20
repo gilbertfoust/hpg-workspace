@@ -13,6 +13,7 @@ import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import NGOs from "./pages/NGOs";
 import NGODetail from "./pages/NGODetail";
+import NGOMissingItems from "./pages/NGOMissingItems";
 import WorkItems from "./pages/WorkItems";
 import MyQueue from "./pages/MyQueue";
 import DeptQueue from "./pages/DeptQueue";
@@ -92,6 +93,7 @@ const App = () => (
             <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
             <Route path="/ngos" element={<ProtectedRoute><NGOs /></ProtectedRoute>} />
             <Route path="/ngos/:id" element={<ProtectedRoute><NGODetail /></ProtectedRoute>} />
+            <Route path="/ngo-missing-items" element={<ProtectedRoute><NGOMissingItems /></ProtectedRoute>} />
             <Route path="/work-items" element={<ProtectedRoute><WorkItems /></ProtectedRoute>} />
             <Route path="/forms" element={<ProtectedRoute><Forms /></ProtectedRoute>} />
             <Route path="/documents" element={<ProtectedRoute><Documents /></ProtectedRoute>} />

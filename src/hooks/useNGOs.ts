@@ -2,6 +2,12 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabaseClient';
 import { getSupabaseNotConfiguredError, supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import type { Database } from '@/integrations/supabase/types';
+
+export type NGOStatus = Database['public']['Enums']['ngo_status'];
+export type FiscalType = Database['public']['Enums']['fiscal_type'];
+export type NGO = Database['public']['Tables']['ngos']['Row'];
+export type CreateNGOInput = Database['public']['Tables']['ngos']['Insert'];
 import { useAuth } from '@/contexts/AuthContext';
 
 export type NGOStatus = 'Prospect' | 'Onboarding' | 'Active' | 'At-Risk' | 'Offboarding' | 'Closed';
@@ -138,6 +144,7 @@ export const useUpdateNGO = () => {
   const { user } = useAuth();
 
   return useMutation({
+    mutationFn: async ({ id, ...input }: Database['public']['Tables']['ngos']['Update'] & { id: string }) => {
     mutationFn: async ({ id, ...input }: Partial<NGO> & { id: string }) => {
       const { data: beforeData } = await supabase
         .from('ngos')

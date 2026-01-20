@@ -2,41 +2,11 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabaseClient';
 import { getSupabaseNotConfiguredError, supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import type { Database } from '@/integrations/supabase/types';
 
-export type DocumentCategory = 
-  | 'onboarding' | 'compliance' | 'finance' | 'hr' 
-  | 'marketing' | 'communications' | 'program' 
-  | 'curriculum' | 'it' | 'legal' | 'other';
-
-export interface Document {
-  id: string;
-  file_name: string;
-  file_path: string;
-  file_type: string | null;
-  file_size: number | null;
-  category: DocumentCategory;
-  ngo_id: string | null;
-  work_item_id: string | null;
-  uploaded_by_user_id: string | null;
-  uploaded_at: string;
-  review_status: string | null;
-  review_notes: string | null;
-  reviewer_user_id: string | null;
-  reviewed_at: string | null;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface CreateDocumentInput {
-  file_name: string;
-  file_path: string;
-  file_type?: string;
-  file_size?: number;
-  category?: DocumentCategory;
-  ngo_id?: string;
-  work_item_id?: string;
-  uploaded_by_user_id?: string;
-}
+export type DocumentCategory = Database['public']['Enums']['document_category'];
+export type Document = Database['public']['Tables']['documents']['Row'];
+export type CreateDocumentInput = Database['public']['Tables']['documents']['Insert'];
 
 const BUCKET_NAME = 'ngo-documents';
 
@@ -128,6 +98,7 @@ export const useUpdateDocument = () => {
   const { toast } = useToast();
 
   return useMutation({
+    mutationFn: async ({ id, ...input }: Database['public']['Tables']['documents']['Update'] & { id: string }) => {
     mutationFn: async ({ id, ...input }: Partial<Document> & { id: string }) => {
       ensureSupabase();
       const { data, error } = await supabase

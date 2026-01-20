@@ -49,6 +49,8 @@ export default function NGODetail() {
   const { data: ngo, isLoading, error } = useNGO(id || "");
   const [editSheetOpen, setEditSheetOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
+  const [launchMonthlyCheckIn, setLaunchMonthlyCheckIn] = useState(false);
+  const [launchDocumentRequest, setLaunchDocumentRequest] = useState(false);
 
   if (isLoading) {
     return (
@@ -143,7 +145,7 @@ export default function NGODetail() {
               <h1 className="text-2xl font-semibold text-foreground">
                 {displayName}
               </h1>
-              <StatusChip status={statusMap[ngo.status] || "draft"} />
+              <StatusChip status={ngo.status ? statusMap[ngo.status] || "draft" : "draft"} />
             </div>
             <p className="text-muted-foreground">
               {ngo.legal_name !== displayName && `${ngo.legal_name} • `}
@@ -163,7 +165,7 @@ export default function NGODetail() {
           </TabsTrigger>
           <TabsTrigger value="work-items" className="gap-2">
             <ListTodo className="w-4 h-4" />
-            Work Items
+            Work
           </TabsTrigger>
           <TabsTrigger value="forms" className="gap-2">
             <FileText className="w-4 h-4" />
@@ -184,7 +186,19 @@ export default function NGODetail() {
         </TabsList>
 
         <TabsContent value="overview">
-          <NGOOverviewTab ngo={ngo} onEdit={() => setEditSheetOpen(true)} />
+          <NGOOverviewTab
+            ngo={ngo}
+            onEdit={() => setEditSheetOpen(true)}
+            onGenerateFromTemplate={() => setActiveTab("forms")}
+            onMonthlyCheckIn={() => {
+              setActiveTab("forms");
+              setLaunchMonthlyCheckIn(true);
+            }}
+            onRequestDocument={() => {
+              setActiveTab("documents");
+              setLaunchDocumentRequest(true);
+            }}
+          />
         </TabsContent>
 
         <TabsContent value="work-items">
@@ -192,11 +206,19 @@ export default function NGODetail() {
         </TabsContent>
 
         <TabsContent value="forms">
-          <NGOFormsTab ngoId={ngo.id} />
+          <NGOFormsTab
+            ngoId={ngo.id}
+            launchMonthlyCheckIn={launchMonthlyCheckIn}
+            onMonthlyCheckInHandled={() => setLaunchMonthlyCheckIn(false)}
+          />
         </TabsContent>
 
         <TabsContent value="documents">
-          <NGODocumentsTab ngoId={ngo.id} />
+          <NGODocumentsTab
+            ngoId={ngo.id}
+            launchDocumentRequest={launchDocumentRequest}
+            onDocumentRequestHandled={() => setLaunchDocumentRequest(false)}
+          />
         </TabsContent>
 
         <TabsContent value="calendar">

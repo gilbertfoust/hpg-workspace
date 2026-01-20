@@ -8,6 +8,7 @@ import {
   FileText,
   FolderOpen,
   Calendar,
+  AlertTriangle,
   Layers,
   BarChart3,
   Settings,
@@ -183,6 +184,7 @@ export function AppSidebar() {
               <NavItem to="/my-queue" icon={<ListChecks className="w-4 h-4" />} label={isCollapsed ? "" : "My Queue"} />
               <NavItem to="/dept-queue" icon={<Users className="w-4 h-4" />} label={isCollapsed ? "" : "Dept Queue"} />
               <NavItem to="/ngos" icon={<Building2 className="w-4 h-4" />} label={isCollapsed ? "" : "NGOs"} />
+              <NavItem to="/ngo-missing-items" icon={<AlertTriangle className="w-4 h-4" />} label={isCollapsed ? "" : "NGO Missing Items"} />
               <NavItem to="/work-items" icon={<ClipboardList className="w-4 h-4" />} label={isCollapsed ? "" : "Work Items"} badge={12} />
               <NavItem to="/forms" icon={<FileText className="w-4 h-4" />} label={isCollapsed ? "" : "Forms"} />
               <NavItem to="/documents" icon={<FolderOpen className="w-4 h-4" />} label={isCollapsed ? "" : "Documents"} />

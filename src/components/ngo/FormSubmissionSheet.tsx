@@ -43,6 +43,8 @@ interface FormSubmissionSheetProps {
   template: FormTemplate | null;
   submission?: FormSubmission | null;
   ngoId: string;
+  initialValues?: Record<string, unknown>;
+  onSubmitSuccess?: (submission: FormSubmission, payload: Record<string, unknown>, submitted: boolean) => void;
   workItemConfig?: WorkItemConfig;
 }
 
@@ -52,6 +54,8 @@ export function FormSubmissionSheet({
   template,
   submission,
   ngoId,
+  initialValues,
+  onSubmitSuccess,
   workItemConfig,
 }: FormSubmissionSheetProps) {
   const { user } = useAuth();
@@ -68,10 +72,15 @@ export function FormSubmissionSheet({
   useEffect(() => {
     if (submission?.payload_json && typeof submission.payload_json === 'object') {
       setFormData(submission.payload_json as Record<string, unknown>);
+      return;
+    }
+
+    if (open) {
+      setFormData(initialValues || {});
     } else {
       setFormData({});
     }
-  }, [submission, template]);
+  }, [submission, template, initialValues, open]);
 
   const fields: FormField[] = template?.schema_json?.fields || [];
 
@@ -106,7 +115,11 @@ export function FormSubmissionSheet({
       workItemId = workItem.id;
     }
 
+    let savedSubmission: FormSubmission;
+
     if (isEditing && submission) {
+      savedSubmission = await updateMutation.mutateAsync({
+        id: submission.id,
       const updatePayload: Partial<FormSubmission> = {
         payload_json: payload,
         submission_status: status,
@@ -122,7 +135,7 @@ export function FormSubmissionSheet({
         ...updatePayload,
       });
     } else {
-      await createMutation.mutateAsync({
+      savedSubmission = await createMutation.mutateAsync({
         form_template_id: template.id,
         ngo_id: ngoId,
         work_item_id: workItemId,
@@ -132,6 +145,7 @@ export function FormSubmissionSheet({
       });
     }
 
+    onSubmitSuccess?.(savedSubmission, formData, submit);
     onOpenChange(false);
   };
 

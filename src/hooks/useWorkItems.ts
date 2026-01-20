@@ -3,6 +3,14 @@ import { supabase } from '@/lib/supabaseClient';
 import { getSupabaseNotConfiguredError, supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
+import type { Database } from '@/integrations/supabase/types';
+
+export type WorkItemStatus = Database['public']['Enums']['work_item_status'];
+export type Priority = Database['public']['Enums']['priority_level'];
+export type EvidenceStatus = Database['public']['Enums']['evidence_status'];
+export type ModuleType = Database['public']['Enums']['module_type'];
+export type WorkItem = Database['public']['Tables']['work_items']['Row'];
+export type CreateWorkItemInput = Database['public']['Tables']['work_items']['Insert'];
 import { scheduleDefaultReminderForWorkItem } from '@/lib/reminders';
 
 export type WorkItemStatus = 
@@ -89,7 +97,10 @@ export const useWorkItems = (filters?: {
   ngo_id?: string;
   status?: WorkItemStatus[];
   module?: ModuleType;
+  type?: string;
   owner_user_id?: string;
+  evidence_required?: boolean;
+  evidence_status?: EvidenceStatus;
   department_id?: string;
   type?: string;
 }) => {
@@ -111,9 +122,17 @@ export const useWorkItems = (filters?: {
       if (filters?.module) {
         query = query.eq('module', filters.module);
       }
+      if (filters?.type) {
+        query = query.eq('type', filters.type);
+      }
       if (filters?.owner_user_id) {
         query = query.eq('owner_user_id', filters.owner_user_id);
       }
+      if (typeof filters?.evidence_required === 'boolean') {
+        query = query.eq('evidence_required', filters.evidence_required);
+      }
+      if (filters?.evidence_status) {
+        query = query.eq('evidence_status', filters.evidence_status);
       if (filters?.department_id) {
         query = query.eq('department_id', filters.department_id);
       if (filters?.type) {
@@ -213,6 +232,7 @@ export const useUpdateWorkItem = () => {
   const { user } = useAuth();
 
   return useMutation({
+    mutationFn: async ({ id, ...input }: Database['public']['Tables']['work_items']['Update'] & { id: string }) => {
     mutationFn: async ({ id, ...input }: Partial<WorkItem> & { id: string }) => {
       const { data: beforeData } = await supabase
         .from('work_items')
@@ -299,7 +319,7 @@ export const useWorkItemStats = () => {
         'Under Review',
       ];
       
-      const activeItems = data.filter(item => activeStatuses.includes(item.status as WorkItemStatus));
+      const activeItems = data.filter(item => item.status && activeStatuses.includes(item.status as WorkItemStatus));
       
       const stats = {
         total: data.length,
@@ -320,8 +340,9 @@ export const useWorkItemStats = () => {
           return dueDate < today;
         }).length,
         pendingEvidence: data.filter(item => 
-          item.evidence_required && 
+          item.evidence_required === true && 
           item.evidence_status === 'missing' &&
+          item.status &&
           activeStatuses.includes(item.status as WorkItemStatus)
         ).length,
         complete: data.filter(item => item.status === 'Complete').length,
