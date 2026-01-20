@@ -10,6 +10,7 @@ import {
   Layers,
   BarChart3,
   Settings,
+  Database,
   ChevronDown,
   ChevronRight,
   Users,
@@ -109,6 +110,9 @@ export function AppSidebar() {
   const [expandedModules, setExpandedModules] = useState(false);
   const { user, signOut } = useAuth();
   const { data: userRole } = useUserRole();
+  const isAdmin = userRole?.role
+    ? ['super_admin', 'admin_pm', 'executive_secretariat'].includes(userRole.role)
+    : false;
   const canAccessAdminConfig = userRole?.role === 'super_admin' || userRole?.role === 'admin_pm';
 
   const userInitials = user?.user_metadata?.full_name
@@ -232,6 +236,11 @@ export function AppSidebar() {
                   <NavItem to="/reports" icon={<BarChart3 className="w-4 h-4" />} label="" />
                 )}
                 <NavItem to="/admin" icon={<Settings className="w-4 h-4" />} label={isCollapsed ? "" : "Admin"} />
+                {isAdmin && (
+                  <NavItem
+                    to="/admin/quick-start"
+                    icon={<Database className="w-4 h-4" />}
+                    label={isCollapsed ? "" : "Quick Start"}
                 {canAccessAdminConfig && (
                   <NavItem
                     to="/admin/config"

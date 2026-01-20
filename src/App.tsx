@@ -18,6 +18,7 @@ import Documents from "./pages/Documents";
 import CalendarPage from "./pages/CalendarPage";
 import ReportsDashboard from "./pages/ReportsDashboard";
 import Admin from "./pages/Admin";
+import AdminQuickStart from "./pages/AdminQuickStart";
 import AdminConfigHome from "./pages/AdminConfig/AdminConfigHome";
 import NotFound from "./pages/NotFound";
 import ITDashboard from "./pages/ITDashboard";
@@ -107,6 +108,7 @@ const App = () => (
               <Route path="/calendar" element={<ProtectedRoute><CalendarPage /></ProtectedRoute>} />
               <Route path="/reports" element={<ProtectedRoute><ReportsDashboard /></ProtectedRoute>} />
               <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
+              <Route path="/admin/quick-start" element={<ProtectedRoute><AdminQuickStart /></ProtectedRoute>} />
               <Route path="/admin/config" element={<ProtectedRoute><AdminConfigHome /></ProtectedRoute>} />
               
               {/* Protected module pages */}
