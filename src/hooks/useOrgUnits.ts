@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/lib/supabaseClient';
 import { getSupabaseNotConfiguredError, supabase } from '@/integrations/supabase/client';
 
 export interface OrgUnit {

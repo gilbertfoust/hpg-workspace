@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { HashRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
+import { isSupabaseConfigured } from "@/lib/supabaseClient";
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 
 // Pages
@@ -47,6 +48,32 @@ import {
 
 const queryClient = new QueryClient();
 
+const App = () => {
+  if (!isSupabaseConfigured) {
+    return (
+      <div className="min-h-screen bg-background text-foreground flex items-center justify-center p-6">
+        <div className="max-w-xl rounded-xl border bg-card p-6 shadow-sm">
+          <h1 className="text-2xl font-semibold mb-2">Supabase configuration required</h1>
+          <p className="text-muted-foreground mb-4">
+            Add <code className="font-mono">VITE_SUPABASE_URL</code> and{" "}
+            <code className="font-mono">VITE_SUPABASE_ANON_KEY</code> to your environment.
+            Copy <code className="font-mono">.env.example</code> to{" "}
+            <code className="font-mono">.env.local</code> and fill in the values.
+          </p>
+          <p className="text-sm text-muted-foreground">
+            The app will load normally once those variables are set.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
@@ -102,6 +129,7 @@ const App = () => (
               <Route path="/auth" element={<Auth />} />
               
               {/* Redirect root to dashboard */}
+              <Route path="/" element={<Navigate to="/dashboard" replace />} />
               <Route index element={<Navigate to="/dashboard" replace />} />
               
               {/* Protected main pages */}
@@ -109,6 +137,14 @@ const App = () => (
               <Route path="/ngos" element={<ProtectedRoute><NGOs /></ProtectedRoute>} />
               <Route path="/ngos/:id" element={<ProtectedRoute><NGODetail /></ProtectedRoute>} />
               <Route path="/work-items" element={<ProtectedRoute><WorkItems /></ProtectedRoute>} />
+              <Route path="/forms" element={<ProtectedRoute><Forms /></ProtectedRoute>} />
+              <Route path="/documents" element={<ProtectedRoute><Documents /></ProtectedRoute>} />
+              <Route path="/calendar" element={<ProtectedRoute><CalendarPage /></ProtectedRoute>} />
+              <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
+              <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
+              
+              {/* Protected module pages */}
+              <Route path="/modules/ngo-coordination" element={<ProtectedRoute><NGOCoordinationModule /></ProtectedRoute>} />
               <Route path="/my-queue" element={<ProtectedRoute><MyQueue /></ProtectedRoute>} />
               <Route path="/dept-queue" element={<ProtectedRoute><DeptQueue /></ProtectedRoute>} />
               <Route path="/forms" element={<ProtectedRoute><Forms /></ProtectedRoute>} />
@@ -137,7 +173,7 @@ const App = () => (
               <Route path="/modules/finance" element={<ProtectedRoute><FinanceModule /></ProtectedRoute>} />
               <Route path="/modules/legal" element={<ProtectedRoute><LegalModule /></ProtectedRoute>} />
               
-              {/* Catch-all */}
+
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </HashRouter>

@@ -58,7 +58,7 @@ export function NGOCalendarTab({ ngoId }: NGOCalendarTabProps) {
       const date = new Date(dateStr);
       hasTasks.push(date);
       
-      if (date < today && items.some(i => !['complete', 'canceled'].includes(i.status))) {
+      if (date < today && items.some(i => !['Complete', 'Canceled'].includes(i.status))) {
         hasOverdue.push(date);
       }
     });

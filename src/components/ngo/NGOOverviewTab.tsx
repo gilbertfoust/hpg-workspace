@@ -27,18 +27,18 @@ interface NGOOverviewTabProps {
 }
 
 const fiscalTypeLabels: Record<string, string> = {
-  model_a: "Model A",
-  model_c: "Model C",
-  other: "Other",
+  "Model A": "Model A",
+  "Model C": "Model C",
+  Other: "Other",
 };
 
 const statusLabels: Record<string, string> = {
-  prospect: "Prospect",
-  onboarding: "Onboarding",
-  active: "Active",
-  at_risk: "At Risk",
-  offboarding: "Offboarding",
-  closed: "Closed",
+  Prospect: "Prospect",
+  Onboarding: "Onboarding",
+  Active: "Active",
+  "At-Risk": "At Risk",
+  Offboarding: "Offboarding",
+  Closed: "Closed",
 };
 
 export function NGOOverviewTab({ ngo, onEdit }: NGOOverviewTabProps) {
@@ -51,10 +51,10 @@ export function NGOOverviewTab({ ngo, onEdit }: NGOOverviewTabProps) {
   const totalWorkItems = workItems?.length || 0;
   const overdueItems = workItems?.filter(wi => 
     wi.due_date && new Date(wi.due_date) < new Date() && 
-    !['complete', 'canceled'].includes(wi.status)
+    !['Complete', 'Canceled'].includes(wi.status)
   ).length || 0;
   const pendingItems = workItems?.filter(wi => 
-    ['not_started', 'in_progress', 'waiting_on_ngo', 'waiting_on_hpg'].includes(wi.status)
+    ['Not Started', 'In Progress', 'Waiting on NGO', 'Waiting on HPG'].includes(wi.status)
   ).length || 0;
 
   const location = [ngo.city, ngo.state_province, ngo.country].filter(Boolean).join(", ");

@@ -31,7 +31,7 @@ const mockEvents = [
     ngo: "Detroit Community Foundation",
     owner: "Jane Smith",
     status: "waiting-ngo" as const,
-    priority: "high" as const,
+    priority: "High" as const,
   },
   {
     id: "2",
@@ -40,7 +40,7 @@ const mockEvents = [
     ngo: "Chicago Youth Initiative",
     owner: "John Doe",
     status: "in-progress" as const,
-    priority: "medium" as const,
+    priority: "Med" as const,
   },
   {
     id: "3",
@@ -49,7 +49,7 @@ const mockEvents = [
     ngo: "Mexican Education Alliance",
     owner: "Maria Garcia",
     status: "under-review" as const,
-    priority: "high" as const,
+    priority: "High" as const,
   },
   {
     id: "4",
@@ -58,7 +58,7 @@ const mockEvents = [
     ngo: "African Youth Network",
     owner: "Sarah Johnson",
     status: "submitted" as const,
-    priority: "high" as const,
+    priority: "High" as const,
   },
 ];
 

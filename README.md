@@ -22,8 +22,7 @@ The application requires the following environment variables:
 | Variable | Required | Description |
 |----------|----------|-------------|
 | `VITE_SUPABASE_URL` | ✅ Yes | Backend API URL |
-| `VITE_SUPABASE_PUBLISHABLE_KEY` | ✅ Yes | Public API key for client-side auth |
-| `VITE_SUPABASE_PROJECT_ID` | ✅ Yes | Project identifier |
+| `VITE_SUPABASE_ANON_KEY` | ✅ Yes | Public anon key for client-side auth |
 
 ### For Edge Functions Only (Server-Side)
 

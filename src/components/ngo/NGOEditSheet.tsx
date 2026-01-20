@@ -104,12 +104,12 @@ export function NGOEditSheet({ ngo, open, onOpenChange }: NGOEditSheetProps) {
               <Select value={formData.status} onValueChange={(v) => setFormData({ ...formData, status: v as NGOStatus })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="prospect">Prospect</SelectItem>
-                  <SelectItem value="onboarding">Onboarding</SelectItem>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="at_risk">At Risk</SelectItem>
-                  <SelectItem value="offboarding">Offboarding</SelectItem>
-                  <SelectItem value="closed">Closed</SelectItem>
+                  <SelectItem value="Prospect">Prospect</SelectItem>
+                  <SelectItem value="Onboarding">Onboarding</SelectItem>
+                  <SelectItem value="Active">Active</SelectItem>
+                  <SelectItem value="At-Risk">At Risk</SelectItem>
+                  <SelectItem value="Offboarding">Offboarding</SelectItem>
+                  <SelectItem value="Closed">Closed</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -137,9 +137,9 @@ export function NGOEditSheet({ ngo, open, onOpenChange }: NGOEditSheetProps) {
             <Select value={formData.fiscal_type} onValueChange={(v) => setFormData({ ...formData, fiscal_type: v as FiscalType })}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="model_a">Model A</SelectItem>
-                <SelectItem value="model_c">Model C</SelectItem>
-                <SelectItem value="other">Other</SelectItem>
+                <SelectItem value="Model A">Model A</SelectItem>
+                <SelectItem value="Model C">Model C</SelectItem>
+                <SelectItem value="Other">Other</SelectItem>
               </SelectContent>
             </Select>
           </div>

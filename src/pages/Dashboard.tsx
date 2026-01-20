@@ -24,6 +24,39 @@ import {
 import { useNavigate } from "react-router-dom";
 import { Bar, BarChart, XAxis, YAxis } from "recharts";
 import { format } from "date-fns";
+
+const statusMap: Record<
+  string,
+  | "approved"
+  | "in-progress"
+  | "rejected"
+  | "draft"
+  | "waiting-ngo"
+  | "waiting-hpg"
+  | "under-review"
+  | "submitted"
+  | "not-started"
+  | "complete"
+  | "canceled"
+> = {
+  Draft: "draft",
+  "Not Started": "not-started",
+  "In Progress": "in-progress",
+  "Waiting on NGO": "waiting-ngo",
+  "Waiting on HPG": "waiting-hpg",
+  Submitted: "submitted",
+  "Under Review": "under-review",
+  Approved: "approved",
+  Rejected: "rejected",
+  Complete: "complete",
+  Canceled: "canceled",
+};
+
+const priorityMap: Record<string, "Low" | "Med" | "High"> = {
+  Low: "Low",
+  Med: "Med",
+  High: "High",
+};
 import { ModuleType } from "@/hooks/useWorkItems";
 import { useDashboardData, useDashboardFilters } from "@/hooks/useDashboardData";
   ListChecks,
@@ -42,6 +75,24 @@ export default function Dashboard() {
   const [selectedState, setSelectedState] = useState("all");
   const [selectedModule, setSelectedModule] = useState("all");
 
+  // Get work items due soon (next 7 days)
+  const today = new Date();
+  const in7Days = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
+  const dueSoonItems = workItems?.filter(item => {
+    if (!item.due_date) return false;
+    const dueDate = new Date(item.due_date);
+    return dueDate >= today && dueDate <= in7Days && !['Complete', 'Canceled'].includes(item.status);
+  }).slice(0, 5) || [];
+
+  // Get at-risk NGOs
+  const atRiskNGOs = ngos?.filter(ngo => ngo.status === 'At-Risk') || [];
+
+  // Get overdue items
+  const overdueItems = workItems?.filter(item => {
+    if (!item.due_date) return false;
+    const dueDate = new Date(item.due_date);
+    return dueDate < today && !['Complete', 'Canceled'].includes(item.status);
+  }) || [];
   const filters = useMemo(
     () => ({
       bundle: selectedBundle !== "all" ? selectedBundle : undefined,
@@ -312,6 +363,12 @@ export default function Dashboard() {
                       </tr>
                     </thead>
                     <tbody>
+                      {dueSoonItems.map((item) => (
+                        <tr key={item.id} className="cursor-pointer" onClick={() => navigate('/work-items')}>
+                          <td className="font-medium">{item.title}</td>
+                          <td className="text-muted-foreground capitalize">{item.module.replace('_', ' ')}</td>
+                          <td><StatusChip status={statusMap[item.status] || "draft"} /></td>
+                          <td><PriorityBadge priority={priorityMap[item.priority] || "Med"} /></td>
                       {dashboardData.evidencePending.slice(0, 8).map((item) => (
                         <tr key={item.id}>
                           <td className="font-medium">{item.ngoName}</td>
