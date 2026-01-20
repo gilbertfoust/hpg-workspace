@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getSupabaseNotConfiguredError, supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
+import { scheduleDefaultReminderForWorkItem } from '@/lib/reminders';
 
 export type WorkItemStatus = 
   | 'draft'
@@ -154,11 +155,14 @@ export const useCreateWorkItem = () => {
         .single();
       
       if (error) throw error;
-      return data as WorkItem;
+      const workItem = data as WorkItem;
+      await scheduleDefaultReminderForWorkItem(workItem);
+      return workItem;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['work-items'] });
       queryClient.invalidateQueries({ queryKey: ['work-item-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['reminders'] });
       toast({
         title: 'Work item created',
         description: 'The work item has been successfully created.',
@@ -191,12 +195,17 @@ export const useUpdateWorkItem = () => {
         .single();
       
       if (error) throw error;
-      return data as WorkItem;
+      const workItem = data as WorkItem;
+      if ("due_date" in input && workItem.due_date) {
+        await scheduleDefaultReminderForWorkItem(workItem);
+      }
+      return workItem;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['work-items'] });
       queryClient.invalidateQueries({ queryKey: ['work-items', data.id] });
       queryClient.invalidateQueries({ queryKey: ['work-item-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['reminders'] });
       toast({
         title: 'Work item updated',
         description: 'The work item has been successfully updated.',
