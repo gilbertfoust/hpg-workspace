@@ -1,5 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useQuery } from '@tanstack/react-query';
+import { getSupabaseNotConfiguredError, supabase } from '@/integrations/supabase/client';
 import { ModuleType } from './useWorkItems';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
@@ -40,11 +42,17 @@ export interface EnsureFormTemplateInput {
   is_active?: boolean;
   version?: number | null;
 }
+const ensureSupabase = () => {
+  if (!supabase) {
+    throw getSupabaseNotConfiguredError();
+  }
+};
 
 export const useFormTemplates = (module?: ModuleType) => {
   return useQuery({
     queryKey: ['form-templates', module],
     queryFn: async () => {
+      ensureSupabase();
       let query = supabase
         .from('form_templates')
         .select('*')
@@ -115,6 +123,7 @@ export const useFormTemplate = (id: string) => {
   return useQuery({
     queryKey: ['form-templates', id],
     queryFn: async () => {
+      ensureSupabase();
       const { data, error } = await supabase
         .from('form_templates')
         .select('*')

@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { getSupabaseNotConfiguredError, supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import type { Database } from '@/integrations/supabase/types';
 
@@ -8,10 +8,17 @@ export type FiscalType = Database['public']['Enums']['fiscal_type'];
 export type NGO = Database['public']['Tables']['ngos']['Row'];
 export type CreateNGOInput = Database['public']['Tables']['ngos']['Insert'];
 
+const ensureSupabase = () => {
+  if (!supabase) {
+    throw getSupabaseNotConfiguredError();
+  }
+};
+
 export const useNGOs = () => {
   return useQuery({
     queryKey: ['ngos'],
     queryFn: async () => {
+      ensureSupabase();
       const { data, error } = await supabase
         .from('ngos')
         .select('*')
@@ -27,13 +34,15 @@ export const useNGO = (id: string) => {
   return useQuery({
     queryKey: ['ngos', id],
     queryFn: async () => {
+      ensureSupabase();
       const { data, error } = await supabase
         .from('ngos')
         .select('*')
         .eq('id', id)
-        .single();
+        .maybeSingle();
       
       if (error) throw error;
+      if (!data) throw new Error('NGO not found');
       return data as NGO;
     },
     enabled: !!id,
@@ -46,6 +55,7 @@ export const useCreateNGO = () => {
 
   return useMutation({
     mutationFn: async (input: CreateNGOInput) => {
+      ensureSupabase();
       const { data, error } = await supabase
         .from('ngos')
         .insert(input)
@@ -78,6 +88,8 @@ export const useUpdateNGO = () => {
 
   return useMutation({
     mutationFn: async ({ id, ...input }: Database['public']['Tables']['ngos']['Update'] & { id: string }) => {
+    mutationFn: async ({ id, ...input }: Partial<NGO> & { id: string }) => {
+      ensureSupabase();
       const { data, error } = await supabase
         .from('ngos')
         .update(input)
@@ -110,6 +122,7 @@ export const useNGOStats = () => {
   return useQuery({
     queryKey: ['ngo-stats'],
     queryFn: async () => {
+      ensureSupabase();
       const { data, error } = await supabase
         .from('ngos')
         .select('status');

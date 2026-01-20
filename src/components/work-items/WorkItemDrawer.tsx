@@ -1,12 +1,17 @@
+import { useState } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StatusChip } from "@/components/common/StatusChip";
 import { PriorityBadge } from "@/components/common/PriorityBadge";
-import { Calendar, User, Building2 } from "lucide-react";
+import { Calendar, BellPlus } from "lucide-react";
 import { format } from "date-fns";
 import { useWorkItem } from "@/hooks/useWorkItems";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { useCreateReminder } from "@/hooks/useReminders";
+import { getRelativeReminderAt } from "@/lib/reminders";
 
 interface WorkItemDrawerProps {
   workItemId: string | null;
@@ -25,6 +30,25 @@ const statusMap: Record<string, "approved" | "in-progress" | "rejected" | "draft
 
 export function WorkItemDrawer({ workItemId, open, onOpenChange }: WorkItemDrawerProps) {
   const { data: workItem, isLoading } = useWorkItem(workItemId || "");
+  const createReminder = useCreateReminder();
+  const [customReminderAt, setCustomReminderAt] = useState("");
+
+  const scheduleQuickReminder = async (daysFromNow: number) => {
+    if (!workItem) return;
+    await createReminder.mutateAsync({
+      workItemId: workItem.id,
+      remindAt: getRelativeReminderAt(daysFromNow),
+    });
+  };
+
+  const scheduleCustomReminder = async () => {
+    if (!workItem || !customReminderAt) return;
+    await createReminder.mutateAsync({
+      workItemId: workItem.id,
+      remindAt: new Date(customReminderAt).toISOString(),
+    });
+    setCustomReminderAt("");
+  };
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -83,6 +107,62 @@ export function WorkItemDrawer({ workItemId, open, onOpenChange }: WorkItemDrawe
                 <div>
                   <p className="text-muted-foreground mb-1">Updated</p>
                   <p>{format(new Date(workItem.updated_at), "MMM d, yyyy")}</p>
+                </div>
+              </div>
+
+              <Separator />
+
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-sm font-medium">Reminders</h4>
+                  <BellPlus className="w-4 h-4 text-muted-foreground" />
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Schedule in-app reminders for this work item.
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => scheduleQuickReminder(1)}
+                    disabled={createReminder.isPending}
+                  >
+                    Tomorrow
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => scheduleQuickReminder(3)}
+                    disabled={createReminder.isPending}
+                  >
+                    In 3 days
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => scheduleQuickReminder(7)}
+                    disabled={createReminder.isPending}
+                  >
+                    Next week
+                  </Button>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="datetime-local"
+                    value={customReminderAt}
+                    onChange={(event) => setCustomReminderAt(event.target.value)}
+                  />
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={scheduleCustomReminder}
+                    disabled={!customReminderAt || createReminder.isPending}
+                  >
+                    Set
+                  </Button>
                 </div>
               </div>
             </div>

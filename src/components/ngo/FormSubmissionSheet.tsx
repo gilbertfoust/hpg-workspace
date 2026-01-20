@@ -24,8 +24,18 @@ import { Separator } from "@/components/ui/separator";
 import { Save, Send, Loader2 } from "lucide-react";
 import { FormTemplate, FormField } from "@/hooks/useFormTemplates";
 import { FormSubmission, useCreateFormSubmission, useUpdateFormSubmission } from "@/hooks/useFormSubmissions";
+import { ModuleType, useCreateWorkItem } from "@/hooks/useWorkItems";
 import { useAuth } from "@/contexts/AuthContext";
 import type { Json } from "@/integrations/supabase/types";
+
+interface WorkItemConfig {
+  title: string;
+  type: string;
+  description?: string;
+  module: ModuleType;
+  ngoId?: string;
+  external_visible?: boolean;
+}
 
 interface FormSubmissionSheetProps {
   open: boolean;
@@ -35,6 +45,7 @@ interface FormSubmissionSheetProps {
   ngoId: string;
   initialValues?: Record<string, unknown>;
   onSubmitSuccess?: (submission: FormSubmission, payload: Record<string, unknown>, submitted: boolean) => void;
+  workItemConfig?: WorkItemConfig;
 }
 
 export function FormSubmissionSheet({
@@ -45,10 +56,12 @@ export function FormSubmissionSheet({
   ngoId,
   initialValues,
   onSubmitSuccess,
+  workItemConfig,
 }: FormSubmissionSheetProps) {
   const { user } = useAuth();
   const createMutation = useCreateFormSubmission();
   const updateMutation = useUpdateFormSubmission();
+  const createWorkItem = useCreateWorkItem();
   
   const [formData, setFormData] = useState<Record<string, unknown>>({});
   const isEditing = !!submission;
@@ -88,20 +101,44 @@ export function FormSubmissionSheet({
 
     const payload: Json = formData as Json;
     const status = submit ? "submitted" : "draft";
+    let workItemId = submission?.work_item_id ?? undefined;
+
+    if (submit && workItemConfig && !workItemId) {
+      const workItem = await createWorkItem.mutateAsync({
+        title: workItemConfig.title,
+        module: workItemConfig.module,
+        type: workItemConfig.type,
+        ngo_id: workItemConfig.ngoId ?? ngoId,
+        description: workItemConfig.description,
+        external_visible: workItemConfig.external_visible,
+      });
+      workItemId = workItem.id;
+    }
 
     let savedSubmission: FormSubmission;
 
     if (isEditing && submission) {
       savedSubmission = await updateMutation.mutateAsync({
         id: submission.id,
+      const updatePayload: Partial<FormSubmission> = {
         payload_json: payload,
         submission_status: status,
         submitted_at: submit ? new Date().toISOString() : submission.submitted_at,
+      };
+
+      if (submit && workItemId && !submission.work_item_id) {
+        updatePayload.work_item_id = workItemId;
+      }
+
+      await updateMutation.mutateAsync({
+        id: submission.id,
+        ...updatePayload,
       });
     } else {
       savedSubmission = await createMutation.mutateAsync({
         form_template_id: template.id,
         ngo_id: ngoId,
+        work_item_id: workItemId,
         submitted_by_user_id: user?.id,
         payload_json: payload,
         submission_status: status,
@@ -112,7 +149,7 @@ export function FormSubmissionSheet({
     onOpenChange(false);
   };
 
-  const isSaving = createMutation.isPending || updateMutation.isPending;
+  const isSaving = createMutation.isPending || updateMutation.isPending || createWorkItem.isPending;
 
   const renderField = (field: FormField) => {
     const value = formData[field.name];

@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { getSupabaseNotConfiguredError, supabase } from '@/integrations/supabase/client';
 
 export interface OrgUnit {
   id: string;
@@ -10,10 +10,17 @@ export interface OrgUnit {
   updated_at: string;
 }
 
+const ensureSupabase = () => {
+  if (!supabase) {
+    throw getSupabaseNotConfiguredError();
+  }
+};
+
 export const useOrgUnits = () => {
   return useQuery({
     queryKey: ['org-units'],
     queryFn: async () => {
+      ensureSupabase();
       const { data, error } = await supabase
         .from('org_units')
         .select('*')

@@ -23,13 +23,26 @@ import {
   MoreHorizontal,
   FolderOpen,
   FileClock
+  Trash2,
+  Loader2
 } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { format } from "date-fns";
 import { useDocuments, DocumentCategory } from "@/hooks/useDocuments";
 import { FormSubmissionSheet } from "./FormSubmissionSheet";
@@ -38,6 +51,8 @@ import { FormSubmission, useUpdateFormSubmission } from "@/hooks/useFormSubmissi
 import { StatusChip } from "@/components/common/StatusChip";
 import { useCreateWorkItem, useWorkItems } from "@/hooks/useWorkItems";
 import { useEnsureFormTemplate, FormTemplate } from "@/hooks/useFormTemplates";
+import { useDocuments, useDocumentUrl, useDeleteDocument, DocumentCategory, Document } from "@/hooks/useDocuments";
+import { DocumentUploadDialog } from "./DocumentUploadDialog";
 
 interface NGODocumentsTabProps {
   ngoId: string;
@@ -60,9 +75,12 @@ const categoryLabels: Record<DocumentCategory, string> = {
 };
 
 const reviewStatusStyles: Record<string, string> = {
-  pending: "bg-amber-100 text-amber-700",
-  approved: "bg-emerald-100 text-emerald-700",
-  rejected: "bg-red-100 text-red-700",
+  pending: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
+  Pending: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
+  approved: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
+  Approved: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
+  rejected: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
+  Rejected: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
 };
 
 const requestStatusMap: Record<string, "approved" | "in-progress" | "rejected" | "draft" | "waiting-ngo" | "waiting-hpg" | "under-review" | "submitted"> = {
@@ -107,6 +125,10 @@ export function NGODocumentsTab({ ngoId, launchDocumentRequest, onDocumentReques
   const [sheetOpen, setSheetOpen] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<FormTemplate | null>(null);
   const [initialValues, setInitialValues] = useState<Record<string, unknown> | undefined>(undefined);
+  const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [documentToDelete, setDocumentToDelete] = useState<Document | null>(null);
+  const [loadingDocId, setLoadingDocId] = useState<string | null>(null);
 
   const filters = {
     ngo_id: ngoId,
@@ -122,6 +144,8 @@ export function NGODocumentsTab({ ngoId, launchDocumentRequest, onDocumentReques
   const ensureTemplate = useEnsureFormTemplate();
   const createWorkItem = useCreateWorkItem();
   const updateSubmission = useUpdateFormSubmission();
+  const { downloadDocument, previewDocument } = useDocumentUrl();
+  const deleteMutation = useDeleteDocument();
 
   const filteredDocs = documents?.filter(doc =>
     doc.file_name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -197,6 +221,31 @@ export function NGODocumentsTab({ ngoId, launchDocumentRequest, onDocumentReques
     ? Array.from(groupedDocuments.entries())
     : [[categoryFilter, groupedDocuments.get(categoryFilter) || []]];
 
+  const handlePreview = async (doc: Document) => {
+    setLoadingDocId(doc.id);
+    await previewDocument(doc.file_path);
+    setLoadingDocId(null);
+  };
+
+  const handleDownload = async (doc: Document) => {
+    setLoadingDocId(doc.id);
+    await downloadDocument(doc.file_path, doc.file_name);
+    setLoadingDocId(null);
+  };
+
+  const handleDeleteClick = (doc: Document) => {
+    setDocumentToDelete(doc);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (documentToDelete) {
+      await deleteMutation.mutateAsync(documentToDelete);
+      setDeleteDialogOpen(false);
+      setDocumentToDelete(null);
+    }
+  };
+
   return (
     <div className="space-y-4">
       {/* Header */}
@@ -235,6 +284,10 @@ export function NGODocumentsTab({ ngoId, launchDocumentRequest, onDocumentReques
             Upload Document
           </Button>
         </div>
+        <Button onClick={() => setUploadDialogOpen(true)}>
+          <Upload className="w-4 h-4 mr-2" />
+          Upload Document
+        </Button>
       </div>
 
       {/* Document Requests */}
@@ -346,6 +399,69 @@ export function NGODocumentsTab({ ngoId, launchDocumentRequest, onDocumentReques
                 ))}
               </div>
             </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredDocs.map((doc) => (
+            <Card key={doc.id} className="hover:border-primary/30 transition-colors">
+              <CardContent className="p-4">
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
+                    {getFileIcon(doc.file_type)}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-medium truncate" title={doc.file_name}>
+                      {doc.file_name}
+                    </h4>
+                    <div className="flex items-center gap-2 mt-1">
+                      <Badge variant="outline" className="text-xs">
+                        {categoryLabels[doc.category] || "Other"}
+                      </Badge>
+                      <span className="text-xs text-muted-foreground">
+                        {formatFileSize(doc.file_size)}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between mt-3">
+                      <span className="text-xs text-muted-foreground">
+                        {format(new Date(doc.uploaded_at), "MMM d, yyyy")}
+                      </span>
+                      {doc.review_status && (
+                        <Badge className={`text-xs ${reviewStatusStyles[doc.review_status] || ""}`}>
+                          {doc.review_status}
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                        {loadingDocId === doc.id ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <MoreHorizontal className="w-4 h-4" />
+                        )}
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => handlePreview(doc)}>
+                        <Eye className="w-4 h-4 mr-2" />
+                        Preview
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleDownload(doc)}>
+                        <Download className="w-4 h-4 mr-2" />
+                        Download
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        className="text-destructive focus:text-destructive"
+                        onClick={() => handleDeleteClick(doc)}
+                      >
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              </CardContent>
+            </Card>
           ))}
         </div>
       )}
@@ -362,7 +478,7 @@ export function NGODocumentsTab({ ngoId, launchDocumentRequest, onDocumentReques
                   ? "Upload documents to keep track of important files" 
                   : "Try adjusting your search or filters"}
               </p>
-              <Button>
+              <Button onClick={() => setUploadDialogOpen(true)}>
                 <Upload className="w-4 h-4 mr-2" />
                 Upload Document
               </Button>
@@ -380,6 +496,40 @@ export function NGODocumentsTab({ ngoId, launchDocumentRequest, onDocumentReques
         initialValues={initialValues}
         onSubmitSuccess={handleSubmissionSuccess}
       />
+      {/* Upload Dialog */}
+      <DocumentUploadDialog
+        open={uploadDialogOpen}
+        onOpenChange={setUploadDialogOpen}
+        ngoId={ngoId}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Document</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{documentToDelete?.file_name}"? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteMutation.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                "Delete"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
