@@ -97,7 +97,7 @@ const modulesSections: ModuleSection[] = [
     title: "Support",
     items: [
       { to: "/modules/hr", icon: <UserPlus className="w-4 h-4" />, label: "HR" },
-      { to: "/modules/it", icon: <Monitor className="w-4 h-4" />, label: "IT" },
+      { to: "/it", icon: <Monitor className="w-4 h-4" />, label: "IT" },
       { to: "/modules/finance", icon: <DollarSign className="w-4 h-4" />, label: "Finance" },
       { to: "/modules/legal", icon: <Scale className="w-4 h-4" />, label: "Legal" },
     ],

@@ -20,6 +20,7 @@ import ReportsDashboard from "./pages/ReportsDashboard";
 import Admin from "./pages/Admin";
 import AdminConfigHome from "./pages/AdminConfig/AdminConfigHome";
 import NotFound from "./pages/NotFound";
+import ITDashboard from "./pages/ITDashboard";
 import HRDashboard from "./pages/HRDashboard";
 
 // Module pages
@@ -65,6 +66,7 @@ const App = () => (
             <Route path="/calendar" element={<ProtectedRoute><CalendarPage /></ProtectedRoute>} />
             <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
             <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
+            <Route path="/it" element={<ProtectedRoute><ITDashboard /></ProtectedRoute>} />
             <Route path="/hr" element={<ProtectedRoute><HRDashboard /></ProtectedRoute>} />
             
             {/* Protected module pages */}
