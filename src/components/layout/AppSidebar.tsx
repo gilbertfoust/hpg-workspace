@@ -109,6 +109,7 @@ export function AppSidebar() {
   const [expandedModules, setExpandedModules] = useState(false);
   const { user, signOut } = useAuth();
   const { data: userRole } = useUserRole();
+  const canAccessAdminConfig = userRole?.role === 'super_admin' || userRole?.role === 'admin_pm';
 
   const userInitials = user?.user_metadata?.full_name
     ?.split(' ')
@@ -220,6 +221,13 @@ export function AppSidebar() {
               <div className="pt-4 mt-4 border-t border-sidebar-border">
                 <NavItem to="/reports" icon={<BarChart3 className="w-4 h-4" />} label={isCollapsed ? "" : "Reports"} />
                 <NavItem to="/admin" icon={<Settings className="w-4 h-4" />} label={isCollapsed ? "" : "Admin"} />
+                {canAccessAdminConfig && (
+                  <NavItem
+                    to="/admin/config"
+                    icon={<Settings className="w-4 h-4" />}
+                    label={isCollapsed ? "" : "Admin / Config"}
+                  />
+                )}
               </div>
             </nav>
           </ScrollArea>
