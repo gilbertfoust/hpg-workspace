@@ -18,6 +18,8 @@ import Documents from "./pages/Documents";
 import CalendarPage from "./pages/CalendarPage";
 import ReportsDashboard from "./pages/ReportsDashboard";
 import Admin from "./pages/Admin";
+import AdminRoles from "./pages/admin/AdminRoles";
+import AdminDepartments from "./pages/admin/AdminDepartments";
 import AdminConfigHome from "./pages/AdminConfig/AdminConfigHome";
 import NotFound from "./pages/NotFound";
 import Portal from "./pages/Portal";
@@ -108,6 +110,8 @@ const App = () => (
               <Route path="/calendar" element={<ProtectedRoute><CalendarPage /></ProtectedRoute>} />
               <Route path="/reports" element={<ProtectedRoute><ReportsDashboard /></ProtectedRoute>} />
               <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
+              <Route path="/admin/roles" element={<ProtectedRoute><AdminRoles /></ProtectedRoute>} />
+              <Route path="/admin/departments" element={<ProtectedRoute><AdminDepartments /></ProtectedRoute>} />
 
               {/* External NGO portal */}
               <Route path="/portal" element={<ProtectedRoute><Portal /></ProtectedRoute>} />

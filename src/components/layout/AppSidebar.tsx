@@ -31,7 +31,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAuth } from "@/contexts/AuthContext";
-import { useUserRole } from "@/hooks/useUserRole";
+import { useIsAdminUser, useUserRole } from "@/hooks/useUserRole";
 
 interface NavItemProps {
   to: string;
@@ -109,6 +109,7 @@ export function AppSidebar() {
   const [expandedModules, setExpandedModules] = useState(false);
   const { user, signOut } = useAuth();
   const { data: userRole } = useUserRole();
+  const isAdminUser = useIsAdminUser();
   const canAccessAdminConfig = userRole?.role === 'super_admin' || userRole?.role === 'admin_pm';
 
   const userInitials = user?.user_metadata?.full_name
@@ -228,6 +229,12 @@ export function AppSidebar() {
 
               {/* Footer Navigation */}
               <div className="pt-4 mt-4 border-t border-sidebar-border">
+                <NavItem to="/reports" icon={<BarChart3 className="w-4 h-4" />} label={isCollapsed ? "" : "Reports"} />
+                {isAdminUser && (
+                  <>
+                    <NavItem to="/admin/roles" icon={<Settings className="w-4 h-4" />} label={isCollapsed ? "" : "Roles"} />
+                    <NavItem to="/admin/departments" icon={<Settings className="w-4 h-4" />} label={isCollapsed ? "" : "Departments"} />
+                  </>
                 {isCollapsed && (
                   <NavItem to="/reports" icon={<BarChart3 className="w-4 h-4" />} label="" />
                 )}
