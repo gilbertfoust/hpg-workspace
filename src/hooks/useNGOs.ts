@@ -1,41 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import type { Database } from '@/integrations/supabase/types';
 
-export type NGOStatus = 'prospect' | 'onboarding' | 'active' | 'at_risk' | 'offboarding' | 'closed';
-export type FiscalType = 'model_a' | 'model_c' | 'other';
-
-export interface NGO {
-  id: string;
-  legal_name: string;
-  common_name: string | null;
-  bundle: string | null;
-  country: string | null;
-  state_province: string | null;
-  city: string | null;
-  website: string | null;
-  fiscal_type: FiscalType;
-  status: NGOStatus;
-  primary_contact_id: string | null;
-  ngo_coordinator_user_id: string | null;
-  admin_pm_user_id: string | null;
-  notes: string | null;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface CreateNGOInput {
-  legal_name: string;
-  common_name?: string;
-  bundle?: string;
-  country?: string;
-  state_province?: string;
-  city?: string;
-  website?: string;
-  fiscal_type?: FiscalType;
-  status?: NGOStatus;
-  notes?: string;
-}
+export type NGOStatus = Database['public']['Enums']['ngo_status'];
+export type FiscalType = Database['public']['Enums']['fiscal_type'];
+export type NGO = Database['public']['Tables']['ngos']['Row'];
+export type CreateNGOInput = Database['public']['Tables']['ngos']['Insert'];
 
 export const useNGOs = () => {
   return useQuery({
@@ -106,7 +77,7 @@ export const useUpdateNGO = () => {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: async ({ id, ...input }: Partial<NGO> & { id: string }) => {
+    mutationFn: async ({ id, ...input }: Database['public']['Tables']['ngos']['Update'] & { id: string }) => {
       const { data, error } = await supabase
         .from('ngos')
         .update(input)

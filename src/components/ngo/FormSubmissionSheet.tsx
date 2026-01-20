@@ -33,6 +33,8 @@ interface FormSubmissionSheetProps {
   template: FormTemplate | null;
   submission?: FormSubmission | null;
   ngoId: string;
+  initialValues?: Record<string, unknown>;
+  onSubmitSuccess?: (submission: FormSubmission, payload: Record<string, unknown>, submitted: boolean) => void;
 }
 
 export function FormSubmissionSheet({
@@ -41,6 +43,8 @@ export function FormSubmissionSheet({
   template,
   submission,
   ngoId,
+  initialValues,
+  onSubmitSuccess,
 }: FormSubmissionSheetProps) {
   const { user } = useAuth();
   const createMutation = useCreateFormSubmission();
@@ -55,10 +59,15 @@ export function FormSubmissionSheet({
   useEffect(() => {
     if (submission?.payload_json && typeof submission.payload_json === 'object') {
       setFormData(submission.payload_json as Record<string, unknown>);
+      return;
+    }
+
+    if (open) {
+      setFormData(initialValues || {});
     } else {
       setFormData({});
     }
-  }, [submission, template]);
+  }, [submission, template, initialValues, open]);
 
   const fields: FormField[] = template?.schema_json?.fields || [];
 
@@ -80,15 +89,17 @@ export function FormSubmissionSheet({
     const payload: Json = formData as Json;
     const status = submit ? "submitted" : "draft";
 
+    let savedSubmission: FormSubmission;
+
     if (isEditing && submission) {
-      await updateMutation.mutateAsync({
+      savedSubmission = await updateMutation.mutateAsync({
         id: submission.id,
         payload_json: payload,
         submission_status: status,
         submitted_at: submit ? new Date().toISOString() : submission.submitted_at,
       });
     } else {
-      await createMutation.mutateAsync({
+      savedSubmission = await createMutation.mutateAsync({
         form_template_id: template.id,
         ngo_id: ngoId,
         submitted_by_user_id: user?.id,
@@ -97,6 +108,7 @@ export function FormSubmissionSheet({
       });
     }
 
+    onSubmitSuccess?.(savedSubmission, formData, submit);
     onOpenChange(false);
   };
 

@@ -2,85 +2,23 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
+import type { Database } from '@/integrations/supabase/types';
 
-export type WorkItemStatus = 
-  | 'draft'
-  | 'not_started'
-  | 'in_progress'
-  | 'waiting_on_ngo'
-  | 'waiting_on_hpg'
-  | 'submitted'
-  | 'under_review'
-  | 'approved'
-  | 'rejected'
-  | 'complete'
-  | 'canceled';
-
-export type Priority = 'low' | 'medium' | 'high';
-export type EvidenceStatus = 'missing' | 'uploaded' | 'under_review' | 'approved' | 'rejected';
-export type ModuleType = 
-  | 'ngo_coordination'
-  | 'administration'
-  | 'operations'
-  | 'program'
-  | 'curriculum'
-  | 'development'
-  | 'partnership'
-  | 'marketing'
-  | 'communications'
-  | 'hr'
-  | 'it'
-  | 'finance'
-  | 'legal';
-
-export interface WorkItem {
-  id: string;
-  ngo_id: string | null;
-  module: ModuleType;
-  type: string | null;
-  title: string;
-  description: string | null;
-  department_id: string | null;
-  owner_user_id: string | null;
-  created_by_user_id: string | null;
-  status: WorkItemStatus;
-  priority: Priority;
-  due_date: string | null;
-  start_date: string | null;
-  completed_at: string | null;
-  dependencies: string[];
-  evidence_required: boolean;
-  evidence_status: EvidenceStatus;
-  approval_required: boolean;
-  approver_user_id: string | null;
-  approval_policy: unknown;
-  external_visible: boolean;
-  trello_sync: boolean;
-  trello_card_id: string | null;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface CreateWorkItemInput {
-  title: string;
-  module: ModuleType;
-  ngo_id?: string;
-  description?: string;
-  department_id?: string;
-  owner_user_id?: string;
-  priority?: Priority;
-  due_date?: string;
-  start_date?: string;
-  evidence_required?: boolean;
-  approval_required?: boolean;
-  external_visible?: boolean;
-}
+export type WorkItemStatus = Database['public']['Enums']['work_item_status'];
+export type Priority = Database['public']['Enums']['priority_level'];
+export type EvidenceStatus = Database['public']['Enums']['evidence_status'];
+export type ModuleType = Database['public']['Enums']['module_type'];
+export type WorkItem = Database['public']['Tables']['work_items']['Row'];
+export type CreateWorkItemInput = Database['public']['Tables']['work_items']['Insert'];
 
 export const useWorkItems = (filters?: {
   ngo_id?: string;
   status?: WorkItemStatus[];
   module?: ModuleType;
+  type?: string;
   owner_user_id?: string;
+  evidence_required?: boolean;
+  evidence_status?: EvidenceStatus;
 }) => {
   return useQuery({
     queryKey: ['work-items', filters],
@@ -99,8 +37,17 @@ export const useWorkItems = (filters?: {
       if (filters?.module) {
         query = query.eq('module', filters.module);
       }
+      if (filters?.type) {
+        query = query.eq('type', filters.type);
+      }
       if (filters?.owner_user_id) {
         query = query.eq('owner_user_id', filters.owner_user_id);
+      }
+      if (typeof filters?.evidence_required === 'boolean') {
+        query = query.eq('evidence_required', filters.evidence_required);
+      }
+      if (filters?.evidence_status) {
+        query = query.eq('evidence_status', filters.evidence_status);
       }
       
       const { data, error } = await query;
@@ -170,7 +117,7 @@ export const useUpdateWorkItem = () => {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: async ({ id, ...input }: Partial<WorkItem> & { id: string }) => {
+    mutationFn: async ({ id, ...input }: Database['public']['Tables']['work_items']['Update'] & { id: string }) => {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { approval_policy, ...safeInput } = input;
       const { data, error } = await supabase
@@ -218,7 +165,7 @@ export const useWorkItemStats = () => {
       
       const activeStatuses: WorkItemStatus[] = ['not_started', 'in_progress', 'waiting_on_ngo', 'waiting_on_hpg', 'submitted', 'under_review'];
       
-      const activeItems = data.filter(item => activeStatuses.includes(item.status as WorkItemStatus));
+      const activeItems = data.filter(item => item.status && activeStatuses.includes(item.status as WorkItemStatus));
       
       const stats = {
         total: data.length,
@@ -239,8 +186,9 @@ export const useWorkItemStats = () => {
           return dueDate < today;
         }).length,
         pendingEvidence: data.filter(item => 
-          item.evidence_required && 
+          item.evidence_required === true && 
           item.evidence_status === 'missing' &&
+          item.status &&
           activeStatuses.includes(item.status as WorkItemStatus)
         ).length,
         complete: data.filter(item => item.status === 'complete').length,

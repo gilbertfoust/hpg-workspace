@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,7 +25,8 @@ import {
   Search, 
   ListTodo,
   ExternalLink,
-  Calendar
+  Calendar,
+  Filter
 } from "lucide-react";
 import { format } from "date-fns";
 import { useWorkItems, WorkItemStatus, ModuleType } from "@/hooks/useWorkItems";
@@ -74,13 +75,15 @@ export function NGOWorkItemsTab({ ngoId }: NGOWorkItemsTabProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<WorkItemStatus | "all">("all");
   const [moduleFilter, setModuleFilter] = useState<ModuleType | "all">("all");
+  const [quickFilter, setQuickFilter] = useState<"monthly-check-ins" | "all">("all");
   const [selectedWorkItemId, setSelectedWorkItemId] = useState<string | null>(null);
 
-  const filters = {
+  const filters = useMemo(() => ({
     ngo_id: ngoId,
     ...(statusFilter !== "all" && { status: [statusFilter] }),
     ...(moduleFilter !== "all" && { module: moduleFilter }),
-  };
+    ...(quickFilter === "monthly-check-ins" && { type: "Monthly Check-in" }),
+  }), [moduleFilter, ngoId, quickFilter, statusFilter]);
 
   const { data: workItems, isLoading } = useWorkItems(filters);
 
@@ -127,6 +130,14 @@ export function NGOWorkItemsTab({ ngoId }: NGOWorkItemsTabProps) {
               ))}
             </SelectContent>
           </Select>
+          <Button
+            variant={quickFilter === "monthly-check-ins" ? "default" : "outline"}
+            className="whitespace-nowrap"
+            onClick={() => setQuickFilter(quickFilter === "monthly-check-ins" ? "all" : "monthly-check-ins")}
+          >
+            <Filter className="w-4 h-4 mr-2" />
+            Monthly Check-ins
+          </Button>
         </div>
         <Button>
           <Plus className="w-4 h-4 mr-2" />

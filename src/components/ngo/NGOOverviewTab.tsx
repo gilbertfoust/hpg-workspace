@@ -8,11 +8,10 @@ import {
   Globe, 
   Users, 
   Edit2,
-  Mail,
-  Phone,
   FileText,
   Clock,
-  AlertTriangle
+  AlertTriangle,
+  Zap
 } from "lucide-react";
 import { format } from "date-fns";
 import { NGO } from "@/hooks/useNGOs";
@@ -24,6 +23,9 @@ import { ContactCard } from "./ContactCard";
 interface NGOOverviewTabProps {
   ngo: NGO;
   onEdit: () => void;
+  onGenerateFromTemplate?: () => void;
+  onMonthlyCheckIn?: () => void;
+  onRequestDocument?: () => void;
 }
 
 const fiscalTypeLabels: Record<string, string> = {
@@ -41,20 +43,22 @@ const statusLabels: Record<string, string> = {
   closed: "Closed",
 };
 
-export function NGOOverviewTab({ ngo, onEdit }: NGOOverviewTabProps) {
+export function NGOOverviewTab({ ngo, onEdit, onGenerateFromTemplate, onMonthlyCheckIn, onRequestDocument }: NGOOverviewTabProps) {
   const { data: contacts } = useContacts(ngo.id);
   const { data: workItems } = useWorkItems({ ngo_id: ngo.id });
   const { data: coordinator } = useProfile(ngo.ngo_coordinator_user_id || "");
   const { data: adminPm } = useProfile(ngo.admin_pm_user_id || "");
 
   const primaryContact = contacts?.find(c => c.is_primary) || contacts?.[0];
-  const totalWorkItems = workItems?.length || 0;
+  const activeStatuses = ['not_started', 'in_progress', 'waiting_on_ngo', 'waiting_on_hpg', 'submitted', 'under_review'];
+  const openItems = workItems?.filter(wi => wi.status && !['complete', 'canceled'].includes(wi.status)).length || 0;
   const overdueItems = workItems?.filter(wi => 
     wi.due_date && new Date(wi.due_date) < new Date() && 
-    !['complete', 'canceled'].includes(wi.status)
+    wi.status && !['complete', 'canceled'].includes(wi.status)
   ).length || 0;
-  const pendingItems = workItems?.filter(wi => 
-    ['not_started', 'in_progress', 'waiting_on_ngo', 'waiting_on_hpg'].includes(wi.status)
+  const missingEvidenceItems = workItems?.filter(wi => 
+    wi.evidence_required && wi.evidence_status !== 'approved' &&
+    wi.status && activeStatuses.includes(wi.status)
   ).length || 0;
 
   const location = [ngo.city, ngo.state_province, ngo.country].filter(Boolean).join(", ");
@@ -88,7 +92,7 @@ export function NGOOverviewTab({ ngo, onEdit }: NGOOverviewTabProps) {
               </div>
               <div className="space-y-1">
                 <p className="text-sm text-muted-foreground">Fiscal Type</p>
-                <p className="font-medium">{fiscalTypeLabels[ngo.fiscal_type] || ngo.fiscal_type}</p>
+                <p className="font-medium">{ngo.fiscal_type ? fiscalTypeLabels[ngo.fiscal_type] || ngo.fiscal_type : "—"}</p>
               </div>
             </div>
 
@@ -208,7 +212,7 @@ export function NGOOverviewTab({ ngo, onEdit }: NGOOverviewTabProps) {
           <CardContent>
             <div className="flex items-center justify-between">
               <Badge variant="outline" className="text-sm">
-                {statusLabels[ngo.status] || ngo.status}
+                {ngo.status ? statusLabels[ngo.status] || ngo.status : "Unknown"}
               </Badge>
               <Button variant="ghost" size="sm" onClick={onEdit}>
                 Change
@@ -231,32 +235,51 @@ export function NGOOverviewTab({ ngo, onEdit }: NGOOverviewTabProps) {
         {/* Quick Stats Card */}
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-lg font-medium">Work Items</CardTitle>
+            <CardTitle className="text-lg font-medium">Key Metrics</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="flex items-center justify-between p-2 rounded-lg bg-muted/50">
               <div className="flex items-center gap-2">
                 <FileText className="w-4 h-4 text-muted-foreground" />
-                <span className="text-sm">Total Items</span>
+                <span className="text-sm">Open Work Items</span>
               </div>
-              <span className="font-semibold">{totalWorkItems}</span>
+              <span className="font-semibold">{openItems}</span>
             </div>
             <div className="flex items-center justify-between p-2 rounded-lg bg-muted/50">
               <div className="flex items-center gap-2">
                 <Clock className="w-4 h-4 text-muted-foreground" />
-                <span className="text-sm">In Progress</span>
+                <span className="text-sm">Overdue Items</span>
               </div>
-              <span className="font-semibold">{pendingItems}</span>
+              <span className="font-semibold">{overdueItems}</span>
             </div>
-            {overdueItems > 0 && (
-              <div className="flex items-center justify-between p-2 rounded-lg bg-destructive/10">
-                <div className="flex items-center gap-2">
-                  <AlertTriangle className="w-4 h-4 text-destructive" />
-                  <span className="text-sm text-destructive">Overdue</span>
-                </div>
-                <span className="font-semibold text-destructive">{overdueItems}</span>
+            <div className="flex items-center justify-between p-2 rounded-lg bg-muted/50">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-muted-foreground" />
+                <span className="text-sm">Missing Evidence</span>
               </div>
-            )}
+              <span className="font-semibold">{missingEvidenceItems}</span>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Quick Actions */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg font-medium">Quick Actions</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <Button variant="outline" className="w-full justify-start" onClick={onGenerateFromTemplate} disabled={!onGenerateFromTemplate}>
+              <Zap className="w-4 h-4 mr-2" />
+              Generate from Template
+            </Button>
+            <Button variant="outline" className="w-full justify-start" onClick={onMonthlyCheckIn} disabled={!onMonthlyCheckIn}>
+              <Clock className="w-4 h-4 mr-2" />
+              Monthly Check-in
+            </Button>
+            <Button variant="outline" className="w-full justify-start" onClick={onRequestDocument} disabled={!onRequestDocument}>
+              <FileText className="w-4 h-4 mr-2" />
+              Request Document
+            </Button>
           </CardContent>
         </Card>
       </div>
