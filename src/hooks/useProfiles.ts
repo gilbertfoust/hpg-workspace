@@ -1,5 +1,6 @@
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { getSupabaseNotConfiguredError, supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 export interface Profile {
   id: string;
@@ -80,6 +81,40 @@ export const useInternalUsers = () => {
         ...profile,
         roles: userRoles.filter(ur => ur.user_id === profile.id).map(ur => ur.role),
       }));
+    },
+  });
+};
+
+export const useUpdateProfileDepartment = () => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async ({ id, departmentId }: { id: string; departmentId: string | null }) => {
+      ensureSupabase();
+      const { data, error } = await supabase
+        .from('profiles')
+        .update({ department_id: departmentId })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data as Profile;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['profiles'] });
+      toast({
+        title: 'Department updated',
+        description: 'The department assignment has been updated.',
+      });
+    },
+    onError: (error) => {
+      toast({
+        variant: 'destructive',
+        title: 'Unable to update department',
+        description: error.message,
+      });
     },
   });
 };
