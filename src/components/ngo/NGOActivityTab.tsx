@@ -1,16 +1,20 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { 
-  MessageSquare, 
-  FileText, 
-  Edit, 
+import {
+  MessageSquare,
+  FileText,
+  Edit,
   Plus,
-  Activity
+  Activity,
+  ClipboardList,
+  CalendarCheck,
 } from "lucide-react";
-import { format, formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow } from "date-fns";
 import { useCommentsForNGO } from "@/hooks/useComments";
 import { useAuditLogForNGO } from "@/hooks/useAuditLog";
+import { useWorkItems } from "@/hooks/useWorkItems";
+import { useFormSubmissions } from "@/hooks/useFormSubmissions";
 
 interface NGOActivityTabProps {
   ngoId: string;
@@ -18,9 +22,10 @@ interface NGOActivityTabProps {
 
 interface ActivityItem {
   id: string;
-  type: "comment" | "audit";
+  type: "comment" | "audit" | "work-item" | "form-submission";
   created_at: string;
   content: string;
+  title?: string;
   actor?: {
     full_name: string | null;
     email: string | null;
@@ -35,14 +40,30 @@ const actionIcons: Record<string, React.ReactNode> = {
   comment: <MessageSquare className="w-4 h-4 text-primary" />,
   create: <Plus className="w-4 h-4 text-success" />,
   update: <Edit className="w-4 h-4 text-info" />,
+  workItem: <ClipboardList className="w-4 h-4 text-primary" />,
+  checkIn: <CalendarCheck className="w-4 h-4 text-success" />,
   default: <FileText className="w-4 h-4 text-muted-foreground" />,
 };
 
 export function NGOActivityTab({ ngoId }: NGOActivityTabProps) {
   const { data: comments, isLoading: commentsLoading } = useCommentsForNGO(ngoId);
   const { data: auditLogs, isLoading: auditLoading } = useAuditLogForNGO(ngoId);
+  const { data: workItems, isLoading: workItemsLoading } = useWorkItems({ ngo_id: ngoId });
+  const { data: submissions, isLoading: submissionsLoading } = useFormSubmissions({ ngo_id: ngoId });
 
-  const isLoading = commentsLoading || auditLoading;
+  const isLoading = commentsLoading || auditLoading || workItemsLoading || submissionsLoading;
+
+  const checkInWorkItems = (workItems || []).filter(
+    (item) => item.type?.toLowerCase() === "monthly ngo check-in",
+  );
+  const documentRequests = (workItems || []).filter(
+    (item) => item.type?.toLowerCase() === "document request",
+  );
+  const checkInWorkItemIds = new Set(checkInWorkItems.map((item) => item.id));
+  const checkInSubmissions = (submissions || []).filter((submission) => {
+    if (submission.work_item_id && checkInWorkItemIds.has(submission.work_item_id)) return true;
+    return submission.form_template?.name?.toLowerCase().includes("monthly") ?? false;
+  });
 
   // Combine and sort activities
   const activities: ActivityItem[] = [
@@ -52,6 +73,27 @@ export function NGOActivityTab({ ngoId }: NGOActivityTabProps) {
       created_at: c.created_at,
       content: c.comment_text,
       actor: c.author,
+    })),
+    ...checkInWorkItems.map((item) => ({
+      id: `checkin-work-${item.id}`,
+      type: "work-item" as const,
+      created_at: item.created_at,
+      title: item.title,
+      content: "Monthly check-in work item created",
+    })),
+    ...documentRequests.map((item) => ({
+      id: `document-request-${item.id}`,
+      type: "work-item" as const,
+      created_at: item.created_at,
+      title: item.title,
+      content: item.description || "Document request created",
+    })),
+    ...checkInSubmissions.map((submission) => ({
+      id: `submission-${submission.id}`,
+      type: "form-submission" as const,
+      created_at: submission.submitted_at || submission.created_at,
+      title: submission.form_template?.name || "Monthly NGO Check-in",
+      content: `Form ${submission.submission_status || "draft"}`,
     })),
     ...(auditLogs || []).map(a => ({
       id: `audit-${a.id}`,
@@ -106,6 +148,10 @@ export function NGOActivityTab({ ngoId }: NGOActivityTabProps) {
                   <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center z-10">
                     {activity.type === "comment" 
                       ? actionIcons.comment
+                      : activity.type === "form-submission"
+                      ? actionIcons.checkIn
+                      : activity.type === "work-item"
+                      ? actionIcons.workItem
                       : actionIcons[activity.metadata?.action_type || "default"] || actionIcons.default
                     }
                   </div>
@@ -126,6 +172,11 @@ export function NGOActivityTab({ ngoId }: NGOActivityTabProps) {
                     {activity.type === "comment" ? (
                       <div className="p-3 rounded-lg bg-muted/50 text-sm">
                         {activity.content}
+                      </div>
+                    ) : activity.type === "work-item" || activity.type === "form-submission" ? (
+                      <div className="space-y-1">
+                        {activity.title && <p className="text-sm font-medium">{activity.title}</p>}
+                        <p className="text-sm text-muted-foreground">{activity.content}</p>
                       </div>
                     ) : (
                       <p className="text-sm text-muted-foreground capitalize">
