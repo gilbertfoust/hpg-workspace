@@ -40,6 +40,8 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useNGOs, useCreateNGO, NGOStatus, FiscalType } from "@/hooks/useNGOs";
+import { isSupabaseNotConfiguredError } from "@/integrations/supabase/client";
+import { SupabaseNotConfiguredNotice } from "@/components/common/SupabaseNotConfiguredNotice";
 
 const statusMap: Record<string, "approved" | "in-progress" | "rejected" | "draft" | "waiting-ngo"> = {
   Active: "approved",
@@ -70,7 +72,7 @@ const fiscalTypes: { label: string; value: FiscalType }[] = [
 
 export default function NGOs() {
   const navigate = useNavigate();
-  const { data: ngos, isLoading } = useNGOs();
+  const { data: ngos, isLoading, error } = useNGOs();
   const createNGO = useCreateNGO();
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -136,6 +138,14 @@ export default function NGOs() {
       notes: "",
     });
   };
+
+  if (isSupabaseNotConfiguredError(error)) {
+    return (
+      <MainLayout title="NGOs">
+        <SupabaseNotConfiguredNotice />
+      </MainLayout>
+    );
+  }
 
   return (
     <MainLayout

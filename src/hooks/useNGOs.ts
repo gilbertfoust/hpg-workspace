@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabaseClient';
+import { getSupabaseNotConfiguredError, supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -38,10 +39,17 @@ export interface CreateNGOInput {
   notes?: string;
 }
 
+const ensureSupabase = () => {
+  if (!supabase) {
+    throw getSupabaseNotConfiguredError();
+  }
+};
+
 export const useNGOs = () => {
   return useQuery({
     queryKey: ['ngos'],
     queryFn: async () => {
+      ensureSupabase();
       const { data, error } = await supabase
         .from('ngos')
         .select('*')
@@ -57,13 +65,15 @@ export const useNGO = (id: string) => {
   return useQuery({
     queryKey: ['ngos', id],
     queryFn: async () => {
+      ensureSupabase();
       const { data, error } = await supabase
         .from('ngos')
         .select('*')
         .eq('id', id)
-        .single();
+        .maybeSingle();
       
       if (error) throw error;
+      if (!data) throw new Error('NGO not found');
       return data as NGO;
     },
     enabled: !!id,
@@ -77,6 +87,7 @@ export const useCreateNGO = () => {
 
   return useMutation({
     mutationFn: async (input: CreateNGOInput) => {
+      ensureSupabase();
       const { data, error } = await supabase
         .from('ngos')
         .insert(input)
@@ -134,6 +145,7 @@ export const useUpdateNGO = () => {
         .eq('id', id)
         .single();
 
+      ensureSupabase();
       const { data, error } = await supabase
         .from('ngos')
         .update(input)
@@ -183,6 +195,7 @@ export const useNGOStats = () => {
   return useQuery({
     queryKey: ['ngo-stats'],
     queryFn: async () => {
+      ensureSupabase();
       const { data, error } = await supabase
         .from('ngos')
         .select('status');

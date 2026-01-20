@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabaseClient';
+import { getSupabaseNotConfiguredError, supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
 export type AppRole = 
@@ -16,6 +17,12 @@ export interface UserRole {
   role: AppRole;
 }
 
+const ensureSupabase = () => {
+  if (!supabase) {
+    throw getSupabaseNotConfiguredError();
+  }
+};
+
 export const useUserRole = () => {
   const { user } = useAuth();
 
@@ -23,6 +30,7 @@ export const useUserRole = () => {
     queryKey: ['user-role', user?.id],
     queryFn: async () => {
       if (!user?.id) return null;
+      ensureSupabase();
       
       const { data, error } = await supabase
         .from('profiles')

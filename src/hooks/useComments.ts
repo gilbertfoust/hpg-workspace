@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabaseClient';
+import { getSupabaseNotConfiguredError, supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
 export interface Comment {
@@ -21,10 +22,17 @@ export interface CreateCommentInput {
   comment_text: string;
 }
 
+const ensureSupabase = () => {
+  if (!supabase) {
+    throw getSupabaseNotConfiguredError();
+  }
+};
+
 export const useComments = (work_item_id: string) => {
   return useQuery({
     queryKey: ['comments', work_item_id],
     queryFn: async () => {
+      ensureSupabase();
       const { data, error } = await supabase
         .from('comments')
         .select('*')
@@ -65,6 +73,7 @@ export const useCommentsForNGO = (ngo_id: string) => {
   return useQuery({
     queryKey: ['comments', 'ngo', ngo_id],
     queryFn: async () => {
+      ensureSupabase();
       // First get all work items for this NGO
       const { data: workItems, error: wiError } = await supabase
         .from('work_items')
@@ -120,6 +129,7 @@ export const useCreateComment = () => {
 
   return useMutation({
     mutationFn: async (input: CreateCommentInput) => {
+      ensureSupabase();
       const { data, error } = await supabase
         .from('comments')
         .insert(input)

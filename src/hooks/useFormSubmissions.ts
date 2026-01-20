@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabaseClient';
+import { getSupabaseNotConfiguredError, supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import type { Json } from '@/integrations/supabase/types';
 
@@ -29,10 +30,17 @@ export interface CreateFormSubmissionInput {
   submission_status?: string;
 }
 
+const ensureSupabase = () => {
+  if (!supabase) {
+    throw getSupabaseNotConfiguredError();
+  }
+};
+
 export const useFormSubmissions = (filters?: { ngo_id?: string; form_template_id?: string }) => {
   return useQuery({
     queryKey: ['form-submissions', filters],
     queryFn: async () => {
+      ensureSupabase();
       let query = supabase
         .from('form_submissions')
         .select(`
@@ -75,6 +83,7 @@ export const useFormSubmission = (id: string) => {
   return useQuery({
     queryKey: ['form-submissions', 'detail', id],
     queryFn: async () => {
+      ensureSupabase();
       const { data, error } = await supabase
         .from('form_submissions')
         .select(`
@@ -97,6 +106,7 @@ export const useCreateFormSubmission = () => {
 
   return useMutation({
     mutationFn: async (input: CreateFormSubmissionInput) => {
+      ensureSupabase();
       const { data, error } = await supabase
         .from('form_submissions')
         .insert(input)
@@ -129,6 +139,7 @@ export const useUpdateFormSubmission = () => {
 
   return useMutation({
     mutationFn: async ({ id, ...input }: Partial<FormSubmission> & { id: string }) => {
+      ensureSupabase();
       const { data, error } = await supabase
         .from('form_submissions')
         .update(input)

@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabaseClient';
+import { getSupabaseNotConfiguredError, supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
 export type OrgType = 'ngo' | 'partner' | 'funder' | 'vendor' | 'applicant';
@@ -30,10 +31,17 @@ export interface CreateContactInput {
   org_type?: OrgType;
 }
 
+const ensureSupabase = () => {
+  if (!supabase) {
+    throw getSupabaseNotConfiguredError();
+  }
+};
+
 export const useContacts = (ngo_id?: string) => {
   return useQuery({
     queryKey: ['contacts', ngo_id],
     queryFn: async () => {
+      ensureSupabase();
       let query = supabase.from('contacts').select('*');
       
       if (ngo_id) {
@@ -52,6 +60,7 @@ export const useContact = (id: string) => {
   return useQuery({
     queryKey: ['contacts', 'detail', id],
     queryFn: async () => {
+      ensureSupabase();
       const { data, error } = await supabase
         .from('contacts')
         .select('*')
@@ -71,6 +80,7 @@ export const useCreateContact = () => {
 
   return useMutation({
     mutationFn: async (input: CreateContactInput) => {
+      ensureSupabase();
       const { data, error } = await supabase
         .from('contacts')
         .insert(input)
@@ -106,6 +116,7 @@ export const useUpdateContact = () => {
 
   return useMutation({
     mutationFn: async ({ id, ...input }: Partial<Contact> & { id: string }) => {
+      ensureSupabase();
       const { data, error } = await supabase
         .from('contacts')
         .update(input)

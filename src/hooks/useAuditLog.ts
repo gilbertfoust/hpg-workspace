@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabaseClient';
+import { getSupabaseNotConfiguredError, supabase } from '@/integrations/supabase/client';
 import type { Json } from '@/integrations/supabase/types';
 
 export interface AuditLogEntry {
@@ -14,10 +15,17 @@ export interface AuditLogEntry {
   created_at: string;
 }
 
+const ensureSupabase = () => {
+  if (!supabase) {
+    throw getSupabaseNotConfiguredError();
+  }
+};
+
 export const useAuditLog = (filters?: { entity_type?: string; entity_id?: string }) => {
   return useQuery({
     queryKey: ['audit-log', filters],
     queryFn: async () => {
+      ensureSupabase();
       let query = supabase.from('audit_log').select('*');
       
       if (filters?.entity_type) {
@@ -39,6 +47,7 @@ export const useAuditLogForNGO = (ngo_id: string) => {
   return useQuery({
     queryKey: ['audit-log', 'ngo', ngo_id],
     queryFn: async () => {
+      ensureSupabase();
       // Get audit logs for the NGO itself
       const { data: ngoLogs, error: ngoError } = await supabase
         .from('audit_log')

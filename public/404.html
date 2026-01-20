@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Redirecting…</title>
+  <!-- GitHub Pages: send any unknown route back to the SPA entrypoint -->
+  <meta http-equiv="refresh" content="0;url=/hpg-workspace/#/" />
+  <script>
+    // JS fallback in case meta refresh is blocked or delayed
+    (function () {
+      // Always send them to the SPA root on GitHub Pages
+      var target = "/hpg-workspace/#/";
+      if (window.location.pathname !== target) {
+        window.location.replace(target);
+      }
+    })();
+  </script>
+</head>
+<body>
+  <p>Redirecting…</p>
+</body>
+</html>

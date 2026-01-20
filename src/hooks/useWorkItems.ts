@@ -1,7 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabaseClient';
+import { getSupabaseNotConfiguredError, supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
+import { scheduleDefaultReminderForWorkItem } from '@/lib/reminders';
 
 export type WorkItemStatus = 
   | 'Draft'
@@ -64,6 +66,7 @@ export interface WorkItem {
 export interface CreateWorkItemInput {
   title: string;
   module: ModuleType;
+  type?: string;
   ngo_id?: string;
   description?: string;
   department_id?: string;
@@ -76,16 +79,24 @@ export interface CreateWorkItemInput {
   external_visible?: boolean;
 }
 
+const ensureSupabase = () => {
+  if (!supabase) {
+    throw getSupabaseNotConfiguredError();
+  }
+};
+
 export const useWorkItems = (filters?: {
   ngo_id?: string;
   status?: WorkItemStatus[];
   module?: ModuleType;
   owner_user_id?: string;
   department_id?: string;
+  type?: string;
 }) => {
   return useQuery({
     queryKey: ['work-items', filters],
     queryFn: async () => {
+      ensureSupabase();
       let query = supabase
         .from('work_items')
         .select('*')
@@ -105,6 +116,8 @@ export const useWorkItems = (filters?: {
       }
       if (filters?.department_id) {
         query = query.eq('department_id', filters.department_id);
+      if (filters?.type) {
+        query = query.eq('type', filters.type);
       }
       
       const { data, error } = await query;
@@ -119,6 +132,7 @@ export const useWorkItem = (id: string) => {
   return useQuery({
     queryKey: ['work-items', id],
     queryFn: async () => {
+      ensureSupabase();
       const { data, error } = await supabase
         .from('work_items')
         .select('*')
@@ -139,6 +153,7 @@ export const useCreateWorkItem = () => {
 
   return useMutation({
     mutationFn: async (input: CreateWorkItemInput) => {
+      ensureSupabase();
       const { data, error } = await supabase
         .from('work_items')
         .insert({
@@ -169,10 +184,14 @@ export const useCreateWorkItem = () => {
         console.error('Failed to write audit log', auditError);
       }
       return data as WorkItem;
+      const workItem = data as WorkItem;
+      await scheduleDefaultReminderForWorkItem(workItem);
+      return workItem;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['work-items'] });
       queryClient.invalidateQueries({ queryKey: ['work-item-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['reminders'] });
       toast({
         title: 'Work item created',
         description: 'The work item has been successfully created.',
@@ -201,6 +220,7 @@ export const useUpdateWorkItem = () => {
         .eq('id', id)
         .single();
 
+      ensureSupabase();
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { approval_policy, ...safeInput } = input;
       const { data, error } = await supabase
@@ -229,11 +249,17 @@ export const useUpdateWorkItem = () => {
         console.error('Failed to write audit log', auditError);
       }
       return data as WorkItem;
+      const workItem = data as WorkItem;
+      if ("due_date" in input && workItem.due_date) {
+        await scheduleDefaultReminderForWorkItem(workItem);
+      }
+      return workItem;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['work-items'] });
       queryClient.invalidateQueries({ queryKey: ['work-items', data.id] });
       queryClient.invalidateQueries({ queryKey: ['work-item-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['reminders'] });
       toast({
         title: 'Work item updated',
         description: 'The work item has been successfully updated.',
@@ -253,6 +279,7 @@ export const useWorkItemStats = () => {
   return useQuery({
     queryKey: ['work-item-stats'],
     queryFn: async () => {
+      ensureSupabase();
       const { data, error } = await supabase
         .from('work_items')
         .select('status, due_date, evidence_required, evidence_status');
@@ -312,6 +339,7 @@ export const useMyWorkItems = () => {
     queryKey: ['my-work-items', user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
+      ensureSupabase();
       
       const { data, error } = await supabase
         .from('work_items')
@@ -324,5 +352,129 @@ export const useMyWorkItems = () => {
       return data as WorkItem[];
     },
     enabled: !!user?.id,
+  });
+};
+
+export const useMyQueueWorkItems = () => {
+  const { user } = useAuth();
+
+  return useQuery({
+    queryKey: ['my-queue-work-items', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      ensureSupabase();
+
+      const { data, error } = await supabase
+        .from('work_items')
+        .select('*')
+        .or(`owner_user_id.eq.${user.id},approver_user_id.eq.${user.id}`)
+        .order('due_date', { ascending: true, nullsFirst: false });
+
+      if (error) throw error;
+      return data as WorkItem[];
+    },
+    enabled: !!user?.id,
+  });
+};
+
+export const useDepartmentQueueWorkItems = (departmentIds: string[]) => {
+  return useQuery({
+    queryKey: ['department-queue-work-items', departmentIds],
+    queryFn: async () => {
+      if (!departmentIds.length) return [];
+      ensureSupabase();
+
+      const { data, error } = await supabase
+        .from('work_items')
+        .select('*')
+        .in('department_id', departmentIds)
+        .order('due_date', { ascending: true, nullsFirst: false });
+
+      if (error) throw error;
+      return data as WorkItem[];
+    },
+    enabled: departmentIds.length > 0,
+  });
+};
+
+export const useBulkUpdateWorkItems = () => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async ({ ids, updates }: { ids: string[]; updates: Partial<WorkItem> }) => {
+      ensureSupabase();
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { approval_policy, ...safeUpdates } = updates;
+      const { data, error } = await supabase
+        .from('work_items')
+        .update(safeUpdates)
+        .in('id', ids)
+        .select();
+
+      if (error) throw error;
+      return data as WorkItem[];
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['work-items'] });
+      queryClient.invalidateQueries({ queryKey: ['my-queue-work-items'] });
+      queryClient.invalidateQueries({ queryKey: ['department-queue-work-items'] });
+      queryClient.invalidateQueries({ queryKey: ['work-item-stats'] });
+      toast({
+        title: 'Work items updated',
+        description: 'The selected work items have been updated.',
+      });
+    },
+    onError: (error) => {
+      toast({
+        variant: 'destructive',
+        title: 'Error updating work items',
+        description: error.message,
+      });
+    },
+  });
+};
+
+export const useBulkBumpWorkItemDueDates = () => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async ({ items, bumpDays }: { items: WorkItem[]; bumpDays: number }) => {
+      ensureSupabase();
+      const updates = items.map((item) => {
+        const baseDate = item.due_date ? new Date(item.due_date) : new Date();
+        const bumpedDate = new Date(baseDate.getTime() + bumpDays * 24 * 60 * 60 * 1000);
+        return supabase
+          .from('work_items')
+          .update({ due_date: bumpedDate.toISOString() })
+          .eq('id', item.id)
+          .select()
+          .single();
+      });
+
+      const results = await Promise.all(updates);
+      const error = results.find((result) => result.error)?.error;
+
+      if (error) throw error;
+      return results.map((result) => result.data as WorkItem);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['work-items'] });
+      queryClient.invalidateQueries({ queryKey: ['my-queue-work-items'] });
+      queryClient.invalidateQueries({ queryKey: ['department-queue-work-items'] });
+      queryClient.invalidateQueries({ queryKey: ['work-item-stats'] });
+      toast({
+        title: 'Due dates updated',
+        description: 'The due dates have been bumped for the selected work items.',
+      });
+    },
+    onError: (error) => {
+      toast({
+        variant: 'destructive',
+        title: 'Error updating due dates',
+        description: error.message,
+      });
+    },
   });
 };
