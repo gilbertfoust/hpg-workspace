@@ -80,8 +80,8 @@ const modulesSections: ModuleSection[] = [
   {
     title: "Programs",
     items: [
-      { to: "/modules/program", icon: <GraduationCap className="w-4 h-4" />, label: "Program" },
-      { to: "/modules/curriculum", icon: <FileText className="w-4 h-4" />, label: "Curriculum" },
+      { to: "/program", icon: <GraduationCap className="w-4 h-4" />, label: "Program" },
+      { to: "/curriculum", icon: <FileText className="w-4 h-4" />, label: "Curriculum" },
     ],
   },
   {
