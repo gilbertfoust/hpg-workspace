@@ -18,6 +18,7 @@ import CalendarPage from "./pages/CalendarPage";
 import Reports from "./pages/Reports";
 import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
+import ITDashboard from "./pages/ITDashboard";
 
 // Module pages
 import {
@@ -62,6 +63,7 @@ const App = () => (
             <Route path="/calendar" element={<ProtectedRoute><CalendarPage /></ProtectedRoute>} />
             <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
             <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
+            <Route path="/it" element={<ProtectedRoute><ITDashboard /></ProtectedRoute>} />
             
             {/* Protected module pages */}
             <Route path="/modules/ngo-coordination" element={<ProtectedRoute><NGOCoordinationModule /></ProtectedRoute>} />
