@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { HashRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
@@ -89,13 +89,13 @@ const App = () => (
           </Routes>
         </BrowserRouter>
         <ErrorBoundary>
-          <BrowserRouter>
+          <HashRouter>
             <Routes>
               {/* Auth page */}
               <Route path="/auth" element={<Auth />} />
               
               {/* Redirect root to dashboard */}
-              <Route path="/" element={<Navigate to="/dashboard" replace />} />
+              <Route index element={<Navigate to="/dashboard" replace />} />
               
               {/* Protected main pages */}
               <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
@@ -125,9 +125,9 @@ const App = () => (
               <Route path="/modules/legal" element={<ProtectedRoute><LegalModule /></ProtectedRoute>} />
               
               {/* Catch-all */}
-              <Route path="*" element={<NotFound />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
-          </BrowserRouter>
+          </HashRouter>
         </ErrorBoundary>
       </TooltipProvider>
     </AuthProvider>
