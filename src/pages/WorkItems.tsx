@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { PriorityBadge } from "@/components/common/PriorityBadge";
 import { InlineStatusSelect } from "@/components/work-items/InlineStatusSelect";
@@ -38,6 +38,7 @@ import { useWorkItems, WorkItemStatus, ModuleType, Priority } from "@/hooks/useW
 import { useNGOs } from "@/hooks/useNGOs";
 import { isSupabaseNotConfiguredError } from "@/integrations/supabase/client";
 import { SupabaseNotConfiguredNotice } from "@/components/common/SupabaseNotConfiguredNotice";
+import { useSearchParams } from "react-router-dom";
 
 const modules: { value: string; label: string }[] = [
   { value: "all", label: "All Modules" },
@@ -85,6 +86,7 @@ export default function WorkItems() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [selectedWorkItemId, setSelectedWorkItemId] = useState<string | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
 
   // Build filters for the query
   const filters = useMemo(() => {
@@ -166,6 +168,14 @@ export default function WorkItems() {
     setSelectedWorkItemId(id);
     setDrawerOpen(true);
   };
+
+  useEffect(() => {
+    const workItemId = searchParams.get("workItemId");
+    if (workItemId) {
+      setSelectedWorkItemId(workItemId);
+      setDrawerOpen(true);
+    }
+  }, [searchParams]);
 
   const formatModuleName = (module: string) => {
     return module.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
@@ -444,7 +454,16 @@ export default function WorkItems() {
       <WorkItemDrawer
         workItemId={selectedWorkItemId}
         open={drawerOpen}
-        onOpenChange={setDrawerOpen}
+        onOpenChange={(open) => {
+          setDrawerOpen(open);
+          if (!open) {
+            setSearchParams((prev) => {
+              const next = new URLSearchParams(prev);
+              next.delete("workItemId");
+              return next;
+            });
+          }
+        }}
       />
     </MainLayout>
   );
