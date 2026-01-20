@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { PriorityBadge } from "@/components/common/PriorityBadge";
 import { InlineStatusSelect } from "@/components/work-items/InlineStatusSelect";
@@ -38,6 +38,7 @@ import { useWorkItems, WorkItemStatus, ModuleType, Priority } from "@/hooks/useW
 import { useNGOs } from "@/hooks/useNGOs";
 import { isSupabaseNotConfiguredError } from "@/integrations/supabase/client";
 import { SupabaseNotConfiguredNotice } from "@/components/common/SupabaseNotConfiguredNotice";
+import { useSearchParams } from "react-router-dom";
 
 const modules: { value: string; label: string }[] = [
   { value: "all", label: "All Modules" },
@@ -85,6 +86,8 @@ export default function WorkItems() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [selectedWorkItemId, setSelectedWorkItemId] = useState<string | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const workItemIdFromSearch = searchParams.get("workItemId");
 
   // Build filters for the query
   const filters = useMemo(() => {
@@ -167,9 +170,28 @@ export default function WorkItems() {
     setDrawerOpen(true);
   };
 
+  const handleDrawerOpenChange = (open: boolean) => {
+    setDrawerOpen(open);
+    if (!open) {
+      setSelectedWorkItemId(null);
+      if (workItemIdFromSearch) {
+        const nextParams = new URLSearchParams(searchParams);
+        nextParams.delete("workItemId");
+        setSearchParams(nextParams);
+      }
+    }
+  };
+
   const formatModuleName = (module: string) => {
     return module.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
   };
+
+  useEffect(() => {
+    if (workItemIdFromSearch) {
+      setSelectedWorkItemId(workItemIdFromSearch);
+      setDrawerOpen(true);
+    }
+  }, [workItemIdFromSearch]);
 
   return (
     <MainLayout
@@ -444,7 +466,7 @@ export default function WorkItems() {
       <WorkItemDrawer
         workItemId={selectedWorkItemId}
         open={drawerOpen}
-        onOpenChange={setDrawerOpen}
+        onOpenChange={handleDrawerOpenChange}
       />
     </MainLayout>
   );

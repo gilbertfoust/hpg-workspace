@@ -189,11 +189,13 @@ export const useUploadDocument = () => {
       ngoId,
       category,
       workItemId,
+      reviewStatus,
     }: {
       file: File;
       ngoId: string;
       category: DocumentCategory;
       workItemId?: string;
+      reviewStatus?: string;
     }) => {
       ensureSupabase();
       
@@ -228,7 +230,7 @@ export const useUploadDocument = () => {
           ngo_id: ngoId,
           work_item_id: workItemId || null,
           uploaded_by_user_id: user.id,
-          review_status: 'pending',
+          review_status: reviewStatus ?? 'Pending',
         })
         .select()
         .single();

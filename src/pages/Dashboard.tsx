@@ -1,61 +1,73 @@
+import { useMemo, useState } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { KPICard } from "@/components/common/KPICard";
-import { StatusChip } from "@/components/common/StatusChip";
-import { PriorityBadge } from "@/components/common/PriorityBadge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
+import { MetricBarRow } from "@/components/dashboard/MetricBarRow";
 import {
-  Clock,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
+import {
   AlertTriangle,
-  FileCheck,
-  Building2,
-  Users,
-  TrendingUp,
-  ArrowRight,
-  Calendar,
   ClipboardList,
+  Building2,
+  ArrowRight,
+  ClipboardList,
+  Clock,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useWorkItems, useWorkItemStats } from "@/hooks/useWorkItems";
-import { useNGOStats, useNGOs } from "@/hooks/useNGOs";
+import { Bar, BarChart, XAxis, YAxis } from "recharts";
 import { format } from "date-fns";
+import { ModuleType } from "@/hooks/useWorkItems";
+import { useDashboardData, useDashboardFilters } from "@/hooks/useDashboardData";
+  ListChecks,
+  ArrowRight,
+  Users,
+} from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { useReportsDashboard } from "@/hooks/useReportsDashboard";
 import { isSupabaseNotConfiguredError } from "@/integrations/supabase/client";
 import { SupabaseNotConfiguredNotice } from "@/components/common/SupabaseNotConfiguredNotice";
 
-const statusMap: Record<string, "approved" | "in-progress" | "rejected" | "draft" | "waiting-ngo" | "under-review"> = {
-  not_started: "draft",
-  in_progress: "in-progress",
-  waiting_on_ngo: "waiting-ngo",
-  waiting_on_hpg: "waiting-ngo",
-  submitted: "in-progress",
-  under_review: "under-review",
-  approved: "approved",
-  rejected: "rejected",
-  complete: "approved",
-  canceled: "rejected",
-  draft: "draft",
-};
-
-const priorityMap: Record<string, "low" | "medium" | "high"> = {
-  low: "low",
-  medium: "medium",
-  high: "high",
-};
-
 export default function Dashboard() {
   const navigate = useNavigate();
-  const { data: workItemStats, isLoading: statsLoading, error: workItemStatsError } = useWorkItemStats();
-  const { data: ngoStats, isLoading: ngoStatsLoading, error: ngoStatsError } = useNGOStats();
-  const { data: workItems, isLoading: workItemsLoading, error: workItemsError } = useWorkItems();
-  const { data: ngos, error: ngosError } = useNGOs();
+  const [selectedBundle, setSelectedBundle] = useState("all");
+  const [selectedCountry, setSelectedCountry] = useState("all");
+  const [selectedState, setSelectedState] = useState("all");
+  const [selectedModule, setSelectedModule] = useState("all");
+
+  const filters = useMemo(
+    () => ({
+      bundle: selectedBundle !== "all" ? selectedBundle : undefined,
+      country: selectedCountry !== "all" ? selectedCountry : undefined,
+      state: selectedState !== "all" ? selectedState : undefined,
+      module: selectedModule !== "all" ? (selectedModule as ModuleType) : undefined,
+    }),
+    [selectedBundle, selectedCountry, selectedState, selectedModule],
+  );
+
+  const {
+    data: filterOptions,
+    isLoading: filterLoading,
+    error: filterError,
+  } = useDashboardFilters();
+  const { data: dashboardData, isLoading: dataLoading, error: dashboardError } = useDashboardData(filters);
 
   const supabaseNotConfigured =
-    isSupabaseNotConfiguredError(workItemStatsError) ||
-    isSupabaseNotConfiguredError(ngoStatsError) ||
-    isSupabaseNotConfiguredError(workItemsError) ||
-    isSupabaseNotConfiguredError(ngosError);
+    isSupabaseNotConfiguredError(filterError) || isSupabaseNotConfiguredError(dashboardError);
+  const {
+    data: dashboardData,
+    isLoading,
+    error,
+  } = useReportsDashboard();
+
+  const supabaseNotConfigured = isSupabaseNotConfiguredError(error);
 
   if (supabaseNotConfigured) {
     return (
@@ -68,253 +80,433 @@ export default function Dashboard() {
     );
   }
 
-  // Get work items due soon (next 7 days)
-  const today = new Date();
-  const in7Days = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
-  const dueSoonItems = workItems?.filter(item => {
-    if (!item.due_date) return false;
-    const dueDate = new Date(item.due_date);
-    return dueDate >= today && dueDate <= in7Days && !['complete', 'canceled'].includes(item.status);
-  }).slice(0, 5) || [];
-
-  // Get at-risk NGOs
-  const atRiskNGOs = ngos?.filter(ngo => ngo.status === 'at_risk') || [];
-
-  // Get overdue items
-  const overdueItems = workItems?.filter(item => {
-    if (!item.due_date) return false;
-    const dueDate = new Date(item.due_date);
-    return dueDate < today && !['complete', 'canceled'].includes(item.status);
-  }) || [];
+  const moduleOptions = filterOptions?.modules ?? [];
+  const formatModuleLabel = (module: string) =>
+    module
+      .split("_")
+      .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+      .join(" ");
+  const workloadMax = dashboardData?.workloadByDepartment.reduce(
+    (max, item) => Math.max(max, item.openCount),
+    0
+  );
 
   return (
     <MainLayout
       title="Executive Dashboard"
       subtitle="Overview of HPG operations and pending actions"
       actions={
-        <Button onClick={() => navigate('/work-items')}>
+        <Button onClick={() => navigate("/work-items")}>
           <ClipboardList className="w-4 h-4 mr-2" />
           My Queue
         </Button>
       }
     >
-      {/* KPI Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        {statsLoading ? (
-          <>
-            <Skeleton className="h-28" />
-            <Skeleton className="h-28" />
-            <Skeleton className="h-28" />
-            <Skeleton className="h-28" />
-          </>
-        ) : (
-          <>
-            <KPICard
-              title="Due in 7 Days"
-              value={workItemStats?.dueIn7Days || 0}
-              subtitle={`${workItemStats?.dueIn30Days || 0} in 30 days`}
-              icon={<Clock className="w-5 h-5" />}
-              variant="warning"
-            />
-            <KPICard
-              title="Overdue Items"
-              value={workItemStats?.overdue || 0}
-              subtitle="Needs immediate attention"
-              icon={<AlertTriangle className="w-5 h-5" />}
-              variant="danger"
-            />
-            <KPICard
-              title="Pending Evidence"
-              value={workItemStats?.pendingEvidence || 0}
-              subtitle="Items awaiting documents"
-              icon={<FileCheck className="w-5 h-5" />}
-            />
-            <KPICard
-              title="Active NGOs"
-              value={ngoStats?.active || 0}
-              subtitle={`${ngoStats?.total || 0} total`}
-              icon={<Building2 className="w-5 h-5" />}
-              variant="success"
-            />
-          </>
-        )}
-      </div>
+      <div className="space-y-6">
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base font-medium">Dashboard Filters</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Bundle</label>
+                <Select
+                  value={selectedBundle}
+                  onValueChange={setSelectedBundle}
+                  disabled={filterLoading}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="All Bundles" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Bundles</SelectItem>
+                    {filterOptions?.bundles.map((bundle) => (
+                      <SelectItem key={bundle} value={bundle}>
+                        {bundle}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Country</label>
+                <Select
+                  value={selectedCountry}
+                  onValueChange={setSelectedCountry}
+                  disabled={filterLoading}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="All Countries" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Countries</SelectItem>
+                    {filterOptions?.countries.map((country) => (
+                      <SelectItem key={country} value={country}>
+                        {country}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">State/Province</label>
+                <Select
+                  value={selectedState}
+                  onValueChange={setSelectedState}
+                  disabled={filterLoading}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="All States" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All States</SelectItem>
+                    {filterOptions?.states.map((state) => (
+                      <SelectItem key={state} value={state}>
+                        {state}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Module</label>
+                <Select
+                  value={selectedModule}
+                  onValueChange={setSelectedModule}
+                  disabled={filterLoading}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="All Modules" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Modules</SelectItem>
+                    {moduleOptions.map((module) => (
+                      <SelectItem key={module} value={module}>
+                        {formatModuleLabel(module)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
-      {/* Secondary KPIs */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-        {ngoStatsLoading ? (
-          <>
-            <Skeleton className="h-24" />
-            <Skeleton className="h-24" />
-            <Skeleton className="h-24" />
-          </>
-        ) : (
-          <>
-            <KPICard
-              title="At-Risk NGOs"
-              value={ngoStats?.at_risk || 0}
-              icon={<AlertTriangle className="w-5 h-5" />}
-              variant="danger"
-            />
-            <KPICard
-              title="Onboarding"
-              value={ngoStats?.onboarding || 0}
-              subtitle="NGOs in progress"
-              icon={<Building2 className="w-5 h-5" />}
-              variant="warning"
-            />
-            <KPICard
-              title="Completed This Week"
-              value={workItemStats?.complete || 0}
-              icon={<TrendingUp className="w-5 h-5" />}
-            />
-          </>
-        )}
-      </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+          {dataLoading ? (
+            <>
+              <Skeleton className="h-24" />
+              <Skeleton className="h-24" />
+              <Skeleton className="h-24" />
+              <Skeleton className="h-24" />
+              <Skeleton className="h-24" />
+              <Skeleton className="h-24" />
+            </>
+          ) : (
+            <>
+              <KPICard
+                title="Due in 7 Days"
+                value={dashboardData?.kpis.dueIn7Days || 0}
+                subtitle="Next 7 days"
+                icon={<Clock className="w-5 h-5" />}
+                variant="warning"
+              />
+              <KPICard
+                title="Due in 30 Days"
+                value={dashboardData?.kpis.dueIn30Days || 0}
+                subtitle="Next 30 days"
+                icon={<Clock className="w-5 h-5" />}
+              />
+              <KPICard
+                title="Due in 90 Days"
+                value={dashboardData?.kpis.dueIn90Days || 0}
+                subtitle="Next 90 days"
+                icon={<Clock className="w-5 h-5" />}
+              />
+              <KPICard
+                title="Overdue Items"
+                value={dashboardData?.kpis.overdue || 0}
+                subtitle="Needs immediate attention"
+                icon={<AlertTriangle className="w-5 h-5" />}
+                variant="danger"
+              />
+              <KPICard
+                title="At-Risk NGOs"
+                value={dashboardData?.kpis.atRiskNgos || 0}
+                subtitle="Requires escalation"
+                icon={<Building2 className="w-5 h-5" />}
+                variant="warning"
+              />
+              <KPICard
+                title="Pending Reviews"
+                value={dashboardData?.kpis.pendingDocuments || 0}
+                subtitle="Documents awaiting review"
+                icon={<FileCheck className="w-5 h-5" />}
+              />
+            </>
+          )}
+        </div>
 
-      {/* Main Content Tabs */}
-      <Tabs defaultValue="due-soon" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="due-soon">Due Soon</TabsTrigger>
-          <TabsTrigger value="overdue">Overdue ({overdueItems.length})</TabsTrigger>
-          <TabsTrigger value="at-risk">At-Risk NGOs ({atRiskNGOs.length})</TabsTrigger>
-        </TabsList>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <Card className="lg:col-span-1">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base font-medium">Workload by Department</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {dataLoading ? (
+                <Skeleton className="h-64" />
+              ) : dashboardData?.workloadByDepartment.length ? (
+                <ChartContainer
+                  config={{ count: { label: "Active Work Items", color: "hsl(var(--chart-1))" } }}
+                  className="h-64 w-full aspect-auto"
+                >
+                  <BarChart data={dashboardData.workloadByDepartment}>
+                    <XAxis
+                      dataKey="department"
+                      tickLine={false}
+                      axisLine={false}
+                      tickFormatter={(value) =>
+                        value.length > 10 ? `${value.slice(0, 10)}…` : value
+                      }
+                    />
+                    <YAxis allowDecimals={false} />
+                    <ChartTooltip content={<ChartTooltipContent />} />
+                    <Bar dataKey="count" fill="var(--color-count)" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ChartContainer>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  No active work items for the selected filters.
+                </p>
+              )}
+            </CardContent>
+          </Card>
 
-        <TabsContent value="due-soon">
-          <Card>
+          <Card className="lg:col-span-2">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-base font-medium">Work Items Due Soon</CardTitle>
-                <Button variant="ghost" size="sm" onClick={() => navigate('/work-items')}>
+                <CardTitle className="text-base font-medium">Evidence Pending Review</CardTitle>
+                <Button variant="ghost" size="sm" onClick={() => navigate("/work-items")}>
                   View All <ArrowRight className="w-4 h-4 ml-1" />
                 </Button>
               </div>
             </CardHeader>
             <CardContent className="p-0">
-              {workItemsLoading ? (
+              {dataLoading ? (
                 <div className="p-6 space-y-3">
                   <Skeleton className="h-12" />
                   <Skeleton className="h-12" />
                   <Skeleton className="h-12" />
                 </div>
-              ) : dueSoonItems.length === 0 ? (
-                <div className="p-6 text-center text-muted-foreground">
-                  No work items due in the next 7 days
-                </div>
-              ) : (
-                <div className="data-table">
-                  <table className="w-full">
-                    <thead>
-                      <tr>
-                        <th>Item</th>
-                        <th>Module</th>
-                        <th>Status</th>
-                        <th>Priority</th>
-                        <th>Due Date</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {dueSoonItems.map((item) => (
-                        <tr key={item.id} className="cursor-pointer" onClick={() => navigate('/work-items')}>
-                          <td className="font-medium">{item.title}</td>
-                          <td className="text-muted-foreground capitalize">{item.module.replace('_', ' ')}</td>
-                          <td><StatusChip status={statusMap[item.status] || "draft"} /></td>
-                          <td><PriorityBadge priority={priorityMap[item.priority] || "medium"} /></td>
-                          <td className="text-muted-foreground">
-                            {item.due_date ? format(new Date(item.due_date), 'MMM d, yyyy') : '-'}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="overdue">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base font-medium">Overdue Items</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {overdueItems.length === 0 ? (
-                <p className="text-muted-foreground text-sm">No overdue items! 🎉</p>
-              ) : (
-                <div className="data-table">
-                  <table className="w-full">
-                    <thead>
-                      <tr>
-                        <th>Item</th>
-                        <th>Module</th>
-                        <th>Status</th>
-                        <th>Due Date</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {overdueItems.slice(0, 5).map((item) => (
-                        <tr key={item.id} className="cursor-pointer" onClick={() => navigate('/work-items')}>
-                          <td className="font-medium">{item.title}</td>
-                          <td className="text-muted-foreground capitalize">{item.module.replace('_', ' ')}</td>
-                          <td><StatusChip status={statusMap[item.status] || "draft"} /></td>
-                          <td className="text-destructive">
-                            {item.due_date ? format(new Date(item.due_date), 'MMM d, yyyy') : '-'}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="at-risk">
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base font-medium">At-Risk NGOs</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {atRiskNGOs.length === 0 ? (
-                <p className="text-muted-foreground text-sm">No at-risk NGOs currently.</p>
-              ) : (
+              ) : dashboardData?.evidencePending.length ? (
                 <div className="data-table">
                   <table className="w-full">
                     <thead>
                       <tr>
                         <th>NGO</th>
-                        <th>Bundle</th>
-                        <th>Location</th>
-                        <th>Action</th>
+                        <th>Department</th>
+                        <th>Owner</th>
+                        <th>Due Date</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {atRiskNGOs.map((ngo) => (
-                        <tr key={ngo.id}>
-                          <td className="font-medium">{ngo.common_name || ngo.legal_name}</td>
-                          <td className="text-muted-foreground">{ngo.bundle || '-'}</td>
-                          <td className="text-muted-foreground">{ngo.city || ngo.country || '-'}</td>
-                          <td>
-                            <Button variant="outline" size="sm" onClick={() => navigate(`/ngos`)}>
-                              View
-                            </Button>
+                      {dashboardData.evidencePending.slice(0, 8).map((item) => (
+                        <tr key={item.id}>
+                          <td className="font-medium">{item.ngoName}</td>
+                          <td className="text-muted-foreground">{item.department}</td>
+                          <td className="text-muted-foreground">{item.owner}</td>
+                          <td className="text-muted-foreground">
+                            {item.dueDate ? format(new Date(item.dueDate), "MMM d, yyyy") : "-"}
                           </td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                 </div>
+              ) : (
+                <div className="p-6 text-center text-muted-foreground">
+                  No evidence awaiting review for the selected filters.
+                </div>
               )}
             </CardContent>
           </Card>
-        </TabsContent>
-      </Tabs>
+        </div>
+      {/* KPI Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        {isLoading ? (
+          <>
+            <Skeleton className="h-28" />
+            <Skeleton className="h-28" />
+            <Skeleton className="h-28" />
+            <Skeleton className="h-28" />
+          </>
+        ) : (
+          <>
+            <KPICard
+              title="Total Active NGOs"
+              value={dashboardData?.kpis.activeNgos ?? 0}
+              subtitle="Currently operational"
+              icon={<Building2 className="w-5 h-5" />}
+              variant="success"
+            />
+            <KPICard
+              title="NGOs Marked At-Risk"
+              value={dashboardData?.kpis.atRiskNgos ?? 0}
+              subtitle="Immediate attention needed"
+              icon={<AlertTriangle className="w-5 h-5" />}
+              variant="danger"
+            />
+            <KPICard
+              title="Open Work Items"
+              value={dashboardData?.kpis.openWorkItems ?? 0}
+              subtitle="Across all modules"
+              icon={<ListChecks className="w-5 h-5" />}
+              variant="warning"
+            />
+            <KPICard
+              title="Overdue Work Items"
+              value={dashboardData?.kpis.overdueWorkItems ?? 0}
+              subtitle="Past due date"
+              icon={<ClipboardList className="w-5 h-5" />}
+              variant="danger"
+            />
+          </>
+        )}
+      </div>
+
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6">
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base font-medium">Workload by Department</CardTitle>
+              <Button variant="ghost" size="sm" onClick={() => navigate("/work-items")}>
+                View Work Items <ArrowRight className="w-4 h-4 ml-1" />
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {isLoading ? (
+              <div className="space-y-3">
+                <Skeleton className="h-12" />
+                <Skeleton className="h-12" />
+                <Skeleton className="h-12" />
+              </div>
+            ) : dashboardData?.workloadByDepartment.length ? (
+              <div className="space-y-4">
+                {dashboardData.workloadByDepartment.map((item) => (
+                  <MetricBarRow
+                    key={item.department}
+                    label={item.department}
+                    value={item.openCount}
+                    percentage={workloadMax ? (item.openCount / workloadMax) * 100 : 0}
+                  />
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">No open work items by department.</p>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base font-medium">At-Risk NGOs</CardTitle>
+              <Button variant="ghost" size="sm" onClick={() => navigate("/ngos")}>
+                View All <ArrowRight className="w-4 h-4 ml-1" />
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="p-0">
+            {dataLoading ? (
+              <div className="p-6 space-y-3">
+                <Skeleton className="h-12" />
+                <Skeleton className="h-12" />
+                <Skeleton className="h-12" />
+              </div>
+            ) : dashboardData?.atRiskNgos.length ? (
+              <div className="data-table">
+                <table className="w-full">
+                  <thead>
+                    <tr>
+                      <th>NGO</th>
+                      <th>Bundle</th>
+                      <th>Location</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {dashboardData.atRiskNgos.map((ngo) => (
+                      <tr key={ngo.id}>
+                        <td className="font-medium">{ngo.name}</td>
+                        <td className="text-muted-foreground">{ngo.bundle || "-"}</td>
+                        <td className="text-muted-foreground">{ngo.location}</td>
+                        <td>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => navigate(`/ngos/${ngo.id}`)}
+                          >
+                            View
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="p-6 text-center text-muted-foreground">
+                No at-risk NGOs for the selected filters.
+              </div>
+            )}
+              <Button variant="ghost" size="sm" onClick={() => navigate("/ngos")}> 
+                Review NGOs <ArrowRight className="w-4 h-4 ml-1" />
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <div className="space-y-3">
+                <Skeleton className="h-12" />
+                <Skeleton className="h-12" />
+                <Skeleton className="h-12" />
+              </div>
+            ) : dashboardData?.atRiskNgos.length ? (
+              <div className="space-y-3">
+                {dashboardData.atRiskNgos.map((ngo) => (
+                  <div
+                    key={ngo.id}
+                    className="flex items-center justify-between rounded-lg border border-border p-3"
+                  >
+                    <div>
+                      <p className="font-medium text-sm">{ngo.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        Bundle: {ngo.bundle ?? "Unassigned"}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-medium">
+                        {ngo.coordinatorName ?? "Coordinator TBD"}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {ngo.coordinatorEmail ?? "No coordinator assigned"}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">No NGOs currently marked at-risk.</p>
+            )}
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Quick Access Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
-        <Card className="module-card cursor-pointer" onClick={() => navigate('/ngos')}>
+        <Card className="module-card cursor-pointer" onClick={() => navigate("/ngos")}>
           <CardContent className="pt-6">
             <div className="flex items-center gap-3 mb-3">
               <div className="w-10 h-10 rounded-lg bg-info/10 flex items-center justify-center">
@@ -328,21 +520,17 @@ export default function Dashboard() {
             <div className="space-y-2 mt-4">
               <div className="flex justify-between text-sm">
                 <span>Active</span>
-                <span className="text-muted-foreground">{ngoStats?.active || 0}</span>
+                <span className="text-muted-foreground">{dashboardData?.kpis.activeNgos ?? 0}</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span>Onboarding</span>
-                <span className="text-muted-foreground">{ngoStats?.onboarding || 0}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span>Prospects</span>
-                <span className="text-muted-foreground">{ngoStats?.prospect || 0}</span>
+                <span>At-Risk</span>
+                <span className="text-destructive">{dashboardData?.kpis.atRiskNgos ?? 0}</span>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="module-card cursor-pointer" onClick={() => navigate('/work-items')}>
+        <Card className="module-card cursor-pointer" onClick={() => navigate("/work-items")}>
           <CardContent className="pt-6">
             <div className="flex items-center gap-3 mb-3">
               <div className="w-10 h-10 rounded-lg bg-warning/10 flex items-center justify-center">
@@ -355,35 +543,31 @@ export default function Dashboard() {
             </div>
             <div className="space-y-2 mt-4">
               <div className="flex justify-between text-sm">
-                <span>Active</span>
-                <span className="text-muted-foreground">{workItemStats?.active || 0}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span>Due in 7 days</span>
-                <span className="text-muted-foreground">{workItemStats?.dueIn7Days || 0}</span>
+                <span>Open</span>
+                <span className="text-muted-foreground">{dashboardData?.kpis.openWorkItems ?? 0}</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span>Overdue</span>
-                <span className="text-destructive">{workItemStats?.overdue || 0}</span>
+                <span className="text-destructive">{dashboardData?.kpis.overdueWorkItems ?? 0}</span>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="module-card cursor-pointer" onClick={() => navigate('/forms')}>
+        <Card className="module-card cursor-pointer" onClick={() => navigate("/reports")}>
           <CardContent className="pt-6">
             <div className="flex items-center gap-3 mb-3">
               <div className="w-10 h-10 rounded-lg bg-success/10 flex items-center justify-center">
-                <FileCheck className="w-5 h-5 text-success" />
+                <Users className="w-5 h-5 text-success" />
               </div>
               <div>
-                <h3 className="font-medium">Forms</h3>
-                <p className="text-sm text-muted-foreground">Submit and track</p>
+                <h3 className="font-medium">Executive Reports</h3>
+                <p className="text-sm text-muted-foreground">Cross-module performance</p>
               </div>
             </div>
             <div className="mt-4">
               <p className="text-sm text-muted-foreground">
-                Launch forms for NGO intake, expense requests, document requests, and more.
+                View time-based trends, module distribution, and NGO health snapshots.
               </p>
             </div>
           </CardContent>
