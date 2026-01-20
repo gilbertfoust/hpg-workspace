@@ -20,6 +20,7 @@ import ReportsDashboard from "./pages/ReportsDashboard";
 import Admin from "./pages/Admin";
 import AdminConfigHome from "./pages/AdminConfig/AdminConfigHome";
 import NotFound from "./pages/NotFound";
+import HRDashboard from "./pages/HRDashboard";
 
 // Module pages
 import {
@@ -46,6 +47,45 @@ const App = () => (
       <TooltipProvider>
         <Toaster />
         <Sonner />
+        <BrowserRouter>
+          <Routes>
+            {/* Auth page */}
+            <Route path="/auth" element={<Auth />} />
+            
+            {/* Redirect root to dashboard */}
+            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+            
+            {/* Protected main pages */}
+            <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+            <Route path="/ngos" element={<ProtectedRoute><NGOs /></ProtectedRoute>} />
+            <Route path="/ngos/:id" element={<ProtectedRoute><NGODetail /></ProtectedRoute>} />
+            <Route path="/work-items" element={<ProtectedRoute><WorkItems /></ProtectedRoute>} />
+            <Route path="/forms" element={<ProtectedRoute><Forms /></ProtectedRoute>} />
+            <Route path="/documents" element={<ProtectedRoute><Documents /></ProtectedRoute>} />
+            <Route path="/calendar" element={<ProtectedRoute><CalendarPage /></ProtectedRoute>} />
+            <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
+            <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
+            <Route path="/hr" element={<ProtectedRoute><HRDashboard /></ProtectedRoute>} />
+            
+            {/* Protected module pages */}
+            <Route path="/modules/ngo-coordination" element={<ProtectedRoute><NGOCoordinationModule /></ProtectedRoute>} />
+            <Route path="/modules/administration" element={<ProtectedRoute><AdministrationModule /></ProtectedRoute>} />
+            <Route path="/modules/operations" element={<ProtectedRoute><OperationsModule /></ProtectedRoute>} />
+            <Route path="/modules/program" element={<ProtectedRoute><ProgramModule /></ProtectedRoute>} />
+            <Route path="/modules/curriculum" element={<ProtectedRoute><CurriculumModule /></ProtectedRoute>} />
+            <Route path="/modules/development" element={<ProtectedRoute><DevelopmentModule /></ProtectedRoute>} />
+            <Route path="/modules/partnerships" element={<ProtectedRoute><PartnershipsModule /></ProtectedRoute>} />
+            <Route path="/modules/marketing" element={<ProtectedRoute><MarketingModule /></ProtectedRoute>} />
+            <Route path="/modules/communications" element={<ProtectedRoute><CommunicationsModule /></ProtectedRoute>} />
+            <Route path="/modules/hr" element={<ProtectedRoute><HRModule /></ProtectedRoute>} />
+            <Route path="/modules/it" element={<ProtectedRoute><ITModule /></ProtectedRoute>} />
+            <Route path="/modules/finance" element={<ProtectedRoute><FinanceModule /></ProtectedRoute>} />
+            <Route path="/modules/legal" element={<ProtectedRoute><LegalModule /></ProtectedRoute>} />
+            
+            {/* Catch-all */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
         <ErrorBoundary>
           <BrowserRouter>
             <Routes>
