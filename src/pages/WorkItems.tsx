@@ -31,8 +31,6 @@ import { useNGOs } from "@/hooks/useNGOs";
 import { useOrgUnits } from "@/hooks/useOrgUnits";
 import { useAuth } from "@/contexts/AuthContext";
 import { Switch } from "@/components/ui/switch";
-import { useWorkItems, WorkItemStatus, ModuleType, Priority } from "@/hooks/useWorkItems";
-import { useNGOs } from "@/hooks/useNGOs";
 import { isSupabaseNotConfiguredError } from "@/integrations/supabase/client";
 import { SupabaseNotConfiguredNotice } from "@/components/common/SupabaseNotConfiguredNotice";
 import { useSearchParams } from "react-router-dom";

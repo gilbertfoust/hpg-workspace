@@ -1,4 +1,5 @@
 // src/pages/Dashboard.tsx
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
@@ -13,8 +14,12 @@ import {
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
+const HPG_LOGO_URL =
+  "https://img1.wsimg.com/isteam/ip/8d5502d6-d937-4d80-bd56-8074053e4d77/Humanity%20Pathways%20Global.jpg/:/rs=h:175,m";
+
 const Dashboard = () => {
   const navigate = useNavigate();
+  const [logoFailed, setLogoFailed] = useState(false);
 
   return (
     <div className="space-y-6">
@@ -22,7 +27,18 @@ const Dashboard = () => {
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
-            <LayoutDashboard className="w-5 h-5 text-primary" />
+            <span className="inline-flex h-7 w-7 items-center justify-center overflow-hidden rounded-md border bg-background/60">
+              {logoFailed ? (
+                <LayoutDashboard className="w-5 h-5 text-primary" />
+              ) : (
+                <img
+                  src={HPG_LOGO_URL}
+                  alt="Humanity Pathways Global"
+                  className="h-full w-full object-contain p-0.5"
+                  onError={() => setLogoFailed(true)}
+                />
+              )}
+            </span>
             HPG Workspace
           </h1>
           <p className="text-muted-foreground">

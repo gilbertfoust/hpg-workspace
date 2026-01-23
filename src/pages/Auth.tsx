@@ -1,27 +1,31 @@
-import { useState } from 'react';
-import { Navigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useToast } from '@/hooks/use-toast';
-import { Loader2, Building2 } from 'lucide-react';
+import { useState } from "react";
+import { Navigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useToast } from "@/hooks/use-toast";
+import { Loader2, Building2 } from "lucide-react";
+
+const HPG_LOGO_URL =
+  "https://img1.wsimg.com/isteam/ip/8d5502d6-d937-4d80-bd56-8074053e4d77/Humanity%20Pathways%20Global.jpg/:/rs=h:175,m";
 
 const Auth = () => {
   const { user, loading, signIn, signUp } = useAuth();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [logoFailed, setLogoFailed] = useState(false);
 
   // Login form state
-  const [loginEmail, setLoginEmail] = useState('');
-  const [loginPassword, setLoginPassword] = useState('');
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
 
   // Signup form state
-  const [signupEmail, setSignupEmail] = useState('');
-  const [signupPassword, setSignupPassword] = useState('');
-  const [signupName, setSignupName] = useState('');
+  const [signupEmail, setSignupEmail] = useState("");
+  const [signupPassword, setSignupPassword] = useState("");
+  const [signupName, setSignupName] = useState("");
 
   if (loading) {
     return (
@@ -43,14 +47,14 @@ const Auth = () => {
 
     if (error) {
       toast({
-        variant: 'destructive',
-        title: 'Login failed',
+        variant: "destructive",
+        title: "Login failed",
         description: error.message,
       });
     } else {
       toast({
-        title: 'Welcome back!',
-        description: 'You have successfully logged in.',
+        title: "Welcome back!",
+        description: "You have successfully logged in.",
       });
     }
 
@@ -65,14 +69,14 @@ const Auth = () => {
 
     if (error) {
       toast({
-        variant: 'destructive',
-        title: 'Signup failed',
+        variant: "destructive",
+        title: "Signup failed",
         description: error.message,
       });
     } else {
       toast({
-        title: 'Account created!',
-        description: 'You can now log in with your credentials.',
+        title: "Account created!",
+        description: "You can now log in with your credentials.",
       });
     }
 
@@ -84,13 +88,24 @@ const Auth = () => {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center space-y-2">
           <div className="flex justify-center mb-2">
-            <div className="h-12 w-12 rounded-xl bg-primary flex items-center justify-center">
-              <Building2 className="h-6 w-6 text-primary-foreground" />
+            <div className="h-14 w-14 rounded-xl border bg-background/60 flex items-center justify-center overflow-hidden">
+              {logoFailed ? (
+                <Building2 className="h-6 w-6 text-muted-foreground" />
+              ) : (
+                <img
+                  src={HPG_LOGO_URL}
+                  alt="Humanity Pathways Global"
+                  className="h-full w-full object-contain p-1"
+                  onError={() => setLogoFailed(true)}
+                />
+              )}
             </div>
           </div>
+
           <CardTitle className="text-2xl font-bold">HPG Workstation</CardTitle>
           <CardDescription>Org Coordination OS</CardDescription>
         </CardHeader>
+
         <CardContent>
           <Tabs defaultValue="login" className="w-full">
             <TabsList className="grid w-full grid-cols-2">
