@@ -20,6 +20,13 @@ import ReportsDashboard from "./pages/ReportsDashboard";
 import Admin from "./pages/Admin";
 import AdminConfigHome from "./pages/AdminConfig/AdminConfigHome";
 import NotFound from "./pages/NotFound";
+import MyQueue from "./pages/MyQueue";
+import DeptQueue from "./pages/DeptQueue";
+import HRDashboard from "./pages/HRDashboard";
+import DevelopmentDashboard from "./pages/DevelopmentDashboard";
+import PartnershipsDashboard from "./pages/PartnershipsDashboard";
+import ITDashboard from "./pages/ITDashboard";
+import NGOCoordination from "./pages/NGOCoordination";
 
 // Feature pages
 import MyQueue from "./pages/MyQueue";
@@ -96,6 +103,22 @@ const App = () => {
 
                 {/* Core records */}
                 <Route
+                  path="/my-queue"
+                  element={
+                    <ProtectedRoute>
+                      <MyQueue />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/dept-queue"
+                  element={
+                    <ProtectedRoute>
+                      <DeptQueue />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
                   path="/ngos"
                   element={
                     <ProtectedRoute>
@@ -166,6 +189,46 @@ const App = () => {
                   element={
                     <ProtectedRoute>
                       <AdminConfigHome />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/hr"
+                  element={
+                    <ProtectedRoute>
+                      <HRDashboard />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/development"
+                  element={
+                    <ProtectedRoute>
+                      <DevelopmentDashboard />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/partnerships"
+                  element={
+                    <ProtectedRoute>
+                      <PartnershipsDashboard />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/it"
+                  element={
+                    <ProtectedRoute>
+                      <ITDashboard />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/ngo-coordination"
+                  element={
+                    <ProtectedRoute>
+                      <NGOCoordination />
                     </ProtectedRoute>
                   }
                 />
