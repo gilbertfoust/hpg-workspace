@@ -68,8 +68,8 @@ export const useDevelopmentProposals = () =>
   useQuery({
     queryKey: ["development-proposals"],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from(proposalsTable)
+      const { data, error } = await supabase
+        .from(proposalsTable as never)
         .select(
           "*, opportunity:grant_opportunities(id, name, funder_id, program_area, deadline, loi_due, proposal_due), ngo:ngos(id, legal_name, common_name, bundle), owner:profiles(id, full_name, email)",
         )
@@ -86,8 +86,8 @@ export const useCreateDevelopmentProposal = () => {
 
   return useMutation({
     mutationFn: async (input: CreateDevelopmentProposalInput) => {
-      const { data, error } = await (supabase as any)
-        .from(proposalsTable)
+      const { data, error } = await supabase
+        .from(proposalsTable as never)
         .insert(input)
         .select()
         .single();
@@ -118,8 +118,8 @@ export const useUpdateDevelopmentProposal = () => {
 
   return useMutation({
     mutationFn: async ({ id, ...input }: Partial<DevelopmentProposal> & { id: string }) => {
-      const { data, error } = await (supabase as any)
-        .from(proposalsTable)
+      const { data, error } = await supabase
+        .from(proposalsTable as never)
         .update(input)
         .eq("id", id)
         .select()
