@@ -1,21 +1,21 @@
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/lib/supabaseClient';
-import { getSupabaseNotConfiguredError, supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
-export type AppRole = 
-  | 'super_admin'
-  | 'admin_pm'
-  | 'ngo_coordinator'
-  | 'department_lead'
-  | 'staff'
-  | 'executive_secretariat'
-  | 'external_portal';
+/**
+ * Basic role type. You can refine this union later if you want stricter typing.
+ */
+export type AppRole = string;
 
 export interface UserRole {
-  id: string;
+  user_id: string;
   role: AppRole;
 }
+
+const getSupabaseNotConfiguredError = () =>
+  new Error(
+    "Supabase not configured: missing VITE_SUPABASE_URL or VITE_SUPABASE_PUBLISHABLE_KEY"
+  );
 
 const ensureSupabase = () => {
   if (!supabase) {
@@ -23,57 +23,99 @@ const ensureSupabase = () => {
   }
 };
 
+/**
+ * Returns the current user's single role (or null if none).
+ */
 export const useUserRole = () => {
   const { user } = useAuth();
 
   return useQuery({
-    queryKey: ['user-role', user?.id],
+    queryKey: ["user-role", user?.id],
+    enabled: !!user?.id && !!supabase,
     queryFn: async () => {
-      if (!user?.id) return null;
       ensureSupabase();
-      
+      if (!user?.id) return null;
+
       const { data, error } = await supabase
-        .from('profiles')
-        .select('id, role')
-        .eq('id', user.id)
+        .from("user_roles")
+        .select("user_id, role")
+        .eq("user_id", user.id)
+        .limit(1)
         .maybeSingle();
-      
+
       if (error) throw error;
-      if (!data) return null;
-      return { id: data.id, role: data.role } as UserRole;
+      return data as UserRole | null;
     },
-    enabled: !!user?.id,
   });
 };
 
-export const useIsInternalUser = () => {
-  const { data: role } = useUserRole();
-  
-  if (!role) return false;
-  
-  const internalRoles: AppRole[] = [
-    'super_admin',
-    'admin_pm',
-    'ngo_coordinator',
-    'department_lead',
-    'staff',
-    'executive_secretariat',
-  ];
-  
-  return internalRoles.includes(role.role);
+/**
+ * Returns all user_roles rows (for admin screens).
+ */
+export const useUserRoles = () => {
+  return useQuery({
+    queryKey: ["user-roles"],
+    enabled: !!supabase,
+    queryFn: async () => {
+      ensureSupabase();
+
+      const { data, error } = await supabase
+        .from("user_roles")
+        .select("user_id, role");
+
+      if (error) throw error;
+      return (data || []) as UserRole[];
+    },
+  });
 };
 
-export const useIsManagement = () => {
-  const { data: role } = useUserRole();
-  
-  if (!role) return false;
-  
-  const managementRoles: AppRole[] = ['super_admin', 'admin_pm', 'executive_secretariat'];
-  
-  return managementRoles.includes(role.role);
+/**
+ * Mutation to upsert a role for a given user.
+ * Note: onConflict uses the (user_id, role) unique constraint as per your migration.
+ */
+export const useUpdateUserRole = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      userId,
+      role,
+    }: {
+      userId: string;
+      role: AppRole;
+    }) => {
+      ensureSupabase();
+
+      const { data, error } = await supabase
+        .from("user_roles")
+        .upsert(
+          { user_id: userId, role },
+          {
+            // matches unique constraint (user_id, role)
+            // if you later enforce single-role-per-user, change the DB constraint
+            onConflict: "user_id,role",
+          }
+        )
+        .select()
+        .maybeSingle();
+
+      if (error) throw error;
+      return data as UserRole | null;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["user-roles"] });
+      queryClient.invalidateQueries({ queryKey: ["user-role"] });
+    },
+  });
 };
 
-export const useIsSuperAdmin = () => {
-  const { data: role } = useUserRole();
-  return role?.role === 'super_admin';
+/**
+ * Convenience hook: true iff the current user is an admin.
+ * Right now we align it with the RLS comment from Codex and only treat super_admin as full admin.
+ */
+export const useIsAdminUser = () => {
+  const { data: userRole } = useUserRole();
+
+  const adminRoles: AppRole[] = ["super_admin"];
+  return !!userRole && adminRoles.includes(userRole.role);
 };

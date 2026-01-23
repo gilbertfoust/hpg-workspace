@@ -216,7 +216,7 @@ export function FormSubmissionSheet({
           </Select>
         );
 
-      case "multiselect":
+      case "multiselect": {
         const selected = (value as string[]) || [];
         return (
           <div className="space-y-2">
@@ -239,6 +239,7 @@ export function FormSubmissionSheet({
             )}
           </div>
         );
+      }
 
       default:
         return null;

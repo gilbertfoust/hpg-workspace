@@ -116,18 +116,14 @@ export default function WorkItems() {
     return f;
   }, [selectedModule, selectedStatus, selectedDepartment, myItemsOnly, user?.id]);
 
-  const { data: workItems, isLoading, error } = useWorkItems(filters);
-  const { data: ngos } = useNGOs();
-  const { data: orgUnits } = useOrgUnits();
-  const { data: ngos, error: ngosError } = useNGOs();
+  const { data: workItems, isLoading, error } = useWorkItems(/* ... */);
+const { data: ngos, error: ngosError } = useNGOs();
+const { data: orgUnits } = useOrgUnits();
 
-  if (isSupabaseNotConfiguredError(error) || isSupabaseNotConfiguredError(ngosError)) {
-    return (
-      <MainLayout title="Work Items" subtitle="Manage and track all assignments across departments">
-        <SupabaseNotConfiguredNotice />
-      </MainLayout>
-    );
-  }
+if (isSupabaseNotConfiguredError(error) || isSupabaseNotConfiguredError(ngosError)) {
+  // ...
+}
+
 
   // Create NGO lookup map
   const ngoMap = useMemo(() => {
