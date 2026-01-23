@@ -42,18 +42,6 @@ export default function MyQueue() {
     clearFilters,
   } = useQueueFilters();
 
-  if (
-    isSupabaseNotConfiguredError(error) ||
-    isSupabaseNotConfiguredError(ngosError) ||
-    isSupabaseNotConfiguredError(orgUnitsError)
-  ) {
-    return (
-      <MainLayout title="My Queue" subtitle="Your work items and approvals">
-        <SupabaseNotConfiguredNotice />
-      </MainLayout>
-    );
-  }
-
   const ngoMap = useMemo(() => {
     const map = new Map<string, string>();
     ngos?.forEach((ngo) => {
@@ -92,6 +80,18 @@ export default function MyQueue() {
       return true;
     });
   }, [workItems, filters]);
+
+  if (
+    isSupabaseNotConfiguredError(error) ||
+    isSupabaseNotConfiguredError(ngosError) ||
+    isSupabaseNotConfiguredError(orgUnitsError)
+  ) {
+    return (
+      <MainLayout title="My Queue" subtitle="Your work items and approvals">
+        <SupabaseNotConfiguredNotice />
+      </MainLayout>
+    );
+  }
 
   const today = new Date();
   const in7Days = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
