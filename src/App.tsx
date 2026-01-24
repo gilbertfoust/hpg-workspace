@@ -20,13 +20,6 @@ import ReportsDashboard from "./pages/ReportsDashboard";
 import Admin from "./pages/Admin";
 import AdminConfigHome from "./pages/AdminConfig/AdminConfigHome";
 import NotFound from "./pages/NotFound";
-import MyQueue from "./pages/MyQueue";
-import DeptQueue from "./pages/DeptQueue";
-import HRDashboard from "./pages/HRDashboard";
-import DevelopmentDashboard from "./pages/DevelopmentDashboard";
-import PartnershipsDashboard from "./pages/PartnershipsDashboard";
-import ITDashboard from "./pages/ITDashboard";
-import NGOCoordination from "./pages/NGOCoordination";
 
 // Feature pages
 import MyQueue from "./pages/MyQueue";
@@ -64,16 +57,16 @@ const App = () => {
           <Toaster />
           <Sonner />
           <ErrorBoundary>
-            {/* Keep basename for GitHub Pages; BASE_URL is "/" in local dev */}
+            {/* IMPORTANT for GitHub Pages */}
             <BrowserRouter basename={import.meta.env.BASE_URL}>
               <Routes>
                 {/* Auth */}
                 <Route path="/auth" element={<Auth />} />
 
-                {/* Redirect root */}
+                {/* Root redirect */}
                 <Route path="/" element={<Navigate to="/dashboard" replace />} />
 
-                {/* Main */}
+                {/* Core */}
                 <Route
                   path="/dashboard"
                   element={
@@ -101,23 +94,7 @@ const App = () => {
                   }
                 />
 
-                {/* Core records */}
-                <Route
-                  path="/my-queue"
-                  element={
-                    <ProtectedRoute>
-                      <MyQueue />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/dept-queue"
-                  element={
-                    <ProtectedRoute>
-                      <DeptQueue />
-                    </ProtectedRoute>
-                  }
-                />
+                {/* Records */}
                 <Route
                   path="/ngos"
                   element={
@@ -189,46 +166,6 @@ const App = () => {
                   element={
                     <ProtectedRoute>
                       <AdminConfigHome />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/hr"
-                  element={
-                    <ProtectedRoute>
-                      <HRDashboard />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/development"
-                  element={
-                    <ProtectedRoute>
-                      <DevelopmentDashboard />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/partnerships"
-                  element={
-                    <ProtectedRoute>
-                      <PartnershipsDashboard />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/it"
-                  element={
-                    <ProtectedRoute>
-                      <ITDashboard />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/ngo-coordination"
-                  element={
-                    <ProtectedRoute>
-                      <NGOCoordination />
                     </ProtectedRoute>
                   }
                 />
@@ -381,6 +318,7 @@ const App = () => {
                   }
                 />
 
+                {/* Catch-all */}
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </BrowserRouter>
