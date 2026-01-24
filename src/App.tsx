@@ -212,7 +212,7 @@ const App = () => {
                   }
                 />
 
-                {/* Module placeholder routes (keep for later) */}
+                {/* Module placeholders (keep for later) */}
                 <Route
                   path="/modules/ngo-coordination"
                   element={
