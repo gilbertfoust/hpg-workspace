@@ -72,18 +72,6 @@ export default function DeptQueue() {
   const bulkUpdate = useBulkUpdateWorkItems();
   const bulkBumpDueDates = useBulkBumpWorkItemDueDates();
 
-  if (
-    isSupabaseNotConfiguredError(error) ||
-    isSupabaseNotConfiguredError(orgUnitsError) ||
-    isSupabaseNotConfiguredError(ngosError)
-  ) {
-    return (
-      <MainLayout title="Dept Queue" subtitle="Department lead workload overview">
-        <SupabaseNotConfiguredNotice />
-      </MainLayout>
-    );
-  }
-
   const ngoMap = useMemo(() => {
     const map = new Map<string, string>();
     ngos?.forEach((ngo) => {
@@ -122,6 +110,18 @@ export default function DeptQueue() {
       return true;
     });
   }, [workItems, filters]);
+
+  if (
+    isSupabaseNotConfiguredError(error) ||
+    isSupabaseNotConfiguredError(orgUnitsError) ||
+    isSupabaseNotConfiguredError(ngosError)
+  ) {
+    return (
+      <MainLayout title="Dept Queue" subtitle="Department lead workload overview">
+        <SupabaseNotConfiguredNotice />
+      </MainLayout>
+    );
+  }
 
   const today = new Date();
   const in7Days = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);

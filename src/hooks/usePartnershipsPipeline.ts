@@ -46,8 +46,8 @@ export const usePartnershipsPipeline = () =>
   useQuery({
     queryKey: ["partnerships-pipeline"],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from(pipelineTable)
+      const { data, error } = await supabase
+        .from(pipelineTable as never)
         .select("*, partner:partners(id, name, type, region, status, primary_contact)")
         .order("updated_at", { ascending: false });
 
@@ -62,8 +62,8 @@ export const useCreatePartnershipPipeline = () => {
 
   return useMutation({
     mutationFn: async (input: CreatePartnershipPipelineInput) => {
-      const { data, error } = await (supabase as any)
-        .from(pipelineTable)
+      const { data, error } = await supabase
+        .from(pipelineTable as never)
         .insert(input)
         .select()
         .single();
@@ -94,8 +94,8 @@ export const useUpdatePartnershipPipeline = () => {
 
   return useMutation({
     mutationFn: async ({ id, ...input }: Partial<PartnershipPipelineRecord> & { id: string }) => {
-      const { data, error } = await (supabase as any)
-        .from(pipelineTable)
+      const { data, error } = await supabase
+        .from(pipelineTable as never)
         .update(input)
         .eq("id", id)
         .select()

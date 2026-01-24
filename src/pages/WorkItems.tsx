@@ -31,8 +31,6 @@ import { useNGOs } from "@/hooks/useNGOs";
 import { useOrgUnits } from "@/hooks/useOrgUnits";
 import { useAuth } from "@/contexts/AuthContext";
 import { Switch } from "@/components/ui/switch";
-import { useWorkItems, WorkItemStatus, ModuleType, Priority } from "@/hooks/useWorkItems";
-import { useNGOs } from "@/hooks/useNGOs";
 import { isSupabaseNotConfiguredError } from "@/integrations/supabase/client";
 import { SupabaseNotConfiguredNotice } from "@/components/common/SupabaseNotConfiguredNotice";
 import { useSearchParams } from "react-router-dom";
@@ -116,18 +114,14 @@ export default function WorkItems() {
     return f;
   }, [selectedModule, selectedStatus, selectedDepartment, myItemsOnly, user?.id]);
 
-  const { data: workItems, isLoading, error } = useWorkItems(filters);
-  const { data: ngos } = useNGOs();
-  const { data: orgUnits } = useOrgUnits();
-  const { data: ngos, error: ngosError } = useNGOs();
+  const { data: workItems, isLoading, error } = useWorkItems(/* ... */);
+const { data: ngos, error: ngosError } = useNGOs();
+const { data: orgUnits } = useOrgUnits();
 
-  if (isSupabaseNotConfiguredError(error) || isSupabaseNotConfiguredError(ngosError)) {
-    return (
-      <MainLayout title="Work Items" subtitle="Manage and track all assignments across departments">
-        <SupabaseNotConfiguredNotice />
-      </MainLayout>
-    );
-  }
+if (isSupabaseNotConfiguredError(error) || isSupabaseNotConfiguredError(ngosError)) {
+  // ...
+}
+
 
   // Create NGO lookup map
   const ngoMap = useMemo(() => {

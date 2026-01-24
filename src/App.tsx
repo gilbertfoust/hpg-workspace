@@ -21,7 +21,16 @@ import Admin from "./pages/Admin";
 import AdminConfigHome from "./pages/AdminConfig/AdminConfigHome";
 import NotFound from "./pages/NotFound";
 
-// Module pages
+// Feature pages
+import MyQueue from "./pages/MyQueue";
+import DeptQueue from "./pages/DeptQueue";
+import HRDashboard from "./pages/HRDashboard";
+import DevelopmentDashboard from "./pages/DevelopmentDashboard";
+import PartnershipsDashboard from "./pages/PartnershipsDashboard";
+import ITDashboard from "./pages/ITDashboard";
+import NGOCoordination from "./pages/NGOCoordination";
+
+// Module pages (placeholders you can flesh out later)
 import {
   NGOCoordinationModule,
   AdministrationModule,
@@ -48,15 +57,16 @@ const App = () => {
           <Toaster />
           <Sonner />
           <ErrorBoundary>
-            <BrowserRouter>
+            {/* IMPORTANT for GitHub Pages */}
+            <BrowserRouter basename={import.meta.env.BASE_URL}>
               <Routes>
-                {/* Auth page */}
+                {/* Auth */}
                 <Route path="/auth" element={<Auth />} />
 
-                {/* Redirect root to dashboard */}
+                {/* Root redirect */}
                 <Route path="/" element={<Navigate to="/dashboard" replace />} />
 
-                {/* Protected main pages */}
+                {/* Core */}
                 <Route
                   path="/dashboard"
                   element={
@@ -65,6 +75,26 @@ const App = () => {
                     </ProtectedRoute>
                   }
                 />
+
+                {/* Queues */}
+                <Route
+                  path="/my-queue"
+                  element={
+                    <ProtectedRoute>
+                      <MyQueue />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/dept-queue"
+                  element={
+                    <ProtectedRoute>
+                      <DeptQueue />
+                    </ProtectedRoute>
+                  }
+                />
+
+                {/* Records */}
                 <Route
                   path="/ngos"
                   element={
@@ -121,6 +151,8 @@ const App = () => {
                     </ProtectedRoute>
                   }
                 />
+
+                {/* Admin */}
                 <Route
                   path="/admin"
                   element={
@@ -138,7 +170,49 @@ const App = () => {
                   }
                 />
 
-                {/* Protected module pages */}
+                {/* Department dashboards */}
+                <Route
+                  path="/hr"
+                  element={
+                    <ProtectedRoute>
+                      <HRDashboard />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/development"
+                  element={
+                    <ProtectedRoute>
+                      <DevelopmentDashboard />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/partnerships"
+                  element={
+                    <ProtectedRoute>
+                      <PartnershipsDashboard />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/it"
+                  element={
+                    <ProtectedRoute>
+                      <ITDashboard />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/ngo-coordination"
+                  element={
+                    <ProtectedRoute>
+                      <NGOCoordination />
+                    </ProtectedRoute>
+                  }
+                />
+
+                {/* Module placeholder routes (keep for later) */}
                 <Route
                   path="/modules/ngo-coordination"
                   element={

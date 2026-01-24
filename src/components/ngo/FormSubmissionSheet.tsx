@@ -42,7 +42,7 @@ interface FormSubmissionSheetProps {
   onOpenChange: (open: boolean) => void;
   template: FormTemplate | null;
   submission?: FormSubmission | null;
-  ngoId: string;
+  ngoId?: string; // Optional for forms that don't require NGO context
   workItemConfig?: WorkItemConfig;
 }
 
@@ -99,7 +99,7 @@ export function FormSubmissionSheet({
         title: workItemConfig.title,
         module: workItemConfig.module,
         type: workItemConfig.type,
-        ngo_id: workItemConfig.ngoId ?? ngoId,
+        ngo_id: workItemConfig.ngoId ?? (ngoId && ngoId.trim() ? ngoId : undefined),
         description: workItemConfig.description,
         external_visible: workItemConfig.external_visible,
       });
@@ -216,7 +216,7 @@ export function FormSubmissionSheet({
           </Select>
         );
 
-      case "multiselect":
+      case "multiselect": {
         const selected = (value as string[]) || [];
         return (
           <div className="space-y-2">
@@ -239,6 +239,7 @@ export function FormSubmissionSheet({
             )}
           </div>
         );
+      }
 
       default:
         return null;

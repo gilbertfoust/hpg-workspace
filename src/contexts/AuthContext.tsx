@@ -1,64 +1,78 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import { User, Session } from '@supabase/supabase-js';
-import { supabase } from '@/lib/supabaseClient';
-import type { User, Session } from '@supabase/supabase-js';
-import { getSupabaseNotConfiguredError, supabase } from '@/integrations/supabase/client';
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
+import type { User, Session } from "@supabase/supabase-js";
+import { supabase } from "@/integrations/supabase/client";
 
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
-  signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
-  signUp: (email: string, password: string, fullName: string) => Promise<{ error: Error | null }>;
+  signIn: (
+    email: string,
+    password: string
+  ) => Promise<{ error: Error | null }>;
+  signUp: (
+    email: string,
+    password: string,
+    fullName: string
+  ) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Single flag we use everywhere to decide if Supabase is really available
-const supabaseReady = !!supabase;
+const getSupabaseNotConfiguredError = () =>
+  new Error(
+    "Supabase not configured: missing VITE_SUPABASE_URL or VITE_SUPABASE_PUBLISHABLE_KEY"
+  );
 
-const supabaseNotConfiguredError = () =>
-  getSupabaseNotConfiguredError();
-
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // If Supabase is not wired (e.g., Lovable preview without env), do not touch supabase.auth
-    if (!supabaseReady || !supabase) {
-      setUser(null);
-      setSession(null);
+    // If Supabase is not configured, skip wiring auth
+    if (!supabase) {
+      console.warn(
+        "AuthProvider: Supabase not configured, running in demo / unauthenticated mode."
+      );
       setLoading(false);
       return;
     }
 
-    // Set up auth state listener FIRST
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        setLoading(false);
-      }
-    );
-
-    // THEN get the initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    // Listen for auth state changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
     });
 
+    // Get initial session
+    supabase.auth
+      .getSession()
+      .then(({ data: { session } }) => {
+        setSession(session);
+        setUser(session?.user ?? null);
+      })
+      .finally(() => setLoading(false));
+
     return () => {
-      subscription?.unsubscribe();
+      subscription.unsubscribe();
     };
   }, []);
 
   const signIn = async (email: string, password: string) => {
-    if (!supabaseReady || !supabase) {
-      return { error: supabaseNotConfiguredError() };
+    if (!supabase) {
+      return { error: getSupabaseNotConfiguredError() };
     }
 
     const { error } = await supabase.auth.signInWithPassword({
@@ -66,12 +80,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       password,
     });
 
-    return { error: error as Error | null };
+    return { error: error ?? null };
   };
 
-  const signUp = async (email: string, password: string, fullName: string) => {
-    if (!supabaseReady || !supabase) {
-      return { error: supabaseNotConfiguredError() };
+  const signUp = async (
+    email: string,
+    password: string,
+    fullName: string
+  ) => {
+    if (!supabase) {
+      return { error: getSupabaseNotConfiguredError() };
     }
 
     const { error } = await supabase.auth.signUp({
@@ -85,20 +103,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       },
     });
 
-    return { error: error as Error | null };
+    return { error: error ?? null };
   };
 
   const signOut = async () => {
-    if (!supabaseReady || !supabase) {
-      // In environments without Supabase (Lovable preview), just no-op
+    if (!supabase) {
+      // Nothing to do if we have no backend
       return;
     }
-
     await supabase.auth.signOut();
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, signIn, signUp, signOut }}>
+    <AuthContext.Provider
+      value={{ user, session, loading, signIn, signUp, signOut }}
+    >
       {children}
     </AuthContext.Provider>
   );
@@ -107,7 +126,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 };

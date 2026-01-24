@@ -7,8 +7,11 @@ import {
 } from "@/components/ui/select";
 import { StatusChip } from "@/components/common/StatusChip";
 import { useUpdateWorkItem, WorkItemStatus } from "@/hooks/useWorkItems";
+import type { ComponentProps } from "react";
 
-const statusOptions: { value: WorkItemStatus; label: string; chipStatus: string }[] = [
+type ChipStatus = ComponentProps<typeof StatusChip>["status"];
+
+const statusOptions: { value: WorkItemStatus; label: string; chipStatus: ChipStatus }[] = [
   { value: "Draft", label: "Draft", chipStatus: "draft" },
   { value: "Not Started", label: "Not Started", chipStatus: "not-started" },
   { value: "In Progress", label: "In Progress", chipStatus: "in-progress" },
@@ -42,14 +45,14 @@ export function InlineStatusSelect({ workItemId, currentStatus }: InlineStatusSe
     <Select value={currentStatus} onValueChange={handleStatusChange}>
       <SelectTrigger className="w-auto h-auto p-0 border-0 bg-transparent hover:bg-accent rounded">
         <StatusChip
-          status={(currentOption?.chipStatus || "draft") as any}
+          status={currentOption?.chipStatus || "draft"}
           className="cursor-pointer"
         />
       </SelectTrigger>
       <SelectContent>
         {statusOptions.map((option) => (
           <SelectItem key={option.value} value={option.value}>
-            <StatusChip status={option.chipStatus as any} />
+            <StatusChip status={option.chipStatus} />
           </SelectItem>
         ))}
       </SelectContent>
