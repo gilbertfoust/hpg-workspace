@@ -20,6 +20,7 @@ interface AuthContextType {
     password: string,
     fullName: string
   ) => Promise<{ error: Error | null }>;
+  signInWithGitHub: () => Promise<{ data: any; error: Error | null }>;
   signOut: () => Promise<void>;
 }
 
@@ -106,6 +107,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     return { error: error ?? null };
   };
 
+  const signInWithGitHub = async () => {
+    if (!supabase) {
+      return { data: null, error: getSupabaseNotConfiguredError() };
+    }
+
+    // Build redirectTo URL respecting GitHub Pages base path
+    const base = import.meta.env.BASE_URL || "/";
+    const redirectTo = `${window.location.origin}${base}auth/callback`;
+
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: "github",
+      options: {
+        redirectTo,
+      },
+    });
+
+    return { data, error: error ? (error as Error) : null };
+  };
+
   const signOut = async () => {
     if (!supabase) {
       // Nothing to do if we have no backend
@@ -116,7 +136,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   return (
     <AuthContext.Provider
-      value={{ user, session, loading, signIn, signUp, signOut }}
+      value={{ user, session, loading, signIn, signUp, signInWithGitHub, signOut }}
     >
       {children}
     </AuthContext.Provider>

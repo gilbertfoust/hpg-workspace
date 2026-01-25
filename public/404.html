@@ -3,35 +3,44 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Lovable App</title>
-    <meta name="description" content="Lovable Generated Project" />
-    <meta name="author" content="Lovable" />
-
-    <meta property="og:title" content="Lovable App" />
-    <meta property="og:description" content="Lovable Generated Project" />
-    <meta property="og:type" content="website" />
-    <meta property="og:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
-
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:site" content="@Lovable" />
-    <meta name="twitter:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
+    <title>HPG Workstation</title>
     <script>
       // GitHub Pages SPA fallback: redirect to index.html
-      // This allows BrowserRouter to handle deep links on refresh
-      // The pathname is preserved by GitHub Pages, so React Router will see the correct route
-      var path = window.location.pathname;
-      var base = '/hpg-workspace/';
-      var indexPath = base + 'index.html';
-      // Only redirect if we're not already at index.html
-      if (!path.endsWith('/index.html') && !path.endsWith('/')) {
-        window.location.replace(indexPath);
-      }
+      // GitHub Pages preserves the original pathname, so React Router will handle routing
+      (function() {
+        var path = window.location.pathname;
+        var search = window.location.search;
+        var hash = window.location.hash;
+        
+        // Extract base path from current location
+        // For GitHub Pages subpath: /repo-name/...
+        // For root: /
+        var pathSegments = path.split('/').filter(Boolean);
+        var base = '/';
+        
+        // If we have path segments and the first doesn't look like a file, use it as base
+        if (pathSegments.length > 0) {
+          var firstSegment = pathSegments[0];
+          // Check if it's likely a repo name (not a file extension, not 'index.html')
+          if (firstSegment && !firstSegment.includes('.') && firstSegment !== 'index.html') {
+            base = '/' + firstSegment + '/';
+          }
+        }
+        
+        // Build redirect URL
+        var redirectUrl = base + 'index.html' + search + hash;
+        
+        // Only redirect if not already at index.html
+        if (!path.endsWith('index.html') && path !== base && path !== base.slice(0, -1)) {
+          window.location.replace(redirectUrl);
+        }
+      })();
     </script>
   </head>
-
   <body>
     <div id="root"></div>
-    <!-- This will be replaced by the redirect script above, but included as fallback -->
-    <script type="module" src="/hpg-workspace/src/main.tsx"></script>
+    <noscript>
+      <p>Please enable JavaScript to use this application.</p>
+    </noscript>
   </body>
 </html>

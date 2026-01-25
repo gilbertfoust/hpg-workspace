@@ -7,15 +7,16 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Building2 } from "lucide-react";
+import { Loader2, Building2, Github } from "lucide-react";
 
 const HPG_LOGO_URL =
   "https://img1.wsimg.com/isteam/ip/8d5502d6-d937-4d80-bd56-8074053e4d77/Humanity%20Pathways%20Global.jpg/:/rs=h:175,m";
 
 const Auth = () => {
-  const { user, loading, signIn, signUp } = useAuth();
+  const { user, loading, signIn, signUp, signInWithGitHub } = useAuth();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isGitHubLoading, setIsGitHubLoading] = useState(false);
   const [logoFailed, setLogoFailed] = useState(false);
 
   // Login form state
@@ -83,6 +84,21 @@ const Auth = () => {
     setIsSubmitting(false);
   };
 
+  const handleGitHubSignIn = async () => {
+    setIsGitHubLoading(true);
+    const { error } = await signInWithGitHub();
+    
+    if (error) {
+      toast({
+        variant: "destructive",
+        title: "GitHub sign-in failed",
+        description: error.message,
+      });
+      setIsGitHubLoading(false);
+    }
+    // If successful, user will be redirected away, so we don't reset loading state
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted p-4">
       <Card className="w-full max-w-md">
@@ -107,7 +123,38 @@ const Auth = () => {
         </CardHeader>
 
         <CardContent>
-          <Tabs defaultValue="login" className="w-full">
+          <div className="space-y-4">
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
+              onClick={handleGitHubSignIn}
+              disabled={isGitHubLoading || isSubmitting}
+            >
+              {isGitHubLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Connecting...
+                </>
+              ) : (
+                <>
+                  <Github className="mr-2 h-4 w-4" />
+                  Continue with GitHub
+                </>
+              )}
+            </Button>
+
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
+              </div>
+            </div>
+          </div>
+
+          <Tabs defaultValue="login" className="w-full mt-4">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="login">Login</TabsTrigger>
               <TabsTrigger value="signup">Sign Up</TabsTrigger>

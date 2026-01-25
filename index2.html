@@ -1,0 +1,1207 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>HPG Workspace Application | Humanity Pathways Global</title>
+  <meta name="description" content="HPG Workspace is the operating hub for Humanity Pathways Global—dashboards, workflows, and records that keep teams aligned across programs and partnerships." />
+
+  <style>
+    :root{
+      /* Hubstaff-inspired: bright, clean, high-contrast cards */
+      --bg: #f6f8ff;
+      --ink: #0b1020;
+      --muted: rgba(11,16,32,.70);
+      --line: rgba(11,16,32,.12);
+      --card: rgba(255,255,255,.80);
+      --card2: rgba(255,255,255,.94);
+      --shadow: 0 22px 60px rgba(12,18,38,.14);
+      --radius: 18px;
+      --radius2: 24px;
+
+      --accent: #2f6bff;
+      --accent2: #7c3aed;
+      --good: #16a34a;
+      --warn: #ca8a04;
+      --bad:  #dc2626;
+
+      --max: 1140px;
+      --font: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+    }
+
+    *{ box-sizing:border-box; }
+    html,body{ height:100%; }
+    body{
+      margin:0;
+      font-family: var(--font);
+      color: var(--ink);
+      background:
+        radial-gradient(900px 520px at 12% 10%, rgba(47,107,255,.18), transparent 55%),
+        radial-gradient(980px 600px at 86% 12%, rgba(124,58,237,.14), transparent 58%),
+        radial-gradient(1100px 700px at 50% 100%, rgba(22,163,74,.10), transparent 62%),
+        var(--bg);
+      line-height:1.55;
+    }
+
+    a{ color:inherit; text-decoration:none; }
+    .wrap{ max-width: var(--max); margin:0 auto; padding: 0 20px; }
+
+    /* Top bar */
+    .topbar{
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background: rgba(246,248,255,.82);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--line);
+    }
+    .nav{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 14px;
+      padding: 14px 0;
+    }
+
+    .brand{
+      display:flex;
+      align-items:center;
+      gap: 12px;
+      min-width: 260px;
+    }
+    .logo{
+      width: 40px;
+      height: 40px;
+      border-radius: 14px;
+      overflow:hidden;
+      border: 1px solid rgba(11,16,32,.12);
+      background: rgba(255,255,255,.9);
+      box-shadow: 0 10px 26px rgba(12,18,38,.10);
+      flex: 0 0 auto;
+    }
+    .logo img{
+      width:100%;
+      height:100%;
+      object-fit: cover;
+      display:block;
+    }
+    .brand h1{
+      margin:0;
+      font-size: 14px;
+      font-weight: 750;
+      letter-spacing: .2px;
+    }
+    .brand p{
+      margin:0;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .links{
+      display:flex;
+      align-items:center;
+      gap: 10px;
+    }
+    .links a{
+      font-size: 13px;
+      color: var(--muted);
+      padding: 8px 10px;
+      border-radius: 12px;
+    }
+    .links a:hover{
+      color: var(--ink);
+      background: rgba(11,16,32,.06);
+    }
+
+    .btn{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap: 10px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,.82);
+      color: var(--ink);
+      padding: 10px 14px;
+      border-radius: 14px;
+      font-size: 13px;
+      font-weight: 750;
+      box-shadow: 0 10px 22px rgba(12,18,38,.10);
+      cursor:pointer;
+      user-select:none;
+    }
+    .btn:hover{ background: rgba(255,255,255,.95); }
+    .btn.primary{
+      border-color: rgba(47,107,255,.35);
+      background: linear-gradient(135deg, rgba(47,107,255,.18), rgba(124,58,237,.12));
+    }
+    .btn.primary:hover{
+      background: linear-gradient(135deg, rgba(47,107,255,.24), rgba(124,58,237,.16));
+    }
+    .btn.ghost{
+      background: transparent;
+      box-shadow: none;
+    }
+
+    .menuBtn{
+      display:none;
+      padding: 10px 12px;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,.82);
+      color: var(--ink);
+      cursor:pointer;
+      box-shadow: 0 10px 22px rgba(12,18,38,.10);
+    }
+
+    /* Hero */
+    .hero{ padding: 60px 0 24px; }
+    .heroGrid{
+      display:grid;
+      grid-template-columns: 1.15fr .85fr;
+      gap: 18px;
+      align-items: stretch;
+    }
+    .heroCard{
+      border: 1px solid var(--line);
+      background: linear-gradient(180deg, var(--card2), var(--card));
+      border-radius: var(--radius2);
+      padding: 28px;
+      box-shadow: var(--shadow);
+      position:relative;
+      overflow:hidden;
+    }
+    .heroCard:before{
+      content:"";
+      position:absolute;
+      inset:-40%;
+      background:
+        radial-gradient(circle at 20% 25%, rgba(47,107,255,.20), transparent 54%),
+        radial-gradient(circle at 70% 30%, rgba(124,58,237,.14), transparent 56%),
+        radial-gradient(circle at 64% 76%, rgba(22,163,74,.10), transparent 58%);
+      transform: rotate(8deg);
+      pointer-events:none;
+    }
+    .heroCard > *{ position:relative; z-index:1; }
+
+    .kicker{
+      display:inline-flex;
+      align-items:center;
+      gap: 10px;
+      font-size: 12px;
+      color: rgba(11,16,32,.72);
+      padding: 8px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(11,16,32,.12);
+      background: rgba(255,255,255,.76);
+      width: fit-content;
+      margin-bottom: 12px;
+    }
+    .dot{
+      width: 8px; height: 8px; border-radius: 999px;
+      background: var(--good);
+      box-shadow: 0 0 0 6px rgba(22,163,74,.12);
+    }
+
+    .hero h2{
+      margin: 0 0 10px;
+      font-size: 40px;
+      line-height: 1.06;
+      letter-spacing: -0.7px;
+    }
+    .hero p{
+      margin: 0 0 16px;
+      color: var(--muted);
+      font-size: 15px;
+      max-width: 64ch;
+    }
+    .heroActions{
+      display:flex;
+      flex-wrap:wrap;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    /* Dashboard mock */
+    .dashCard{
+      border: 1px solid var(--line);
+      background: linear-gradient(180deg, rgba(255,255,255,.92), rgba(255,255,255,.76));
+      border-radius: var(--radius2);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+      display:flex;
+      flex-direction:column;
+    }
+    .dashTop{
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--line);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 10px;
+      background: rgba(255,255,255,.9);
+    }
+    .dashTop strong{ font-size: 13px; letter-spacing: .2px; }
+    .chipRow{ display:flex; gap: 8px; flex-wrap:wrap; }
+    .chip{
+      font-size: 11px;
+      color: rgba(11,16,32,.72);
+      border: 1px solid rgba(11,16,32,.12);
+      background: rgba(255,255,255,.82);
+      padding: 5px 8px;
+      border-radius: 999px;
+      white-space:nowrap;
+    }
+    .dashBody{ padding: 14px 16px 18px; }
+    .dashGrid{
+      display:grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      align-items: start;
+    }
+    .miniKpi{
+      border: 1px solid rgba(11,16,32,.10);
+      background: rgba(255,255,255,.78);
+      border-radius: 16px;
+      padding: 12px;
+    }
+    .miniKpi .k{
+      font-size: 11px; color: rgba(11,16,32,.60);
+      margin-bottom: 6px;
+    }
+    .miniKpi .v{
+      font-size: 18px; font-weight: 850; letter-spacing: -0.2px;
+    }
+    .miniKpi .s{
+      margin-top: 6px;
+      font-size: 12px;
+      color: rgba(11,16,32,.65);
+    }
+
+    /* Donut charts */
+    .donuts{
+      display:grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-top: 12px;
+    }
+    .donutCard{
+      border: 1px solid rgba(11,16,32,.10);
+      background: rgba(255,255,255,.78);
+      border-radius: 16px;
+      padding: 12px;
+      display:flex;
+      gap: 12px;
+      align-items:center;
+    }
+    .donutWrap{
+      width: 84px;
+      height: 84px;
+      position: relative;
+      flex: 0 0 auto;
+    }
+    .donutWrap svg{ width: 84px; height: 84px; display:block; }
+    .donutWrap .center{
+      position:absolute;
+      inset:0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      flex-direction:column;
+      text-align:center;
+      pointer-events:none;
+    }
+    .donutWrap .pct{
+      font-weight: 900;
+      font-size: 15px;
+      letter-spacing: -0.2px;
+    }
+    .donutWrap .sub{
+      font-size: 10px;
+      color: rgba(11,16,32,.62);
+      margin-top: 1px;
+    }
+    .donutText strong{
+      display:block;
+      font-size: 13px;
+      letter-spacing: .1px;
+      margin-bottom: 4px;
+    }
+    .donutText span{
+      display:block;
+      font-size: 12px;
+      color: rgba(11,16,32,.68);
+    }
+
+    /* Sections */
+    section{ padding: 34px 0; }
+    .sectionHead{
+      display:flex;
+      align-items:flex-end;
+      justify-content:space-between;
+      gap: 14px;
+      margin-bottom: 16px;
+    }
+    .sectionHead h2{
+      margin:0;
+      font-size: 22px;
+      letter-spacing: -0.2px;
+    }
+    .sectionHead p{
+      margin:0;
+      color: var(--muted);
+      font-size: 13px;
+      max-width: 74ch;
+    }
+
+    .grid3{
+      display:grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+    }
+    .grid2{
+      display:grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 14px;
+    }
+    .card{
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,.78);
+      border-radius: var(--radius);
+      padding: 18px;
+      box-shadow: 0 16px 44px rgba(12,18,38,.10);
+    }
+    .tag{
+      display:inline-flex;
+      align-items:center;
+      gap: 8px;
+      font-size: 12px;
+      color: rgba(11,16,32,.72);
+      border: 1px solid rgba(11,16,32,.12);
+      background: rgba(255,255,255,.85);
+      padding: 6px 10px;
+      border-radius: 999px;
+      margin-bottom: 10px;
+    }
+    .tag b{ color: var(--ink); font-weight: 850; }
+
+    .card h3{
+      margin: 0 0 8px;
+      font-size: 15px;
+      letter-spacing: .2px;
+    }
+    .card p{
+      margin: 0 0 10px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .card ul{
+      margin: 0;
+      padding-left: 18px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .card li{ margin: 6px 0; }
+
+    /* Integrations strip */
+    .strip{
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,.70);
+      border-radius: var(--radius2);
+      padding: 18px;
+      box-shadow: 0 16px 44px rgba(12,18,38,.08);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 14px;
+      flex-wrap:wrap;
+    }
+    .strip strong{ font-size: 14px; }
+    .badges{
+      display:flex;
+      gap: 10px;
+      flex-wrap:wrap;
+      align-items:center;
+    }
+    .badge{
+      font-size: 12px;
+      color: rgba(11,16,32,.72);
+      border: 1px solid rgba(11,16,32,.12);
+      background: rgba(255,255,255,.84);
+      padding: 8px 10px;
+      border-radius: 999px;
+      display:inline-flex;
+      align-items:center;
+      gap: 8px;
+    }
+    .bullet{
+      width: 8px; height: 8px; border-radius: 999px;
+      background: linear-gradient(135deg, rgba(47,107,255,.95), rgba(124,58,237,.95));
+    }
+
+    /* Timeline */
+    .timeline{
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,.72);
+      border-radius: var(--radius2);
+      overflow:hidden;
+      box-shadow: 0 16px 44px rgba(12,18,38,.08);
+    }
+    .step{
+      display:grid;
+      grid-template-columns: 190px 1fr;
+      border-top: 1px solid var(--line);
+    }
+    .step:first-child{ border-top:none; }
+    .stepL{
+      padding: 14px 16px;
+      border-right: 1px solid var(--line);
+      background: rgba(255,255,255,.84);
+    }
+    .stepR{ padding: 14px 16px; }
+    .stepL .label{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 10px;
+      margin-bottom: 6px;
+    }
+    .stepL strong{ font-size: 13px; }
+    .stepL .badge2{
+      font-size: 11px;
+      padding: 4px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(11,16,32,.12);
+      color: rgba(11,16,32,.68);
+      background: rgba(255,255,255,.80);
+      white-space:nowrap;
+    }
+    .stepR p{ margin:0; color: var(--muted); font-size: 13px; }
+
+    /* CTA */
+    .cta{
+      border: 1px solid rgba(47,107,255,.22);
+      background: linear-gradient(135deg, rgba(47,107,255,.14), rgba(124,58,237,.10));
+      border-radius: var(--radius2);
+      padding: 22px;
+      box-shadow: var(--shadow);
+      display:flex;
+      flex-wrap:wrap;
+      align-items:center;
+      justify-content:space-between;
+      gap: 14px;
+    }
+    .cta h3{ margin:0; font-size: 18px; }
+    .cta p{ margin:6px 0 0; color: var(--muted); font-size: 13px; max-width: 74ch; }
+
+    /* FAQ */
+    details{
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,.78);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+      box-shadow: 0 16px 44px rgba(12,18,38,.08);
+    }
+    details + details{ margin-top: 10px; }
+    summary{
+      cursor:pointer;
+      font-weight: 850;
+      font-size: 14px;
+      color: var(--ink);
+      list-style:none;
+    }
+    summary::-webkit-details-marker{ display:none; }
+    details p{
+      margin: 10px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    footer{
+      padding: 26px 0 40px;
+      border-top: 1px solid var(--line);
+      margin-top: 20px;
+    }
+    .foot{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap: 16px;
+      flex-wrap:wrap;
+    }
+    .fine{
+      color: var(--muted);
+      font-size: 12px;
+      max-width: 86ch;
+      margin-top: 8px;
+    }
+
+    /* Mobile */
+    @media (max-width: 980px){
+      .heroGrid{ grid-template-columns: 1fr; }
+      .dashGrid{ grid-template-columns: 1fr; }
+      .donuts{ grid-template-columns: 1fr; }
+      .grid3{ grid-template-columns: 1fr; }
+      .grid2{ grid-template-columns: 1fr; }
+      .step{ grid-template-columns: 1fr; }
+      .stepL{ border-right:none; border-bottom: 1px solid var(--line); }
+    }
+    @media (max-width: 860px){
+      .links{ display:none; }
+      .menuBtn{ display:inline-flex; }
+      .links.open{
+        display:flex;
+        flex-direction:column;
+        position:absolute;
+        top: 58px;
+        right: 16px;
+        left: 16px;
+        background: rgba(246,248,255,.96);
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        padding: 10px;
+        backdrop-filter: blur(10px);
+        box-shadow: 0 16px 44px rgba(12,18,38,.10);
+      }
+      .links.open a{ width: 100%; }
+    }
+  </style>
+</head>
+
+<body>
+  <header class="topbar">
+    <div class="wrap">
+      <div class="nav">
+        <a class="brand" href="#top" aria-label="HPG Workspace home">
+          <span class="logo" aria-hidden="true">
+            <!-- HPG logo (from your provided URL) -->
+            <img
+              src="https://img1.wsimg.com/isteam/ip/8d5502d6-d937-4d80-bd56-8074053e4d77/Humanity Pathways Global.jpg/:/rs=h:175,m"
+              alt="Humanity Pathways Global logo"
+              loading="eager"
+            />
+          </span>
+          <span>
+            <h1>HPG Workspace Application</h1>
+            <p>Dashboards, workflows, and records for HPG operations</p>
+          </span>
+        </a>
+
+        <nav class="links" id="navLinks" aria-label="Primary">
+          <a href="#what">What it is</a>
+          <a href="#dashboards">Dashboards</a>
+          <a href="#modules">Modules</a>
+          <a href="#workflow">Workflow</a>
+          <a href="#faq">FAQ</a>
+        </nav>
+
+        <div style="display:flex; gap:10px; align-items:center;">
+          <button class="menuBtn" id="menuBtn" aria-label="Open menu" aria-controls="navLinks" aria-expanded="false">
+            Menu
+          </button>
+
+          <!-- Change these links to your real routes -->
+          <a class="btn ghost" href="#contact">Contact</a>
+          <a class="btn" href="/app">Open Workspace</a>
+          <a class="btn primary" href="#access">Request access</a>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main id="top">
+    <div class="wrap hero">
+      <div class="heroGrid">
+        <div class="heroCard">
+          <div class="kicker"><span class="dot" aria-hidden="true"></span> Internal platform for teams, committees, and sponsored initiatives</div>
+          <h2>Run HPG work with shared visibility, not scattered threads.</h2>
+          <p>
+            HPG Workspace is the operating hub for Humanity Pathways Global. It is built to coordinate cross-department work,
+            keep required documents attached to the right steps, and support oversight through clear dashboards.
+            If your role touches Program, Development, Operations, Finance, or General Counsel, this system could reduce friction.
+          </p>
+
+          <div class="heroActions">
+            <a class="btn primary" href="#dashboards">See dashboards</a>
+            <a class="btn" href="#workflow">View a workflow example</a>
+            <a class="btn ghost" href="#modules">Browse modules</a>
+          </div>
+
+          <div style="margin-top:14px; display:flex; gap:10px; flex-wrap:wrap;">
+            <span class="tag"><b>Role-based</b> access</span>
+            <span class="tag"><b>Standard</b> templates</span>
+            <span class="tag"><b>Audit-friendly</b> records</span>
+            <span class="tag"><b>Clear</b> handoffs</span>
+          </div>
+        </div>
+
+        <!-- “See it in action” style panel -->
+        <aside class="dashCard" aria-label="Dashboard preview">
+          <div class="dashTop">
+            <strong>Dashboard preview</strong>
+            <div class="chipRow">
+              <span class="chip">Portfolio</span>
+              <span class="chip">Compliance</span>
+              <span class="chip">Reporting</span>
+            </div>
+          </div>
+
+          <div class="dashBody">
+            <div class="dashGrid">
+              <div class="miniKpi">
+                <div class="k">Active initiatives</div>
+                <div class="v">12</div>
+                <div class="s">Across regions and teams</div>
+              </div>
+              <div class="miniKpi">
+                <div class="k">Items awaiting review</div>
+                <div class="v">7</div>
+                <div class="s">Finance or Legal routing</div>
+              </div>
+              <div class="miniKpi">
+                <div class="k">Reports due (30 days)</div>
+                <div class="v">9</div>
+                <div class="s">Partner cadence tracking</div>
+              </div>
+            </div>
+
+            <!-- Donut charts (requested) -->
+            <div class="donuts" style="margin-top:14px;">
+              <div class="donutCard">
+                <div class="donutWrap" data-percent="78" data-label="On-time">
+                  <svg viewBox="0 0 120 120" role="img" aria-label="Reporting on-time 78 percent">
+                    <circle cx="60" cy="60" r="46" fill="none" stroke="rgba(11,16,32,.12)" stroke-width="12"></circle>
+                    <circle class="ring" cx="60" cy="60" r="46" fill="none" stroke="rgba(47,107,255,.92)" stroke-width="12" stroke-linecap="round"
+                      transform="rotate(-90 60 60)"></circle>
+                  </svg>
+                  <div class="center">
+                    <div class="pct">78%</div>
+                    <div class="sub">Reporting</div>
+                  </div>
+                </div>
+                <div class="donutText">
+                  <strong>On-time reporting</strong>
+                  <span>Tracks submissions vs. due dates per project.</span>
+                </div>
+              </div>
+
+              <div class="donutCard">
+                <div class="donutWrap" data-percent="64" data-label="Complete">
+                  <svg viewBox="0 0 120 120" role="img" aria-label="Compliance coverage 64 percent">
+                    <circle cx="60" cy="60" r="46" fill="none" stroke="rgba(11,16,32,.12)" stroke-width="12"></circle>
+                    <circle class="ring" cx="60" cy="60" r="46" fill="none" stroke="rgba(124,58,237,.90)" stroke-width="12" stroke-linecap="round"
+                      transform="rotate(-90 60 60)"></circle>
+                  </svg>
+                  <div class="center">
+                    <div class="pct">64%</div>
+                    <div class="sub">Compliance</div>
+                  </div>
+                </div>
+                <div class="donutText">
+                  <strong>Compliance coverage</strong>
+                  <span>Shows required artifacts on file by initiative.</span>
+                </div>
+              </div>
+
+              <div class="donutCard">
+                <div class="donutWrap" data-percent="86" data-label="Ready">
+                  <svg viewBox="0 0 120 120" role="img" aria-label="Implementation readiness 86 percent">
+                    <circle cx="60" cy="60" r="46" fill="none" stroke="rgba(11,16,32,.12)" stroke-width="12"></circle>
+                    <circle class="ring" cx="60" cy="60" r="46" fill="none" stroke="rgba(22,163,74,.88)" stroke-width="12" stroke-linecap="round"
+                      transform="rotate(-90 60 60)"></circle>
+                  </svg>
+                  <div class="center">
+                    <div class="pct">86%</div>
+                    <div class="sub">Readiness</div>
+                  </div>
+                </div>
+                <div class="donutText">
+                  <strong>Implementation readiness</strong>
+                  <span>Operational checklist completion by team.</span>
+                </div>
+              </div>
+            </div>
+
+            <div style="margin-top:14px; border:1px solid rgba(11,16,32,.10); background:rgba(255,255,255,.78); border-radius:16px; padding:12px;">
+              <div style="display:flex; justify-content:space-between; gap:10px; align-items:center;">
+                <strong style="font-size:13px;">Recent activity</strong>
+                <span style="font-size:12px; color: rgba(11,16,32,.62);">Last 7 days</span>
+              </div>
+              <div style="margin-top:10px; display:grid; gap:8px;">
+                <div style="display:flex; justify-content:space-between; gap:10px; font-size:12px; color: rgba(11,16,32,.70);">
+                  <span>Fiscal Sponsorship intake submitted</span><span>Today</span>
+                </div>
+                <div style="display:flex; justify-content:space-between; gap:10px; font-size:12px; color: rgba(11,16,32,.70);">
+                  <span>Budget revision uploaded</span><span>2 days</span>
+                </div>
+                <div style="display:flex; justify-content:space-between; gap:10px; font-size:12px; color: rgba(11,16,32,.70);">
+                  <span>Partner report approved</span><span>5 days</span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </aside>
+      </div>
+
+      <div class="strip" style="margin-top:16px;">
+        <strong>Designed to work alongside the tools your teams already use</strong>
+        <div class="badges" aria-label="Common tools">
+          <span class="badge"><span class="bullet" aria-hidden="true"></span>Google Drive</span>
+          <span class="badge"><span class="bullet" aria-hidden="true"></span>Slack</span>
+          <span class="badge"><span class="bullet" aria-hidden="true"></span>Asana</span>
+          <span class="badge"><span class="bullet" aria-hidden="true"></span>QuickBooks</span>
+          <span class="badge"><span class="bullet" aria-hidden="true"></span>Zoom</span>
+          <span class="badge"><span class="bullet" aria-hidden="true"></span>Power BI</span>
+        </div>
+      </div>
+    </div>
+
+    <section id="what">
+      <div class="wrap">
+        <div class="sectionHead">
+          <div>
+            <h2>What HPG Workspace is</h2>
+            <p>
+              A structured environment that combines project execution with recordkeeping that remains usable later.
+              The aim is simple: reduce ambiguity about ownership, deadlines, and required artifacts.
+            </p>
+          </div>
+        </div>
+
+        <div class="grid3">
+          <div class="card">
+            <div class="tag"><b>Coordination</b> across departments</div>
+            <h3>Clear handoffs</h3>
+            <p>
+              When Finance, Development, Operations, Program, and General Counsel all depend on one another,
+              the handoff is where delays often start. Workspace maps the sequence and the owner.
+            </p>
+            <ul>
+              <li>Defined step ownership</li>
+              <li>Required outputs attached to steps</li>
+              <li>Status visibility by role</li>
+            </ul>
+          </div>
+
+          <div class="card">
+            <div class="tag"><b>Documentation</b> with traceability</div>
+            <h3>Records you can find</h3>
+            <p>
+              Decisions, agreements, budgets, and evidence can be stored with dates and context.
+              If a question arises later, the timeline can be reconstructed.
+            </p>
+            <ul>
+              <li>Consistent naming and templates</li>
+              <li>Approvals captured with notes</li>
+              <li>Version history that stays readable</li>
+            </ul>
+          </div>
+
+          <div class="card">
+            <div class="tag"><b>Dashboards</b> for oversight</div>
+            <h3>Routine visibility</h3>
+            <p>
+              Dashboards summarize activity without requiring multiple manual spreadsheets,
+              while teams keep the operational detail in the work itself.
+            </p>
+            <ul>
+              <li>Portfolio summaries by initiative</li>
+              <li>Compliance coverage indicators</li>
+              <li>Reporting cadence and due dates</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="dashboards">
+      <div class="wrap">
+        <div class="sectionHead">
+          <div>
+            <h2>Dashboards and donut charts</h2>
+            <p>
+              Workspace dashboards can be arranged by department, initiative, or partner. Donut charts are used for quick coverage
+              checks (what is complete, what is missing, and what needs review).
+            </p>
+          </div>
+          <a class="btn primary" href="#access">Request access</a>
+        </div>
+
+        <div class="grid2">
+          <div class="card">
+            <div class="tag"><b>Leadership view</b> (example)</div>
+            <h3>Portfolio snapshot</h3>
+            <p>
+              This view could help leadership check what is active, what is at risk, and what is pending review,
+              without pulling every project file.
+            </p>
+            <ul>
+              <li>Active initiatives count and trend</li>
+              <li>Approvals pending (Finance, Legal, Compliance)</li>
+              <li>Reporting due dates and submission status</li>
+            </ul>
+          </div>
+
+          <div class="card">
+            <div class="tag"><b>Team view</b> (example)</div>
+            <h3>Work queue</h3>
+            <p>
+              This view could help team members prioritize their next steps and attach required artifacts as they complete them.
+            </p>
+            <ul>
+              <li>Assigned tasks with deadlines</li>
+              <li>Required artifacts checklist (per task)</li>
+              <li>Handoff routing to the next owner</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="cta" id="access" style="margin-top:14px;">
+          <div>
+            <h3>Access request</h3>
+            <p>
+              If you are joining an HPG team, committee, or sponsored initiative, you can request an account.
+              Access would be granted after role assignment and basic onboarding steps are completed.
+            </p>
+          </div>
+          <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+            <a class="btn primary" href="#contact">Email the IT Support desk</a>
+            <a class="btn" href="/app">Open Workspace</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="modules">
+      <div class="wrap">
+        <div class="sectionHead">
+          <div>
+            <h2>Core modules</h2>
+            <p>
+              Modules align to how HPG operates: intake, planning, execution, documentation, review, and reporting.
+              Access depends on role and assignment.
+            </p>
+          </div>
+        </div>
+
+        <div class="grid2">
+          <div class="card">
+            <h3>Executive Secretariat and Administration</h3>
+            <p>Meeting preparation, departmental reporting cadence, routing, and standardized templates.</p>
+            <ul>
+              <li>Cabinet and committee workflows</li>
+              <li>Onboarding checklists (staff, volunteers, partners)</li>
+              <li>SOP library references</li>
+            </ul>
+          </div>
+
+          <div class="card">
+            <h3>Development and Partnerships</h3>
+            <p>Opportunity tracking, partner communication logs, and deliverables routing.</p>
+            <ul>
+              <li>Grant and sponsor trackers</li>
+              <li>Partner due diligence checklist bundles</li>
+              <li>Deliverables calendar alignment</li>
+            </ul>
+          </div>
+
+          <div class="card">
+            <h3>Finance and Controls</h3>
+            <p>Budget templates, expense documentation, review steps, and summary exports.</p>
+            <ul>
+              <li>Budget and variance snapshots</li>
+              <li>Receipt and approval capture</li>
+              <li>Separation-of-duties markers</li>
+            </ul>
+          </div>
+
+          <div class="card">
+            <h3>Program and Operations</h3>
+            <p>Implementation readiness, logistics checklists, training records, and outcomes tracking.</p>
+            <ul>
+              <li>Project lifecycle milestones</li>
+              <li>Field readiness documentation</li>
+              <li>Evaluation and evidence packs</li>
+            </ul>
+          </div>
+
+          <div class="card">
+            <h3>General Counsel and Compliance</h3>
+            <p>Agreement storage, policy references, risk flags, and compliance review routing.</p>
+            <ul>
+              <li>Fiscal Sponsorship agreement packets</li>
+              <li>Registration and governance artifacts</li>
+              <li>Compliance status summaries</li>
+            </ul>
+          </div>
+
+          <div class="card">
+            <h3>Technology and Analytics</h3>
+            <p>Tool access requests, integration notes, change logs, and dashboard surfaces.</p>
+            <ul>
+              <li>Credential ownership and renewal notes</li>
+              <li>Basic monitoring and incident logging</li>
+              <li>Reporting exports (when applicable)</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="workflow">
+      <div class="wrap">
+        <div class="sectionHead">
+          <div>
+            <h2>Example workflow: Fiscal Sponsorship intake to active project</h2>
+            <p>
+              This sequence illustrates how a partner could move from inquiry to an operating project with clear outputs at each step.
+              Actual steps vary by agreement type and risk profile.
+            </p>
+          </div>
+        </div>
+
+        <div class="timeline" role="list">
+          <div class="step" role="listitem">
+            <div class="stepL">
+              <div class="label">
+                <strong>Step 1</strong>
+                <span class="badge2">Intake</span>
+              </div>
+              <div style="color: rgba(11,16,32,.62); font-size:12px;">Initial request and scope</div>
+            </div>
+            <div class="stepR">
+              <p>
+                Partner submits an intake form and core documents. Workspace routes the request to Development and Compliance
+                and creates a trackable case with required artifacts.
+              </p>
+            </div>
+          </div>
+
+          <div class="step" role="listitem">
+            <div class="stepL">
+              <div class="label">
+                <strong>Step 2</strong>
+                <span class="badge2">Due diligence</span>
+              </div>
+              <div style="color: rgba(11,16,32,.62); font-size:12px;">Verification and review</div>
+            </div>
+            <div class="stepR">
+              <p>
+                Review checklist collects questions, verification steps, and missing items. Decisions are recorded with dates and notes
+                so the rationale remains available later.
+              </p>
+            </div>
+          </div>
+
+          <div class="step" role="listitem">
+            <div class="stepL">
+              <div class="label">
+                <strong>Step 3</strong>
+                <span class="badge2">Agreement</span>
+              </div>
+              <div style="color: rgba(11,16,32,.62); font-size:12px;">Contract and onboarding</div>
+            </div>
+            <div class="stepR">
+              <p>
+                Legal packet is finalized, signature status is tracked, and onboarding tasks are assigned
+                (folders, tool access, financial controls, reporting schedule).
+              </p>
+            </div>
+          </div>
+
+          <div class="step" role="listitem">
+            <div class="stepL">
+              <div class="label">
+                <strong>Step 4</strong>
+                <span class="badge2">Readiness</span>
+              </div>
+              <div style="color: rgba(11,16,32,.62); font-size:12px;">Plan and setup</div>
+            </div>
+            <div class="stepR">
+              <p>
+                Budget, workplan, and measurable outputs are attached to the project record. Operations readiness is checked
+                (logistics, training, procurement steps, and approvals).
+              </p>
+            </div>
+          </div>
+
+          <div class="step" role="listitem">
+            <div class="stepL">
+              <div class="label">
+                <strong>Step 5</strong>
+                <span class="badge2">Run</span>
+              </div>
+              <div style="color: rgba(11,16,32,.62); font-size:12px;">Implementation and reporting</div>
+            </div>
+            <div class="stepR">
+              <p>
+                Recurring reporting cadence is set. Evidence and receipts are attached along the way, and dashboard views summarize progress
+                for the appropriate leaders and reviewers.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="faq">
+      <div class="wrap">
+        <div class="sectionHead">
+          <div>
+            <h2>FAQ</h2>
+            <p>If your situation is unusual, contact the IT Support desk and include your role and initiative.</p>
+          </div>
+        </div>
+
+        <details>
+          <summary>Is this a replacement for Google Drive, Slack, or Asana?</summary>
+          <p>
+            Usually no. Workspace is intended to coordinate work and maintain structured records while referencing the tools you already use.
+            In practice, it can reduce back-and-forth by making ownership and required outputs explicit.
+          </p>
+        </details>
+
+        <details>
+          <summary>Who can see partner documents and compliance records?</summary>
+          <p>
+            Visibility depends on role assignment and project permissions. Compliance and legal items can be limited to the smallest responsible group,
+            while project teams receive what they need to complete their assigned steps.
+          </p>
+        </details>
+
+        <details>
+          <summary>What should I include in an access request?</summary>
+          <p>
+            Your name, role, department or committee, initiative or project name (if applicable), and what you need to do in Workspace
+            (tasks, review, uploads, dashboards).
+          </p>
+        </details>
+      </div>
+    </section>
+
+    <section id="contact">
+      <div class="wrap">
+        <div class="sectionHead">
+          <div>
+            <h2>Contact</h2>
+            <p>Replace the email below with your real inbox, then use it as the default access path.</p>
+          </div>
+        </div>
+
+        <div class="grid2">
+          <div class="card">
+            <h3>IT Support desk</h3>
+            <p style="margin-bottom:12px;">
+              Email: <span style="font-weight:850;" id="emailText">it.support@humanitypathwaysglobal.com</span><br/>
+              (Replace this with your real inbox.)
+            </p>
+            <div style="display:flex; gap:10px; flex-wrap:wrap;">
+              <a class="btn primary" id="mailtoBtn"
+                 href="mailto:it.support@humanitypathwaysglobal.com?subject=HPG%20Workspace%20Access%20Request&body=Name%3A%0ARole%2FDepartment%3A%0AProject%20or%20Initiative%3A%0AReason%20for%20access%3A%0A">
+                 Email now
+              </a>
+              <button class="btn" id="copyEmailBtn" type="button">Copy email</button>
+            </div>
+            <p class="fine" id="copyHint" aria-live="polite" style="margin-top:10px;"></p>
+          </div>
+
+          <div class="card">
+            <h3>Suggested request details</h3>
+            <ul>
+              <li>Your name and preferred contact email</li>
+              <li>Role, department, committee, or partner organization</li>
+              <li>Initiative or project name</li>
+              <li>Tasks you need to complete (review, upload, dashboards, approvals)</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      <div class="wrap foot">
+        <div>
+          <div><strong>Humanity Pathways Global</strong> — HPG Workspace Application</div>
+          <div class="fine">
+            This is a public-facing overview page. Internal modules, permissions, and workflow steps may differ by role, agreement type,
+            and compliance requirements.
+          </div>
+        </div>
+        <small>© <span id="year"></span> Humanity Pathways Global</small>
+      </div>
+    </footer>
+  </main>
+
+  <script>
+    // Mobile nav toggle
+    (function(){
+      const menuBtn = document.getElementById('menuBtn');
+      const navLinks = document.getElementById('navLinks');
+      if(menuBtn && navLinks){
+        menuBtn.addEventListener('click', () => {
+          const isOpen = navLinks.classList.toggle('open');
+          menuBtn.setAttribute('aria-expanded', String(isOpen));
+        });
+      }
+    })();
+
+    // Smooth anchor scrolling
+    (function(){
+      document.addEventListener('click', (e) => {
+        const a = e.target.closest('a[href^="#"]');
+        if(!a) return;
+        const id = a.getAttribute('href');
+        if(!id || id === "#") return;
+        const el = document.querySelector(id);
+        if(!el) return;
+        e.preventDefault();
+        el.scrollIntoView({behavior:"smooth", block:"start"});
+        history.pushState(null, "", id);
+      });
+    })();
+
+    // Copy email
+    (function(){
+      const btn = document.getElementById('copyEmailBtn');
+      const email = document.getElementById('emailText');
+      const hint = document.getElementById('copyHint');
+      if(!btn || !email) return;
+
+      btn.addEventListener('click', async () => {
+        const value = (email.textContent || "").trim();
+        try{
+          await navigator.clipboard.writeText(value);
+          if(hint) hint.textContent = "Email copied to clipboard.";
+        }catch{
+          if(hint) hint.textContent = "Copy failed. You can manually select and copy the email address.";
+        }
+        setTimeout(() => { if(hint) hint.textContent = ""; }, 2500);
+      });
+    })();
+
+    // Donut chart fill (SVG stroke-dasharray)
+    (function(){
+      const donuts = document.querySelectorAll('.donutWrap');
+      donuts.forEach((d) => {
+        const pct = Math.max(0, Math.min(100, Number(d.dataset.percent || 0)));
+        const ring = d.querySelector('circle.ring');
+        if(!ring) return;
+
+        // Circle geometry
+        const r = Number(ring.getAttribute('r'));
+        const c = 2 * Math.PI * r;
+
+        ring.style.strokeDasharray = `${(pct/100) * c} ${c}`;
+        ring.style.strokeDashoffset = "0";
+
+        // Update visible number if present
+        const pctEl = d.querySelector('.pct');
+        if(pctEl) pctEl.textContent = `${pct}%`;
+      });
+    })();
+
+    // Year
+    document.getElementById('year').textContent = new Date().getFullYear();
+  </script>
+</body>
+</html>

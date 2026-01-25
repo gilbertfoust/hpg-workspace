@@ -132,6 +132,49 @@ src/
 └── pages/              # Route pages
 ```
 
+## GitHub OAuth Setup
+
+This application supports GitHub OAuth authentication via Supabase. To enable GitHub sign-in:
+
+### 1. Supabase Dashboard Configuration
+
+1. Go to your Supabase project dashboard
+2. Navigate to **Authentication** → **Providers**
+3. Enable **GitHub** provider
+4. Enter your GitHub OAuth App credentials:
+   - **Client ID**: From your GitHub OAuth App
+   - **Client Secret**: From your GitHub OAuth App
+
+### 2. Supabase URL Configuration
+
+In **Authentication** → **URL Configuration**:
+
+- **Site URL**: `https://<your-username>.github.io/<repo-name>/`
+  - Example: `https://gilbertfoust.github.io/hpg-workspace/`
+  
+- **Redirect URLs** (add these to the allow-list):
+  - `https://<your-username>.github.io/<repo-name>/`
+  - `https://<your-username>.github.io/<repo-name>/*`
+
+### 3. GitHub OAuth App Configuration
+
+1. Go to GitHub → Settings → Developer settings → OAuth Apps
+2. Create a new OAuth App or edit existing one
+3. Set the following:
+   - **Homepage URL**: `https://<your-username>.github.io/<repo-name>/`
+   - **Authorization callback URL**: `https://<PROJECT_REF>.supabase.co/auth/v1/callback`
+     - Replace `<PROJECT_REF>` with your Supabase project reference ID
+     - You can find this in your Supabase project URL: `https://<PROJECT_REF>.supabase.co`
+4. **Important**: Keep "Enable Device Flow" **OFF** for web SPA applications
+
+### 4. Environment Variables
+
+Ensure these are set in GitHub Actions secrets (already configured):
+- `VITE_SUPABASE_URL`
+- `VITE_SUPABASE_ANON_KEY`
+
+These are automatically injected during the build process.
+
 ## Testing the Live Site
 
 ### Phase 1 Verification Checklist
@@ -139,9 +182,12 @@ src/
 - [ ] Auth page loads at `/auth`
 - [ ] Sign up creates a new account
 - [ ] Sign in works with valid credentials
+- [ ] **GitHub OAuth sign-in works and redirects correctly**
+- [ ] **OAuth callback route (`/auth/callback`) works without 404**
 - [ ] Session persists on page refresh
 - [ ] Sign out clears session
 - [ ] Protected routes redirect to `/auth`
+- [ ] **Deep routes refresh correctly (no 404 on GitHub Pages)**
 - [ ] Admin → Settings shows Config Status panel
 - [ ] All environment variables show "Present"
 
