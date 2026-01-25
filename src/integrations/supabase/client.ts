@@ -3,7 +3,7 @@ import type { Database } from "./types";
 
 // Read env vars that should be injected at build time (Vite)
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string | undefined;
-const SUPABASE_PUBLISHABLE_KEY =
+const SUPABASE_ANON_KEY =
   (import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined) ??
   (import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined);
 
@@ -13,7 +13,7 @@ const SUPABASE_PUBLISHABLE_KEY =
  */
 export class SupabaseNotConfiguredError extends Error {
   constructor(
-    message = "Supabase not configured: missing VITE_SUPABASE_URL or VITE_SUPABASE_PUBLISHABLE_KEY"
+    message = "Supabase not configured: missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY"
   ) {
     super(message);
     this.name = "SupabaseNotConfiguredError";
@@ -41,11 +41,11 @@ export const isSupabaseNotConfiguredError = (
  * show a friendly “not configured” message instead of crashing.
  */
 function createSupabaseClient(): SupabaseClient<Database> | null {
-  if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
     return null;
   }
 
-  return createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+  return createClient<Database>(SUPABASE_URL, SUPABASE_ANON_KEY, {
     auth: {
       persistSession: true,
     },
@@ -64,7 +64,7 @@ export const supabase = createSupabaseClient();
  * using `supabase` directly.
  */
 export const ensureSupabase = (): SupabaseClient<Database> => {
-  if (!supabase || !SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
+  if (!supabase || !SUPABASE_URL || !SUPABASE_ANON_KEY) {
     throw new SupabaseNotConfiguredError();
   }
   return supabase;

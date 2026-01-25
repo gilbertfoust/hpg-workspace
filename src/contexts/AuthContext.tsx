@@ -28,7 +28,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const getSupabaseNotConfiguredError = () =>
   new Error(
-    "Supabase not configured: missing VITE_SUPABASE_URL or VITE_SUPABASE_PUBLISHABLE_KEY"
+    "Supabase not configured: missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY"
   );
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
