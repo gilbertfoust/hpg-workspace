@@ -21,11 +21,13 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { Save, Send, Loader2 } from "lucide-react";
+import { Save, Send, Loader2, Upload, X, File } from "lucide-react";
 import { FormTemplate, FormField } from "@/hooks/useFormTemplates";
 import { FormSubmission, useCreateFormSubmission, useUpdateFormSubmission } from "@/hooks/useFormSubmissions";
 import { ModuleType, useCreateWorkItem } from "@/hooks/useWorkItems";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase, ensureSupabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 import type { Json } from "@/integrations/supabase/types";
 
 interface WorkItemConfig {
@@ -55,11 +57,15 @@ export function FormSubmissionSheet({
   workItemConfig,
 }: FormSubmissionSheetProps) {
   const { user } = useAuth();
+  const { toast } = useToast();
   const createMutation = useCreateFormSubmission();
   const updateMutation = useUpdateFormSubmission();
   const createWorkItem = useCreateWorkItem();
   
   const [formData, setFormData] = useState<Record<string, unknown>>({});
+  const [fileUploads, setFileUploads] = useState<Record<string, File[]>>({});
+  const [isDragging, setIsDragging] = useState<string | null>(null);
+  const fileInputRefs = useState<Record<string, HTMLInputElement | null>>({})[0];
   const isEditing = !!submission;
   const isSubmitted = submission?.submission_status === "submitted" || 
                       submission?.submission_status === "accepted";
@@ -68,9 +74,13 @@ export function FormSubmissionSheet({
   useEffect(() => {
     if (submission?.payload_json && typeof submission.payload_json === 'object') {
       setFormData(submission.payload_json as Record<string, unknown>);
+      // Note: File uploads from previous submissions are stored as metadata in payload_json
+      // We don't restore the actual File objects, just display the metadata if needed
     } else {
       setFormData({});
     }
+    // Reset file uploads when template changes
+    setFileUploads({});
   }, [submission, template]);
 
   const fields: FormField[] = template?.schema_json?.fields || [];
@@ -90,49 +100,80 @@ export function FormSubmissionSheet({
   const handleSave = async (submit: boolean = false) => {
     if (!template) return;
 
-    const payload: Json = formData as Json;
-    const status = submit ? "submitted" : "draft";
-    let workItemId = submission?.work_item_id ?? undefined;
-
-    if (submit && workItemConfig && !workItemId) {
-      const workItem = await createWorkItem.mutateAsync({
-        title: workItemConfig.title,
-        module: workItemConfig.module,
-        type: workItemConfig.type,
-        ngo_id: workItemConfig.ngoId ?? (ngoId && ngoId.trim() ? ngoId : undefined),
-        description: workItemConfig.description,
-        external_visible: workItemConfig.external_visible,
-      });
-      workItemId = workItem.id;
-    }
-
-    if (isEditing && submission) {
-      const updatePayload: Partial<FormSubmission> = {
-        payload_json: payload,
-        submission_status: status,
-        submitted_at: submit ? new Date().toISOString() : submission.submitted_at,
-      };
-
-      if (submit && workItemId && !submission.work_item_id) {
-        updatePayload.work_item_id = workItemId;
+    try {
+      // Upload files for all file fields
+      const fileMetadata: Record<string, Array<{ path: string; name: string; size: number; type: string }>> = {};
+      
+      for (const [fieldName, files] of Object.entries(fileUploads)) {
+        if (files && files.length > 0) {
+          const uploadedPaths = await uploadFilesToStorage(files, fieldName);
+          fileMetadata[fieldName] = uploadedPaths.map((path, index) => ({
+            path,
+            name: files[index].name,
+            size: files[index].size,
+            type: files[index].type,
+          }));
+        }
       }
 
-      await updateMutation.mutateAsync({
-        id: submission.id,
-        ...updatePayload,
-      });
-    } else {
-      await createMutation.mutateAsync({
-        form_template_id: template.id,
-        ngo_id: ngoId,
-        work_item_id: workItemId,
-        submitted_by_user_id: user?.id,
-        payload_json: payload,
-        submission_status: status,
-      });
-    }
+      // Merge file metadata into payload
+      const payload: Json = {
+        ...formData,
+        ...fileMetadata,
+      } as Json;
 
-    onOpenChange(false);
+      const status = submit ? "submitted" : "draft";
+      let workItemId = submission?.work_item_id ?? undefined;
+
+      if (submit && workItemConfig && !workItemId) {
+        const workItem = await createWorkItem.mutateAsync({
+          title: workItemConfig.title,
+          module: workItemConfig.module,
+          type: workItemConfig.type,
+          ngo_id: workItemConfig.ngoId ?? (ngoId && ngoId.trim() ? ngoId : undefined),
+          description: workItemConfig.description,
+          external_visible: workItemConfig.external_visible,
+        });
+        workItemId = workItem.id;
+      }
+
+      if (isEditing && submission) {
+        const updatePayload: Partial<FormSubmission> = {
+          payload_json: payload,
+          submission_status: status,
+          submitted_at: submit ? new Date().toISOString() : submission.submitted_at,
+        };
+
+        if (submit && workItemId && !submission.work_item_id) {
+          updatePayload.work_item_id = workItemId;
+        }
+
+        await updateMutation.mutateAsync({
+          id: submission.id,
+          ...updatePayload,
+        });
+      } else {
+        await createMutation.mutateAsync({
+          form_template_id: template.id,
+          ngo_id: ngoId,
+          work_item_id: workItemId,
+          submitted_by_user_id: user?.id,
+          payload_json: payload,
+          submission_status: status,
+        });
+      }
+
+      // Clear file uploads after successful save
+      setFileUploads({});
+      onOpenChange(false);
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error saving form",
+        description: error instanceof Error ? error.message : "Failed to save form submission",
+      });
+      throw error;
+    }
   };
 
   const isSaving = createMutation.isPending || updateMutation.isPending || createWorkItem.isPending;

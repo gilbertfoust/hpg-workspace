@@ -131,12 +131,18 @@ export const useMyQueueWorkItems = () => {
   const { user } = useAuth();
   return useQuery<WorkItem[]>({
     queryKey: ["my-queue-work-items", user?.id],
-    enabled: !!user?.id,
+    enabled: !!user?.id && !!supabase,
     queryFn: async () => {
-      if (!user?.id) return [];
-      // TODO: Replace with actual Supabase query when table exists
-      // For now, return empty array so page renders without crashing
-      return [];
+      if (!user?.id || !supabase) return [];
+      
+      const { data, error } = await supabase
+        .from("work_items" as never)
+        .select("*")
+        .eq("owner_user_id", user.id)
+        .order("created_at", { ascending: false });
+      
+      if (error) throw error;
+      return (data ?? []) as WorkItem[];
     },
   });
 };
@@ -145,12 +151,18 @@ export const useMyQueueWorkItems = () => {
 export const useDepartmentQueueWorkItems = (departmentIds: string[]) => {
   return useQuery<WorkItem[]>({
     queryKey: ["department-queue-work-items", departmentIds],
-    enabled: departmentIds.length > 0,
+    enabled: departmentIds.length > 0 && !!supabase,
     queryFn: async () => {
-      if (departmentIds.length === 0) return [];
-      // TODO: Replace with actual Supabase query when table exists
-      // For now, return empty array so page renders without crashing
-      return [];
+      if (departmentIds.length === 0 || !supabase) return [];
+      
+      const { data, error } = await supabase
+        .from("work_items" as never)
+        .select("*")
+        .in("department_id", departmentIds)
+        .order("created_at", { ascending: false });
+      
+      if (error) throw error;
+      return (data ?? []) as WorkItem[];
     },
   });
 };
@@ -177,9 +189,41 @@ export const useBulkBumpWorkItemDueDates = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ items, bumpDays }: { items: WorkItem[]; bumpDays: number }) => {
-      // TODO: Replace with actual Supabase bulk update when table exists
-      // For now, just invalidate queries
-      return { items, bumpDays };
+      if (!supabase) throw new Error("Supabase client not available");
+      if (items.length === 0) return { items, bumpDays };
+      
+      // Calculate new due dates and prepare updates
+      const updates = items.map((item) => {
+        if (!item.due_date) return null;
+        const currentDate = new Date(item.due_date);
+        const newDate = new Date(currentDate);
+        newDate.setDate(newDate.getDate() + bumpDays);
+        return {
+          id: item.id,
+          due_date: newDate.toISOString().split('T')[0], // Format as YYYY-MM-DD
+        };
+      }).filter((update): update is { id: string; due_date: string } => update !== null);
+      
+      if (updates.length === 0) return { items, bumpDays };
+      
+      // Perform bulk update using RPC or individual updates
+      // Since Supabase doesn't support bulk updates with different values per row easily,
+      // we'll use a transaction-like approach with Promise.all
+      const updatePromises = updates.map((update) =>
+        supabase
+          .from("work_items" as never)
+          .update({ due_date: update.due_date })
+          .eq("id", update.id)
+      );
+      
+      const results = await Promise.all(updatePromises);
+      const errors = results.filter((r) => r.error).map((r) => r.error);
+      
+      if (errors.length > 0) {
+        throw new Error(`Failed to update some work items: ${errors[0]?.message}`);
+      }
+      
+      return { items, bumpDays, updated: updates.length };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["work-items"] });

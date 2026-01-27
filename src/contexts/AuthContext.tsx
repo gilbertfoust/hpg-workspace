@@ -20,7 +20,7 @@ interface AuthContextType {
     password: string,
     fullName: string
   ) => Promise<{ error: Error | null }>;
-  signInWithGitHub: () => Promise<{ data: any; error: Error | null }>;
+  signInWithGitHub: () => Promise<{ data: { url: string } | null; error: Error | null }>;
   signOut: () => Promise<void>;
 }
 

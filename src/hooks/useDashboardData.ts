@@ -265,7 +265,8 @@ export const useDashboardData = (filters: DashboardFilters) => {
           if (!a.dueDate) return 1;
           if (!b.dueDate) return -1;
           return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
-        });
+        })
+        .slice(0, 50); // Limit to top 50 for performance
 
       const workloadTotals = new Map<string, number>();
       (workItems ?? []).forEach((item) => {
@@ -279,12 +280,14 @@ export const useDashboardData = (filters: DashboardFilters) => {
         .map(([department, count]) => ({ department, count }))
         .sort((a, b) => b.count - a.count);
 
-      const atRiskNgos = (atRiskData ?? []).map((ngo) => ({
-        id: ngo.id,
-        name: ngo.common_name || ngo.legal_name,
-        bundle: ngo.bundle,
-        location: [ngo.city, ngo.state_province, ngo.country].filter(Boolean).join(", ") || "-",
-      }));
+      const atRiskNgos = (atRiskData ?? [])
+        .map((ngo) => ({
+          id: ngo.id,
+          name: ngo.common_name || ngo.legal_name,
+          bundle: ngo.bundle,
+          location: [ngo.city, ngo.state_province, ngo.country].filter(Boolean).join(", ") || "-",
+        }))
+        .slice(0, 20); // Limit to top 20 for performance
 
       return {
         kpis: {
