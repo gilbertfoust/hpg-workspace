@@ -13,6 +13,16 @@ BEGIN
       AND n.nspname = 'public'
   ) THEN
     CREATE TYPE public.app_role AS ENUM (
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_type t
+    JOIN pg_namespace n ON n.oid = t.typnamespace
+    WHERE t.typname = 'app_role'
+      AND n.nspname = 'public'
+  ) THEN
+    CREATE TYPE public.app_role AS ENUM (
       'super_admin',
       'admin_pm',
       'ngo_coordinator',
@@ -20,6 +30,9 @@ BEGIN
       'staff_member',
       'executive_secretariat',
       'external_ngo'
+    );
+  END IF;
+END $$;
     );
   END IF;
 END $$;
