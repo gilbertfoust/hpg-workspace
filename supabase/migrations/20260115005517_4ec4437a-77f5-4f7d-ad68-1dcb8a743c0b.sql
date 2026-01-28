@@ -120,52 +120,77 @@ BEGIN
     );
   END IF;
 END $$;
-      'super_admin',
-      'admin_pm',
-      'ngo_coordinator',
-      'department_lead',
-      'staff_member',
-      'executive_secretariat',
-      'external_ngo'
 
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_type t
+    JOIN pg_namespace n ON n.oid = t.typnamespace
+    WHERE n.nspname = 'public'
+      AND t.typname = 'module_type'
+  ) THEN
+    CREATE TYPE public.module_type AS ENUM (
+      'ngo_coordination',
+      'administration',
+      'operations',
+      'program',
+      'curriculum',
+      'development',
+      'partnership',
+      'marketing',
+      'communications',
+      'hr',
+      'it',
+      'finance',
+      'legal'
+    );
+  END IF;
+END $$;
 
-CREATE TYPE public.module_type AS ENUM (
-  'ngo_coordination',
-  'administration',
-  'operations',
-  'program',
-  'curriculum',
-  'development',
-  'partnership',
-  'marketing',
-  'communications',
-  'hr',
-  'it',
-  'finance',
-  'legal'
-);
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_type t
+    JOIN pg_namespace n ON n.oid = t.typnamespace
+    WHERE n.nspname = 'public'
+      AND t.typname = 'document_category'
+  ) THEN
+    CREATE TYPE public.document_category AS ENUM (
+      'onboarding',
+      'compliance',
+      'finance',
+      'hr',
+      'marketing',
+      'communications',
+      'program',
+      'curriculum',
+      'it',
+      'legal',
+      'other'
+    );
+  END IF;
+END $$;
 
-CREATE TYPE public.document_category AS ENUM (
-  'onboarding',
-  'compliance',
-  'finance',
-  'hr',
-  'marketing',
-  'communications',
-  'program',
-  'curriculum',
-  'it',
-  'legal',
-  'other'
-);
-
-CREATE TYPE public.org_type AS ENUM (
-  'ngo',
-  'partner',
-  'funder',
-  'vendor',
-  'applicant'
-);
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_type t
+    JOIN pg_namespace n ON n.oid = t.typnamespace
+    WHERE n.nspname = 'public'
+      AND t.typname = 'org_type'
+  ) THEN
+    CREATE TYPE public.org_type AS ENUM (
+      'ngo',
+      'partner',
+      'funder',
+      'vendor',
+      'applicant'
+    );
+  END IF;
+END $$;
 
 -- =============================================
 -- BASE TABLES
