@@ -314,7 +314,7 @@ DO UPDATE SET
 INSERT INTO public.form_templates (module, name, description, schema_json, is_active)
 VALUES
   (
-    'partnerships'::public.module_type,
+    'partnership'::public.module_type,
     'Partnership intake',
     'Intake form for new partnership opportunities',
     build_form_schema(jsonb_build_array(
@@ -343,7 +343,7 @@ VALUES
     true
   ),
   (
-    'partnerships'::public.module_type,
+    'partnership'::public.module_type,
     'MOU/contract request',
     'Request creation or review of MOU or partnership contract',
     build_form_schema(jsonb_build_array(
