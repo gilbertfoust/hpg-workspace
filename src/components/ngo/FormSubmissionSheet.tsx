@@ -98,7 +98,20 @@ export function FormSubmissionSheet({
   };
 
   const handleSave = async (submit: boolean = false) => {
-    if (!template) return;
+    console.log('[FormSubmissionSheet] handleSave called', {
+      submit,
+      template_id: template?.id,
+      template_name: template?.name,
+      isEditing: !!submission,
+      submission_id: submission?.id,
+      ngoId,
+      user_id: user?.id,
+    });
+
+    if (!template) {
+      console.warn('[FormSubmissionSheet] handleSave called but no template');
+      return;
+    }
 
     try {
       // Upload files for all file fields
@@ -153,13 +166,45 @@ export function FormSubmissionSheet({
           ...updatePayload,
         });
       } else {
-        await createMutation.mutateAsync({
+        // Don't pass work_item_id if it's undefined - let the hook create it automatically
+        console.log('[FormSubmissionSheet] Creating new form submission', {
+          template_id: template.id,
+          template_name: template.name,
+          ngo_id: ngoId,
+          status: status,
+          submit: submit,
+          workItemId: workItemId,
+          user_id: user?.id,
+        });
+
+        const createInput: Parameters<typeof createMutation.mutateAsync>[0] = {
           form_template_id: template.id,
           ngo_id: ngoId,
-          work_item_id: workItemId,
           submitted_by_user_id: user?.id,
           payload_json: payload,
           submission_status: status,
+        };
+        
+        // Only include work_item_id if it was explicitly created via workItemConfig
+        if (workItemId) {
+          createInput.work_item_id = workItemId;
+          console.log('[FormSubmissionSheet] Including work_item_id from workItemConfig:', workItemId);
+        } else {
+          console.log('[FormSubmissionSheet] Not including work_item_id - hook will create it automatically');
+        }
+
+        console.log('[FormSubmissionSheet] Calling createMutation.mutateAsync with:', {
+          ...createInput,
+          payload_json_keys: createInput.payload_json && typeof createInput.payload_json === 'object' 
+            ? Object.keys(createInput.payload_json as Record<string, unknown>)
+            : 'not an object',
+        });
+
+        const result = await createMutation.mutateAsync(createInput);
+        
+        console.log('[FormSubmissionSheet] createMutation completed', {
+          submission_id: result.id,
+          work_item_id: result.work_item_id,
         });
       }
 
@@ -167,6 +212,13 @@ export function FormSubmissionSheet({
       setFileUploads({});
       onOpenChange(false);
     } catch (error) {
+      console.error('[FormSubmissionSheet] handleSave error caught', {
+        error,
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+        submit,
+        template_id: template?.id,
+      });
       toast({
         variant: "destructive",
         title: "Error saving form",
