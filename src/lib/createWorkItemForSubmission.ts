@@ -79,8 +79,8 @@ export async function createWorkItemForSubmission(
     department_id: departmentId,
     owner_user_id: userId,
     created_by_user_id: userId, // Required for RLS
-    status: 'not_started' as const,
-    priority: 'medium' as const,
+    status: 'Not Started' as const,
+    priority: 'Med' as const,
     evidence_required: false,
     type: 'form_submission',
   };
@@ -92,13 +92,30 @@ export async function createWorkItemForSubmission(
     department_id: departmentId,
     owner_user_id: userId,
     created_by_user_id: userId,
+    status: workItemInput.status,
+    priority: workItemInput.priority,
+    type: workItemInput.type,
   });
+  
+  // #region agent log
+  fetch('http://127.0.0.1:7242/ingest/611bc9d1-427e-4c48-9b30-3ae32ef68254',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'createWorkItemForSubmission.ts:88',message:'Work item input before insert',data:{priority:workItemInput.priority,status:workItemInput.status,priority_type:typeof workItemInput.priority,status_type:typeof workItemInput.status},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'E'})}).catch(()=>{});
+  // #endregion
+
+  // #region agent log
+  fetch('http://127.0.0.1:7242/ingest/611bc9d1-427e-4c48-9b30-3ae32ef68254',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'createWorkItemForSubmission.ts:104',message:'About to insert work item',data:{priority:workItemInput.priority,status:workItemInput.status,fullInput:JSON.stringify(workItemInput)},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'E'})}).catch(()=>{});
+  // #endregion
 
   const { data: workItem, error: workItemError } = await supabase
     .from('work_items')
     .insert(workItemInput)
     .select('id')
     .single();
+  
+  // #region agent log
+  if (workItemError) {
+    fetch('http://127.0.0.1:7242/ingest/611bc9d1-427e-4c48-9b30-3ae32ef68254',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'createWorkItemForSubmission.ts:110',message:'Work item insert error',data:{error_code:workItemError.code,error_message:workItemError.message,error_details:workItemError.details,priority_sent:workItemInput.priority,status_sent:workItemInput.status},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'E'})}).catch(()=>{});
+  }
+  // #endregion
 
   if (workItemError) {
     const errorDetails = {

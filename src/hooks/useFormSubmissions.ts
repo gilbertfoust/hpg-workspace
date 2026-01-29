@@ -120,15 +120,24 @@ export const useCreateFormSubmission = () => {
 
       ensureSupabase();
       
+      // #region agent log - capture raw input
+      fetch('http://127.0.0.1:7242/ingest/611bc9d1-427e-4c48-9b30-3ae32ef68254',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useFormSubmissions.ts:125',message:'Raw input before sanitization',data:{input:input,input_keys:Object.keys(input),payload_json_type:typeof input.payload_json,payload_json_keys:input.payload_json&&typeof input.payload_json==='object'?Object.keys(input.payload_json):null},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'A,B,D'})}).catch(()=>{});
+      // #endregion
+      
       // Sanitize input to only include valid database columns
       // All form field values MUST be in payload_json, not as top-level keys
       const sanitizedInput: Record<string, unknown> = {};
       if (input.form_template_id) sanitizedInput.form_template_id = input.form_template_id;
-      if (input.ngo_id !== undefined) sanitizedInput.ngo_id = input.ngo_id || null;
-      if (input.work_item_id !== undefined) sanitizedInput.work_item_id = input.work_item_id || null;
-      if (input.submitted_by_user_id !== undefined) sanitizedInput.submitted_by_user_id = input.submitted_by_user_id || null;
-      if (input.payload_json !== undefined) sanitizedInput.payload_json = input.payload_json;
-      if (input.submission_status !== undefined) sanitizedInput.submission_status = input.submission_status;
+      // Use 'in' operator to check if key exists (even if value is undefined)
+      if ('ngo_id' in input) sanitizedInput.ngo_id = input.ngo_id || null;
+      if ('work_item_id' in input) sanitizedInput.work_item_id = input.work_item_id || null;
+      if ('submitted_by_user_id' in input) sanitizedInput.submitted_by_user_id = input.submitted_by_user_id || null;
+      if ('payload_json' in input) sanitizedInput.payload_json = input.payload_json;
+      if ('submission_status' in input) sanitizedInput.submission_status = input.submission_status;
+      
+      // #region agent log - capture sanitized payload
+      fetch('http://127.0.0.1:7242/ingest/611bc9d1-427e-4c48-9b30-3ae32ef68254',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useFormSubmissions.ts:137',message:'Sanitized payload for insert',data:{sanitizedInput:sanitizedInput,sanitized_keys:Object.keys(sanitizedInput),payload_json_type:typeof sanitizedInput.payload_json,ngo_id_value:sanitizedInput.ngo_id,ngo_id_type:typeof sanitizedInput.ngo_id},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'A,C,D'})}).catch(()=>{});
+      // #endregion
       
       // First, create the form submission
       console.log('[useCreateFormSubmission] Inserting form submission into database', {
@@ -141,6 +150,9 @@ export const useCreateFormSubmission = () => {
         .single();
       
       if (submissionError) {
+        // #region agent log - capture Supabase error
+        fetch('http://127.0.0.1:7242/ingest/611bc9d1-427e-4c48-9b30-3ae32ef68254',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useFormSubmissions.ts:147',message:'Supabase insert error',data:{error:submissionError,code:submissionError.code,message:submissionError.message,details:submissionError.details,hint:submissionError.hint,sanitizedInput:sanitizedInput},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'A,B,C,D,E'})}).catch(()=>{});
+        // #endregion
         console.error('[useCreateFormSubmission] Form submission insert failed:', submissionError);
         throw submissionError;
       }

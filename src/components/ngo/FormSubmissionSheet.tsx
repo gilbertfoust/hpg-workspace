@@ -185,6 +185,10 @@ export function FormSubmissionSheet({
           submission_status: status,
         };
         
+        // #region agent log - capture createInput
+        fetch('http://127.0.0.1:7242/ingest/611bc9d1-427e-4c48-9b30-3ae32ef68254',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'FormSubmissionSheet.tsx:180',message:'CreateInput before mutation',data:{createInput_keys:Object.keys(createInput),form_template_id:createInput.form_template_id,ngo_id:createInput.ngo_id,ngo_id_type:typeof createInput.ngo_id,submitted_by_user_id:createInput.submitted_by_user_id,submission_status:createInput.submission_status,payload_json_type:typeof createInput.payload_json},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'A,C,D'})}).catch(()=>{});
+        // #endregion
+        
         // Only include work_item_id if it was explicitly created via workItemConfig
         if (workItemId) {
           createInput.work_item_id = workItemId;
