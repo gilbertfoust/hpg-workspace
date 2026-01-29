@@ -96,10 +96,6 @@ export async function createWorkItemForSubmission(
     priority: workItemInput.priority,
     type: workItemInput.type,
   });
-  
-  // #region agent log
-  fetch('http://127.0.0.1:7242/ingest/611bc9d1-427e-4c48-9b30-3ae32ef68254',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'createWorkItemForSubmission.ts:88',message:'Work item input before insert',data:{priority:workItemInput.priority,status:workItemInput.status,priority_type:typeof workItemInput.priority,status_type:typeof workItemInput.status},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'E'})}).catch(()=>{});
-  // #endregion
 
   // #region agent log
   fetch('http://127.0.0.1:7242/ingest/611bc9d1-427e-4c48-9b30-3ae32ef68254',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'createWorkItemForSubmission.ts:104',message:'About to insert work item',data:{priority:workItemInput.priority,status:workItemInput.status,fullInput:JSON.stringify(workItemInput)},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'E'})}).catch(()=>{});
@@ -110,12 +106,6 @@ export async function createWorkItemForSubmission(
     .insert(workItemInput)
     .select('id')
     .single();
-  
-  // #region agent log
-  if (workItemError) {
-    fetch('http://127.0.0.1:7242/ingest/611bc9d1-427e-4c48-9b30-3ae32ef68254',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'createWorkItemForSubmission.ts:110',message:'Work item insert error',data:{error_code:workItemError.code,error_message:workItemError.message,error_details:workItemError.details,priority_sent:workItemInput.priority,status_sent:workItemInput.status},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'E'})}).catch(()=>{});
-  }
-  // #endregion
 
   if (workItemError) {
     const errorDetails = {
@@ -125,8 +115,15 @@ export async function createWorkItemForSubmission(
       details: workItemError.details,
       hint: workItemError.hint,
       input: workItemInput,
+      priority_sent: workItemInput.priority,
+      status_sent: workItemInput.status,
+      priority_type: typeof workItemInput.priority,
+      status_type: typeof workItemInput.status,
     };
     console.error('[createWorkItemForSubmission] Error creating work item:', errorDetails);
+    
+    // Log the full input to see what was actually sent
+    console.error('[createWorkItemForSubmission] Full workItemInput that failed:', JSON.stringify(workItemInput, null, 2));
     
     // Build a detailed error message
     let errorMessage = `Failed to create work item: ${workItemError.message}`;
@@ -139,6 +136,9 @@ export async function createWorkItemForSubmission(
     if (workItemError.hint) {
       errorMessage += `\nHint: ${workItemError.hint}`;
     }
+    errorMessage += `\nPriority sent: "${workItemInput.priority}" (type: ${typeof workItemInput.priority})`;
+    errorMessage += `\nStatus sent: "${workItemInput.status}" (type: ${typeof workItemInput.status})`;
+    errorMessage += `\nFull input: ${JSON.stringify(workItemInput, null, 2)}`;
     
     const error = new Error(errorMessage);
     (error as any).supabaseError = workItemError;

@@ -135,10 +135,6 @@ export const useCreateFormSubmission = () => {
       if ('payload_json' in input) sanitizedInput.payload_json = input.payload_json;
       if ('submission_status' in input) sanitizedInput.submission_status = input.submission_status;
       
-      // #region agent log - capture sanitized payload
-      fetch('http://127.0.0.1:7242/ingest/611bc9d1-427e-4c48-9b30-3ae32ef68254',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useFormSubmissions.ts:137',message:'Sanitized payload for insert',data:{sanitizedInput:sanitizedInput,sanitized_keys:Object.keys(sanitizedInput),payload_json_type:typeof sanitizedInput.payload_json,ngo_id_value:sanitizedInput.ngo_id,ngo_id_type:typeof sanitizedInput.ngo_id},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'A,C,D'})}).catch(()=>{});
-      // #endregion
-      
       // First, create the form submission
       console.log('[useCreateFormSubmission] Inserting form submission into database', {
         sanitized_keys: Object.keys(sanitizedInput),
@@ -150,9 +146,6 @@ export const useCreateFormSubmission = () => {
         .single();
       
       if (submissionError) {
-        // #region agent log - capture Supabase error
-        fetch('http://127.0.0.1:7242/ingest/611bc9d1-427e-4c48-9b30-3ae32ef68254',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useFormSubmissions.ts:147',message:'Supabase insert error',data:{error:submissionError,code:submissionError.code,message:submissionError.message,details:submissionError.details,hint:submissionError.hint,sanitizedInput:sanitizedInput},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'A,B,C,D,E'})}).catch(()=>{});
-        // #endregion
         console.error('[useCreateFormSubmission] Form submission insert failed:', submissionError);
         throw submissionError;
       }
@@ -266,6 +259,22 @@ export const useCreateFormSubmission = () => {
             supabaseError: (error as any).supabaseError,
           };
           console.error('[useCreateFormSubmission] Work item creation failed:', errorDetails);
+          
+          // Rollback: Delete the form submission since work item creation failed
+          console.log('[useCreateFormSubmission] Rolling back form submission due to work item creation failure', {
+            submission_id: submission.id,
+          });
+          try {
+            await supabase
+              .from('form_submissions')
+              .delete()
+              .eq('id', submission.id);
+            console.log('[useCreateFormSubmission] Form submission rolled back successfully');
+          } catch (rollbackError) {
+            console.error('[useCreateFormSubmission] Failed to rollback form submission:', rollbackError);
+            // Continue to throw original error even if rollback fails
+          }
+          
           throw error; // Re-throw to fail the form submission
         }
 
