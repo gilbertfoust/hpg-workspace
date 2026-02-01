@@ -1,12 +1,14 @@
 import { ReactNode } from "react";
 import { AppSidebar } from "./AppSidebar";
 import { GlobalSearch } from "@/components/common/GlobalSearch";
-import { Bell, HelpCircle } from "lucide-react";
+import { Bell, HelpCircle, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useUpcomingReminders, useMarkReminderSeen } from "@/hooks/useReminders";
 import { format } from "date-fns";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
 
 interface MainLayoutProps {
   children: ReactNode;
@@ -19,6 +21,29 @@ export function MainLayout({ children, title, subtitle, actions }: MainLayoutPro
   const { data: upcomingReminders } = useUpcomingReminders({ hours: 48 });
   const markReminderSeen = useMarkReminderSeen();
   const reminderCount = upcomingReminders?.length ?? 0;
+  const { signOut } = useAuth();
+  const { toast } = useToast();
+  const navigate = useNavigate();
+
+  const handleSignOut = async () => {
+    const { error } = await signOut();
+    
+    if (error) {
+      toast({
+        variant: "destructive",
+        title: "Sign out failed",
+        description: error.message || "Unable to sign out. Please try again.",
+      });
+    } else {
+      toast({
+        title: "Signed out",
+        description: "You have been successfully signed out.",
+      });
+      // Navigate to auth page
+      const base = import.meta.env.BASE_URL || "/";
+      navigate(`${base}auth`, { replace: true });
+    }
+  };
 
   return (
     <div className="flex min-h-screen w-full bg-background">
@@ -79,6 +104,15 @@ export function MainLayout({ children, title, subtitle, actions }: MainLayoutPro
             </Popover>
             <Button variant="ghost" size="icon">
               <HelpCircle className="w-5 h-5 text-muted-foreground" />
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={handleSignOut}
+              className="gap-2"
+            >
+              <LogOut className="w-4 h-4" />
+              <span className="hidden sm:inline">Log out</span>
             </Button>
           </div>
         </header>

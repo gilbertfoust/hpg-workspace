@@ -35,6 +35,13 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface NavItemProps {
   to: string;
@@ -177,18 +184,40 @@ export function AppSidebar() {
         <div className="flex flex-col h-full">
           {/* Logo / Header */}
           <div className="flex items-center gap-3 px-4 py-4 border-b border-sidebar-border">
-            <img
-              src="https://img1.wsimg.com/isteam/ip/8d5502d6-d937-4d80-bd56-8074053e4d77/Humanity%20Pathways%20Global.jpg/:/rs=h:175,m"
-              alt="Humanity Pathways Global"
-              className={cn(
-                "w-auto max-w-full object-contain",
-                isCollapsed ? "h-8" : "h-10 max-w-[180px]"
-              )}
-            />
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  className={cn(
+                    "w-auto max-w-full object-contain cursor-pointer hover:opacity-80 transition-opacity",
+                    isCollapsed ? "h-8" : "h-10 max-w-[180px]"
+                  )}
+                >
+                  <img
+                    src="https://img1.wsimg.com/isteam/ip/8d5502d6-d937-4d80-bd56-8074053e4d77/Humanity%20Pathways%20Global.jpg/:/rs=h:175,m"
+                    alt="Humanity Pathways Global"
+                    className={cn(
+                      "w-auto max-w-full object-contain",
+                      isCollapsed ? "h-8" : "h-10 max-w-[180px]"
+                    )}
+                  />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-48">
+                <DropdownMenuItem onClick={() => navigate("/dashboard")}>
+                  <LayoutDashboard className="w-4 h-4 mr-2" />
+                  Dashboard
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleSignOut}>
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Log out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             <Button
               variant="ghost"
               size="icon"
-              className="hidden lg:flex text-sidebar-foreground hover:bg-sidebar-accent"
+              className="hidden lg:flex text-white hover:bg-sidebar-accent"
               onClick={() => setIsCollapsed(!isCollapsed)}
             >
               {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronDown className="w-4 h-4 rotate-90" />}
@@ -223,7 +252,7 @@ export function AppSidebar() {
                 <div className="pt-4">
                   <button
                     onClick={() => setExpandedModules(!expandedModules)}
-                    className="flex items-center justify-between w-full px-3 py-2 text-xs font-semibold uppercase tracking-wider text-sidebar-muted hover:text-sidebar-foreground"
+                    className="flex items-center justify-between w-full px-3 py-2 text-xs font-semibold uppercase tracking-wider text-white/70 hover:text-white"
                   >
                     <span className="flex items-center gap-2">
                       <Layers className="w-4 h-4" />

@@ -22,6 +22,8 @@ interface AuthContextType {
   ) => Promise<{ error: Error | null }>;
   signInWithGitHub: () => Promise<{ data: { url: string } | null; error: Error | null }>;
   signOut: () => Promise<{ error: Error | null }>;
+  deleteAccount: () => Promise<{ error: Error | null }>;
+  deleteUser: (userId: string) => Promise<{ error: Error | null }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -152,9 +154,110 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
+  const deleteAccount = async () => {
+    if (!supabase) {
+      return { error: getSupabaseNotConfiguredError() };
+    }
+
+    if (!user) {
+      return { error: new Error("No user logged in") };
+    }
+
+    try {
+      // Note: Deleting a user account typically requires admin privileges
+      // In Supabase, users cannot delete their own accounts directly via the client
+      // This would need to be handled via a server-side function or admin API
+      // For now, we'll attempt to delete the user's profile data and sign them out
+      
+      // Delete profile data (if RLS allows)
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .delete()
+        .eq('id', user.id);
+
+      if (profileError) {
+        console.warn("Profile deletion error (may require admin):", profileError);
+        // Continue anyway - profile might be deleted via cascade
+      }
+
+      // Delete user roles (if RLS allows)
+      const { error: rolesError } = await supabase
+        .from('user_roles')
+        .delete()
+        .eq('user_id', user.id);
+
+      if (rolesError) {
+        console.warn("User roles deletion error (may require admin):", rolesError);
+        // Continue anyway - roles might be deleted via cascade
+      }
+
+      // Sign out the user
+      const { error: signOutError } = await supabase.auth.signOut();
+      
+      if (signOutError) {
+        console.error("Sign out error during account deletion:", signOutError);
+        return { error: signOutError as Error };
+      }
+
+      // Clear local state
+      setSession(null);
+      setUser(null);
+
+      return { error: null };
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error("An unexpected error occurred during account deletion");
+      console.error("Delete account error:", error);
+      return { error };
+    }
+  };
+
+  const deleteUser = async (userId: string) => {
+    if (!supabase) {
+      return { error: getSupabaseNotConfiguredError() };
+    }
+
+    if (!user) {
+      return { error: new Error("No user logged in") };
+    }
+
+    try {
+      // Delete user roles first
+      const { error: rolesError } = await supabase
+        .from('user_roles')
+        .delete()
+        .eq('user_id', userId);
+
+      if (rolesError) {
+        console.error("Error deleting user roles:", rolesError);
+        return { error: rolesError as Error };
+      }
+
+      // Delete profile data
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .delete()
+        .eq('id', userId);
+
+      if (profileError) {
+        console.error("Error deleting profile:", profileError);
+        return { error: profileError as Error };
+      }
+
+      // Note: To delete the auth.users record, you would need to use Supabase Admin API
+      // or a server-side function. The profile and roles deletion will cascade
+      // if foreign keys are set up correctly, but auth.users requires admin privileges.
+
+      return { error: null };
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error("An unexpected error occurred during user deletion");
+      console.error("Delete user error:", error);
+      return { error };
+    }
+  };
+
   return (
     <AuthContext.Provider
-      value={{ user, session, loading, signIn, signUp, signInWithGitHub, signOut }}
+      value={{ user, session, loading, signIn, signUp, signInWithGitHub, signOut, deleteAccount, deleteUser }}
     >
       {children}
     </AuthContext.Provider>

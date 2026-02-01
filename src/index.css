@@ -270,16 +270,16 @@
   /* Sidebar nav styles */
   .nav-item {
     @apply flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors;
-    @apply text-sidebar-foreground/80 hover:text-sidebar-foreground hover:bg-sidebar-accent;
+    @apply text-white/90 hover:text-white hover:bg-sidebar-accent;
   }
 
   .nav-item.active {
-    @apply bg-sidebar-accent text-sidebar-primary;
+    @apply bg-sidebar-accent text-white;
   }
 
   .nav-section-title {
     @apply text-xs font-semibold uppercase tracking-wider px-3 mb-2;
-    color: hsl(var(--sidebar-muted));
+    color: rgba(255, 255, 255, 0.7);
   }
 
   /* Module card */

@@ -3,6 +3,7 @@ import { MainLayout } from "@/components/layout/MainLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { DocumentUploadDialog } from "@/components/documents/DocumentUploadDialog";
 import {
   Select,
   SelectContent,
@@ -149,13 +150,14 @@ const ReviewStatusBadge = ({ status }: { status: string }) => {
 export default function Documents() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All Categories");
+  const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
 
   return (
     <MainLayout
       title="Documents"
       subtitle="Manage and review all uploaded files and evidence"
       actions={
-        <Button>
+        <Button onClick={() => setUploadDialogOpen(true)}>
           <Upload className="w-4 h-4 mr-2" />
           Upload Document
         </Button>
@@ -278,6 +280,12 @@ export default function Documents() {
           </Button>
         </div>
       </div>
+
+      {/* Upload Dialog */}
+      <DocumentUploadDialog
+        open={uploadDialogOpen}
+        onOpenChange={setUploadDialogOpen}
+      />
     </MainLayout>
   );
 }
