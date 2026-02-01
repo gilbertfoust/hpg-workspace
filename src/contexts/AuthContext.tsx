@@ -21,7 +21,7 @@ interface AuthContextType {
     fullName: string
   ) => Promise<{ error: Error | null }>;
   signInWithGitHub: () => Promise<{ data: { url: string } | null; error: Error | null }>;
-  signOut: () => Promise<void>;
+  signOut: () => Promise<{ error: Error | null }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -129,9 +129,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const signOut = async () => {
     if (!supabase) {
       // Nothing to do if we have no backend
-      return;
+      return { error: null };
     }
-    await supabase.auth.signOut();
+
+    try {
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) {
+        console.error("Sign out error:", error);
+        return { error: error as Error };
+      }
+
+      // Clear local state immediately
+      setSession(null);
+      setUser(null);
+      
+      return { error: null };
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error("An unexpected error occurred during sign out");
+      console.error("Sign out error:", error);
+      return { error };
+    }
   };
 
   return (

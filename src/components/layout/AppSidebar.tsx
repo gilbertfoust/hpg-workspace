@@ -33,6 +33,8 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
 
 interface NavItemProps {
   to: string;
@@ -110,6 +112,8 @@ export function AppSidebar() {
   const [expandedModules, setExpandedModules] = useState(false);
   const { user, signOut } = useAuth();
   const { data: userRole } = useUserRole();
+  const { toast } = useToast();
+  const navigate = useNavigate();
   const canAccessAdminConfig = userRole?.role === 'super_admin' || userRole?.role === 'admin_pm';
 
   const userInitials = user?.user_metadata?.full_name
@@ -123,7 +127,23 @@ export function AppSidebar() {
   const roleLabel = userRole?.role?.replace('_', ' ') || 'Staff';
 
   const handleSignOut = async () => {
-    await signOut();
+    const { error } = await signOut();
+    
+    if (error) {
+      toast({
+        variant: "destructive",
+        title: "Sign out failed",
+        description: error.message || "Unable to sign out. Please try again.",
+      });
+    } else {
+      toast({
+        title: "Signed out",
+        description: "You have been successfully signed out.",
+      });
+      // Navigate to auth page
+      const base = import.meta.env.BASE_URL || "/";
+      navigate(`${base}auth`, { replace: true });
+    }
   };
 
   return (

@@ -245,7 +245,7 @@ ON CONFLICT DO NOTHING;
 
 -- Partnership Development forms
 INSERT INTO public.form_templates (module, name, description, schema_json, is_active) VALUES
-  ('partnerships', 'Partnership intake', 'Intake form for new partnership opportunities', '{
+  ('partnership', 'Partnership intake', 'Intake form for new partnership opportunities', '{
     "fields": [
       {"name": "partner_name", "type": "text", "label": "Partner Organization Name", "required": true},
       {"name": "partner_type", "type": "select", "label": "Partner Type", "options": ["Corporate", "Foundation", "Government", "NGO", "Academic", "Other"], "required": true},
@@ -255,7 +255,7 @@ INSERT INTO public.form_templates (module, name, description, schema_json, is_ac
       {"name": "potential_value", "type": "textarea", "label": "Potential Value"}
     ]
   }'::jsonb, true),
-  ('partnerships', 'Meeting notes/follow-up', 'Document partnership meeting notes and follow-up actions', '{
+  ('partnership', 'Meeting notes/follow-up', 'Document partnership meeting notes and follow-up actions', '{
     "fields": [
       {"name": "partner_name", "type": "text", "label": "Partner Name", "required": true},
       {"name": "meeting_date", "type": "date", "label": "Meeting Date", "required": true},
@@ -266,7 +266,7 @@ INSERT INTO public.form_templates (module, name, description, schema_json, is_ac
       {"name": "next_steps", "type": "textarea", "label": "Next Steps"}
     ]
   }'::jsonb, true),
-  ('partnerships', 'MOU/contract request', 'Request creation or review of MOU or partnership contract', '{
+  ('partnership', 'MOU/contract request', 'Request creation or review of MOU or partnership contract', '{
     "fields": [
       {"name": "partner_name", "type": "text", "label": "Partner Name", "required": true},
       {"name": "document_type", "type": "select", "label": "Document Type", "options": ["MOU", "Partnership Agreement", "Contract", "Other"], "required": true},
