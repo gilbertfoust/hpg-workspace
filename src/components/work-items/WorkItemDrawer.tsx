@@ -22,9 +22,22 @@ import { useComments, useCreateComment } from "@/hooks/useComments";
 import { useWorkItem, useUpdateWorkItem, type WorkItem, type WorkItemStatus, type Priority } from "@/hooks/useWorkItems";
 import { useNGO } from "@/hooks/useNGOs";
 import { useProfile } from "@/hooks/useProfiles";
+import { useFormSubmissions, useDeleteFormSubmission, useFormSubmission } from "@/hooks/useFormSubmissions";
+import { useFormTemplate } from "@/hooks/useFormTemplates";
+import { FormSubmissionSheet } from "@/components/ngo/FormSubmissionSheet";
 import { format } from "date-fns";
-import { Loader2, ExternalLink } from "lucide-react";
+import { Loader2, ExternalLink, Trash2, FileText, Edit } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export type WorkItemDrawerProps = {
   open: boolean;
@@ -96,6 +109,8 @@ export const WorkItemDrawer: React.FC<WorkItemDrawerProps> = ({
   const { data: approverProfile } = useProfile(workItem?.approver_user_id || "");
   const { data: documents } = useDocuments({ work_item_id: workItemId || undefined });
   const { data: comments } = useComments(workItemId || "");
+  const { data: formSubmissions } = useFormSubmissions({ work_item_id: workItemId || undefined });
+  const deleteFormSubmission = useDeleteFormSubmission();
   const updateWorkItem = useUpdateWorkItem();
   const createComment = useCreateComment();
 
@@ -103,6 +118,13 @@ export const WorkItemDrawer: React.FC<WorkItemDrawerProps> = ({
   const [priority, setPriority] = useState<Priority>("medium");
   const [assignee, setAssignee] = useState<string>("");
   const [commentText, setCommentText] = useState("");
+  const [formSubmissionToDelete, setFormSubmissionToDelete] = useState<string | null>(null);
+  const [editingFormSubmissionId, setEditingFormSubmissionId] = useState<string | null>(null);
+  
+  // Fetch the form submission when editing (includes template with schema)
+  const { data: editingSubmissionWithSchema } = useFormSubmission(editingFormSubmissionId || "");
+  // Fetch the full template for editing
+  const { data: editingTemplate } = useFormTemplate(editingSubmissionWithSchema?.form_template_id || "");
 
   useEffect(() => {
     if (workItem) {
@@ -250,6 +272,17 @@ export const WorkItemDrawer: React.FC<WorkItemDrawerProps> = ({
         title: "Error rejecting work item",
         description: error instanceof Error ? error.message : "Failed to reject work item",
       });
+    }
+  };
+
+  const handleDeleteFormSubmission = async () => {
+    if (!formSubmissionToDelete) return;
+    
+    try {
+      await deleteFormSubmission.mutateAsync(formSubmissionToDelete);
+      setFormSubmissionToDelete(null);
+    } catch (error) {
+      // Error is handled by the mutation
     }
   };
 
@@ -493,7 +526,116 @@ export const WorkItemDrawer: React.FC<WorkItemDrawerProps> = ({
               </Button>
             </div>
           </div>
+
+          <Separator />
+
+          {/* Form Submissions */}
+          {formSubmissions && formSubmissions.length > 0 && (
+            <div>
+              <h4 className="text-sm font-medium mb-3">Form Submissions</h4>
+              <div className="space-y-2">
+                {formSubmissions.map((submission) => (
+                  <div
+                    key={submission.id}
+                    className="flex items-center justify-between text-sm p-3 border rounded-lg hover:bg-muted/50 transition-colors"
+                  >
+                    <div className="flex items-center gap-3 flex-1">
+                      <FileText className="w-4 h-4 text-muted-foreground" />
+                      <div className="flex-1">
+                        <p className="font-medium">
+                          {submission.form_template?.name || "Unknown Form"}
+                        </p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <Badge variant="outline" className="text-xs">
+                            {submission.submission_status || "pending"}
+                          </Badge>
+                          <span className="text-xs text-muted-foreground">
+                            {format(new Date(submission.created_at), "MMM d, yyyy")}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-primary hover:text-primary hover:bg-primary/10"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEditingFormSubmissionId(submission.id);
+                        }}
+                        title="Edit form"
+                      >
+                        <Edit className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setFormSubmissionToDelete(submission.id);
+                        }}
+                        title="Delete form"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
+
+        {/* Delete Form Submission Confirmation Dialog */}
+        <AlertDialog open={!!formSubmissionToDelete} onOpenChange={(open) => !open && setFormSubmissionToDelete(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Form Submission</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete this form submission? This action cannot be undone.
+                {formSubmissionToDelete && formSubmissions?.find(s => s.id === formSubmissionToDelete) && (
+                  <span className="block mt-2 font-medium">
+                    Form: {formSubmissions.find(s => s.id === formSubmissionToDelete)?.form_template?.name || "Unknown"}
+                  </span>
+                )}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => setFormSubmissionToDelete(null)}>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleDeleteFormSubmission}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                disabled={deleteFormSubmission.isPending}
+              >
+                {deleteFormSubmission.isPending ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Deleting...
+                  </>
+                ) : (
+                  "Delete"
+                )}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Form Submission Edit Sheet */}
+        {editingFormSubmissionId && editingSubmissionWithSchema && editingTemplate && (
+          <FormSubmissionSheet
+            open={!!editingFormSubmissionId}
+            onOpenChange={(open) => {
+              if (!open) {
+                setEditingFormSubmissionId(null);
+              }
+            }}
+            template={editingTemplate}
+            submission={editingSubmissionWithSchema}
+            ngoId={editingSubmissionWithSchema.ngo_id || undefined}
+          />
+        )}
       </SheetContent>
     </Sheet>
   );
