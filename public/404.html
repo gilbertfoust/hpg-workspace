@@ -5,36 +5,27 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>HPG Workstation</title>
     <script>
-      // GitHub Pages SPA fallback: redirect to index.html
-      // GitHub Pages preserves the original pathname, so React Router will handle routing
-      (function() {
-        var path = window.location.pathname;
-        var search = window.location.search;
-        var hash = window.location.hash;
-        
-        // Extract base path from current location
-        // For GitHub Pages subpath: /repo-name/...
-        // For root: /
-        var pathSegments = path.split('/').filter(Boolean);
-        var base = '/';
-        
-        // If we have path segments and the first doesn't look like a file, use it as base
-        if (pathSegments.length > 0) {
-          var firstSegment = pathSegments[0];
-          // Check if it's likely a repo name (not a file extension, not 'index.html')
-          if (firstSegment && !firstSegment.includes('.') && firstSegment !== 'index.html') {
-            base = '/' + firstSegment + '/';
-          }
-        }
-        
-        // Build redirect URL
-        var redirectUrl = base + 'index.html' + search + hash;
-        
-        // Only redirect if not already at index.html
-        if (!path.endsWith('index.html') && path !== base && path !== base.slice(0, -1)) {
-          window.location.replace(redirectUrl);
-        }
-      })();
+      // GitHub Pages SPA fallback
+      // Redirect to index.html while preserving the pathname for React Router
+      var path = window.location.pathname;
+      var search = window.location.search;
+      var hash = window.location.hash;
+      
+      // Determine base path (repo name for GitHub Pages)
+      // e.g., /hpg-workspace/ or /
+      var pathParts = path.split('/').filter(function(p) { return p; });
+      var base = '/';
+      
+      // If we have a repo name segment (first part without extension), use it as base
+      if (pathParts.length > 0 && pathParts[0] && !pathParts[0].includes('.')) {
+        base = '/' + pathParts[0] + '/';
+      }
+      
+      // Only redirect if not already at index.html
+      if (!path.includes('index.html')) {
+        // Redirect to index.html - React Router will read the pathname from window.location
+        window.location.replace(base + 'index.html' + search + hash);
+      }
     </script>
   </head>
   <body>
