@@ -154,12 +154,30 @@ export function FormSubmissionSheet({
         const updatePayload: Partial<FormSubmission> = {
           payload_json: payload,
           submission_status: status,
-          submitted_at: submit ? new Date().toISOString() : submission.submitted_at,
         };
 
-        if (submit && workItemId && !submission.work_item_id) {
+        // Only update submitted_at if we're submitting and it wasn't already submitted
+        if (submit) {
+          updatePayload.submitted_at = new Date().toISOString();
+        }
+        // If saving as draft, don't modify submitted_at (keep existing value or null)
+
+        // Preserve work_item_id if it exists, or add it if submitting and creating new work item
+        if (submission.work_item_id) {
+          // Keep existing work_item_id
+          updatePayload.work_item_id = submission.work_item_id;
+        } else if (submit && workItemId) {
+          // Add work_item_id if submitting and we have one
           updatePayload.work_item_id = workItemId;
         }
+
+        console.log('[FormSubmissionSheet] Updating form submission', {
+          submission_id: submission.id,
+          update_keys: Object.keys(updatePayload),
+          submission_status: updatePayload.submission_status,
+          has_work_item_id: !!updatePayload.work_item_id,
+          has_payload: !!updatePayload.payload_json,
+        });
 
         await updateMutation.mutateAsync({
           id: submission.id,
@@ -218,11 +236,27 @@ export function FormSubmissionSheet({
         stack: error instanceof Error ? error.stack : undefined,
         submit,
         template_id: template?.id,
+        isEditing,
+        submission_id: submission?.id,
       });
+      
+      // Extract more detailed error message
+      let errorMessage = error instanceof Error ? error.message : "Failed to save form submission";
+      const supabaseError = (error as any)?.supabaseError;
+      if (supabaseError) {
+        errorMessage = supabaseError.message || errorMessage;
+        if (supabaseError.details) {
+          errorMessage += `\n${supabaseError.details}`;
+        }
+        if (supabaseError.hint) {
+          errorMessage += `\n${supabaseError.hint}`;
+        }
+      }
+      
       toast({
         variant: "destructive",
-        title: "Error saving form",
-        description: error instanceof Error ? error.message : "Failed to save form submission",
+        title: isEditing ? "Error updating form" : "Error saving form",
+        description: errorMessage,
       });
       throw error;
     }

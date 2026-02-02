@@ -38,7 +38,7 @@ const ensureSupabase = () => {
   }
 };
 
-export const useFormSubmissions = (filters?: { ngo_id?: string; form_template_id?: string }) => {
+export const useFormSubmissions = (filters?: { ngo_id?: string; form_template_id?: string; work_item_id?: string }) => {
   return useQuery({
     queryKey: ['form-submissions', filters],
     queryFn: async () => {
@@ -55,6 +55,9 @@ export const useFormSubmissions = (filters?: { ngo_id?: string; form_template_id
       }
       if (filters?.form_template_id) {
         query = query.eq('form_template_id', filters.form_template_id);
+      }
+      if (filters?.work_item_id) {
+        query = query.eq('work_item_id', filters.work_item_id);
       }
       
       const { data, error } = await query.order('created_at', { ascending: false });
@@ -449,6 +452,13 @@ export const useUpdateFormSubmission = () => {
         }
       }
       
+      // Check if there's anything to update
+      if (Object.keys(sanitizedUpdate).length === 0) {
+        console.warn('[useUpdateFormSubmission] No fields to update, skipping update');
+        // Return the current submission if nothing to update
+        return currentSubmission as FormSubmission;
+      }
+      
       // Update the form submission
       console.log('[useUpdateFormSubmission] Updating form submission', {
         submission_id: id,
@@ -658,6 +668,40 @@ export const useUpdateFormSubmission = () => {
         variant: 'destructive',
         title: 'Error updating form',
         description: errorMessage,
+      });
+    },
+  });
+};
+
+export const useDeleteFormSubmission = () => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      ensureSupabase();
+      
+      const { error } = await supabase
+        .from('form_submissions')
+        .delete()
+        .eq('id', id);
+      
+      if (error) throw error;
+      return id;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['form-submissions'] });
+      queryClient.invalidateQueries({ queryKey: ['work-items'] });
+      toast({
+        title: 'Form submission deleted',
+        description: 'The form submission has been successfully deleted.',
+      });
+    },
+    onError: (error) => {
+      toast({
+        variant: 'destructive',
+        title: 'Error deleting form submission',
+        description: error instanceof Error ? error.message : 'Unable to delete form submission. Please try again.',
       });
     },
   });
