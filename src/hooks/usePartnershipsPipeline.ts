@@ -64,7 +64,7 @@ export const useCreatePartnershipPipeline = () => {
     mutationFn: async (input: CreatePartnershipPipelineInput) => {
       const { data, error } = await supabase
         .from(pipelineTable as never)
-        .insert(input)
+        .insert(input as never)
         .select()
         .single();
 
@@ -96,7 +96,7 @@ export const useUpdatePartnershipPipeline = () => {
     mutationFn: async ({ id, ...input }: Partial<PartnershipPipelineRecord> & { id: string }) => {
       const { data, error } = await supabase
         .from(pipelineTable as never)
-        .update(input)
+        .update(input as never)
         .eq("id", id)
         .select()
         .single();

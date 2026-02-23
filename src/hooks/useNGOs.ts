@@ -4,7 +4,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 
 
-export type NGOStatus = 'Prospect' | 'Onboarding' | 'Active' | 'At-Risk' | 'Offboarding' | 'Closed';
+export type NGOStatus = 'prospect' | 'onboarding' | 'active' | 'at_risk' | 'offboarding' | 'closed';
 // DB-safe enum values that match Supabase fiscal_type enum exactly
 export type DbFiscalType = 'model_a' | 'model_c' | 'other' | 'HPG Internal Project';
 
@@ -115,7 +115,7 @@ export const useNGO = (id: string) => {
       
       if (error) throw error;
       if (!data) throw new Error('NGO not found');
-      return data as NGO;
+      return data as unknown as NGO;
     },
     enabled: !!id,
   });
@@ -138,30 +138,31 @@ export const useCreateNGO = () => {
       
       const { data, error } = await supabase
         .from('ngos' as never)
-        .insert(normalizedInput)
+        .insert(normalizedInput as never)
         .select()
         .single();
       
       if (error) throw error;
 
+      const d = data as any;
       const { error: auditError } = await supabase
         .from('audit_log')
         .insert({
           actor_user_id: user?.id,
           action_type: 'create',
           entity_type: 'ngo',
-          entity_id: data.id,
+          entity_id: d.id,
           before_json: null,
           after_json: {
-            legal_name: data.legal_name,
-            status: data.status,
+            legal_name: d.legal_name,
+            status: d.status,
           },
         });
 
       if (auditError) {
         console.error('Failed to write audit log', auditError);
       }
-      return data as NGO;
+      return d as NGO;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ngos'] });
@@ -196,7 +197,7 @@ export const useUpdateNGO = () => {
       ensureSupabase();
       const { data, error } = await supabase
         .from('ngos')
-        .update(input)
+        .update(input as any)
         .eq('id', id)
         .select()
         .single();
@@ -219,7 +220,7 @@ export const useUpdateNGO = () => {
       if (auditError) {
         console.error('Failed to write audit log', auditError);
       }
-      return data as NGO;
+      return data as unknown as NGO;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['ngos'] });
@@ -250,12 +251,13 @@ export const useNGOStats = () => {
       
       if (error) throw error;
       
+      const rows = data as any[];
       const stats = {
-        total: data.length,
-        active: data.filter(n => n.status === 'Active').length,
-        onboarding: data.filter(n => n.status === 'Onboarding').length,
-        at_risk: data.filter(n => n.status === 'At-Risk').length,
-        prospect: data.filter(n => n.status === 'Prospect').length,
+        total: rows.length,
+        active: rows.filter(n => n.status === 'active').length,
+        onboarding: rows.filter(n => n.status === 'onboarding').length,
+        at_risk: rows.filter(n => n.status === 'at_risk').length,
+        prospect: rows.filter(n => n.status === 'prospect').length,
       };
       
       return stats;

@@ -54,7 +54,7 @@ export const useHRInterviews = (applicantId?: string) => {
     queryKey: ["hr", "interviews", applicantId],
     queryFn: async () => {
       let query = supabase
-        .from(interviewsTable)
+        .from(interviewsTable as never)
         .select("*")
         .order("interview_date", { ascending: false });
 
@@ -65,7 +65,7 @@ export const useHRInterviews = (applicantId?: string) => {
       const { data, error } = await query;
 
       if (error) throw error;
-      return data as Interview[];
+      return data as unknown as Interview[];
     },
   });
 };
@@ -78,7 +78,7 @@ export const useCreateHRInterview = () => {
   return useMutation({
     mutationFn: async (input: CreateInterviewInput) => {
       const { data, error } = await supabase
-        .from(interviewsTable)
+        .from(interviewsTable as never)
         .insert({
           applicant_id: input.applicant_id,
           interviewer_user_id: input.interviewer_user_id ?? null,
@@ -86,7 +86,7 @@ export const useCreateHRInterview = () => {
           recommendation: input.recommendation ?? null,
           notes: input.notes ?? null,
           rubric_scores: input.rubric_scores ?? null,
-        })
+        } as never)
         .select("*")
         .single();
 
@@ -94,12 +94,12 @@ export const useCreateHRInterview = () => {
 
       await createAuditEntry({
         action_type: "created",
-        entity_id: data.id,
+        entity_id: (data as any).id,
         after_json: data as Json,
         actor_user_id: user?.id ?? null,
       });
 
-      return data as Interview;
+      return data as unknown as Interview;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["hr", "interviews"] });

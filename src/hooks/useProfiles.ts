@@ -78,7 +78,7 @@ export const useInternalUsers = () => {
         .from("profiles")
         .select("*")
         .in("id", userIds)
-        .neq("role", "external_portal");
+        .neq("role" as any, "external_portal");
 
       if (profilesError) throw profilesError;
 

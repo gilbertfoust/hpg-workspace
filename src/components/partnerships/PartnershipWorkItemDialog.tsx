@@ -73,7 +73,7 @@ export function PartnershipWorkItemDialog({
   const handleSubmit = async () => {
     await createWorkItem.mutateAsync({
       title,
-      module,
+      module: "partnership" as any,
       type: workItemType,
       ngo_id: ngoId || undefined,
       owner_user_id: ownerId || undefined,

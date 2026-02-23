@@ -64,12 +64,12 @@ export const useHRRequisitions = () => {
     queryKey: ["hr", "job-requisitions"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from(requisitionsTable)
+        .from(requisitionsTable as never)
         .select("*")
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      return data as JobRequisition[];
+      return data as unknown as JobRequisition[];
     },
   });
 };
@@ -82,7 +82,7 @@ export const useCreateHRRequisition = () => {
   return useMutation({
     mutationFn: async (input: CreateJobRequisitionInput) => {
       const { data, error } = await supabase
-        .from(requisitionsTable)
+        .from(requisitionsTable as never)
         .insert({
           title: input.title,
           department_id: input.department_id ?? null,
@@ -90,7 +90,7 @@ export const useCreateHRRequisition = () => {
           employment_type: input.employment_type ?? null,
           status: input.status ?? "Open",
           description: input.description ?? null,
-        })
+        } as never)
         .select("*")
         .single();
 
@@ -98,12 +98,12 @@ export const useCreateHRRequisition = () => {
 
       await createAuditEntry({
         action_type: "created",
-        entity_id: data.id,
+        entity_id: (data as any).id,
         after_json: data as Json,
         actor_user_id: user?.id ?? null,
       });
 
-      return data as JobRequisition;
+      return data as unknown as JobRequisition;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["hr", "job-requisitions"] });
@@ -130,23 +130,24 @@ export const useUpdateHRRequisition = () => {
   return useMutation({
     mutationFn: async (input: UpdateJobRequisitionInput) => {
       const { data: before, error: beforeError } = await supabase
-        .from(requisitionsTable)
+        .from(requisitionsTable as never)
         .select("*")
         .eq("id", input.id)
         .single();
 
       if (beforeError) throw beforeError;
 
+      const b = before as any;
       const { data, error } = await supabase
-        .from(requisitionsTable)
+        .from(requisitionsTable as never)
         .update({
-          title: input.title ?? before.title,
-          department_id: input.department_id ?? before.department_id,
-          location: input.location ?? before.location,
-          employment_type: input.employment_type ?? before.employment_type,
-          status: input.status ?? before.status,
-          description: input.description ?? before.description,
-        })
+          title: input.title ?? b.title,
+          department_id: input.department_id ?? b.department_id,
+          location: input.location ?? b.location,
+          employment_type: input.employment_type ?? b.employment_type,
+          status: input.status ?? b.status,
+          description: input.description ?? b.description,
+        } as never)
         .eq("id", input.id)
         .select("*")
         .single();
@@ -155,13 +156,13 @@ export const useUpdateHRRequisition = () => {
 
       await createAuditEntry({
         action_type: "updated",
-        entity_id: data.id,
+        entity_id: (data as any).id,
         before_json: before as Json,
         after_json: data as Json,
         actor_user_id: user?.id ?? null,
       });
 
-      return data as JobRequisition;
+      return data as unknown as JobRequisition;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["hr", "job-requisitions"] });
@@ -188,7 +189,7 @@ export const useDeleteHRRequisition = () => {
   return useMutation({
     mutationFn: async (id: string) => {
       const { data: before, error: beforeError } = await supabase
-        .from(requisitionsTable)
+        .from(requisitionsTable as never)
         .select("*")
         .eq("id", id)
         .single();
@@ -196,7 +197,7 @@ export const useDeleteHRRequisition = () => {
       if (beforeError) throw beforeError;
 
       const { error } = await supabase
-        .from(requisitionsTable)
+        .from(requisitionsTable as never)
         .delete()
         .eq("id", id);
 

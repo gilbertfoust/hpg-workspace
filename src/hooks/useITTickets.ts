@@ -34,12 +34,12 @@ export const useITTickets = () => {
     queryKey: ["it-tickets"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("tickets")
+        .from("tickets" as never)
         .select("*")
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      return data as Ticket[];
+      return data as unknown as Ticket[];
     },
   });
 };
@@ -61,23 +61,23 @@ export const useCreateITTicket = () => {
         .insert({
           title: `Support Ticket: ${input.subject}`,
           description: input.description,
-          module: "it",
+          module: "it" as const,
           type: "Support Ticket",
           status: mapITStatusToWorkItemStatus(input.status),
-          priority: input.severity,
+          priority: input.severity === "urgent" ? "high" : input.severity,
           owner_user_id: input.assigned_to_user_id || null,
           ngo_id: input.related_ngo_id || null,
           evidence_required: false,
           approval_required: false,
           external_visible: false,
-        })
+        } as any)
         .select()
         .single();
 
       if (workItemError) throw workItemError;
 
       const { data, error } = await supabase
-        .from("tickets")
+        .from("tickets" as never)
         .insert({
           subject: input.subject,
           description: input.description,
@@ -87,12 +87,12 @@ export const useCreateITTicket = () => {
           assigned_to_user_id: input.assigned_to_user_id || null,
           related_ngo_id: input.related_ngo_id || null,
           work_item_id: (workItem as WorkItem).id,
-        })
+        } as never)
         .select()
         .single();
 
       if (error) throw error;
-      return data as Ticket;
+      return data as unknown as Ticket;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["it-tickets"] });
@@ -120,14 +120,14 @@ export const useUpdateITTicket = () => {
   return useMutation({
     mutationFn: async ({ id, ...input }: Partial<Ticket> & { id: string }) => {
       const { data, error } = await supabase
-        .from("tickets")
-        .update(input)
+        .from("tickets" as never)
+        .update(input as never)
         .eq("id", id)
         .select()
         .single();
 
       if (error) throw error;
-      return data as Ticket;
+      return data as unknown as Ticket;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["it-tickets"] });

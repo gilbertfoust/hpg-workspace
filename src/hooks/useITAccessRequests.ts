@@ -39,12 +39,12 @@ export const useITAccessRequests = () => {
     queryKey: ["access-requests"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("access_requests")
+        .from("access_requests" as never)
         .select("*")
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      return data as AccessRequest[];
+      return data as unknown as AccessRequest[];
     },
   });
 };
@@ -69,21 +69,21 @@ export const useCreateITAccessRequest = () => {
         .insert({
           title,
           description,
-          module: "it",
+          module: "it" as const,
           type: "Access Request",
           status: mapITStatusToWorkItemStatus(input.status),
-          priority: input.priority,
+          priority: input.priority === "urgent" ? "high" : input.priority,
           evidence_required: true,
           approval_required: false,
           external_visible: false,
-        })
+        } as any)
         .select()
         .single();
 
       if (workItemError) throw workItemError;
 
       const { data, error } = await supabase
-        .from("access_requests")
+        .from("access_requests" as never)
         .insert({
           request_type: input.request_type,
           target_user: input.target_user,
@@ -92,12 +92,12 @@ export const useCreateITAccessRequest = () => {
           priority: input.priority,
           status: input.status,
           work_item_id: (workItem as WorkItem).id,
-        })
+        } as never)
         .select()
         .single();
 
       if (error) throw error;
-      return data as AccessRequest;
+      return data as unknown as AccessRequest;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["access-requests"] });
@@ -125,14 +125,14 @@ export const useUpdateITAccessRequest = () => {
   return useMutation({
     mutationFn: async ({ id, ...input }: Partial<AccessRequest> & { id: string }) => {
       const { data, error } = await supabase
-        .from("access_requests")
-        .update(input)
+        .from("access_requests" as never)
+        .update(input as never)
         .eq("id", id)
         .select()
         .single();
 
       if (error) throw error;
-      return data as AccessRequest;
+      return data as unknown as AccessRequest;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["access-requests"] });

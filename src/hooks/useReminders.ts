@@ -42,7 +42,7 @@ export const useUpcomingReminders = (options?: { hours?: number }) => {
       const until = addHours(now, hours);
 
       const { data, error } = await supabase
-        .from("reminders")
+        .from("reminders" as never)
         .select("id, work_item_id, user_id, remind_at, channel, status, created_at, work_items(id, title, due_date)")
         .eq("user_id", user!.id)
         .neq("status", "seen")
@@ -54,7 +54,7 @@ export const useUpcomingReminders = (options?: { hours?: number }) => {
         throw error;
       }
 
-      return data as Reminder[];
+      return data as unknown as Reminder[];
     },
   });
 };
@@ -88,7 +88,7 @@ export const useCreateReminder = () => {
         throw error;
       }
 
-      return data as Reminder;
+      return data as unknown as Reminder;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["reminders"] });
@@ -114,8 +114,8 @@ export const useMarkReminderSeen = () => {
     mutationFn: async (reminderId: string) => {
       ensureSupabase();
       const { data, error } = await supabase
-        .from("reminders")
-        .update({ status: "seen" })
+        .from("reminders" as never)
+        .update({ status: "seen" } as never)
         .eq("id", reminderId)
         .select()
         .single();
@@ -124,7 +124,7 @@ export const useMarkReminderSeen = () => {
         throw error;
       }
 
-      return data as Reminder;
+      return data as unknown as Reminder;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["reminders"] });

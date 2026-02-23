@@ -47,7 +47,7 @@ export const useCreatePartnershipPartner = () => {
     mutationFn: async (input: CreatePartnershipPartnerInput) => {
       const { data, error } = await supabase
         .from(partnersTable as never)
-        .insert(input)
+        .insert(input as never)
         .select()
         .single();
 
@@ -79,7 +79,7 @@ export const useUpdatePartnershipPartner = () => {
     mutationFn: async ({ id, ...input }: Partial<PartnershipPartner> & { id: string }) => {
       const { data, error } = await supabase
         .from(partnersTable as never)
-        .update(input)
+        .update(input as never)
         .eq("id", id)
         .select()
         .single();

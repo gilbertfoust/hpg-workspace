@@ -144,7 +144,7 @@ export const useCreateFormSubmission = () => {
       });
       const { data: submission, error: submissionError } = await supabase
         .from('form_submissions')
-        .insert(sanitizedInput)
+        .insert(sanitizedInput as never)
         .select()
         .single();
       

@@ -28,7 +28,7 @@ import {
   Calendar
 } from "lucide-react";
 import { format } from "date-fns";
-import { useWorkItems, WorkItemStatus, ModuleType } from "@/hooks/useWorkItems";
+import { useWorkItems, WorkItemStatus, ModuleType, type ListFilters } from "@/hooks/useWorkItems";
 import { WorkItemDrawer } from "@/components/work-items/WorkItemDrawer";
 
 interface NGOWorkItemsTabProps {
@@ -64,12 +64,12 @@ const statusMap: Record<
 
 const statusOptions: { label: string; value: WorkItemStatus | "all" }[] = [
   { label: "All Statuses", value: "all" },
-  { label: "Not Started", value: "Not Started" },
-  { label: "In Progress", value: "In Progress" },
-  { label: "Waiting on NGO", value: "Waiting on NGO" },
-  { label: "Waiting on HPG", value: "Waiting on HPG" },
-  { label: "Under Review", value: "Under Review" },
-  { label: "Complete", value: "Complete" },
+  { label: "Not Started", value: "not_started" },
+  { label: "In Progress", value: "in_progress" },
+  { label: "Waiting on NGO", value: "waiting_on_ngo" },
+  { label: "Waiting on HPG", value: "waiting_on_hpg" },
+  { label: "Under Review", value: "under_review" },
+  { label: "Complete", value: "complete" },
 ];
 
 const moduleOptions: { label: string; value: ModuleType | "all" }[] = [
@@ -89,9 +89,9 @@ export function NGOWorkItemsTab({ ngoId }: NGOWorkItemsTabProps) {
   const [moduleFilter, setModuleFilter] = useState<ModuleType | "all">("all");
   const [selectedWorkItemId, setSelectedWorkItemId] = useState<string | null>(null);
 
-  const filters = {
+  const filters: ListFilters = {
     ngo_id: ngoId,
-    ...(statusFilter !== "all" && { status: [statusFilter] }),
+    ...(statusFilter !== "all" && { status: statusFilter }),
     ...(moduleFilter !== "all" && { module: moduleFilter }),
   };
 

@@ -43,7 +43,7 @@ export const useCreateDevelopmentFunder = () => {
     mutationFn: async (input: CreateDevelopmentFunderInput) => {
       const { data, error } = await supabase
         .from(fundersTable as never)
-        .insert(input)
+        .insert(input as never)
         .select()
         .single();
 
@@ -75,7 +75,7 @@ export const useUpdateDevelopmentFunder = () => {
     mutationFn: async ({ id, ...input }: Partial<DevelopmentFunder> & { id: string }) => {
       const { data, error } = await supabase
         .from(fundersTable as never)
-        .update(input)
+        .update(input as never)
         .eq("id", id)
         .select()
         .single();

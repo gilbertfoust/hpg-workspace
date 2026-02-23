@@ -344,7 +344,7 @@ export const WorkItemDrawer: React.FC<WorkItemDrawerProps> = ({
                       window.location.href = `/ngos/${ngo.id}`;
                     }}
                   >
-                    {ngo.name}
+                    {ngo.common_name || ngo.legal_name}
                     <ExternalLink className="w-3 h-3" />
                   </a>
                 </div>
