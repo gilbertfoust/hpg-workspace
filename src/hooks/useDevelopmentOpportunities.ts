@@ -63,7 +63,7 @@ export const useCreateDevelopmentOpportunity = () => {
     mutationFn: async (input: CreateDevelopmentOpportunityInput) => {
       const { data, error } = await supabase
         .from(opportunitiesTable as never)
-        .insert(input)
+        .insert(input as never)
         .select()
         .single();
 
@@ -95,7 +95,7 @@ export const useUpdateDevelopmentOpportunity = () => {
     mutationFn: async ({ id, ...input }: Partial<DevelopmentOpportunity> & { id: string }) => {
       const { data, error } = await supabase
         .from(opportunitiesTable as never)
-        .update(input)
+        .update(input as never)
         .eq("id", id)
         .select()
         .single();

@@ -1,18 +1,24 @@
 import { cn } from "@/lib/utils";
 import { ArrowDown, ArrowRight, ArrowUp } from "lucide-react";
+import type { Priority } from "@/hooks/useWorkItems";
 
 type PriorityType = "Low" | "Med" | "High";
 
 interface PriorityBadgeProps {
-  priority: PriorityType;
+  priority: PriorityType | Priority | null | undefined;
   showIcon?: boolean;
   className?: string;
 }
 
-const priorityLabels: Record<PriorityType, string> = {
-  Low: "Low",
-  Med: "Med",
-  High: "High",
+const normalize = (p: PriorityType | Priority | null | undefined): PriorityType => {
+  if (!p) return "Med";
+  const map: Record<string, PriorityType> = {
+    low: "Low", Low: "Low",
+    medium: "Med", Med: "Med",
+    high: "High", High: "High",
+    urgent: "High",
+  };
+  return map[p] ?? "Med";
 };
 
 const priorityClasses: Record<PriorityType, string> = {
@@ -28,10 +34,11 @@ const PriorityIcon: Record<PriorityType, React.ReactNode> = {
 };
 
 export function PriorityBadge({ priority, showIcon = true, className }: PriorityBadgeProps) {
+  const normalized = normalize(priority);
   return (
-    <span className={cn("status-chip inline-flex items-center gap-1", priorityClasses[priority], className)}>
-      {showIcon && PriorityIcon[priority]}
-      {priorityLabels[priority]}
+    <span className={cn("status-chip inline-flex items-center gap-1", priorityClasses[normalized], className)}>
+      {showIcon && PriorityIcon[normalized]}
+      {normalized}
     </span>
   );
 }

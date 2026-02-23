@@ -88,7 +88,7 @@ export const useCreateDevelopmentProposal = () => {
     mutationFn: async (input: CreateDevelopmentProposalInput) => {
       const { data, error } = await supabase
         .from(proposalsTable as never)
-        .insert(input)
+        .insert(input as never)
         .select()
         .single();
 
@@ -120,7 +120,7 @@ export const useUpdateDevelopmentProposal = () => {
     mutationFn: async ({ id, ...input }: Partial<DevelopmentProposal> & { id: string }) => {
       const { data, error } = await supabase
         .from(proposalsTable as never)
-        .update(input)
+        .update(input as never)
         .eq("id", id)
         .select()
         .single();

@@ -114,26 +114,15 @@ export function FormSubmissionSheet({
     }
 
     try {
-      // Upload files for all file fields
+      // File upload metadata (files not yet supported in this environment)
       const fileMetadata: Record<string, Array<{ path: string; name: string; size: number; type: string }>> = {};
-      
-      for (const [fieldName, files] of Object.entries(fileUploads)) {
-        if (files && files.length > 0) {
-          const uploadedPaths = await uploadFilesToStorage(files, fieldName);
-          fileMetadata[fieldName] = uploadedPaths.map((path, index) => ({
-            path,
-            name: files[index].name,
-            size: files[index].size,
-            type: files[index].type,
-          }));
-        }
-      }
 
       // Merge file metadata into payload
       const payload: Json = {
         ...formData,
         ...fileMetadata,
       } as Json;
+
 
       const status = submit ? "submitted" : "draft";
       let workItemId = submission?.work_item_id ?? undefined;

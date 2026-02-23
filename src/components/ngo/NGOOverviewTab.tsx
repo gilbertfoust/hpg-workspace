@@ -43,7 +43,7 @@ const statusLabels: Record<string, string> = {
 
 export function NGOOverviewTab({ ngo, onEdit }: NGOOverviewTabProps) {
   const { data: contacts } = useContacts(ngo.id);
-  const { data: workItems } = useWorkItems({ ngo_id: ngo.id });
+  const { data: workItems } = useWorkItems({ ngoId: ngo.id });
   const { data: coordinator } = useProfile(ngo.ngo_coordinator_user_id || "");
   const { data: adminPm } = useProfile(ngo.admin_pm_user_id || "");
 

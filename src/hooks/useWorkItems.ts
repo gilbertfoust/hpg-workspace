@@ -23,7 +23,7 @@ export type ModuleType =
   | "program"
   | "curriculum"
   | "development"
-  | "partnerships"
+  | "partnership"
   | "marketing"
   | "communications"
   | "hr"
@@ -50,11 +50,17 @@ export interface WorkItem {
   priority?: Priority | null;
   type?: string | null;
   external_visible?: boolean;
+  created_at?: string;
+  updated_at?: string;
+  dependencies?: string[] | null;
 }
 
-type ListFilters = {
+export type ListFilters = {
   ngoId?: string | null;
+  ngo_id?: string | null;
   status?: WorkItemStatus;
+  module?: ModuleType | string;
+  type?: string;
 };
 
 export const useWorkItems = (filters?: ListFilters) => {
@@ -63,11 +69,18 @@ export const useWorkItems = (filters?: ListFilters) => {
     queryFn: async () => {
       let query = supabase.from("work_items" as never).select("*").order("created_at", { ascending: false });
 
-      if (filters?.ngoId) {
-        query = query.eq("ngo_id", filters.ngoId);
+      const ngoId = filters?.ngoId || filters?.ngo_id;
+      if (ngoId) {
+        query = query.eq("ngo_id", ngoId);
       }
       if (filters?.status) {
         query = query.eq("status", filters.status);
+      }
+      if (filters?.module) {
+        query = query.eq("module", filters.module);
+      }
+      if (filters?.type) {
+        query = query.eq("type", filters.type);
       }
 
       const { data, error } = await query;
@@ -95,7 +108,7 @@ export const useCreateWorkItem = () => {
 
   return useMutation({
     mutationFn: async (input: Partial<WorkItem> & { module: ModuleType }) => {
-      const { data, error } = await supabase.from("work_items" as never).insert(input).select().single();
+      const { data, error } = await supabase.from("work_items" as never).insert(input as never).select().single();
       if (error) throw error;
       return data as WorkItem;
     },
@@ -113,7 +126,7 @@ export const useUpdateWorkItem = () => {
   return useMutation({
     mutationFn: async (input: Partial<WorkItem> & { id: string }) => {
       const { id, ...rest } = input;
-      const { data, error } = await supabase.from("work_items" as never).update(rest).eq("id", id).select().single();
+      const { data, error } = await supabase.from("work_items" as never).update(rest as never).eq("id", id).select().single();
       if (error) throw error;
       return data as WorkItem;
     },
@@ -212,7 +225,7 @@ export const useBulkBumpWorkItemDueDates = () => {
       const updatePromises = updates.map((update) =>
         supabase
           .from("work_items" as never)
-          .update({ due_date: update.due_date })
+          .update({ due_date: update.due_date } as never)
           .eq("id", update.id)
       );
       

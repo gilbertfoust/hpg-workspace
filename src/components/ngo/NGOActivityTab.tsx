@@ -48,7 +48,7 @@ const actionIcons: Record<string, React.ReactNode> = {
 export function NGOActivityTab({ ngoId }: NGOActivityTabProps) {
   const { data: comments, isLoading: commentsLoading } = useCommentsForNGO(ngoId);
   const { data: auditLogs, isLoading: auditLoading } = useAuditLogForNGO(ngoId);
-  const { data: workItems, isLoading: workItemsLoading } = useWorkItems({ ngo_id: ngoId });
+  const { data: workItems, isLoading: workItemsLoading } = useWorkItems({ ngoId: ngoId });
   const { data: submissions, isLoading: submissionsLoading } = useFormSubmissions({ ngo_id: ngoId });
 
   const isLoading = commentsLoading || auditLoading || workItemsLoading || submissionsLoading;
