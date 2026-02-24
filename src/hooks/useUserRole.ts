@@ -89,10 +89,8 @@ export const useUpdateUserRole = () => {
       const { data, error } = await supabase
         .from("user_roles")
         .upsert(
-          { user_id: userId, role },
+          { user_id: userId, role } as any,
           {
-            // matches unique constraint (user_id, role)
-            // if you later enforce single-role-per-user, change the DB constraint
             onConflict: "user_id,role",
           }
         )

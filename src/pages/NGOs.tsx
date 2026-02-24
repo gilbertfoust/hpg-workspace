@@ -63,12 +63,12 @@ const bundles = ["All Bundles", "Detroit", "Chicago", "US", "Mexican", "African"
 const statuses = ["All Statuses", "Prospect", "Onboarding", "Active", "At-Risk", "Offboarding", "Closed"];
 
 const statusValueMap: Record<string, NGOStatus> = {
-  Prospect: "Prospect",
-  Onboarding: "Onboarding",
-  Active: "Active",
-  "At-Risk": "At-Risk",
-  Offboarding: "Offboarding",
-  Closed: "Closed",
+  Prospect: "prospect",
+  Onboarding: "onboarding",
+  Active: "active",
+  "At-Risk": "at_risk",
+  Offboarding: "offboarding",
+  Closed: "closed",
 };
 
 const statusMap: Record<
@@ -130,7 +130,7 @@ export default function NGOs() {
     city: "",
     website: "",
     fiscal_type: "model_c" as DbFiscalType, // DB value
-    status: "Prospect" as NGOStatus,
+    status: "prospect" as NGOStatus,
     confluence_url: "",
     notes: "",
   });
@@ -201,7 +201,7 @@ export default function NGOs() {
         city: "",
         website: "",
         fiscal_type: "model_c",
-        status: "Prospect",
+        status: "prospect" as NGOStatus,
         confluence_url: "",
         notes: "",
       });
@@ -495,7 +495,7 @@ export default function NGOs() {
                     </div>
 
                     <div className="flex items-center gap-2">
-                      <StatusChip status={statusVariant} label={ngo.status} />
+                      <StatusChip status={statusVariant} />
 
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>

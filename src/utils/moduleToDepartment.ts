@@ -17,7 +17,7 @@ export const MODULE_TO_DEPARTMENT_MAP: Record<ModuleType, { department_name: str
   program: { department_name: "Program" },
   curriculum: { department_name: "Program", sub_department_name: "Curriculum" },
   administration: { department_name: "Administration" },
-  partnerships: { department_name: "Partnership Development" },
+  partnership: { department_name: "Partnership Development" },
 };
 
 /**
