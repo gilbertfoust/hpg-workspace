@@ -77,8 +77,7 @@ export const useInternalUsers = () => {
       const { data: profileRows, error: profilesError } = await supabase!
         .from("profiles")
         .select("*")
-        .in("id", userIds)
-        .neq("role" as any, "external_portal");
+        .in("id", userIds);
 
       if (profilesError) throw profilesError;
 

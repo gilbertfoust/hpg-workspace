@@ -1,12 +1,17 @@
 import { addDays, subDays } from "date-fns";
 import { getSupabaseNotConfiguredError, supabase } from "@/integrations/supabase/client";
-import type { Database } from "@/integrations/supabase/types";
 
 export const DEFAULT_REMINDER_OFFSET_DAYS = 3;
 export const REMINDER_CHANNEL_IN_APP = "in_app";
 export const REMINDER_STATUS_SCHEDULED = "scheduled";
 
-type ReminderInsert = Database["public"]["Tables"]["reminders"]["Insert"];
+type ReminderInsert = {
+  work_item_id?: string;
+  user_id?: string;
+  remind_at?: string;
+  channel?: string;
+  status?: string;
+};
 
 type ReminderSourceWorkItem = {
   id: string;
@@ -27,8 +32,8 @@ export const insertReminder = async (payload: ReminderInsert) => {
   }
 
   return supabase
-    .from("reminders")
-    .insert(payload)
+    .from("reminders" as never)
+    .insert(payload as never)
     .select()
     .single();
 };
@@ -44,13 +49,13 @@ export const scheduleDefaultReminderForWorkItem = async (workItem: ReminderSourc
   }
 
   const remindAt = getDefaultReminderAt(workItem.due_date);
-  const { error } = await supabase.from("reminders").insert({
+  const { error } = await supabase.from("reminders" as never).insert({
     work_item_id: workItem.id,
     user_id: userId,
     remind_at: remindAt,
     channel: REMINDER_CHANNEL_IN_APP,
     status: REMINDER_STATUS_SCHEDULED,
-  });
+  } as never);
 
   if (error) {
     console.warn("Failed to schedule default reminder", error);

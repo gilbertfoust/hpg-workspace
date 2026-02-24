@@ -79,8 +79,8 @@ export async function createWorkItemForSubmission(
     department_id: departmentId,
     owner_user_id: userId,
     created_by_user_id: userId, // Required for RLS
-    status: 'Not Started' as const,
-    priority: 'Med' as const,
+    status: 'not_started' as const,
+    priority: 'medium' as const,
     evidence_required: false,
     type: 'form_submission',
   };
@@ -103,7 +103,7 @@ export async function createWorkItemForSubmission(
 
   const { data: workItem, error: workItemError } = await supabase
     .from('work_items')
-    .insert(workItemInput)
+    .insert(workItemInput as any)
     .select('id')
     .single();
 

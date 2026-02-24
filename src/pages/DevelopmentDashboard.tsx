@@ -11,6 +11,7 @@ import { useDevelopmentOpportunities } from "@/hooks/useDevelopmentOpportunities
 import { useDevelopmentProposals } from "@/hooks/useDevelopmentProposals";
 import { useNGOs } from "@/hooks/useNGOs";
 import type { DevelopmentPipelineItem, DevelopmentPipelineStage } from "@/components/development/types";
+import type { DevelopmentOpportunityWithFunder } from "@/hooks/useDevelopmentOpportunities";
 
 const pipelineStages: DevelopmentPipelineStage[] = [
   "Identified",
@@ -80,8 +81,20 @@ export default function DevelopmentDashboard() {
         source: "proposal",
         proposal,
         opportunity: opportunity
-          ? {
-              ...opportunity,
+          ? ({
+              id: opportunity.id,
+              name: opportunity.name,
+              funder_id: opportunity.funder_id,
+              program_area: opportunity.program_area,
+              deadline: opportunity.deadline,
+              loi_due: opportunity.loi_due,
+              proposal_due: opportunity.proposal_due,
+              min_amount: null,
+              max_amount: null,
+              status: null,
+              notes: null,
+              created_at: "",
+              updated_at: "",
               funder: opportunity.funder_id
                 ? {
                     id: opportunity.funder_id,
@@ -89,7 +102,7 @@ export default function DevelopmentDashboard() {
                     type: null,
                   }
                 : null,
-            }
+            } as DevelopmentOpportunityWithFunder)
           : null,
       });
     });
