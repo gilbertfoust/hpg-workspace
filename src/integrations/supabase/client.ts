@@ -7,18 +7,6 @@ const SUPABASE_ANON_KEY =
   (import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined) ??
   (import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined);
 
-  console.log(
-    'Supabase URL:',
-    import.meta.env.VITE_SUPABASE_URL
-  );
-  console.log(
-    'Supabase key present:',
-    Boolean(
-      import.meta.env.VITE_SUPABASE_ANON_KEY ||
-      import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY
-    )
-  );
-  
 /**
  * Custom error used when Supabase is not configured.
  * Other parts of the app already import and check this.
