@@ -21,6 +21,7 @@ import ReportsDashboard from "./pages/ReportsDashboard";
 import Admin from "./pages/Admin";
 import AdminConfigHome from "./pages/AdminConfig/AdminConfigHome";
 import NotFound from "./pages/NotFound";
+import SignDocument from "./pages/SignDocument";
 
 // Feature pages
 import MyQueue from "./pages/MyQueue";
@@ -64,6 +65,9 @@ const App = () => {
                 {/* Auth */}
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/auth/callback" element={<AuthCallback />} />
+
+                {/* Public signing page (no auth required) */}
+                <Route path="/sign/:token" element={<SignDocument />} />
 
                 {/* Root redirect */}
                 <Route path="/" element={<Navigate to="/dashboard" replace />} />
