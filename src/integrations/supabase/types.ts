@@ -273,6 +273,30 @@ export type Database = {
           },
         ]
       }
+      esign_documents: {
+        Row: {
+          created_at: string
+          id: string
+          original_filename: string
+          owner_id: string
+          storage_path: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          original_filename: string
+          owner_id: string
+          storage_path: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          original_filename?: string
+          owner_id?: string
+          storage_path?: string
+        }
+        Relationships: []
+      }
       form_submissions: {
         Row: {
           created_at: string
@@ -543,6 +567,105 @@ export type Database = {
           },
         ]
       }
+      signed_documents: {
+        Row: {
+          created_at: string
+          id: string
+          signing_request_id: string
+          storage_path: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          signing_request_id: string
+          storage_path: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          signing_request_id?: string
+          storage_path?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "signed_documents_signing_request_id_fkey"
+            columns: ["signing_request_id"]
+            isOneToOne: false
+            referencedRelation: "signing_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      signing_requests: {
+        Row: {
+          created_at: string
+          created_by_user_id: string | null
+          document_id: string
+          expires_at: string
+          id: string
+          ngo_id: string | null
+          signed_at: string | null
+          signer_email: string
+          signer_ip: string | null
+          signer_name: string
+          status: string
+          token: string
+          work_item_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by_user_id?: string | null
+          document_id: string
+          expires_at: string
+          id?: string
+          ngo_id?: string | null
+          signed_at?: string | null
+          signer_email: string
+          signer_ip?: string | null
+          signer_name: string
+          status?: string
+          token?: string
+          work_item_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by_user_id?: string | null
+          document_id?: string
+          expires_at?: string
+          id?: string
+          ngo_id?: string | null
+          signed_at?: string | null
+          signer_email?: string
+          signer_ip?: string | null
+          signer_name?: string
+          status?: string
+          token?: string
+          work_item_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "signing_requests_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "esign_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "signing_requests_ngo_id_fkey"
+            columns: ["ngo_id"]
+            isOneToOne: false
+            referencedRelation: "ngos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "signing_requests_work_item_id_fkey"
+            columns: ["work_item_id"]
+            isOneToOne: false
+            referencedRelation: "work_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       template_groups: {
         Row: {
           category: string | null
@@ -731,6 +854,23 @@ export type Database = {
       get_my_role: {
         Args: never
         Returns: Database["public"]["Enums"]["app_role"]
+      }
+      get_signing_request_by_token: {
+        Args: { request_token: string }
+        Returns: {
+          created_at: string
+          document_id: string
+          expires_at: string
+          id: string
+          original_filename: string
+          signed_at: string
+          signer_email: string
+          signer_ip: string
+          signer_name: string
+          status: string
+          storage_path: string
+          token: string
+        }[]
       }
       has_ngo_access: { Args: { _ngo_id: string }; Returns: boolean }
       has_role: {

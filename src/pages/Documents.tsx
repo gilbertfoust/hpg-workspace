@@ -3,7 +3,10 @@ import { MainLayout } from "@/components/layout/MainLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DocumentUploadDialog } from "@/components/documents/DocumentUploadDialog";
+import { EsignDocumentsTab } from "@/components/esign/EsignDocumentsTab";
+import { SigningRequestsTab } from "@/components/esign/SigningRequestsTab";
 import {
   Select,
   SelectContent,
@@ -32,9 +35,10 @@ import {
   CheckCircle2,
   Clock,
   XCircle,
+  PenTool,
 } from "lucide-react";
 
-// Mock data
+// Mock data for regular documents
 const mockDocuments = [
   {
     id: "1",
@@ -103,17 +107,17 @@ const categories = ["All Categories", "Onboarding", "Compliance", "Finance", "HR
 const FileIcon = ({ type }: { type: string }) => {
   switch (type) {
     case "pdf":
-      return <FileText className="w-5 h-5 text-red-500" />;
+      return <FileText className="w-5 h-5 text-destructive" />;
     case "xlsx":
     case "xls":
-      return <FileSpreadsheet className="w-5 h-5 text-green-600" />;
+      return <FileSpreadsheet className="w-5 h-5 text-primary" />;
     case "docx":
     case "doc":
-      return <FileText className="w-5 h-5 text-blue-500" />;
+      return <FileText className="w-5 h-5 text-primary" />;
     case "png":
     case "jpg":
     case "jpeg":
-      return <FileImage className="w-5 h-5 text-purple-500" />;
+      return <FileImage className="w-5 h-5 text-accent-foreground" />;
     default:
       return <File className="w-5 h-5 text-muted-foreground" />;
   }
@@ -151,135 +155,165 @@ export default function Documents() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All Categories");
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState("documents");
 
   return (
     <MainLayout
       title="Documents"
-      subtitle="Manage and review all uploaded files and evidence"
+      subtitle="Manage documents, uploads, and e-signatures"
       actions={
-        <Button onClick={() => setUploadDialogOpen(true)}>
-          <Upload className="w-4 h-4 mr-2" />
-          Upload Document
-        </Button>
+        activeTab === "documents" ? (
+          <Button onClick={() => setUploadDialogOpen(true)}>
+            <Upload className="w-4 h-4 mr-2" />
+            Upload Document
+          </Button>
+        ) : undefined
       }
     >
-      {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-4 mb-6">
-        <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            placeholder="Search documents..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9"
-          />
-        </div>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="documents">
+            <FileText className="w-4 h-4 mr-2" />
+            Documents
+          </TabsTrigger>
+          <TabsTrigger value="esign-docs">
+            <PenTool className="w-4 h-4 mr-2" />
+            E-Sign Documents
+          </TabsTrigger>
+          <TabsTrigger value="signing-requests">
+            <PenTool className="w-4 h-4 mr-2" />
+            Signing Requests
+          </TabsTrigger>
+        </TabsList>
 
-        <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-          <SelectTrigger className="w-44">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {categories.map((cat) => (
-              <SelectItem key={cat} value={cat}>
-                {cat}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <TabsContent value="documents">
+          {/* Filters */}
+          <div className="flex flex-col sm:flex-row gap-4 mb-6">
+            <div className="relative flex-1 max-w-md">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="Search documents..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9"
+              />
+            </div>
 
-        <Button variant="outline" size="icon">
-          <Filter className="w-4 h-4" />
-        </Button>
-      </div>
+            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+              <SelectTrigger className="w-44">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {categories.map((cat) => (
+                  <SelectItem key={cat} value={cat}>
+                    {cat}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
-      {/* Documents Table */}
-      <div className="bg-card border rounded-lg overflow-hidden">
-        <div className="data-table overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr>
-                <th>File</th>
-                <th>Category</th>
-                <th>NGO</th>
-                <th>Uploaded By</th>
-                <th>Date</th>
-                <th>Size</th>
-                <th>Review Status</th>
-                <th>Work Item</th>
-                <th className="w-10"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {mockDocuments.map((doc) => (
-                <tr key={doc.id} className="group cursor-pointer">
-                  <td>
-                    <div className="flex items-center gap-3">
-                      <FileIcon type={doc.fileType} />
-                      <span className="font-medium">{doc.fileName}</span>
-                    </div>
-                  </td>
-                  <td>
-                    <Badge variant="outline" className="text-xs font-normal">
-                      {doc.category}
-                    </Badge>
-                  </td>
-                  <td className="text-muted-foreground">{doc.ngo}</td>
-                  <td className="text-muted-foreground">{doc.uploadedBy}</td>
-                  <td className="text-muted-foreground whitespace-nowrap">{doc.uploadedAt}</td>
-                  <td className="text-muted-foreground">{doc.fileSize}</td>
-                  <td>
-                    <ReviewStatusBadge status={doc.reviewStatus} />
-                  </td>
-                  <td className="text-muted-foreground font-mono text-xs">
-                    {doc.workItem || "—"}
-                  </td>
-                  <td onClick={(e) => e.stopPropagation()}>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 opacity-0 group-hover:opacity-100"
-                        >
-                          <MoreHorizontal className="w-4 h-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem>
-                          <Eye className="w-4 h-4 mr-2" />
-                          Preview
-                        </DropdownMenuItem>
-                        <DropdownMenuItem>
-                          <Download className="w-4 h-4 mr-2" />
-                          Download
-                        </DropdownMenuItem>
-                        <DropdownMenuItem className="text-destructive">
-                          <Trash2 className="w-4 h-4 mr-2" />
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+            <Button variant="outline" size="icon">
+              <Filter className="w-4 h-4" />
+            </Button>
+          </div>
 
-      {/* Pagination */}
-      <div className="flex items-center justify-between mt-4 text-sm text-muted-foreground">
-        <span>Showing {mockDocuments.length} of {mockDocuments.length} documents</span>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" disabled>
-            Previous
-          </Button>
-          <Button variant="outline" size="sm" disabled>
-            Next
-          </Button>
-        </div>
-      </div>
+          {/* Documents Table */}
+          <div className="bg-card border rounded-lg overflow-hidden">
+            <div className="data-table overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr>
+                    <th>File</th>
+                    <th>Category</th>
+                    <th>NGO</th>
+                    <th>Uploaded By</th>
+                    <th>Date</th>
+                    <th>Size</th>
+                    <th>Review Status</th>
+                    <th>Work Item</th>
+                    <th className="w-10"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {mockDocuments.map((doc) => (
+                    <tr key={doc.id} className="group cursor-pointer">
+                      <td>
+                        <div className="flex items-center gap-3">
+                          <FileIcon type={doc.fileType} />
+                          <span className="font-medium">{doc.fileName}</span>
+                        </div>
+                      </td>
+                      <td>
+                        <Badge variant="outline" className="text-xs font-normal">
+                          {doc.category}
+                        </Badge>
+                      </td>
+                      <td className="text-muted-foreground">{doc.ngo}</td>
+                      <td className="text-muted-foreground">{doc.uploadedBy}</td>
+                      <td className="text-muted-foreground whitespace-nowrap">{doc.uploadedAt}</td>
+                      <td className="text-muted-foreground">{doc.fileSize}</td>
+                      <td>
+                        <ReviewStatusBadge status={doc.reviewStatus} />
+                      </td>
+                      <td className="text-muted-foreground font-mono text-xs">
+                        {doc.workItem || "—"}
+                      </td>
+                      <td onClick={(e) => e.stopPropagation()}>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 opacity-0 group-hover:opacity-100"
+                            >
+                              <MoreHorizontal className="w-4 h-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem>
+                              <Eye className="w-4 h-4 mr-2" />
+                              Preview
+                            </DropdownMenuItem>
+                            <DropdownMenuItem>
+                              <Download className="w-4 h-4 mr-2" />
+                              Download
+                            </DropdownMenuItem>
+                            <DropdownMenuItem className="text-destructive">
+                              <Trash2 className="w-4 h-4 mr-2" />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Pagination */}
+          <div className="flex items-center justify-between mt-4 text-sm text-muted-foreground">
+            <span>Showing {mockDocuments.length} of {mockDocuments.length} documents</span>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" disabled>
+                Previous
+              </Button>
+              <Button variant="outline" size="sm" disabled>
+                Next
+              </Button>
+            </div>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="esign-docs">
+          <EsignDocumentsTab />
+        </TabsContent>
+
+        <TabsContent value="signing-requests">
+          <SigningRequestsTab />
+        </TabsContent>
+      </Tabs>
 
       {/* Upload Dialog */}
       <DocumentUploadDialog
