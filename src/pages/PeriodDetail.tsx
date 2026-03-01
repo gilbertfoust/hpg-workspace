@@ -1,16 +1,20 @@
+import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { MainLayout } from "@/components/layout/MainLayout";
+import { Button } from "@/components/ui/button";
 import { PeriodSummaryCard } from "@/components/finance/PeriodSummaryCard";
 import { BudgetActualTable } from "@/components/finance/BudgetActualTable";
 import { ReviewPanel } from "@/components/finance/ReviewPanel";
+import { ActualsImportDialog } from "@/components/finance/ActualsImportDialog";
 import { useFiscalPeriods } from "@/hooks/useFiscalPeriods";
 import { useFinancialReviewStatus } from "@/hooks/useFinancialReviewStatus";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, ChevronRight } from "lucide-react";
+import { Loader2, ChevronRight, Upload } from "lucide-react";
 
 const PeriodDetail = () => {
   const { ngoId, periodId } = useParams<{ ngoId: string; periodId: string }>();
+  const [importOpen, setImportOpen] = useState(false);
 
   const { data: ngo, isLoading: ngoLoading } = useQuery({
     queryKey: ["ngo_detail", ngoId],
@@ -90,11 +94,22 @@ const PeriodDetail = () => {
 
         {/* Budget vs Actual editor */}
         <div>
-          <h2 className="text-lg font-semibold mb-3">Budget vs Actual</h2>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-lg font-semibold">Budget vs Actual</h2>
+            {ngoId && periodId && (
+              <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
+                <Upload className="h-4 w-4 mr-1" /> Import CSV
+              </Button>
+            )}
+          </div>
           {ngoId && periodId && (
             <BudgetActualTable ngoId={ngoId} fiscalPeriodId={periodId} editable currency={period.currency_code || "USD"} />
           )}
         </div>
+
+        {ngoId && periodId && (
+          <ActualsImportDialog open={importOpen} onOpenChange={setImportOpen} ngoId={ngoId} fiscalPeriodId={periodId} />
+        )}
 
         {/* Review panel */}
         <div className="max-w-md">
