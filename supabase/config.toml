@@ -8,3 +8,6 @@ verify_jwt = false
 
 [functions.send-signed-notification]
 verify_jwt = false
+
+[functions.process-intake-document]
+verify_jwt = false

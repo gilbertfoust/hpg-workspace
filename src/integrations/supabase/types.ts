@@ -493,6 +493,140 @@ export type Database = {
           },
         ]
       }
+      document_extraction_logs: {
+        Row: {
+          confidence_score: number | null
+          created_at: string
+          extracted_data_json: Json
+          id: string
+          intake_id: string
+          raw_text: string | null
+        }
+        Insert: {
+          confidence_score?: number | null
+          created_at?: string
+          extracted_data_json?: Json
+          id?: string
+          intake_id: string
+          raw_text?: string | null
+        }
+        Update: {
+          confidence_score?: number | null
+          created_at?: string
+          extracted_data_json?: Json
+          id?: string
+          intake_id?: string
+          raw_text?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_extraction_logs_intake_id_fkey"
+            columns: ["intake_id"]
+            isOneToOne: false
+            referencedRelation: "document_intake_submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      document_intake_submissions: {
+        Row: {
+          created_at: string
+          extracted_data_json: Json
+          file_name: string | null
+          file_path: string | null
+          fiscal_period_id: string | null
+          id: string
+          ngo_id: string
+          reviewer_notes: string | null
+          reviewer_user_id: string | null
+          status: string
+          submitted_by_user_id: string | null
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          extracted_data_json?: Json
+          file_name?: string | null
+          file_path?: string | null
+          fiscal_period_id?: string | null
+          id?: string
+          ngo_id: string
+          reviewer_notes?: string | null
+          reviewer_user_id?: string | null
+          status?: string
+          submitted_by_user_id?: string | null
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          extracted_data_json?: Json
+          file_name?: string | null
+          file_path?: string | null
+          fiscal_period_id?: string | null
+          id?: string
+          ngo_id?: string
+          reviewer_notes?: string | null
+          reviewer_user_id?: string | null
+          status?: string
+          submitted_by_user_id?: string | null
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_intake_submissions_fiscal_period_id_fkey"
+            columns: ["fiscal_period_id"]
+            isOneToOne: false
+            referencedRelation: "fiscal_periods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_intake_submissions_ngo_id_fkey"
+            columns: ["ngo_id"]
+            isOneToOne: false
+            referencedRelation: "ngos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      document_to_transaction_links: {
+        Row: {
+          created_at: string
+          id: string
+          intake_id: string
+          transaction_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          intake_id: string
+          transaction_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          intake_id?: string
+          transaction_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_to_transaction_links_intake_id_fkey"
+            columns: ["intake_id"]
+            isOneToOne: false
+            referencedRelation: "document_intake_submissions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_to_transaction_links_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       documents: {
         Row: {
           category: Database["public"]["Enums"]["document_category"] | null

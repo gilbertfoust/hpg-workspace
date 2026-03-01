@@ -34,6 +34,8 @@ import ComplianceDashboard from "./pages/ComplianceDashboard";
 import StatementsPage from "./pages/StatementsPage";
 import PackagesPage from "./pages/PackagesPage";
 import CloseYearPage from "./pages/CloseYearPage";
+import IntakeDashboard from "./pages/IntakeDashboard";
+import IntakeReviewPage from "./pages/IntakeReviewPage";
 
 // Feature pages
 import MyQueue from "./pages/MyQueue";
@@ -274,6 +276,14 @@ const App = () => {
                 <Route
                   path="/financial-hub/trial-balance"
                   element={<ProtectedRoute><TrialBalancePage /></ProtectedRoute>}
+                />
+                <Route
+                  path="/financial-hub/intake"
+                  element={<ProtectedRoute><IntakeDashboard /></ProtectedRoute>}
+                />
+                <Route
+                  path="/financial-hub/intake/review/:intakeId"
+                  element={<ProtectedRoute><IntakeReviewPage /></ProtectedRoute>}
                 />
                 <Route
                   path="/financial-hub/compliance"

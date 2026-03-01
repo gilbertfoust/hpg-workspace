@@ -246,6 +246,7 @@ export function AppSidebar() {
                   <NavItem to="/financial-hub/transactions" icon={<ClipboardList className="w-3.5 h-3.5" />} label="Transactions" />
                   <NavItem to="/financial-hub/ledger" icon={<FileText className="w-3.5 h-3.5" />} label="General Ledger" />
                   <NavItem to="/financial-hub/trial-balance" icon={<BarChart3 className="w-3.5 h-3.5" />} label="Trial Balance" />
+                  <NavItem to="/financial-hub/intake" icon={<FileText className="w-3.5 h-3.5" />} label="Intake" />
                   <NavItem to="/financial-hub/compliance" icon={<ShieldCheck className="w-3.5 h-3.5" />} label="Compliance" />
                 </div>
               )}
