@@ -303,6 +303,57 @@ export type Database = {
           },
         ]
       }
+      closing_entries: {
+        Row: {
+          account_id: string
+          created_at: string
+          created_by_user_id: string | null
+          credit: number
+          debit: number
+          fiscal_year: number
+          id: string
+          memo: string | null
+          ngo_id: string
+        }
+        Insert: {
+          account_id: string
+          created_at?: string
+          created_by_user_id?: string | null
+          credit?: number
+          debit?: number
+          fiscal_year: number
+          id?: string
+          memo?: string | null
+          ngo_id: string
+        }
+        Update: {
+          account_id?: string
+          created_at?: string
+          created_by_user_id?: string | null
+          credit?: number
+          debit?: number
+          fiscal_year?: number
+          id?: string
+          memo?: string | null
+          ngo_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "closing_entries_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "closing_entries_ngo_id_fkey"
+            columns: ["ngo_id"]
+            isOneToOne: false
+            referencedRelation: "ngos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       comments: {
         Row: {
           author_user_id: string
@@ -338,6 +389,53 @@ export type Database = {
             columns: ["work_item_id"]
             isOneToOne: false
             referencedRelation: "work_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      compliance_packages: {
+        Row: {
+          created_at: string
+          created_by_user_id: string | null
+          data_json: Json
+          file_path: string | null
+          fiscal_year: number
+          id: string
+          ngo_id: string
+          package_type: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by_user_id?: string | null
+          data_json?: Json
+          file_path?: string | null
+          fiscal_year: number
+          id?: string
+          ngo_id: string
+          package_type: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by_user_id?: string | null
+          data_json?: Json
+          file_path?: string | null
+          fiscal_year?: number
+          id?: string
+          ngo_id?: string
+          package_type?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "compliance_packages_ngo_id_fkey"
+            columns: ["ngo_id"]
+            isOneToOne: false
+            referencedRelation: "ngos"
             referencedColumns: ["id"]
           },
         ]
@@ -553,12 +651,51 @@ export type Database = {
           },
         ]
       }
+      financial_statements: {
+        Row: {
+          created_at: string
+          data_json: Json
+          fiscal_year: number
+          generated_by_user_id: string | null
+          id: string
+          ngo_id: string
+          statement_type: string
+        }
+        Insert: {
+          created_at?: string
+          data_json?: Json
+          fiscal_year: number
+          generated_by_user_id?: string | null
+          id?: string
+          ngo_id: string
+          statement_type: string
+        }
+        Update: {
+          created_at?: string
+          data_json?: Json
+          fiscal_year?: number
+          generated_by_user_id?: string | null
+          id?: string
+          ngo_id?: string
+          statement_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "financial_statements_ngo_id_fkey"
+            columns: ["ngo_id"]
+            isOneToOne: false
+            referencedRelation: "ngos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fiscal_periods: {
         Row: {
           created_at: string
           currency_code: string | null
           end_date: string
           id: string
+          is_locked: boolean
           label: string
           ngo_id: string
           period_type: string
@@ -570,6 +707,7 @@ export type Database = {
           currency_code?: string | null
           end_date: string
           id?: string
+          is_locked?: boolean
           label: string
           ngo_id: string
           period_type: string
@@ -581,6 +719,7 @@ export type Database = {
           currency_code?: string | null
           end_date?: string
           id?: string
+          is_locked?: boolean
           label?: string
           ngo_id?: string
           period_type?: string
