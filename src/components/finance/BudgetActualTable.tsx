@@ -7,13 +7,15 @@ import { useBudgets, Budget } from "@/hooks/useBudgets";
 import { useActuals, Actual } from "@/hooks/useActuals";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, ExternalLink, Save } from "lucide-react";
+import { Loader2, ExternalLink, Save, Download } from "lucide-react";
 
 interface BudgetActualTableProps {
   ngoId: string;
   fiscalPeriodId: string;
   editable?: boolean;
   currency?: string;
+  showExport?: boolean;
+  exportFileName?: string;
 }
 
 interface RowData {
@@ -22,7 +24,7 @@ interface RowData {
   actual: Actual | undefined;
 }
 
-export function BudgetActualTable({ ngoId, fiscalPeriodId, editable = false, currency = "USD" }: BudgetActualTableProps) {
+export function BudgetActualTable({ ngoId, fiscalPeriodId, editable = false, currency = "USD", showExport = false, exportFileName = "budget-vs-actual" }: BudgetActualTableProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const { data: categories, isLoading: catLoading } = useBudgetCategories(ngoId);
@@ -95,8 +97,46 @@ export function BudgetActualTable({ ngoId, fiscalPeriodId, editable = false, cur
   const totalActualIncome = rows.filter((r) => r.category.type === "income").reduce((sum, r) => sum + (r.actual?.amount || 0), 0);
   const totalActualExpense = rows.filter((r) => r.category.type === "expense").reduce((sum, r) => sum + (r.actual?.amount || 0), 0);
 
+  const handleExportCSV = () => {
+    const csvHeaders = ["Code", "Category", "Type", "Budget", "Actual", "Variance", "Notes"];
+    const csvRows = rows.map((row) => {
+      const b = row.budget?.amount || 0;
+      const a = row.actual?.amount || 0;
+      return [
+        row.category.code,
+        `"${row.category.name.replace(/"/g, '""')}"`,
+        row.category.type,
+        b.toFixed(2),
+        a.toFixed(2),
+        (a - b).toFixed(2),
+        `"${(row.budget?.notes || "").replace(/"/g, '""')}"`,
+      ].join(",");
+    });
+
+    // Add totals
+    csvRows.push("");
+    csvRows.push(`,,Income Totals,${totalBudgetIncome.toFixed(2)},${totalActualIncome.toFixed(2)},${(totalActualIncome - totalBudgetIncome).toFixed(2)},`);
+    csvRows.push(`,,Expense Totals,${totalBudgetExpense.toFixed(2)},${totalActualExpense.toFixed(2)},${(totalActualExpense - totalBudgetExpense).toFixed(2)},`);
+
+    const csv = [csvHeaders.join(","), ...csvRows].join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${exportFileName}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="space-y-4">
+      {showExport && rows.length > 0 && (
+        <div className="flex justify-end">
+          <Button variant="outline" size="sm" onClick={handleExportCSV}>
+            <Download className="h-4 w-4 mr-1" /> Export CSV
+          </Button>
+        </div>
+      )}
       <div className="rounded-md border overflow-auto">
         <Table>
           <TableHeader>
