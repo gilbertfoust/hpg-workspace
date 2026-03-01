@@ -1725,6 +1725,71 @@ export type Database = {
         }
         Relationships: []
       }
+      inventory_items: {
+        Row: {
+          category: string
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          location: string | null
+          name: string
+          ngo_id: string
+          notes: string | null
+          quantity_on_hand: number
+          reorder_point: number | null
+          reorder_quantity: number | null
+          sku: string | null
+          unit_cost: number
+          unit_of_measure: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          location?: string | null
+          name: string
+          ngo_id: string
+          notes?: string | null
+          quantity_on_hand?: number
+          reorder_point?: number | null
+          reorder_quantity?: number | null
+          sku?: string | null
+          unit_cost?: number
+          unit_of_measure?: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          location?: string | null
+          name?: string
+          ngo_id?: string
+          notes?: string | null
+          quantity_on_hand?: number
+          reorder_point?: number | null
+          reorder_quantity?: number | null
+          sku?: string | null
+          unit_cost?: number
+          unit_of_measure?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_items_ngo_id_fkey"
+            columns: ["ngo_id"]
+            isOneToOne: false
+            referencedRelation: "ngos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       journal_entries: {
         Row: {
           account_id: string
@@ -2513,6 +2578,176 @@ export type Database = {
           {
             foreignKeyName: "staff_profiles_user_id_fkey"
             columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stock_movements: {
+        Row: {
+          created_at: string
+          id: string
+          item_id: string
+          movement_type: string
+          ngo_id: string
+          notes: string | null
+          performed_by_user_id: string | null
+          quantity: number
+          reference_number: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          item_id: string
+          movement_type?: string
+          ngo_id: string
+          notes?: string | null
+          performed_by_user_id?: string | null
+          quantity: number
+          reference_number?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          item_id?: string
+          movement_type?: string
+          ngo_id?: string
+          notes?: string | null
+          performed_by_user_id?: string | null
+          quantity?: number
+          reference_number?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_movements_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_movements_ngo_id_fkey"
+            columns: ["ngo_id"]
+            isOneToOne: false
+            referencedRelation: "ngos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_movements_performed_by_user_id_fkey"
+            columns: ["performed_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      supply_request_items: {
+        Row: {
+          created_at: string
+          id: string
+          item_id: string
+          notes: string | null
+          quantity_fulfilled: number
+          quantity_requested: number
+          supply_request_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          item_id: string
+          notes?: string | null
+          quantity_fulfilled?: number
+          quantity_requested?: number
+          supply_request_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          item_id?: string
+          notes?: string | null
+          quantity_fulfilled?: number
+          quantity_requested?: number
+          supply_request_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supply_request_items_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supply_request_items_supply_request_id_fkey"
+            columns: ["supply_request_id"]
+            isOneToOne: false
+            referencedRelation: "supply_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      supply_requests: {
+        Row: {
+          approved_at: string | null
+          approved_by_user_id: string | null
+          created_at: string
+          id: string
+          needed_by: string | null
+          ngo_id: string
+          notes: string | null
+          priority: string
+          request_number: string
+          requested_by_user_id: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by_user_id?: string | null
+          created_at?: string
+          id?: string
+          needed_by?: string | null
+          ngo_id: string
+          notes?: string | null
+          priority?: string
+          request_number: string
+          requested_by_user_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by_user_id?: string | null
+          created_at?: string
+          id?: string
+          needed_by?: string | null
+          ngo_id?: string
+          notes?: string | null
+          priority?: string
+          request_number?: string
+          requested_by_user_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supply_requests_approved_by_user_id_fkey"
+            columns: ["approved_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supply_requests_ngo_id_fkey"
+            columns: ["ngo_id"]
+            isOneToOne: false
+            referencedRelation: "ngos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supply_requests_requested_by_user_id_fkey"
+            columns: ["requested_by_user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
