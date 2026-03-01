@@ -493,6 +493,306 @@ export type Database = {
           },
         ]
       }
+      crm_contacts: {
+        Row: {
+          created_at: string
+          created_by_user_id: string | null
+          department: string | null
+          email: string | null
+          first_name: string
+          id: string
+          is_active: boolean
+          is_primary: boolean
+          last_name: string
+          notes: string | null
+          organization_id: string | null
+          phone: string | null
+          tags: string[] | null
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by_user_id?: string | null
+          department?: string | null
+          email?: string | null
+          first_name: string
+          id?: string
+          is_active?: boolean
+          is_primary?: boolean
+          last_name: string
+          notes?: string | null
+          organization_id?: string | null
+          phone?: string | null
+          tags?: string[] | null
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by_user_id?: string | null
+          department?: string | null
+          email?: string | null
+          first_name?: string
+          id?: string
+          is_active?: boolean
+          is_primary?: boolean
+          last_name?: string
+          notes?: string | null
+          organization_id?: string | null
+          phone?: string | null
+          tags?: string[] | null
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_contacts_created_by_user_id_fkey"
+            columns: ["created_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_contacts_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "crm_organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_deals: {
+        Row: {
+          actual_close_date: string | null
+          amount: number | null
+          assigned_user_id: string | null
+          contact_id: string | null
+          created_at: string
+          created_by_user_id: string | null
+          deal_type: string
+          expected_close_date: string | null
+          id: string
+          ngo_id: string | null
+          notes: string | null
+          organization_id: string | null
+          probability: number | null
+          stage: string
+          tags: string[] | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          actual_close_date?: string | null
+          amount?: number | null
+          assigned_user_id?: string | null
+          contact_id?: string | null
+          created_at?: string
+          created_by_user_id?: string | null
+          deal_type?: string
+          expected_close_date?: string | null
+          id?: string
+          ngo_id?: string | null
+          notes?: string | null
+          organization_id?: string | null
+          probability?: number | null
+          stage?: string
+          tags?: string[] | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          actual_close_date?: string | null
+          amount?: number | null
+          assigned_user_id?: string | null
+          contact_id?: string | null
+          created_at?: string
+          created_by_user_id?: string | null
+          deal_type?: string
+          expected_close_date?: string | null
+          id?: string
+          ngo_id?: string | null
+          notes?: string | null
+          organization_id?: string | null
+          probability?: number | null
+          stage?: string
+          tags?: string[] | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_deals_assigned_user_id_fkey"
+            columns: ["assigned_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_deals_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "crm_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_deals_created_by_user_id_fkey"
+            columns: ["created_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_deals_ngo_id_fkey"
+            columns: ["ngo_id"]
+            isOneToOne: false
+            referencedRelation: "ngos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_deals_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "crm_organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_interactions: {
+        Row: {
+          contact_id: string | null
+          created_at: string
+          description: string | null
+          id: string
+          interaction_date: string
+          interaction_type: string
+          logged_by_user_id: string | null
+          organization_id: string | null
+          subject: string
+          updated_at: string
+        }
+        Insert: {
+          contact_id?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          interaction_date?: string
+          interaction_type?: string
+          logged_by_user_id?: string | null
+          organization_id?: string | null
+          subject: string
+          updated_at?: string
+        }
+        Update: {
+          contact_id?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          interaction_date?: string
+          interaction_type?: string
+          logged_by_user_id?: string | null
+          organization_id?: string | null
+          subject?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_interactions_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "crm_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_interactions_logged_by_user_id_fkey"
+            columns: ["logged_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_interactions_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "crm_organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_organizations: {
+        Row: {
+          address: string | null
+          annual_revenue: number | null
+          city: string | null
+          country: string | null
+          created_at: string
+          created_by_user_id: string | null
+          description: string | null
+          email: string | null
+          employee_count: number | null
+          id: string
+          industry: string | null
+          is_active: boolean
+          name: string
+          org_type: string
+          phone: string | null
+          state_province: string | null
+          tags: string[] | null
+          updated_at: string
+          website: string | null
+        }
+        Insert: {
+          address?: string | null
+          annual_revenue?: number | null
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          created_by_user_id?: string | null
+          description?: string | null
+          email?: string | null
+          employee_count?: number | null
+          id?: string
+          industry?: string | null
+          is_active?: boolean
+          name: string
+          org_type?: string
+          phone?: string | null
+          state_province?: string | null
+          tags?: string[] | null
+          updated_at?: string
+          website?: string | null
+        }
+        Update: {
+          address?: string | null
+          annual_revenue?: number | null
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          created_by_user_id?: string | null
+          description?: string | null
+          email?: string | null
+          employee_count?: number | null
+          id?: string
+          industry?: string | null
+          is_active?: boolean
+          name?: string
+          org_type?: string
+          phone?: string | null
+          state_province?: string | null
+          tags?: string[] | null
+          updated_at?: string
+          website?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_organizations_created_by_user_id_fkey"
+            columns: ["created_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       document_extraction_logs: {
         Row: {
           confidence_score: number | null
