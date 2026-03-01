@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { PeriodSummaryCard } from "@/components/finance/PeriodSummaryCard";
 import { BudgetActualTable } from "@/components/finance/BudgetActualTable";
 import { BudgetActualChart } from "@/components/finance/BudgetActualChart";
+import { FinanceDocsTab } from "@/components/finance/FinanceDocsTab";
 import { useFiscalPeriods } from "@/hooks/useFiscalPeriods";
 import { useActuals } from "@/hooks/useActuals";
 import { useFinancialReviewStatus } from "@/hooks/useFinancialReviewStatus";
@@ -165,15 +166,7 @@ const NGOFinancialOverview = () => {
           </TabsContent>
 
           <TabsContent value="docs" className="mt-4">
-            <Card>
-              <CardHeader><CardTitle className="text-base">Documents & Notes</CardTitle></CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">
-                  This section will display narrative notes and supporting documents for this NGO's financial reporting.
-                  Documents uploaded as supporting evidence for actuals will appear here, along with any reviewer notes.
-                </p>
-              </CardContent>
-            </Card>
+            {ngoId && <FinanceDocsTab ngoId={ngoId} />}
           </TabsContent>
         </Tabs>
 
