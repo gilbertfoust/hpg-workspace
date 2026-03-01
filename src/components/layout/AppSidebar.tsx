@@ -28,6 +28,15 @@ import {
   Menu,
   X,
   LogOut,
+  Contact,
+  ShoppingCart,
+  Award,
+  Package,
+  Warehouse,
+  TrendingUp,
+  Globe,
+  Eye,
+  Building,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -115,10 +124,24 @@ const modulesSections: ModuleSection[] = [
   },
 ];
 
+const erpModules = [
+  { to: "/crm", icon: <Contact className="w-4 h-4" />, label: "CRM" },
+  { to: "/procurement", icon: <ShoppingCart className="w-4 h-4" />, label: "Procurement" },
+  { to: "/grants", icon: <Award className="w-4 h-4" />, label: "Grants" },
+  { to: "/erp/hr", icon: <Users className="w-4 h-4" />, label: "HR & Workforce" },
+  { to: "/assets", icon: <Package className="w-4 h-4" />, label: "Assets" },
+  { to: "/inventory", icon: <Warehouse className="w-4 h-4" />, label: "Inventory" },
+  { to: "/revenue", icon: <TrendingUp className="w-4 h-4" />, label: "Revenue" },
+  { to: "/governance", icon: <Globe className="w-4 h-4" />, label: "Governance" },
+  { to: "/audit", icon: <Eye className="w-4 h-4" />, label: "Audit" },
+  { to: "/controller", icon: <Building className="w-4 h-4" />, label: "Controller Hub" },
+];
+
 export function AppSidebar() {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const location = useLocation();
   const [expandedModules, setExpandedModules] = useState(false);
+  const [expandedERP, setExpandedERP] = useState(false);
   const { user, signOut } = useAuth();
   const { data: userRole } = useUserRole();
   const { toast } = useToast();
@@ -149,11 +172,13 @@ export function AppSidebar() {
         title: "Signed out",
         description: "You have been successfully signed out.",
       });
-      // Navigate to auth page
       const base = import.meta.env.BASE_URL || "/";
       navigate(`${base}auth`, { replace: true });
     }
   };
+
+  // Auto-expand ERP section if on an ERP route
+  const isOnERPRoute = erpModules.some(m => location.pathname.startsWith(m.to));
 
   return (
     <>
@@ -285,6 +310,30 @@ export function AppSidebar() {
                             ))}
                           </div>
                         </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* ERP Modules Section */}
+              {!isCollapsed && (
+                <div className="pt-4">
+                  <button
+                    onClick={() => setExpandedERP(!expandedERP)}
+                    className="flex items-center justify-between w-full px-3 py-2 text-xs font-semibold uppercase tracking-wider text-white/70 hover:text-white"
+                  >
+                    <span className="flex items-center gap-2">
+                      <Building className="w-4 h-4" />
+                      ERP Modules
+                    </span>
+                    <ChevronDown className={cn("w-4 h-4 transition-transform", (expandedERP || isOnERPRoute) && "rotate-180")} />
+                  </button>
+
+                  {(expandedERP || isOnERPRoute) && (
+                    <div className="mt-2 space-y-1 animate-fade-in">
+                      {erpModules.map((item) => (
+                        <NavItem key={item.to} {...item} />
                       ))}
                     </div>
                   )}
