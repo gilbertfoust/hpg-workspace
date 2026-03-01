@@ -110,7 +110,7 @@ const PeriodDetail = () => {
             )}
           </div>
           {ngoId && periodId && (
-            <BudgetActualTable ngoId={ngoId} fiscalPeriodId={periodId} editable currency={period.currency_code || "USD"} />
+            <BudgetActualTable ngoId={ngoId} fiscalPeriodId={periodId} editable currency={period.currency_code || "USD"} showExport exportFileName={`BvA-${ngo?.common_name || ngo?.legal_name}-${period.label}`.replace(/\s+/g, "_")} />
           )}
         </div>
 
