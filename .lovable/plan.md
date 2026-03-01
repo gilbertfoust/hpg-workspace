@@ -1,148 +1,139 @@
 
 
-## HPG Financial Hub — Phase 2: Double-Entry Ledger Engine
+## Document Intake & Ledger Linking — Implementation Plan
 
-### 1. Database Migration Plan
+### 1. Database Migration
 
-**New tables:**
+**Three new tables + one storage bucket:**
 
 ```text
-accounts
-├── id (uuid PK)
-├── ngo_id (uuid | null)  — null = global template
-├── code (text)
-├── name (text)
-├── type (text: asset|liability|equity|income|expense)  — validated via trigger
-├── parent_account_id (uuid | null FK → accounts)  — for sub-accounts
-├── is_active (boolean, default true)
-├── created_at (timestamptz)
-└── updated_at (timestamptz)
-
-transactions
-├── id (uuid PK)
+document_intake_submissions
+├── id (uuid PK, default gen_random_uuid())
 ├── ngo_id (uuid, not null)
-├── fiscal_period_id (uuid | null FK → fiscal_periods)
-├── transaction_date (date)
-├── description (text)
-├── reference_number (text | null)
-├── is_void (boolean, default false)
-├── created_by_user_id (uuid | null)
-├── created_at (timestamptz)
-└── updated_at (timestamptz)
-
-journal_entries
-├── id (uuid PK)
-├── transaction_id (uuid FK → transactions ON DELETE CASCADE)
-├── account_id (uuid FK → accounts)
-├── debit (numeric, default 0)
-├── credit (numeric, default 0)
-├── memo (text | null)
-├── created_at (timestamptz)
-
-receipts
-├── id (uuid PK)
-├── transaction_id (uuid FK → transactions ON DELETE CASCADE)
+├── type (text, validated: receipt|donation|grant_award|vendor_invoice|reimbursement|other)
+├── status (text, validated: submitted|extracted|processing|pending_review|approved|rejected)
 ├── file_path (text)
 ├── file_name (text)
-├── uploaded_by_user_id (uuid | null)
-├── uploaded_at (timestamptz)
+├── submitted_by_user_id (uuid)
+├── extracted_data_json (jsonb, default '{}')
+├── reviewer_user_id (uuid, nullable)
+├── reviewer_notes (text, nullable)
+├── fiscal_period_id (uuid, nullable)
+├── created_at (timestamptz, default now())
+├── updated_at (timestamptz, default now())
 
-reconciliations
-├── id (uuid PK)
-├── ngo_id (uuid)
-├── fiscal_period_id (uuid FK → fiscal_periods)
-├── status (text: open|in_progress|closed)  — validated via trigger
-├── reconciled_by_user_id (uuid | null)
-├── reconciled_at (timestamptz | null)
-├── notes (text | null)
-├── created_at (timestamptz)
-└── updated_at (timestamptz)
+document_to_transaction_links
+├── id (uuid PK, default gen_random_uuid())
+├── intake_id (uuid, not null)
+├── transaction_id (uuid, not null)
+├── created_at (timestamptz, default now())
+
+document_extraction_logs
+├── id (uuid PK, default gen_random_uuid())
+├── intake_id (uuid, not null)
+├── raw_text (text)
+├── extracted_data_json (jsonb, default '{}')
+├── confidence_score (numeric)
+├── created_at (timestamptz, default now())
 ```
 
-**Storage bucket:** `ledger-receipts` (private)
+**Storage bucket:** `intake-documents` (private)
 
-**Validation triggers:** One each for `accounts.type`, `reconciliations.status`, and a trigger on `journal_entries` insert/update to verify sum(debit) = sum(credit) per transaction.
+**Validation triggers:**
+- `document_intake_submissions.type` — must be one of: receipt, donation, grant_award, vendor_invoice, reimbursement, other
+- `document_intake_submissions.status` — must be one of: submitted, extracted, processing, pending_review, approved, rejected; also sets `updated_at = now()`
 
-**RLS policies (all tables):**
-- SELECT: `is_internal_user() OR has_ngo_access(ngo_id)`
+**RLS (all three tables):**
+- SELECT: `is_internal_user() OR has_ngo_access(ngo_id)` (for links/logs: join through intake_id)
 - INSERT: `is_internal_user() OR has_ngo_access(ngo_id)`
 - UPDATE: `is_internal_user() OR has_ngo_access(ngo_id)`
 - DELETE: `is_super_admin()`
 
-### 2. Relationship to Phase 1
+### 2. OCR & Extraction Architecture
 
-The existing `budget_categories` table is structurally similar to the new `accounts` table but serves a different purpose (budget line items vs. ledger accounts). They will coexist:
+Use Lovable AI (Gemini 2.5 Flash) via an edge function `process-intake-document`:
+1. Reads the uploaded file from `intake-documents` bucket
+2. Sends file content to the AI model with a structured prompt requesting: date, amount, vendor/donor, description, category guess, transaction type
+3. Returns structured JSON into `extracted_data_json`
+4. Logs raw text + confidence to `document_extraction_logs`
+5. Updates status to `pending_review`
 
-- **`budget_categories`** — continues to drive Budget vs Actual reporting
-- **`accounts`** — drives the double-entry ledger (Chart of Accounts, GL, Trial Balance)
-- **Integration point:** The `ReconciliationPanel` on the Period Detail page will compare journal entry totals (from `journal_entries` grouped by account type) against `actuals` totals to flag mismatches and allow closing a period.
+The edge function is called client-side after upload completes.
 
 ### 3. New Hooks
 
 | Hook | Purpose |
 |------|---------|
-| `useAccounts(ngoId?)` | CRUD for chart of accounts |
-| `useTransactions(ngoId, filters?)` | List/create/void transactions |
-| `useJournalEntries(transactionId?)` | Entries for a transaction |
-| `useLedger(ngoId, accountId, dateRange?)` | GL entries + running balance |
-| `useTrialBalance(ngoId, fiscalPeriodId)` | Aggregated debits/credits by account |
-| `useReconciliation(ngoId, fiscalPeriodId)` | Reconciliation status + comparison |
+| `useDocumentIntake(ngoId?)` | CRUD for intake submissions, list/filter by status/type |
+| `useDocumentExtractionLogs(intakeId?)` | Read extraction history for a submission |
+| `useDocumentToTransactionLinks(intakeId?)` | Read/create links between intake and transactions |
+| `useIntakeApproval()` | Mutation: validates extracted data, creates transaction + journal entries via existing `useTransactions.create` pattern, inserts link, updates status to approved |
 
 ### 4. New Components
 
-| Component | Location | Description |
-|-----------|----------|-------------|
-| `TransactionForm` | `src/components/finance/TransactionForm.tsx` | Multi-line journal entry form with account selectors, debit/credit inputs, receipt upload, client-side balance validation |
-| `TransactionsTable` | `src/components/finance/TransactionsTable.tsx` | Filterable list of transactions with date, description, total, void status |
-| `JournalEntryTable` | `src/components/finance/JournalEntryTable.tsx` | Shows debit/credit lines for a single transaction |
-| `AccountsTable` | `src/components/finance/AccountsTable.tsx` | Chart of accounts management with inline editing, type badges |
-| `LedgerTable` | `src/components/finance/LedgerTable.tsx` | GL view: date, description, debit, credit, running balance per account |
-| `TrialBalanceTable` | `src/components/finance/TrialBalanceTable.tsx` | Grouped by account type, debit/credit totals, balanced indicator |
-| `ReconciliationPanel` | `src/components/finance/ReconciliationPanel.tsx` | Side-by-side comparison of journal totals vs actuals, close-period action |
-| `AccountSelector` | `src/components/finance/AccountSelector.tsx` | Combobox for selecting accounts, grouped by type |
-| `ReceiptUploader` | `src/components/finance/ReceiptUploader.tsx` | File upload to `ledger-receipts` bucket |
+| Component | Description |
+|-----------|-------------|
+| `IntakeUploadDialog` | File upload to `intake-documents` bucket, select NGO + document type, triggers extraction edge function |
+| `IntakeSubmissionsTable` | Filterable table of submissions with status badges, type icons, date, NGO filter |
+| `IntakeReviewPanel` | Side-by-side: file preview (iframe/image) + editable extracted fields + account selectors for debit/credit + fiscal period selector + approve/reject buttons |
+| `ExtractionPreviewCard` | Read-only card showing extracted fields with confidence indicators |
+| `TransactionAutoBuilder` | Inline form for building debit/credit journal entry lines from extracted data, reuses `AccountSelector` |
+| `LinkedTransactionBadge` | Small badge/link showing the linked transaction for approved items |
 
-### 5. New Pages & Routing
+### 5. Pages & Routing
 
 | Route | Page | Description |
 |-------|------|-------------|
-| `/financial-hub/accounts` | `AccountsPage.tsx` | Chart of Accounts — NGO filter, create/edit accounts |
-| `/financial-hub/transactions` | `TransactionsPage.tsx` | All transactions — NGO filter, date range, link to create |
-| `/financial-hub/transactions/new` | `NewTransactionPage.tsx` | Transaction form (create) |
-| `/financial-hub/ledger` | `GeneralLedgerPage.tsx` | GL — NGO filter, account filter, date range, beginning/ending balance |
-| `/financial-hub/trial-balance` | `TrialBalancePage.tsx` | Trial Balance — NGO + period selectors |
+| `/financial-hub/intake` | `IntakeDashboard.tsx` | Overview: submission counts by status, NGO filter, table of all submissions, upload button |
+| `/financial-hub/intake/review/:intakeId` | `IntakeReviewPage.tsx` | Full review panel for a single submission |
 
-All wrapped in `<ProtectedRoute>` and using `MainLayout`.
+Both pages use `ProtectedRoute` + `MainLayout`.
 
 ### 6. Sidebar Update
 
-Add a collapsible sub-section under the existing "Financial Hub" nav item:
-
+Add under the Financial Hub sub-menu (between "Trial Balance" and "Compliance"):
 ```text
-Financial Hub          (existing, /financial-hub)
-  ├── Accounts         (/financial-hub/accounts)
-  ├── Transactions     (/financial-hub/transactions)
-  ├── General Ledger   (/financial-hub/ledger)
-  └── Trial Balance    (/financial-hub/trial-balance)
+Financial Hub
+  ├── Accounts
+  ├── Transactions
+  ├── General Ledger
+  ├── Trial Balance
+  ├── Intake              ← NEW
+  └── Compliance
 ```
 
-The sidebar `AppSidebar.tsx` will be updated to show a collapsible group when the current route starts with `/financial-hub`.
+### 7. End-to-End Workflow
 
-### 7. Period Detail Page Enhancements
+```text
+Upload file → Store in intake-documents bucket
+           → Insert document_intake_submissions (status: submitted)
+           → Call process-intake-document edge function
+           → AI extracts fields → saves to extracted_data_json
+           → Status → pending_review
 
-Add two new sections to `PeriodDetail.tsx`:
-- **Raw Transactions** — filtered `TransactionsTable` for that NGO + period
-- **Reconciliation Status** — the `ReconciliationPanel` comparing journal totals vs actuals, with ability to mark period as closed
+Reviewer opens IntakeReviewPage
+           → Sees file preview + extracted fields (editable)
+           → Selects debit/credit accounts, fiscal period
+           → Clicks "Approve"
+           → Creates transaction + journal_entries (Phase 2 engine)
+           → Inserts document_to_transaction_links
+           → Status → approved
+           → Trial balance, GL, reconciliation all reflect the new transaction
+```
 
-### 8. Implementation Order
+### 8. Integration Points
 
-1. **Database migration** — tables, triggers, RLS, storage bucket
-2. **Hooks** — `useAccounts`, `useTransactions`, `useJournalEntries`, `useLedger`, `useTrialBalance`, `useReconciliation`
-3. **Shared components** — `AccountSelector`, `ReceiptUploader`
-4. **Chart of Accounts page** — `AccountsTable` + `AccountsPage`
-5. **Transaction form + list** — `TransactionForm`, `TransactionsTable`, pages
-6. **General Ledger page** — `LedgerTable` + `GeneralLedgerPage`
-7. **Trial Balance page** — `TrialBalanceTable` + `TrialBalancePage`
-8. **Reconciliation** — `ReconciliationPanel`, Period Detail integration
-9. **Sidebar + routing** — update `AppSidebar`, `App.tsx`
+- **Period locking:** IntakeReviewPanel checks `fiscal_periods.is_locked` before allowing approval for that period.
+- **Reconciliation:** Intake-linked transactions appear in the existing reconciliation flow automatically (they are normal transactions).
+- **Budget vs Actuals:** Unchanged — actuals still come from the `actuals` table; ledger transactions feed trial balance and GL independently.
+- **E-Sign:** Optional — the review panel can include a "Request Signature" button that creates a signing request for the source document.
+
+### 9. Implementation Order
+
+1. Database migration (3 tables, triggers, RLS, storage bucket)
+2. Edge function `process-intake-document` (AI-powered extraction)
+3. Hooks (`useDocumentIntake`, `useDocumentExtractionLogs`, `useDocumentToTransactionLinks`, `useIntakeApproval`)
+4. Components (`IntakeUploadDialog`, `IntakeSubmissionsTable`, `ExtractionPreviewCard`, `TransactionAutoBuilder`, `IntakeReviewPanel`)
+5. Pages (`IntakeDashboard`, `IntakeReviewPage`)
+6. Sidebar + routing updates
 
