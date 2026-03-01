@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -165,7 +166,16 @@ export function BudgetActualTable({ ngoId, fiscalPeriodId, editable = false, cur
                 return (
                   <TableRow key={row.category.id}>
                     <TableCell className="font-mono text-xs">{row.category.code}</TableCell>
-                    <TableCell className="font-medium">{row.category.name}</TableCell>
+                    <TableCell className="font-medium">
+                      <span className="flex items-center gap-1.5">
+                        {row.category.name}
+                        {row.category.ngo_id ? (
+                          <Badge variant="outline" className="text-[10px] px-1.5 py-0 font-normal">NGO</Badge>
+                        ) : (
+                          <Badge variant="secondary" className="text-[10px] px-1.5 py-0 font-normal">HPG</Badge>
+                        )}
+                      </span>
+                    </TableCell>
                     <TableCell><span className="capitalize text-xs text-muted-foreground">{row.category.type}</span></TableCell>
                     <TableCell className="text-right">
                       {editable ? (
