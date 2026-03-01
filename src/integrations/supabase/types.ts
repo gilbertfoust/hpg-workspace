@@ -988,6 +988,208 @@ export type Database = {
           },
         ]
       }
+      grant_applications: {
+        Row: {
+          amount_awarded: number | null
+          amount_requested: number | null
+          assigned_user_id: string | null
+          awarded_at: string | null
+          closed_at: string | null
+          created_at: string
+          id: string
+          ngo_id: string
+          notes: string | null
+          opportunity_id: string | null
+          reporting_due_at: string | null
+          stage: string
+          submitted_at: string | null
+          title: string
+          updated_at: string
+          work_item_id: string | null
+        }
+        Insert: {
+          amount_awarded?: number | null
+          amount_requested?: number | null
+          assigned_user_id?: string | null
+          awarded_at?: string | null
+          closed_at?: string | null
+          created_at?: string
+          id?: string
+          ngo_id: string
+          notes?: string | null
+          opportunity_id?: string | null
+          reporting_due_at?: string | null
+          stage?: string
+          submitted_at?: string | null
+          title: string
+          updated_at?: string
+          work_item_id?: string | null
+        }
+        Update: {
+          amount_awarded?: number | null
+          amount_requested?: number | null
+          assigned_user_id?: string | null
+          awarded_at?: string | null
+          closed_at?: string | null
+          created_at?: string
+          id?: string
+          ngo_id?: string
+          notes?: string | null
+          opportunity_id?: string | null
+          reporting_due_at?: string | null
+          stage?: string
+          submitted_at?: string | null
+          title?: string
+          updated_at?: string
+          work_item_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "grant_applications_assigned_user_id_fkey"
+            columns: ["assigned_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "grant_applications_ngo_id_fkey"
+            columns: ["ngo_id"]
+            isOneToOne: false
+            referencedRelation: "ngos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "grant_applications_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "grant_opportunities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "grant_applications_work_item_id_fkey"
+            columns: ["work_item_id"]
+            isOneToOne: false
+            referencedRelation: "work_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      grant_opportunities: {
+        Row: {
+          country: string | null
+          created_at: string
+          cycle: string | null
+          deadline: string | null
+          description: string | null
+          eligibility_criteria: string | null
+          focus_areas: string[] | null
+          id: string
+          max_award: number | null
+          min_award: number | null
+          notes: string | null
+          region: string | null
+          source_id: string | null
+          status: string
+          title: string
+          updated_at: string
+          url: string | null
+        }
+        Insert: {
+          country?: string | null
+          created_at?: string
+          cycle?: string | null
+          deadline?: string | null
+          description?: string | null
+          eligibility_criteria?: string | null
+          focus_areas?: string[] | null
+          id?: string
+          max_award?: number | null
+          min_award?: number | null
+          notes?: string | null
+          region?: string | null
+          source_id?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+          url?: string | null
+        }
+        Update: {
+          country?: string | null
+          created_at?: string
+          cycle?: string | null
+          deadline?: string | null
+          description?: string | null
+          eligibility_criteria?: string | null
+          focus_areas?: string[] | null
+          id?: string
+          max_award?: number | null
+          min_award?: number | null
+          notes?: string | null
+          region?: string | null
+          source_id?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+          url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "grant_opportunities_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "grant_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      grant_sources: {
+        Row: {
+          country: string | null
+          created_at: string
+          description: string | null
+          focus_areas: string[] | null
+          funder_type: string
+          id: string
+          is_active: boolean
+          max_award: number | null
+          min_award: number | null
+          name: string
+          region: string | null
+          updated_at: string
+          website: string | null
+        }
+        Insert: {
+          country?: string | null
+          created_at?: string
+          description?: string | null
+          focus_areas?: string[] | null
+          funder_type?: string
+          id?: string
+          is_active?: boolean
+          max_award?: number | null
+          min_award?: number | null
+          name: string
+          region?: string | null
+          updated_at?: string
+          website?: string | null
+        }
+        Update: {
+          country?: string | null
+          created_at?: string
+          description?: string | null
+          focus_areas?: string[] | null
+          funder_type?: string
+          id?: string
+          is_active?: boolean
+          max_award?: number | null
+          min_award?: number | null
+          name?: string
+          region?: string | null
+          updated_at?: string
+          website?: string | null
+        }
+        Relationships: []
+      }
       journal_entries: {
         Row: {
           account_id: string
