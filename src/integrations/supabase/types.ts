@@ -728,6 +728,50 @@ export type Database = {
           },
         ]
       }
+      controller_alerts: {
+        Row: {
+          context_json: Json | null
+          created_at: string
+          id: string
+          message: string
+          module: string
+          ngo_id: string | null
+          resolved_at: string | null
+          severity: string
+          status: string
+        }
+        Insert: {
+          context_json?: Json | null
+          created_at?: string
+          id?: string
+          message: string
+          module: string
+          ngo_id?: string | null
+          resolved_at?: string | null
+          severity?: string
+          status?: string
+        }
+        Update: {
+          context_json?: Json | null
+          created_at?: string
+          id?: string
+          message?: string
+          module?: string
+          ngo_id?: string | null
+          resolved_at?: string | null
+          severity?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "controller_alerts_ngo_id_fkey"
+            columns: ["ngo_id"]
+            isOneToOne: false
+            referencedRelation: "ngos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       crm_contacts: {
         Row: {
           created_at: string
@@ -1831,6 +1875,56 @@ export type Database = {
             columns: ["transaction_id"]
             isOneToOne: false
             referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ngo_risk_profiles: {
+        Row: {
+          compliance_risk_score: number
+          created_at: string
+          financial_risk_score: number
+          hr_risk_score: number
+          id: string
+          ngo_id: string
+          notes: string | null
+          operations_risk_score: number
+          overall_risk_score: number
+          risk_level: string
+          updated_at: string
+        }
+        Insert: {
+          compliance_risk_score?: number
+          created_at?: string
+          financial_risk_score?: number
+          hr_risk_score?: number
+          id?: string
+          ngo_id: string
+          notes?: string | null
+          operations_risk_score?: number
+          overall_risk_score?: number
+          risk_level?: string
+          updated_at?: string
+        }
+        Update: {
+          compliance_risk_score?: number
+          created_at?: string
+          financial_risk_score?: number
+          hr_risk_score?: number
+          id?: string
+          ngo_id?: string
+          notes?: string | null
+          operations_risk_score?: number
+          overall_risk_score?: number
+          risk_level?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ngo_risk_profiles_ngo_id_fkey"
+            columns: ["ngo_id"]
+            isOneToOne: true
+            referencedRelation: "ngos"
             referencedColumns: ["id"]
           },
         ]
