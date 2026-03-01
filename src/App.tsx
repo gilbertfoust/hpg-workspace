@@ -112,6 +112,7 @@ import AuditTrail from "./modules/audit/pages/AuditTrail";
 import PermissionChanges from "./modules/audit/pages/PermissionChanges";
 
 import ControllerDashboard from "./modules/controller/pages/ControllerDashboard";
+import NgoControllerDetail from "./modules/controller/pages/NgoControllerDetail";
 import Consolidation from "./modules/controller/pages/Consolidation";
 import RiskScoring from "./modules/controller/pages/RiskScoring";
 import InterNGOTransfers from "./modules/controller/pages/InterNGOTransfers";
@@ -262,6 +263,7 @@ const App = () => {
 
                 {/* Controller */}
                 <Route path="/controller" element={<P><ControllerDashboard /></P>} />
+                <Route path="/controller/ngo/:ngoId" element={<P><NgoControllerDetail /></P>} />
                 <Route path="/controller/consolidation" element={<P><Consolidation /></P>} />
                 <Route path="/controller/risk" element={<P><RiskScoring /></P>} />
                 <Route path="/controller/transfers" element={<P><InterNGOTransfers /></P>} />
