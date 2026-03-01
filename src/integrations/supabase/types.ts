@@ -2391,6 +2391,228 @@ export type Database = {
           },
         ]
       }
+      recurring_donations: {
+        Row: {
+          amount: number
+          created_at: string
+          currency_code: string | null
+          donor_email: string | null
+          donor_name: string
+          donor_org_id: string | null
+          end_date: string | null
+          frequency: string
+          id: string
+          next_expected_date: string | null
+          ngo_id: string
+          notes: string | null
+          payment_method: string | null
+          revenue_stream_id: string | null
+          start_date: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          currency_code?: string | null
+          donor_email?: string | null
+          donor_name: string
+          donor_org_id?: string | null
+          end_date?: string | null
+          frequency?: string
+          id?: string
+          next_expected_date?: string | null
+          ngo_id: string
+          notes?: string | null
+          payment_method?: string | null
+          revenue_stream_id?: string | null
+          start_date: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          currency_code?: string | null
+          donor_email?: string | null
+          donor_name?: string
+          donor_org_id?: string | null
+          end_date?: string | null
+          frequency?: string
+          id?: string
+          next_expected_date?: string | null
+          ngo_id?: string
+          notes?: string | null
+          payment_method?: string | null
+          revenue_stream_id?: string | null
+          start_date?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recurring_donations_donor_org_id_fkey"
+            columns: ["donor_org_id"]
+            isOneToOne: false
+            referencedRelation: "crm_organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recurring_donations_ngo_id_fkey"
+            columns: ["ngo_id"]
+            isOneToOne: false
+            referencedRelation: "ngos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recurring_donations_revenue_stream_id_fkey"
+            columns: ["revenue_stream_id"]
+            isOneToOne: false
+            referencedRelation: "revenue_streams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      revenue_recognition: {
+        Row: {
+          amount: number
+          created_at: string
+          deferred_amount: number
+          description: string | null
+          fiscal_period_id: string | null
+          id: string
+          ngo_id: string
+          notes: string | null
+          recognition_date: string
+          recognition_type: string
+          revenue_stream_id: string | null
+          transaction_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          deferred_amount?: number
+          description?: string | null
+          fiscal_period_id?: string | null
+          id?: string
+          ngo_id: string
+          notes?: string | null
+          recognition_date: string
+          recognition_type?: string
+          revenue_stream_id?: string | null
+          transaction_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          deferred_amount?: number
+          description?: string | null
+          fiscal_period_id?: string | null
+          id?: string
+          ngo_id?: string
+          notes?: string | null
+          recognition_date?: string
+          recognition_type?: string
+          revenue_stream_id?: string | null
+          transaction_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "revenue_recognition_fiscal_period_id_fkey"
+            columns: ["fiscal_period_id"]
+            isOneToOne: false
+            referencedRelation: "fiscal_periods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "revenue_recognition_ngo_id_fkey"
+            columns: ["ngo_id"]
+            isOneToOne: false
+            referencedRelation: "ngos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "revenue_recognition_revenue_stream_id_fkey"
+            columns: ["revenue_stream_id"]
+            isOneToOne: false
+            referencedRelation: "revenue_streams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "revenue_recognition_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      revenue_streams: {
+        Row: {
+          account_id: string | null
+          annual_target: number | null
+          created_at: string
+          currency_code: string | null
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          ngo_id: string
+          notes: string | null
+          source: string | null
+          stream_type: string
+          updated_at: string
+        }
+        Insert: {
+          account_id?: string | null
+          annual_target?: number | null
+          created_at?: string
+          currency_code?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          ngo_id: string
+          notes?: string | null
+          source?: string | null
+          stream_type?: string
+          updated_at?: string
+        }
+        Update: {
+          account_id?: string | null
+          annual_target?: number | null
+          created_at?: string
+          currency_code?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          ngo_id?: string
+          notes?: string | null
+          source?: string | null
+          stream_type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "revenue_streams_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "revenue_streams_ngo_id_fkey"
+            columns: ["ngo_id"]
+            isOneToOne: false
+            referencedRelation: "ngos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       signed_documents: {
         Row: {
           created_at: string
