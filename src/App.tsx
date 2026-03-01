@@ -22,6 +22,9 @@ import Admin from "./pages/Admin";
 import AdminConfigHome from "./pages/AdminConfig/AdminConfigHome";
 import NotFound from "./pages/NotFound";
 import SignDocument from "./pages/SignDocument";
+import FinancialHub from "./pages/FinancialHub";
+import NGOFinancialOverview from "./pages/NGOFinancialOverview";
+import PeriodDetail from "./pages/PeriodDetail";
 
 // Feature pages
 import MyQueue from "./pages/MyQueue";
@@ -214,6 +217,32 @@ const App = () => {
                   element={
                     <ProtectedRoute>
                       <NGOCoordination />
+                    </ProtectedRoute>
+                  }
+                />
+
+                {/* Financial Hub */}
+                <Route
+                  path="/financial-hub"
+                  element={
+                    <ProtectedRoute>
+                      <FinancialHub />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/financial-hub/ngo/:ngoId"
+                  element={
+                    <ProtectedRoute>
+                      <NGOFinancialOverview />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/financial-hub/ngo/:ngoId/period/:periodId"
+                  element={
+                    <ProtectedRoute>
+                      <PeriodDetail />
                     </ProtectedRoute>
                   }
                 />

@@ -14,6 +14,67 @@ export type Database = {
   }
   public: {
     Tables: {
+      actuals: {
+        Row: {
+          amount: number
+          category_id: string
+          created_at: string
+          created_by_user_id: string | null
+          fiscal_period_id: string
+          id: string
+          ngo_id: string
+          source: string
+          supporting_document_url: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          category_id: string
+          created_at?: string
+          created_by_user_id?: string | null
+          fiscal_period_id: string
+          id?: string
+          ngo_id: string
+          source?: string
+          supporting_document_url?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          category_id?: string
+          created_at?: string
+          created_by_user_id?: string | null
+          fiscal_period_id?: string
+          id?: string
+          ngo_id?: string
+          source?: string
+          supporting_document_url?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "actuals_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "budget_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "actuals_fiscal_period_id_fkey"
+            columns: ["fiscal_period_id"]
+            isOneToOne: false
+            referencedRelation: "fiscal_periods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "actuals_ngo_id_fkey"
+            columns: ["ngo_id"]
+            isOneToOne: false
+            referencedRelation: "ngos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       approvals: {
         Row: {
           created_at: string
@@ -94,6 +155,102 @@ export type Database = {
           reason?: string | null
         }
         Relationships: []
+      }
+      budget_categories: {
+        Row: {
+          code: string
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          ngo_id: string | null
+          type: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          ngo_id?: string | null
+          type: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          ngo_id?: string | null
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "budget_categories_ngo_id_fkey"
+            columns: ["ngo_id"]
+            isOneToOne: false
+            referencedRelation: "ngos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      budgets: {
+        Row: {
+          amount: number
+          category_id: string
+          created_at: string
+          created_by_user_id: string | null
+          fiscal_period_id: string
+          id: string
+          ngo_id: string
+          notes: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          category_id: string
+          created_at?: string
+          created_by_user_id?: string | null
+          fiscal_period_id: string
+          id?: string
+          ngo_id: string
+          notes?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          category_id?: string
+          created_at?: string
+          created_by_user_id?: string | null
+          fiscal_period_id?: string
+          id?: string
+          ngo_id?: string
+          notes?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "budgets_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "budget_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "budgets_fiscal_period_id_fkey"
+            columns: ["fiscal_period_id"]
+            isOneToOne: false
+            referencedRelation: "fiscal_periods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "budgets_ngo_id_fkey"
+            columns: ["ngo_id"]
+            isOneToOne: false
+            referencedRelation: "ngos"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       comments: {
         Row: {
@@ -296,6 +453,98 @@ export type Database = {
           storage_path?: string
         }
         Relationships: []
+      }
+      financial_review_status: {
+        Row: {
+          comments: string | null
+          created_at: string
+          fiscal_period_id: string
+          id: string
+          last_updated_at: string
+          ngo_id: string
+          reviewer_id: string | null
+          status: string
+        }
+        Insert: {
+          comments?: string | null
+          created_at?: string
+          fiscal_period_id: string
+          id?: string
+          last_updated_at?: string
+          ngo_id: string
+          reviewer_id?: string | null
+          status?: string
+        }
+        Update: {
+          comments?: string | null
+          created_at?: string
+          fiscal_period_id?: string
+          id?: string
+          last_updated_at?: string
+          ngo_id?: string
+          reviewer_id?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "financial_review_status_fiscal_period_id_fkey"
+            columns: ["fiscal_period_id"]
+            isOneToOne: false
+            referencedRelation: "fiscal_periods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "financial_review_status_ngo_id_fkey"
+            columns: ["ngo_id"]
+            isOneToOne: false
+            referencedRelation: "ngos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fiscal_periods: {
+        Row: {
+          created_at: string
+          currency_code: string | null
+          end_date: string
+          id: string
+          label: string
+          ngo_id: string
+          period_type: string
+          start_date: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          currency_code?: string | null
+          end_date: string
+          id?: string
+          label: string
+          ngo_id: string
+          period_type: string
+          start_date: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          currency_code?: string | null
+          end_date?: string
+          id?: string
+          label?: string
+          ngo_id?: string
+          period_type?: string
+          start_date?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fiscal_periods_ngo_id_fkey"
+            columns: ["ngo_id"]
+            isOneToOne: false
+            referencedRelation: "ngos"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       form_submissions: {
         Row: {

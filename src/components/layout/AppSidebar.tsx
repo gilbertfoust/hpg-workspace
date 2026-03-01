@@ -237,6 +237,7 @@ export function AppSidebar() {
               <NavItem to="/documents" icon={<FolderOpen className="w-4 h-4" />} label={isCollapsed ? "" : "Documents"} />
               <NavItem to="/calendar" icon={<Calendar className="w-4 h-4" />} label={isCollapsed ? "" : "Calendar"} />
               <NavItem to="/hr" icon={<UserPlus className="w-4 h-4" />} label={isCollapsed ? "" : "HR"} />
+              <NavItem to="/financial-hub" icon={<DollarSign className="w-4 h-4" />} label={isCollapsed ? "" : "Financial Hub"} />
 
               {!isCollapsed && (
                 <div className="pt-4">
