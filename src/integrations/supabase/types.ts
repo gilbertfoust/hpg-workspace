@@ -429,6 +429,7 @@ export type Database = {
           ngo_coordinator_user_id: string | null
           notes: string | null
           primary_contact_id: string | null
+          region: string | null
           state_province: string | null
           status: Database["public"]["Enums"]["ngo_status"] | null
           updated_at: string
@@ -447,6 +448,7 @@ export type Database = {
           ngo_coordinator_user_id?: string | null
           notes?: string | null
           primary_contact_id?: string | null
+          region?: string | null
           state_province?: string | null
           status?: Database["public"]["Enums"]["ngo_status"] | null
           updated_at?: string
@@ -465,6 +467,7 @@ export type Database = {
           ngo_coordinator_user_id?: string | null
           notes?: string | null
           primary_contact_id?: string | null
+          region?: string | null
           state_province?: string | null
           status?: Database["public"]["Enums"]["ngo_status"] | null
           updated_at?: string
