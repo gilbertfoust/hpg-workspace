@@ -13,12 +13,14 @@ import { useActuals } from "@/hooks/useActuals";
 import { useFinancialReviewStatus } from "@/hooks/useFinancialReviewStatus";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, ArrowLeft, ChevronRight } from "lucide-react";
+import { CreateFiscalPeriodDialog } from "@/components/finance/CreateFiscalPeriodDialog";
+import { Loader2, ArrowLeft, ChevronRight, Plus } from "lucide-react";
 
 const NGOFinancialOverview = () => {
   const { ngoId } = useParams<{ ngoId: string }>();
   const navigate = useNavigate();
   const [selectedPeriodId, setSelectedPeriodId] = useState<string>("");
+  const [createPeriodOpen, setCreatePeriodOpen] = useState(false);
 
   // Fetch NGO details
   const { data: ngo, isLoading: ngoLoading } = useQuery({
@@ -108,6 +110,11 @@ const NGOFinancialOverview = () => {
           </TabsList>
 
           <TabsContent value="periods" className="space-y-4 mt-4">
+            <div className="flex justify-end">
+              <Button size="sm" onClick={() => setCreatePeriodOpen(true)}>
+                <Plus className="h-4 w-4 mr-1" /> New Period
+              </Button>
+            </div>
             {!periods || periods.length === 0 ? (
               <Card><CardContent className="py-8 text-center text-muted-foreground">No fiscal periods defined for this NGO yet.</CardContent></Card>
             ) : (
@@ -165,6 +172,10 @@ const NGOFinancialOverview = () => {
             </Card>
           </TabsContent>
         </Tabs>
+
+        {ngoId && (
+          <CreateFiscalPeriodDialog open={createPeriodOpen} onOpenChange={setCreatePeriodOpen} ngoId={ngoId} />
+        )}
       </div>
     </MainLayout>
   );
