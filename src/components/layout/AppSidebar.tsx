@@ -116,6 +116,7 @@ const modulesSections: ModuleSection[] = [
 
 export function AppSidebar() {
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const location = useLocation();
   const [expandedModules, setExpandedModules] = useState(false);
   const { user, signOut } = useAuth();
   const { data: userRole } = useUserRole();
@@ -238,6 +239,14 @@ export function AppSidebar() {
               <NavItem to="/calendar" icon={<Calendar className="w-4 h-4" />} label={isCollapsed ? "" : "Calendar"} />
               <NavItem to="/hr" icon={<UserPlus className="w-4 h-4" />} label={isCollapsed ? "" : "HR"} />
               <NavItem to="/financial-hub" icon={<DollarSign className="w-4 h-4" />} label={isCollapsed ? "" : "Financial Hub"} />
+              {!isCollapsed && location.pathname.startsWith("/financial-hub") && (
+                <div className="ml-6 space-y-0.5">
+                  <NavItem to="/financial-hub/accounts" icon={<Layers className="w-3.5 h-3.5" />} label="Accounts" />
+                  <NavItem to="/financial-hub/transactions" icon={<ClipboardList className="w-3.5 h-3.5" />} label="Transactions" />
+                  <NavItem to="/financial-hub/ledger" icon={<FileText className="w-3.5 h-3.5" />} label="General Ledger" />
+                  <NavItem to="/financial-hub/trial-balance" icon={<BarChart3 className="w-3.5 h-3.5" />} label="Trial Balance" />
+                </div>
+              )}
 
               {!isCollapsed && (
                 <div className="pt-4">

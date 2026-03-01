@@ -12,6 +12,9 @@ import { useFinancialReviewStatus } from "@/hooks/useFinancialReviewStatus";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, ChevronRight, Upload, Plus } from "lucide-react";
+import { TransactionsTable } from "@/components/finance/TransactionsTable";
+import { useTransactions } from "@/hooks/useTransactions";
+import { ReconciliationPanel } from "@/components/finance/ReconciliationPanel";
 
 const PeriodDetail = () => {
   const { ngoId, periodId } = useParams<{ ngoId: string; periodId: string }>();
@@ -121,13 +124,31 @@ const PeriodDetail = () => {
           <CreateBudgetCategoryDialog open={addCategoryOpen} onOpenChange={setAddCategoryOpen} ngoId={ngoId} />
         )}
 
-        {/* Review panel */}
-        <div className="max-w-md">
-          {ngoId && periodId && <ReviewPanel ngoId={ngoId} fiscalPeriodId={periodId} />}
+        {/* Raw Transactions */}
+        {ngoId && periodId && (
+          <div>
+            <h2 className="text-lg font-semibold mb-3">Raw Transactions</h2>
+            <PeriodTransactions ngoId={ngoId} fiscalPeriodId={periodId} />
+          </div>
+        )}
+
+        {/* Reconciliation */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            {ngoId && periodId && <ReviewPanel ngoId={ngoId} fiscalPeriodId={periodId} />}
+          </div>
+          <div>
+            {ngoId && periodId && <ReconciliationPanel ngoId={ngoId} fiscalPeriodId={periodId} />}
+          </div>
         </div>
       </div>
     </MainLayout>
   );
 };
+
+function PeriodTransactions({ ngoId, fiscalPeriodId }: { ngoId: string; fiscalPeriodId: string }) {
+  const { data: transactions, isLoading } = useTransactions(ngoId, fiscalPeriodId);
+  return <TransactionsTable transactions={transactions || []} isLoading={isLoading} />;
+}
 
 export default PeriodDetail;

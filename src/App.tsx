@@ -25,6 +25,11 @@ import SignDocument from "./pages/SignDocument";
 import FinancialHub from "./pages/FinancialHub";
 import NGOFinancialOverview from "./pages/NGOFinancialOverview";
 import PeriodDetail from "./pages/PeriodDetail";
+import AccountsPage from "./pages/AccountsPage";
+import TransactionsPage from "./pages/TransactionsPage";
+import NewTransactionPage from "./pages/NewTransactionPage";
+import GeneralLedgerPage from "./pages/GeneralLedgerPage";
+import TrialBalancePage from "./pages/TrialBalancePage";
 
 // Feature pages
 import MyQueue from "./pages/MyQueue";
@@ -245,6 +250,26 @@ const App = () => {
                       <PeriodDetail />
                     </ProtectedRoute>
                   }
+                />
+                <Route
+                  path="/financial-hub/accounts"
+                  element={<ProtectedRoute><AccountsPage /></ProtectedRoute>}
+                />
+                <Route
+                  path="/financial-hub/transactions"
+                  element={<ProtectedRoute><TransactionsPage /></ProtectedRoute>}
+                />
+                <Route
+                  path="/financial-hub/transactions/new"
+                  element={<ProtectedRoute><NewTransactionPage /></ProtectedRoute>}
+                />
+                <Route
+                  path="/financial-hub/ledger"
+                  element={<ProtectedRoute><GeneralLedgerPage /></ProtectedRoute>}
+                />
+                <Route
+                  path="/financial-hub/trial-balance"
+                  element={<ProtectedRoute><TrialBalancePage /></ProtectedRoute>}
                 />
 
                 {/* Module placeholder routes (keep for later) */}
