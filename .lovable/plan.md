@@ -1,139 +1,220 @@
 
 
-## Document Intake & Ledger Linking — Implementation Plan
+## HPG ERP Master Plan — NetSuite-Scale Architecture
 
-### 1. Database Migration
+This is a massive scaffolding effort. The plan creates 10 new module folders under `src/modules/`, each with placeholder dashboards, sub-pages, types, and hooks. No new database tables yet — the scaffolding uses placeholder components that will be fleshed out module-by-module. Database tables will be created per-module when each is implemented.
 
-**Three new tables + one storage bucket:**
+### Architecture Decision
 
-```text
-document_intake_submissions
-├── id (uuid PK, default gen_random_uuid())
-├── ngo_id (uuid, not null)
-├── type (text, validated: receipt|donation|grant_award|vendor_invoice|reimbursement|other)
-├── status (text, validated: submitted|extracted|processing|pending_review|approved|rejected)
-├── file_path (text)
-├── file_name (text)
-├── submitted_by_user_id (uuid)
-├── extracted_data_json (jsonb, default '{}')
-├── reviewer_user_id (uuid, nullable)
-├── reviewer_notes (text, nullable)
-├── fiscal_period_id (uuid, nullable)
-├── created_at (timestamptz, default now())
-├── updated_at (timestamptz, default now())
+Use `src/modules/<module>/` folder structure (not `src/pages/modules/`) to cleanly separate ERP modules from existing pages. Each module exports its own pages, components, hooks, and types.
 
-document_to_transaction_links
-├── id (uuid PK, default gen_random_uuid())
-├── intake_id (uuid, not null)
-├── transaction_id (uuid, not null)
-├── created_at (timestamptz, default now())
-
-document_extraction_logs
-├── id (uuid PK, default gen_random_uuid())
-├── intake_id (uuid, not null)
-├── raw_text (text)
-├── extracted_data_json (jsonb, default '{}')
-├── confidence_score (numeric)
-├── created_at (timestamptz, default now())
-```
-
-**Storage bucket:** `intake-documents` (private)
-
-**Validation triggers:**
-- `document_intake_submissions.type` — must be one of: receipt, donation, grant_award, vendor_invoice, reimbursement, other
-- `document_intake_submissions.status` — must be one of: submitted, extracted, processing, pending_review, approved, rejected; also sets `updated_at = now()`
-
-**RLS (all three tables):**
-- SELECT: `is_internal_user() OR has_ngo_access(ngo_id)` (for links/logs: join through intake_id)
-- INSERT: `is_internal_user() OR has_ngo_access(ngo_id)`
-- UPDATE: `is_internal_user() OR has_ngo_access(ngo_id)`
-- DELETE: `is_super_admin()`
-
-### 2. OCR & Extraction Architecture
-
-Use Lovable AI (Gemini 2.5 Flash) via an edge function `process-intake-document`:
-1. Reads the uploaded file from `intake-documents` bucket
-2. Sends file content to the AI model with a structured prompt requesting: date, amount, vendor/donor, description, category guess, transaction type
-3. Returns structured JSON into `extracted_data_json`
-4. Logs raw text + confidence to `document_extraction_logs`
-5. Updates status to `pending_review`
-
-The edge function is called client-side after upload completes.
-
-### 3. New Hooks
-
-| Hook | Purpose |
-|------|---------|
-| `useDocumentIntake(ngoId?)` | CRUD for intake submissions, list/filter by status/type |
-| `useDocumentExtractionLogs(intakeId?)` | Read extraction history for a submission |
-| `useDocumentToTransactionLinks(intakeId?)` | Read/create links between intake and transactions |
-| `useIntakeApproval()` | Mutation: validates extracted data, creates transaction + journal entries via existing `useTransactions.create` pattern, inserts link, updates status to approved |
-
-### 4. New Components
-
-| Component | Description |
-|-----------|-------------|
-| `IntakeUploadDialog` | File upload to `intake-documents` bucket, select NGO + document type, triggers extraction edge function |
-| `IntakeSubmissionsTable` | Filterable table of submissions with status badges, type icons, date, NGO filter |
-| `IntakeReviewPanel` | Side-by-side: file preview (iframe/image) + editable extracted fields + account selectors for debit/credit + fiscal period selector + approve/reject buttons |
-| `ExtractionPreviewCard` | Read-only card showing extracted fields with confidence indicators |
-| `TransactionAutoBuilder` | Inline form for building debit/credit journal entry lines from extracted data, reuses `AccountSelector` |
-| `LinkedTransactionBadge` | Small badge/link showing the linked transaction for approved items |
-
-### 5. Pages & Routing
-
-| Route | Page | Description |
-|-------|------|-------------|
-| `/financial-hub/intake` | `IntakeDashboard.tsx` | Overview: submission counts by status, NGO filter, table of all submissions, upload button |
-| `/financial-hub/intake/review/:intakeId` | `IntakeReviewPage.tsx` | Full review panel for a single submission |
-
-Both pages use `ProtectedRoute` + `MainLayout`.
-
-### 6. Sidebar Update
-
-Add under the Financial Hub sub-menu (between "Trial Balance" and "Compliance"):
-```text
-Financial Hub
-  ├── Accounts
-  ├── Transactions
-  ├── General Ledger
-  ├── Trial Balance
-  ├── Intake              ← NEW
-  └── Compliance
-```
-
-### 7. End-to-End Workflow
+### File Structure (all new files)
 
 ```text
-Upload file → Store in intake-documents bucket
-           → Insert document_intake_submissions (status: submitted)
-           → Call process-intake-document edge function
-           → AI extracts fields → saves to extracted_data_json
-           → Status → pending_review
-
-Reviewer opens IntakeReviewPage
-           → Sees file preview + extracted fields (editable)
-           → Selects debit/credit accounts, fiscal period
-           → Clicks "Approve"
-           → Creates transaction + journal_entries (Phase 2 engine)
-           → Inserts document_to_transaction_links
-           → Status → approved
-           → Trial balance, GL, reconciliation all reflect the new transaction
+src/modules/
+├── crm/
+│   ├── pages/
+│   │   ├── CRMDashboard.tsx
+│   │   ├── CRMContacts.tsx
+│   │   ├── CRMOrganizations.tsx
+│   │   ├── CRMInteractions.tsx
+│   │   └── CRMPipeline.tsx
+│   ├── components/        (empty, placeholder exports)
+│   └── types.ts
+├── procurement/
+│   ├── pages/
+│   │   ├── ProcurementDashboard.tsx
+│   │   ├── PurchaseRequests.tsx
+│   │   ├── PurchaseOrders.tsx
+│   │   ├── VendorInvoices.tsx
+│   │   └── GoodsReceived.tsx
+│   ├── components/
+│   └── types.ts
+├── grants/
+│   ├── pages/
+│   │   ├── GrantsDashboard.tsx
+│   │   ├── GrantSearch.tsx
+│   │   ├── GrantPipeline.tsx
+│   │   └── GrantProfile.tsx
+│   ├── components/
+│   └── types.ts
+├── hr/
+│   ├── pages/
+│   │   ├── HRModuleDashboard.tsx
+│   │   ├── StaffProfiles.tsx
+│   │   ├── Timesheets.tsx
+│   │   ├── PTOManagement.tsx
+│   │   └── PayrollExport.tsx
+│   ├── components/
+│   └── types.ts
+├── assets/
+│   ├── pages/
+│   │   ├── AssetsDashboard.tsx
+│   │   ├── AssetRegistry.tsx
+│   │   ├── Depreciation.tsx
+│   │   └── Maintenance.tsx
+│   ├── components/
+│   └── types.ts
+├── inventory/
+│   ├── pages/
+│   │   ├── InventoryDashboard.tsx
+│   │   ├── InventoryItems.tsx
+│   │   ├── StockMovements.tsx
+│   │   └── SupplyRequests.tsx
+│   ├── components/
+│   └── types.ts
+├── revenue/
+│   ├── pages/
+│   │   ├── RevenueDashboard.tsx
+│   │   ├── DonationTypes.tsx
+│   │   ├── RecurringRevenue.tsx
+│   │   └── RevenueRecognition.tsx
+│   ├── components/
+│   └── types.ts
+├── governance/
+│   ├── pages/
+│   │   ├── GovernanceDashboard.tsx
+│   │   ├── FXRates.tsx
+│   │   ├── CountryCompliance.tsx
+│   │   └── LocalizedCOA.tsx
+│   ├── components/
+│   └── types.ts
+├── audit/
+│   ├── pages/
+│   │   ├── AuditDashboard.tsx
+│   │   ├── AuditTrail.tsx
+│   │   └── PermissionChanges.tsx
+│   ├── components/
+│   └── types.ts
+└── controller/
+    ├── pages/
+    │   ├── ControllerDashboard.tsx
+    │   ├── Consolidation.tsx
+    │   ├── RiskScoring.tsx
+    │   ├── InterNGOTransfers.tsx
+    │   └── Treasury.tsx
+    ├── components/
+    └── types.ts
 ```
 
-### 8. Integration Points
+### Each placeholder page pattern
 
-- **Period locking:** IntakeReviewPanel checks `fiscal_periods.is_locked` before allowing approval for that period.
-- **Reconciliation:** Intake-linked transactions appear in the existing reconciliation flow automatically (they are normal transactions).
-- **Budget vs Actuals:** Unchanged — actuals still come from the `actuals` table; ledger transactions feed trial balance and GL independently.
-- **E-Sign:** Optional — the review panel can include a "Request Signature" button that creates a signing request for the source document.
+Every page follows this template (using `MainLayout` + a "Coming Soon" card with module-specific feature badges), reusing the existing `ModulePlaceholder` pattern but rendered inline with real route paths.
 
-### 9. Implementation Order
+### Routing Structure (additions to App.tsx)
 
-1. Database migration (3 tables, triggers, RLS, storage bucket)
-2. Edge function `process-intake-document` (AI-powered extraction)
-3. Hooks (`useDocumentIntake`, `useDocumentExtractionLogs`, `useDocumentToTransactionLinks`, `useIntakeApproval`)
-4. Components (`IntakeUploadDialog`, `IntakeSubmissionsTable`, `ExtractionPreviewCard`, `TransactionAutoBuilder`, `IntakeReviewPanel`)
-5. Pages (`IntakeDashboard`, `IntakeReviewPage`)
-6. Sidebar + routing updates
+```text
+/crm                          → CRMDashboard
+/crm/contacts                 → CRMContacts
+/crm/organizations            → CRMOrganizations
+/crm/interactions             → CRMInteractions
+/crm/pipeline                 → CRMPipeline
+
+/procurement                  → ProcurementDashboard
+/procurement/requests         → PurchaseRequests
+/procurement/orders           → PurchaseOrders
+/procurement/invoices         → VendorInvoices
+/procurement/received         → GoodsReceived
+
+/grants                       → GrantsDashboard
+/grants/search                → GrantSearch
+/grants/pipeline              → GrantPipeline
+/grants/profile/:id           → GrantProfile
+
+/erp/hr                       → HRModuleDashboard
+/erp/hr/staff                 → StaffProfiles
+/erp/hr/timesheets            → Timesheets
+/erp/hr/pto                   → PTOManagement
+/erp/hr/payroll               → PayrollExport
+
+/assets                       → AssetsDashboard
+/assets/registry              → AssetRegistry
+/assets/depreciation          → Depreciation
+/assets/maintenance           → Maintenance
+
+/inventory                    → InventoryDashboard
+/inventory/items              → InventoryItems
+/inventory/movements          → StockMovements
+/inventory/requests           → SupplyRequests
+
+/revenue                      → RevenueDashboard
+/revenue/donations            → DonationTypes
+/revenue/recurring            → RecurringRevenue
+/revenue/recognition          → RevenueRecognition
+
+/governance                   → GovernanceDashboard
+/governance/fx                → FXRates
+/governance/compliance        → CountryCompliance
+/governance/coa               → LocalizedCOA
+
+/audit                        → AuditDashboard
+/audit/trail                  → AuditTrail
+/audit/permissions            → PermissionChanges
+
+/controller                   → ControllerDashboard
+/controller/consolidation     → Consolidation
+/controller/risk              → RiskScoring
+/controller/transfers         → InterNGOTransfers
+/controller/treasury          → Treasury
+```
+
+### Sidebar Update (AppSidebar.tsx)
+
+Add a new collapsible "ERP Modules" section below the existing "Modules" section:
+
+```text
+ERP Modules (collapsible)
+  ├── CRM                  (/crm)
+  ├── Procurement          (/procurement)
+  ├── Grants               (/grants)
+  ├── HR & Workforce       (/erp/hr)
+  ├── Assets               (/assets)
+  ├── Inventory            (/inventory)
+  ├── Revenue              (/revenue)
+  ├── Governance           (/governance)
+  ├── Audit                (/audit)
+  └── Controller Hub       (/controller)
+```
+
+### Database Scaffolding
+
+**No tables created in this step.** Each module will get its own migration when implementation begins. The plan for future tables per module:
+
+- **CRM:** `crm_organizations`, `crm_contacts`, `crm_interactions`, `crm_pipeline_stages`, `crm_deals`
+- **Procurement:** `purchase_requests`, `purchase_orders`, `po_line_items`, `goods_received`, `vendor_invoices`
+- **Grants:** `grant_sources`, `grant_opportunities`, `grant_applications`, `grant_saved_searches`
+- **HR:** `staff_profiles`, `timesheets`, `pto_requests`, `contractors`
+- **Assets:** `assets`, `asset_depreciation`, `asset_maintenance`, `asset_assignments`
+- **Inventory:** `inventory_items`, `inventory_locations`, `stock_movements`, `supply_requests`
+- **Revenue:** `revenue_streams`, `recurring_donations`, `revenue_recognition_schedules`
+- **Governance:** `fx_rates`, `country_compliance_profiles`, `localized_coa_mappings`
+- **Audit:** Extends existing `audit_log` table with additional tracking
+- **Controller:** `consolidation_reports`, `ngo_risk_scores`, `inter_ngo_transfers`, `treasury_positions`
+
+### Financial Hub Integration Notes
+
+All modules connect to the existing Financial Hub via:
+- **Procurement:** PO approval → auto-creates `transactions` + `journal_entries` (expense accounts)
+- **Grants:** Award → creates income transactions; reporting pulls from trial balance
+- **Revenue:** Recognition schedules create deferred revenue journal entries
+- **Assets:** Depreciation creates periodic journal entries against asset/expense accounts
+- **Inventory:** Consumption logs create expense transactions
+- **Controller:** Consolidation aggregates trial balances across NGOs
+- **Governance:** FX rates apply to multi-currency transactions
+- **Audit:** Reads from existing `audit_log` table + extends it
+
+### Implementation Steps
+
+1. Create all ~45 placeholder page files across 10 module folders (each with consistent "Coming Soon" UI showing planned features)
+2. Create 10 `types.ts` files with initial type stubs
+3. Add all ~45 routes to `App.tsx`
+4. Add "ERP Modules" collapsible section to `AppSidebar.tsx` with 10 top-level nav items
+5. Each module dashboard shows sub-navigation cards linking to its child pages
+
+### Technical Notes
+
+- All pages use `MainLayout` + `ProtectedRoute` wrapper
+- Placeholder pages render a consistent "Module Coming Soon" card with feature badges (reusing the pattern from `ModulePlaceholder.tsx`)
+- No lazy loading in this step — can be added later for performance
+- HR module routes use `/erp/hr` prefix to avoid collision with existing `/hr` route
 
