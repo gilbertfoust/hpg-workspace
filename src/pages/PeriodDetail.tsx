@@ -6,15 +6,17 @@ import { PeriodSummaryCard } from "@/components/finance/PeriodSummaryCard";
 import { BudgetActualTable } from "@/components/finance/BudgetActualTable";
 import { ReviewPanel } from "@/components/finance/ReviewPanel";
 import { ActualsImportDialog } from "@/components/finance/ActualsImportDialog";
+import { CreateBudgetCategoryDialog } from "@/components/finance/CreateBudgetCategoryDialog";
 import { useFiscalPeriods } from "@/hooks/useFiscalPeriods";
 import { useFinancialReviewStatus } from "@/hooks/useFinancialReviewStatus";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, ChevronRight, Upload } from "lucide-react";
+import { Loader2, ChevronRight, Upload, Plus } from "lucide-react";
 
 const PeriodDetail = () => {
   const { ngoId, periodId } = useParams<{ ngoId: string; periodId: string }>();
   const [importOpen, setImportOpen] = useState(false);
+  const [addCategoryOpen, setAddCategoryOpen] = useState(false);
 
   const { data: ngo, isLoading: ngoLoading } = useQuery({
     queryKey: ["ngo_detail", ngoId],
@@ -97,9 +99,14 @@ const PeriodDetail = () => {
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-lg font-semibold">Budget vs Actual</h2>
             {ngoId && periodId && (
-              <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
-                <Upload className="h-4 w-4 mr-1" /> Import CSV
-              </Button>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={() => setAddCategoryOpen(true)}>
+                  <Plus className="h-4 w-4 mr-1" /> Add Category
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
+                  <Upload className="h-4 w-4 mr-1" /> Import CSV
+                </Button>
+              </div>
             )}
           </div>
           {ngoId && periodId && (
@@ -109,6 +116,9 @@ const PeriodDetail = () => {
 
         {ngoId && periodId && (
           <ActualsImportDialog open={importOpen} onOpenChange={setImportOpen} ngoId={ngoId} fiscalPeriodId={periodId} />
+        )}
+        {ngoId && (
+          <CreateBudgetCategoryDialog open={addCategoryOpen} onOpenChange={setAddCategoryOpen} ngoId={ngoId} />
         )}
 
         {/* Review panel */}
