@@ -30,6 +30,10 @@ import TransactionsPage from "./pages/TransactionsPage";
 import NewTransactionPage from "./pages/NewTransactionPage";
 import GeneralLedgerPage from "./pages/GeneralLedgerPage";
 import TrialBalancePage from "./pages/TrialBalancePage";
+import ComplianceDashboard from "./pages/ComplianceDashboard";
+import StatementsPage from "./pages/StatementsPage";
+import PackagesPage from "./pages/PackagesPage";
+import CloseYearPage from "./pages/CloseYearPage";
 
 // Feature pages
 import MyQueue from "./pages/MyQueue";
@@ -270,6 +274,22 @@ const App = () => {
                 <Route
                   path="/financial-hub/trial-balance"
                   element={<ProtectedRoute><TrialBalancePage /></ProtectedRoute>}
+                />
+                <Route
+                  path="/financial-hub/compliance"
+                  element={<ProtectedRoute><ComplianceDashboard /></ProtectedRoute>}
+                />
+                <Route
+                  path="/financial-hub/compliance/statements"
+                  element={<ProtectedRoute><StatementsPage /></ProtectedRoute>}
+                />
+                <Route
+                  path="/financial-hub/compliance/packages"
+                  element={<ProtectedRoute><PackagesPage /></ProtectedRoute>}
+                />
+                <Route
+                  path="/financial-hub/compliance/close-year"
+                  element={<ProtectedRoute><CloseYearPage /></ProtectedRoute>}
                 />
 
                 {/* Module placeholder routes (keep for later) */}
