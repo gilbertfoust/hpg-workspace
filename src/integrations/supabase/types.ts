@@ -1741,6 +1741,79 @@ export type Database = {
           },
         ]
       }
+      pto_requests: {
+        Row: {
+          approved_at: string | null
+          approved_by_user_id: string | null
+          created_at: string
+          end_date: string
+          hours_requested: number
+          id: string
+          leave_type: string
+          ngo_id: string
+          notes: string | null
+          reason: string | null
+          staff_id: string
+          start_date: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by_user_id?: string | null
+          created_at?: string
+          end_date: string
+          hours_requested?: number
+          id?: string
+          leave_type?: string
+          ngo_id: string
+          notes?: string | null
+          reason?: string | null
+          staff_id: string
+          start_date: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by_user_id?: string | null
+          created_at?: string
+          end_date?: string
+          hours_requested?: number
+          id?: string
+          leave_type?: string
+          ngo_id?: string
+          notes?: string | null
+          reason?: string | null
+          staff_id?: string
+          start_date?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pto_requests_approved_by_user_id_fkey"
+            columns: ["approved_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pto_requests_ngo_id_fkey"
+            columns: ["ngo_id"]
+            isOneToOne: false
+            referencedRelation: "ngos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pto_requests_staff_id_fkey"
+            columns: ["staff_id"]
+            isOneToOne: false
+            referencedRelation: "staff_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       purchase_orders: {
         Row: {
           approved_at: string | null
@@ -2117,6 +2190,100 @@ export type Database = {
           },
         ]
       }
+      staff_profiles: {
+        Row: {
+          annual_salary: number | null
+          created_at: string
+          department_id: string | null
+          email: string | null
+          emergency_contact_name: string | null
+          emergency_contact_phone: string | null
+          employment_type: string
+          end_date: string | null
+          first_name: string
+          hourly_rate: number | null
+          id: string
+          job_title: string | null
+          last_name: string
+          ngo_id: string | null
+          notes: string | null
+          phone: string | null
+          pto_balance_hours: number
+          start_date: string | null
+          status: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          annual_salary?: number | null
+          created_at?: string
+          department_id?: string | null
+          email?: string | null
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
+          employment_type?: string
+          end_date?: string | null
+          first_name: string
+          hourly_rate?: number | null
+          id?: string
+          job_title?: string | null
+          last_name: string
+          ngo_id?: string | null
+          notes?: string | null
+          phone?: string | null
+          pto_balance_hours?: number
+          start_date?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          annual_salary?: number | null
+          created_at?: string
+          department_id?: string | null
+          email?: string | null
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
+          employment_type?: string
+          end_date?: string | null
+          first_name?: string
+          hourly_rate?: number | null
+          id?: string
+          job_title?: string | null
+          last_name?: string
+          ngo_id?: string | null
+          notes?: string | null
+          phone?: string | null
+          pto_balance_hours?: number
+          start_date?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staff_profiles_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "org_units"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "staff_profiles_ngo_id_fkey"
+            columns: ["ngo_id"]
+            isOneToOne: false
+            referencedRelation: "ngos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "staff_profiles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       template_groups: {
         Row: {
           category: string | null
@@ -2149,6 +2316,76 @@ export type Database = {
           work_item_templates?: Json | null
         }
         Relationships: []
+      }
+      timesheets: {
+        Row: {
+          approved_at: string | null
+          approved_by_user_id: string | null
+          created_at: string
+          id: string
+          ngo_id: string
+          notes: string | null
+          period_end: string
+          period_start: string
+          staff_id: string
+          status: string
+          submitted_at: string | null
+          total_hours: number
+          updated_at: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by_user_id?: string | null
+          created_at?: string
+          id?: string
+          ngo_id: string
+          notes?: string | null
+          period_end: string
+          period_start: string
+          staff_id: string
+          status?: string
+          submitted_at?: string | null
+          total_hours?: number
+          updated_at?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by_user_id?: string | null
+          created_at?: string
+          id?: string
+          ngo_id?: string
+          notes?: string | null
+          period_end?: string
+          period_start?: string
+          staff_id?: string
+          status?: string
+          submitted_at?: string | null
+          total_hours?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "timesheets_approved_by_user_id_fkey"
+            columns: ["approved_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "timesheets_ngo_id_fkey"
+            columns: ["ngo_id"]
+            isOneToOne: false
+            referencedRelation: "ngos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "timesheets_staff_id_fkey"
+            columns: ["staff_id"]
+            isOneToOne: false
+            referencedRelation: "staff_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       transactions: {
         Row: {
