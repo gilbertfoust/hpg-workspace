@@ -171,6 +171,241 @@ export type Database = {
           },
         ]
       }
+      asset_depreciation: {
+        Row: {
+          accumulated_depreciation: number
+          asset_id: string
+          book_value: number
+          created_at: string
+          depreciation_amount: number
+          id: string
+          ngo_id: string
+          period_date: string
+          period_label: string
+          transaction_id: string | null
+        }
+        Insert: {
+          accumulated_depreciation?: number
+          asset_id: string
+          book_value?: number
+          created_at?: string
+          depreciation_amount?: number
+          id?: string
+          ngo_id: string
+          period_date: string
+          period_label: string
+          transaction_id?: string | null
+        }
+        Update: {
+          accumulated_depreciation?: number
+          asset_id?: string
+          book_value?: number
+          created_at?: string
+          depreciation_amount?: number
+          id?: string
+          ngo_id?: string
+          period_date?: string
+          period_label?: string
+          transaction_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asset_depreciation_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asset_depreciation_ngo_id_fkey"
+            columns: ["ngo_id"]
+            isOneToOne: false
+            referencedRelation: "ngos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asset_depreciation_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      asset_maintenance: {
+        Row: {
+          asset_id: string
+          assigned_to_user_id: string | null
+          completed_date: string | null
+          cost: number | null
+          created_at: string
+          description: string
+          id: string
+          maintenance_type: string
+          ngo_id: string
+          notes: string | null
+          scheduled_date: string | null
+          status: string
+          updated_at: string
+          vendor_org_id: string | null
+        }
+        Insert: {
+          asset_id: string
+          assigned_to_user_id?: string | null
+          completed_date?: string | null
+          cost?: number | null
+          created_at?: string
+          description: string
+          id?: string
+          maintenance_type?: string
+          ngo_id: string
+          notes?: string | null
+          scheduled_date?: string | null
+          status?: string
+          updated_at?: string
+          vendor_org_id?: string | null
+        }
+        Update: {
+          asset_id?: string
+          assigned_to_user_id?: string | null
+          completed_date?: string | null
+          cost?: number | null
+          created_at?: string
+          description?: string
+          id?: string
+          maintenance_type?: string
+          ngo_id?: string
+          notes?: string | null
+          scheduled_date?: string | null
+          status?: string
+          updated_at?: string
+          vendor_org_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asset_maintenance_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asset_maintenance_assigned_to_user_id_fkey"
+            columns: ["assigned_to_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asset_maintenance_ngo_id_fkey"
+            columns: ["ngo_id"]
+            isOneToOne: false
+            referencedRelation: "ngos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asset_maintenance_vendor_org_id_fkey"
+            columns: ["vendor_org_id"]
+            isOneToOne: false
+            referencedRelation: "crm_organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      assets: {
+        Row: {
+          account_id: string | null
+          acquisition_cost: number
+          acquisition_date: string | null
+          asset_tag: string | null
+          assigned_to_staff_id: string | null
+          category: string
+          created_at: string
+          depreciation_method: string
+          description: string | null
+          disposed_date: string | null
+          disposed_value: number | null
+          id: string
+          location: string | null
+          name: string
+          ngo_id: string
+          notes: string | null
+          salvage_value: number
+          serial_number: string | null
+          status: string
+          updated_at: string
+          useful_life_months: number | null
+        }
+        Insert: {
+          account_id?: string | null
+          acquisition_cost?: number
+          acquisition_date?: string | null
+          asset_tag?: string | null
+          assigned_to_staff_id?: string | null
+          category?: string
+          created_at?: string
+          depreciation_method?: string
+          description?: string | null
+          disposed_date?: string | null
+          disposed_value?: number | null
+          id?: string
+          location?: string | null
+          name: string
+          ngo_id: string
+          notes?: string | null
+          salvage_value?: number
+          serial_number?: string | null
+          status?: string
+          updated_at?: string
+          useful_life_months?: number | null
+        }
+        Update: {
+          account_id?: string | null
+          acquisition_cost?: number
+          acquisition_date?: string | null
+          asset_tag?: string | null
+          assigned_to_staff_id?: string | null
+          category?: string
+          created_at?: string
+          depreciation_method?: string
+          description?: string | null
+          disposed_date?: string | null
+          disposed_value?: number | null
+          id?: string
+          location?: string | null
+          name?: string
+          ngo_id?: string
+          notes?: string | null
+          salvage_value?: number
+          serial_number?: string | null
+          status?: string
+          updated_at?: string
+          useful_life_months?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assets_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assets_assigned_to_staff_id_fkey"
+            columns: ["assigned_to_staff_id"]
+            isOneToOne: false
+            referencedRelation: "staff_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assets_ngo_id_fkey"
+            columns: ["ngo_id"]
+            isOneToOne: false
+            referencedRelation: "ngos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_log: {
         Row: {
           action_type: string
