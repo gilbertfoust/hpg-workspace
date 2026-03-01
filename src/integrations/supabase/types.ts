@@ -1652,6 +1652,57 @@ export type Database = {
           },
         ]
       }
+      po_line_items: {
+        Row: {
+          account_id: string | null
+          created_at: string
+          description: string
+          id: string
+          purchase_order_id: string
+          quantity: number
+          received_quantity: number | null
+          total_price: number
+          unit_price: number
+        }
+        Insert: {
+          account_id?: string | null
+          created_at?: string
+          description: string
+          id?: string
+          purchase_order_id: string
+          quantity?: number
+          received_quantity?: number | null
+          total_price?: number
+          unit_price?: number
+        }
+        Update: {
+          account_id?: string | null
+          created_at?: string
+          description?: string
+          id?: string
+          purchase_order_id?: string
+          quantity?: number
+          received_quantity?: number | null
+          total_price?: number
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "po_line_items_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "po_line_items_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -1686,6 +1737,197 @@ export type Database = {
             columns: ["department_id"]
             isOneToOne: false
             referencedRelation: "org_units"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      purchase_orders: {
+        Row: {
+          approved_at: string | null
+          approved_by_user_id: string | null
+          created_at: string
+          created_by_user_id: string | null
+          currency_code: string | null
+          expected_delivery: string | null
+          id: string
+          ngo_id: string
+          notes: string | null
+          order_date: string
+          po_number: string
+          purchase_request_id: string | null
+          shipping_address: string | null
+          status: string
+          subtotal: number
+          tax_amount: number
+          total_amount: number
+          updated_at: string
+          vendor_org_id: string | null
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by_user_id?: string | null
+          created_at?: string
+          created_by_user_id?: string | null
+          currency_code?: string | null
+          expected_delivery?: string | null
+          id?: string
+          ngo_id: string
+          notes?: string | null
+          order_date?: string
+          po_number: string
+          purchase_request_id?: string | null
+          shipping_address?: string | null
+          status?: string
+          subtotal?: number
+          tax_amount?: number
+          total_amount?: number
+          updated_at?: string
+          vendor_org_id?: string | null
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by_user_id?: string | null
+          created_at?: string
+          created_by_user_id?: string | null
+          currency_code?: string | null
+          expected_delivery?: string | null
+          id?: string
+          ngo_id?: string
+          notes?: string | null
+          order_date?: string
+          po_number?: string
+          purchase_request_id?: string | null
+          shipping_address?: string | null
+          status?: string
+          subtotal?: number
+          tax_amount?: number
+          total_amount?: number
+          updated_at?: string
+          vendor_org_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_orders_approved_by_user_id_fkey"
+            columns: ["approved_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_orders_created_by_user_id_fkey"
+            columns: ["created_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_orders_ngo_id_fkey"
+            columns: ["ngo_id"]
+            isOneToOne: false
+            referencedRelation: "ngos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_orders_purchase_request_id_fkey"
+            columns: ["purchase_request_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_orders_vendor_org_id_fkey"
+            columns: ["vendor_org_id"]
+            isOneToOne: false
+            referencedRelation: "crm_organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      purchase_requests: {
+        Row: {
+          approved_at: string | null
+          approved_by_user_id: string | null
+          created_at: string
+          currency_code: string | null
+          department_id: string | null
+          description: string | null
+          estimated_amount: number | null
+          id: string
+          needed_by: string | null
+          ngo_id: string
+          notes: string | null
+          priority: string
+          rejected_reason: string | null
+          requested_by_user_id: string | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by_user_id?: string | null
+          created_at?: string
+          currency_code?: string | null
+          department_id?: string | null
+          description?: string | null
+          estimated_amount?: number | null
+          id?: string
+          needed_by?: string | null
+          ngo_id: string
+          notes?: string | null
+          priority?: string
+          rejected_reason?: string | null
+          requested_by_user_id?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by_user_id?: string | null
+          created_at?: string
+          currency_code?: string | null
+          department_id?: string | null
+          description?: string | null
+          estimated_amount?: number | null
+          id?: string
+          needed_by?: string | null
+          ngo_id?: string
+          notes?: string | null
+          priority?: string
+          rejected_reason?: string | null
+          requested_by_user_id?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_requests_approved_by_user_id_fkey"
+            columns: ["approved_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_requests_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "org_units"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_requests_ngo_id_fkey"
+            columns: ["ngo_id"]
+            isOneToOne: false
+            referencedRelation: "ngos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_requests_requested_by_user_id_fkey"
+            columns: ["requested_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -1982,6 +2224,111 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      vendor_invoices: {
+        Row: {
+          approved_at: string | null
+          approved_by_user_id: string | null
+          created_at: string
+          currency_code: string | null
+          due_date: string | null
+          id: string
+          invoice_date: string
+          invoice_number: string
+          ngo_id: string
+          notes: string | null
+          payment_date: string | null
+          payment_reference: string | null
+          purchase_order_id: string | null
+          status: string
+          subtotal: number
+          tax_amount: number
+          total_amount: number
+          transaction_id: string | null
+          updated_at: string
+          vendor_org_id: string | null
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by_user_id?: string | null
+          created_at?: string
+          currency_code?: string | null
+          due_date?: string | null
+          id?: string
+          invoice_date?: string
+          invoice_number: string
+          ngo_id: string
+          notes?: string | null
+          payment_date?: string | null
+          payment_reference?: string | null
+          purchase_order_id?: string | null
+          status?: string
+          subtotal?: number
+          tax_amount?: number
+          total_amount?: number
+          transaction_id?: string | null
+          updated_at?: string
+          vendor_org_id?: string | null
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by_user_id?: string | null
+          created_at?: string
+          currency_code?: string | null
+          due_date?: string | null
+          id?: string
+          invoice_date?: string
+          invoice_number?: string
+          ngo_id?: string
+          notes?: string | null
+          payment_date?: string | null
+          payment_reference?: string | null
+          purchase_order_id?: string | null
+          status?: string
+          subtotal?: number
+          tax_amount?: number
+          total_amount?: number
+          transaction_id?: string | null
+          updated_at?: string
+          vendor_org_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendor_invoices_approved_by_user_id_fkey"
+            columns: ["approved_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendor_invoices_ngo_id_fkey"
+            columns: ["ngo_id"]
+            isOneToOne: false
+            referencedRelation: "ngos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendor_invoices_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendor_invoices_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendor_invoices_vendor_org_id_fkey"
+            columns: ["vendor_org_id"]
+            isOneToOne: false
+            referencedRelation: "crm_organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       work_items: {
         Row: {
