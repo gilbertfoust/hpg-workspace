@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { PeriodSummaryCard } from "@/components/finance/PeriodSummaryCard";
 import { BudgetActualTable } from "@/components/finance/BudgetActualTable";
+import { BudgetActualChart } from "@/components/finance/BudgetActualChart";
 import { useFiscalPeriods } from "@/hooks/useFiscalPeriods";
 import { useActuals } from "@/hooks/useActuals";
 import { useFinancialReviewStatus } from "@/hooks/useFinancialReviewStatus";
@@ -154,7 +155,10 @@ const NGOFinancialOverview = () => {
               </Select>
             </div>
             {selectedPeriodId && ngoId ? (
-              <BudgetActualTable ngoId={ngoId} fiscalPeriodId={selectedPeriodId} />
+              <div className="space-y-6">
+                <BudgetActualChart ngoId={ngoId} fiscalPeriodId={selectedPeriodId} />
+                <BudgetActualTable ngoId={ngoId} fiscalPeriodId={selectedPeriodId} showExport />
+              </div>
             ) : (
               <Card><CardContent className="py-8 text-center text-muted-foreground">Select a fiscal period to view budget vs actual comparison.</CardContent></Card>
             )}
