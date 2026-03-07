@@ -29,7 +29,7 @@ export const usePartnershipsPartners = () =>
   useQuery({
     queryKey: ["partnerships-partners"],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from(partnersTable)
         .select("*")
         .order("name", { ascending: true });
@@ -45,9 +45,9 @@ export const useCreatePartnershipPartner = () => {
 
   return useMutation({
     mutationFn: async (input: CreatePartnershipPartnerInput) => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from(partnersTable)
-        .insert(input)
+        .insert(input as any)
         .select()
         .single();
 
@@ -77,9 +77,9 @@ export const useUpdatePartnershipPartner = () => {
 
   return useMutation({
     mutationFn: async ({ id, ...input }: Partial<PartnershipPartner> & { id: string }) => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from(partnersTable)
-        .update(input)
+        .update(input as any)
         .eq("id", id)
         .select()
         .single();

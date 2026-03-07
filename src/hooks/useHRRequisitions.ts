@@ -69,7 +69,7 @@ export const useHRRequisitions = () => {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      return data as JobRequisition[];
+      return data as unknown as JobRequisition[];
     },
   });
 };
@@ -98,12 +98,12 @@ export const useCreateHRRequisition = () => {
 
       await createAuditEntry({
         action_type: "created",
-        entity_id: data.id,
+        entity_id: (data as any).id,
         after_json: data as Json,
         actor_user_id: user?.id ?? null,
       });
 
-      return data as JobRequisition;
+      return data as unknown as JobRequisition;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["hr", "job-requisitions"] });
@@ -137,15 +137,16 @@ export const useUpdateHRRequisition = () => {
 
       if (beforeError) throw beforeError;
 
+      const b = before as any;
       const { data, error } = await supabase
         .from(requisitionsTable)
         .update({
-          title: input.title ?? before.title,
-          department_id: input.department_id ?? before.department_id,
-          location: input.location ?? before.location,
-          employment_type: input.employment_type ?? before.employment_type,
-          status: input.status ?? before.status,
-          description: input.description ?? before.description,
+          title: input.title ?? b.title,
+          department_id: input.department_id ?? b.department_id,
+          location: input.location ?? b.location,
+          employment_type: input.employment_type ?? b.employment_type,
+          status: input.status ?? b.status,
+          description: input.description ?? b.description,
         })
         .eq("id", input.id)
         .select("*")
@@ -155,13 +156,13 @@ export const useUpdateHRRequisition = () => {
 
       await createAuditEntry({
         action_type: "updated",
-        entity_id: data.id,
+        entity_id: (data as any).id,
         before_json: before as Json,
         after_json: data as Json,
         actor_user_id: user?.id ?? null,
       });
 
-      return data as JobRequisition;
+      return data as unknown as JobRequisition;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["hr", "job-requisitions"] });

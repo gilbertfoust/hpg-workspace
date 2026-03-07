@@ -54,7 +54,7 @@ export const useUpcomingReminders = (options?: { hours?: number }) => {
         throw error;
       }
 
-      return data as Reminder[];
+      return data as unknown as Reminder[];
     },
   });
 };
@@ -88,7 +88,7 @@ export const useCreateReminder = () => {
         throw error;
       }
 
-      return data as Reminder;
+      return data as unknown as Reminder;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["reminders"] });
@@ -124,7 +124,7 @@ export const useMarkReminderSeen = () => {
         throw error;
       }
 
-      return data as Reminder;
+      return data as unknown as Reminder;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["reminders"] });

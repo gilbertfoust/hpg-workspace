@@ -1,17 +1,50 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/lib/supabaseClient';
-import { getSupabaseNotConfiguredError, supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
-import type { Database } from '@/integrations/supabase/types';
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { getSupabaseNotConfiguredError, supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 
-export type NGOStatus = Database['public']['Enums']['ngo_status'];
-export type FiscalType = Database['public']['Enums']['fiscal_type'];
-export type NGO = Database['public']['Tables']['ngos']['Row'];
-export type CreateNGOInput = Database['public']['Tables']['ngos']['Insert'];
-import { useAuth } from '@/contexts/AuthContext';
 
-export type NGOStatus = 'Prospect' | 'Onboarding' | 'Active' | 'At-Risk' | 'Offboarding' | 'Closed';
-export type FiscalType = 'Model A' | 'Model C' | 'Other';
+export type NGOStatus = 'prospect' | 'onboarding' | 'active' | 'at_risk' | 'offboarding' | 'closed';
+// DB-safe enum values that match Supabase fiscal_type enum exactly
+export type DbFiscalType = 'model_a' | 'model_c' | 'other' | 'HPG Internal Project';
+
+// UI-friendly fiscal type labels
+export type UIFiscalType = 'Model A' | 'Model C' | 'Other' | 'HPG Internal Project';
+
+/**
+ * Normalizes UI fiscal type values ("Model C") to DB enum values ("model_c")
+ * Handles both UI labels and already-normalized DB values
+ */
+export function toDbFiscalType(value: string | UIFiscalType | DbFiscalType | null | undefined): DbFiscalType | undefined {
+  if (!value) return undefined;
+  
+  const normalized = String(value).trim();
+  
+  // Handle UI labels
+  if (normalized === 'Model A') return 'model_a';
+  if (normalized === 'Model C') return 'model_c';
+  if (normalized === 'Other') return 'other';
+  if (normalized === 'HPG Internal Project') return 'HPG Internal Project';
+  
+  // Handle already-normalized DB values (pass through)
+  if (normalized === 'model_a' || normalized === 'model_c' || normalized === 'other' || normalized === 'HPG Internal Project') {
+    return normalized as DbFiscalType;
+  }
+  
+  // Fallback: try to normalize by lowercasing and replacing spaces with underscores
+  // but preserve "HPG Internal Project" exactly
+  if (normalized.toLowerCase().includes('hpg internal')) {
+    return 'HPG Internal Project';
+  }
+  
+  const dbValue = normalized.toLowerCase().replace(/\s+/g, '_');
+  if (dbValue === 'model_a' || dbValue === 'model_c' || dbValue === 'other') {
+    return dbValue as DbFiscalType;
+  }
+  
+  // If we can't normalize, return undefined to let Supabase handle the error
+  return undefined;
+}
 
 export interface NGO {
   id: string;
@@ -22,12 +55,13 @@ export interface NGO {
   state_province: string | null;
   city: string | null;
   website: string | null;
-  fiscal_type: FiscalType;
+  fiscal_type: DbFiscalType;
   status: NGOStatus;
   primary_contact_id: string | null;
   ngo_coordinator_user_id: string | null;
   admin_pm_user_id: string | null;
   notes: string | null;
+  confluence_url?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -40,9 +74,10 @@ export interface CreateNGOInput {
   state_province?: string;
   city?: string;
   website?: string;
-  fiscal_type?: FiscalType;
+  fiscal_type?: DbFiscalType | UIFiscalType; // Accept both UI and DB values
   status?: NGOStatus;
   notes?: string;
+  confluence_url?: string | null;
 }
 
 const ensureSupabase = () => {
@@ -57,7 +92,7 @@ export const useNGOs = () => {
     queryFn: async () => {
       ensureSupabase();
       const { data, error } = await supabase
-        .from('ngos')
+        .from('ngos' as never)
         .select('*')
         .order('created_at', { ascending: false });
       
@@ -80,7 +115,7 @@ export const useNGO = (id: string) => {
       
       if (error) throw error;
       if (!data) throw new Error('NGO not found');
-      return data as NGO;
+      return data as unknown as NGO;
     },
     enabled: !!id,
   });
@@ -94,32 +129,40 @@ export const useCreateNGO = () => {
   return useMutation({
     mutationFn: async (input: CreateNGOInput) => {
       ensureSupabase();
+      
+      // Normalize fiscal_type from UI values to DB enum values
+      const normalizedInput = {
+        ...input,
+        fiscal_type: input.fiscal_type ? toDbFiscalType(input.fiscal_type) : undefined,
+      };
+      
       const { data, error } = await supabase
-        .from('ngos')
-        .insert(input)
+        .from('ngos' as never)
+        .insert(normalizedInput as never)
         .select()
         .single();
       
       if (error) throw error;
 
+      const d = data as any;
       const { error: auditError } = await supabase
         .from('audit_log')
         .insert({
           actor_user_id: user?.id,
           action_type: 'create',
           entity_type: 'ngo',
-          entity_id: data.id,
+          entity_id: d.id,
           before_json: null,
           after_json: {
-            legal_name: data.legal_name,
-            status: data.status,
+            legal_name: d.legal_name,
+            status: d.status,
           },
         });
 
       if (auditError) {
         console.error('Failed to write audit log', auditError);
       }
-      return data as NGO;
+      return d as NGO;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ngos'] });
@@ -155,7 +198,7 @@ export const useUpdateNGO = () => {
       ensureSupabase();
       const { data, error } = await supabase
         .from('ngos')
-        .update(input)
+        .update(input as any)
         .eq('id', id)
         .select()
         .single();
@@ -178,7 +221,7 @@ export const useUpdateNGO = () => {
       if (auditError) {
         console.error('Failed to write audit log', auditError);
       }
-      return data as NGO;
+      return data as unknown as NGO;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['ngos'] });
@@ -204,17 +247,18 @@ export const useNGOStats = () => {
     queryFn: async () => {
       ensureSupabase();
       const { data, error } = await supabase
-        .from('ngos')
+        .from('ngos' as never)
         .select('status');
       
       if (error) throw error;
       
+      const rows = data as any[];
       const stats = {
-        total: data.length,
-        active: data.filter(n => n.status === 'Active').length,
-        onboarding: data.filter(n => n.status === 'Onboarding').length,
-        at_risk: data.filter(n => n.status === 'At-Risk').length,
-        prospect: data.filter(n => n.status === 'Prospect').length,
+        total: rows.length,
+        active: rows.filter(n => n.status === 'active').length,
+        onboarding: rows.filter(n => n.status === 'onboarding').length,
+        at_risk: rows.filter(n => n.status === 'at_risk').length,
+        prospect: rows.filter(n => n.status === 'prospect').length,
       };
       
       return stats;

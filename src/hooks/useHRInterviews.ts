@@ -65,7 +65,7 @@ export const useHRInterviews = (applicantId?: string) => {
       const { data, error } = await query;
 
       if (error) throw error;
-      return data as Interview[];
+      return data as unknown as Interview[];
     },
   });
 };
@@ -94,12 +94,12 @@ export const useCreateHRInterview = () => {
 
       await createAuditEntry({
         action_type: "created",
-        entity_id: data.id,
+        entity_id: (data as any).id,
         after_json: data as Json,
         actor_user_id: user?.id ?? null,
       });
 
-      return data as Interview;
+      return data as unknown as Interview;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["hr", "interviews"] });

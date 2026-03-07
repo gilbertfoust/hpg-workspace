@@ -1,98 +1,196 @@
 -- =============================================
 -- HPG WORKSTATION DATABASE SCHEMA
 -- =============================================
-
 -- ENUM TYPES
-CREATE TYPE public.app_role AS ENUM (
-  'super_admin',
-  'admin_pm',
-  'ngo_coordinator',
-  'department_lead',
-  'staff_member',
-  'executive_secretariat',
-  'external_ngo'
-);
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_type t
+    JOIN pg_namespace n ON n.oid = t.typnamespace
+    WHERE n.nspname = 'public'
+      AND t.typname = 'app_role'
+  ) THEN
+    CREATE TYPE public.app_role AS ENUM (
+      'super_admin',
+      'admin_pm',
+      'ngo_coordinator',
+      'department_lead',
+      'staff_member',
+      'executive_secretariat',
+      'external_ngo'
+    );
+  END IF;
+END $$;
 
-CREATE TYPE public.ngo_status AS ENUM (
-  'prospect',
-  'onboarding',
-  'active',
-  'at_risk',
-  'offboarding',
-  'closed'
-);
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_type t
+    JOIN pg_namespace n ON n.oid = t.typnamespace
+    WHERE n.nspname = 'public'
+      AND t.typname = 'ngo_status'
+  ) THEN
+    CREATE TYPE public.ngo_status AS ENUM (
+      'prospect',
+      'onboarding',
+      'active',
+      'at_risk',
+      'offboarding',
+      'closed'
+    );
+  END IF;
+END $$;
 
-CREATE TYPE public.fiscal_type AS ENUM (
-  'model_a',
-  'model_c',
-  'other'
-);
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_type t
+    JOIN pg_namespace n ON n.oid = t.typnamespace
+    WHERE n.nspname = 'public'
+      AND t.typname = 'fiscal_type'
+  ) THEN
+    CREATE TYPE public.fiscal_type AS ENUM (
+      'model_a',
+      'model_c',
+      'other'
+    );
+  END IF;
+END $$;
 
-CREATE TYPE public.work_item_status AS ENUM (
-  'draft',
-  'not_started',
-  'in_progress',
-  'waiting_on_ngo',
-  'waiting_on_hpg',
-  'submitted',
-  'under_review',
-  'approved',
-  'rejected',
-  'complete',
-  'canceled'
-);
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_type t
+    JOIN pg_namespace n ON n.oid = t.typnamespace
+    WHERE n.nspname = 'public'
+      AND t.typname = 'work_item_status'
+  ) THEN
+    CREATE TYPE public.work_item_status AS ENUM (
+      'draft',
+      'not_started',
+      'in_progress',
+      'waiting_on_ngo',
+      'waiting_on_hpg',
+      'submitted',
+      'under_review',
+      'approved',
+      'rejected',
+      'complete',
+      'canceled'
+    );
+  END IF;
+END $$;
 
-CREATE TYPE public.priority_level AS ENUM (
-  'low',
-  'medium',
-  'high'
-);
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_type t
+    JOIN pg_namespace n ON n.oid = t.typnamespace
+    WHERE n.nspname = 'public'
+      AND t.typname = 'priority_level'
+  ) THEN
+    CREATE TYPE public.priority_level AS ENUM (
+      'low',
+      'medium',
+      'high'
+    );
+  END IF;
+END $$;
 
-CREATE TYPE public.evidence_status AS ENUM (
-  'missing',
-  'uploaded',
-  'under_review',
-  'approved',
-  'rejected'
-);
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_type t
+    JOIN pg_namespace n ON n.oid = t.typnamespace
+    WHERE n.nspname = 'public'
+      AND t.typname = 'evidence_status'
+  ) THEN
+    CREATE TYPE public.evidence_status AS ENUM (
+      'missing',
+      'uploaded',
+      'under_review',
+      'approved',
+      'rejected'
+    );
+  END IF;
+END $$;
 
-CREATE TYPE public.module_type AS ENUM (
-  'ngo_coordination',
-  'administration',
-  'operations',
-  'program',
-  'curriculum',
-  'development',
-  'partnership',
-  'marketing',
-  'communications',
-  'hr',
-  'it',
-  'finance',
-  'legal'
-);
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_type t
+    JOIN pg_namespace n ON n.oid = t.typnamespace
+    WHERE n.nspname = 'public'
+      AND t.typname = 'module_type'
+  ) THEN
+    CREATE TYPE public.module_type AS ENUM (
+      'ngo_coordination',
+      'administration',
+      'operations',
+      'program',
+      'curriculum',
+      'development',
+      'partnership',
+      'marketing',
+      'communications',
+      'hr',
+      'it',
+      'finance',
+      'legal'
+    );
+  END IF;
+END $$;
 
-CREATE TYPE public.document_category AS ENUM (
-  'onboarding',
-  'compliance',
-  'finance',
-  'hr',
-  'marketing',
-  'communications',
-  'program',
-  'curriculum',
-  'it',
-  'legal',
-  'other'
-);
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_type t
+    JOIN pg_namespace n ON n.oid = t.typnamespace
+    WHERE n.nspname = 'public'
+      AND t.typname = 'document_category'
+  ) THEN
+    CREATE TYPE public.document_category AS ENUM (
+      'onboarding',
+      'compliance',
+      'finance',
+      'hr',
+      'marketing',
+      'communications',
+      'program',
+      'curriculum',
+      'it',
+      'legal',
+      'other'
+    );
+  END IF;
+END $$;
 
-CREATE TYPE public.org_type AS ENUM (
-  'ngo',
-  'partner',
-  'funder',
-  'vendor',
-  'applicant'
-);
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_type t
+    JOIN pg_namespace n ON n.oid = t.typnamespace
+    WHERE n.nspname = 'public'
+      AND t.typname = 'org_type'
+  ) THEN
+    CREATE TYPE public.org_type AS ENUM (
+      'ngo',
+      'partner',
+      'funder',
+      'vendor',
+      'applicant'
+    );
+  END IF;
+END $$;
 
 -- =============================================
 -- BASE TABLES

@@ -25,7 +25,7 @@ export const useDevelopmentFunders = () =>
   useQuery({
     queryKey: ["development-funders"],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from(fundersTable)
         .select("*")
         .order("name", { ascending: true });
@@ -41,9 +41,9 @@ export const useCreateDevelopmentFunder = () => {
 
   return useMutation({
     mutationFn: async (input: CreateDevelopmentFunderInput) => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from(fundersTable)
-        .insert(input)
+        .insert(input as any)
         .select()
         .single();
 
@@ -73,9 +73,9 @@ export const useUpdateDevelopmentFunder = () => {
 
   return useMutation({
     mutationFn: async ({ id, ...input }: Partial<DevelopmentFunder> & { id: string }) => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from(fundersTable)
-        .update(input)
+        .update(input as any)
         .eq("id", id)
         .select()
         .single();

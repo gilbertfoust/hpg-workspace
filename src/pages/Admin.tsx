@@ -1,9 +1,26 @@
+import { useState } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ConfigCheckPanel from "@/components/admin/ConfigCheckPanel";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Users,
   Building,
@@ -16,16 +33,12 @@ import {
   Plus,
   MoreHorizontal,
   Check,
+  Trash2,
+  Loader2,
 } from "lucide-react";
-
-// Mock data
-const mockUsers = [
-  { id: "1", name: "Jane Smith", email: "jane@hpg.org", role: "Super Admin", status: "active" },
-  { id: "2", name: "John Doe", email: "john@hpg.org", role: "Admin PM", status: "active" },
-  { id: "3", name: "Maria Garcia", email: "maria@hpg.org", role: "NGO Coordinator", status: "active" },
-  { id: "4", name: "David Kim", email: "david@hpg.org", role: "Department Lead", status: "active" },
-  { id: "5", name: "Sarah Johnson", email: "sarah@hpg.org", role: "Staff Member", status: "active" },
-];
+import { useAdminUsers, useDeleteAdminUser } from "@/hooks/useAdminUsers";
+import { useAuth } from "@/contexts/AuthContext";
+import { useUserRole } from "@/hooks/useUserRole";
 
 const mockDepartments = [
   { id: "1", name: "Administration", subDepts: ["Executive Secretariat"], lead: "Jane Smith", items: 12 },
@@ -40,14 +53,44 @@ const mockDepartments = [
 ];
 
 const roleColors: Record<string, string> = {
-  "Super Admin": "bg-destructive/10 text-destructive",
-  "Admin PM": "bg-info/10 text-info",
-  "NGO Coordinator": "bg-success/10 text-success",
-  "Department Lead": "bg-warning/10 text-warning",
-  "Staff Member": "bg-muted text-muted-foreground",
+  super_admin: "bg-destructive/10 text-destructive",
+  admin_pm: "bg-info/10 text-info",
+  ngo_coordinator: "bg-success/10 text-success",
+  department_lead: "bg-warning/10 text-warning",
+  staff: "bg-muted text-muted-foreground",
+  executive_secretariat: "bg-purple/10 text-purple",
+};
+
+const formatRoleName = (role: string) => {
+  return role
+    .split("_")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
 };
 
 export default function Admin() {
+  const { data: users, isLoading: usersLoading, error: usersError } = useAdminUsers();
+  const { user: currentUser } = useAuth();
+  const { data: currentUserRole } = useUserRole();
+  const deleteUserMutation = useDeleteAdminUser();
+  const [userToDelete, setUserToDelete] = useState<{ id: string; name: string | null; email: string | null } | null>(null);
+
+  const isSuperAdmin = currentUserRole?.role === "super_admin" || currentUserRole?.role === "admin_pm";
+
+  const handleDeleteClick = (userId: string, userName: string | null, userEmail: string | null) => {
+    setUserToDelete({ id: userId, name: userName, email: userEmail });
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (userToDelete) {
+      await deleteUserMutation.mutateAsync(userToDelete.id);
+      setUserToDelete(null);
+    }
+  };
+
+  const handleDeleteCancel = () => {
+    setUserToDelete(null);
+  };
   return (
     <MainLayout
       title="Admin Settings"
@@ -93,41 +136,92 @@ export default function Admin() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="data-table">
-                <table className="w-full">
-                  <thead>
-                    <tr>
-                      <th>Name</th>
-                      <th>Email</th>
-                      <th>Role</th>
-                      <th>Status</th>
-                      <th className="w-10"></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {mockUsers.map((user) => (
-                      <tr key={user.id}>
-                        <td className="font-medium">{user.name}</td>
-                        <td className="text-muted-foreground">{user.email}</td>
-                        <td>
-                          <Badge className={roleColors[user.role]}>{user.role}</Badge>
-                        </td>
-                        <td>
-                          <Badge variant="outline" className="gap-1">
-                            <Check className="w-3 h-3" />
-                            Active
-                          </Badge>
-                        </td>
-                        <td>
-                          <Button variant="ghost" size="icon" className="h-8 w-8">
-                            <MoreHorizontal className="w-4 h-4" />
-                          </Button>
-                        </td>
+              {usersLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                </div>
+              ) : usersError ? (
+                <div className="flex flex-col items-center justify-center py-8 text-center">
+                  <Shield className="h-8 w-8 text-muted-foreground mb-2" />
+                  <p className="text-sm text-muted-foreground">
+                    {usersError instanceof Error ? usersError.message : "Unable to load users"}
+                  </p>
+                </div>
+              ) : (
+                <div className="data-table">
+                  <table className="w-full">
+                    <thead>
+                      <tr>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Role</th>
+                        <th>Status</th>
+                        {isSuperAdmin && <th className="w-10"></th>}
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody>
+                      {users && users.length > 0 ? (
+                        users.map((user) => {
+                          const primaryRole = user.roles[0] || "staff";
+                          const isCurrentUser = user.id === currentUser?.id;
+                          return (
+                            <tr key={user.id}>
+                              <td className="font-medium">{user.full_name || "N/A"}</td>
+                              <td className="text-muted-foreground">{user.email || "N/A"}</td>
+                              <td>
+                                <Badge className={roleColors[primaryRole] || roleColors.staff}>
+                                  {formatRoleName(primaryRole)}
+                                </Badge>
+                              </td>
+                              <td>
+                                <Badge variant="outline" className="gap-1">
+                                  <Check className="w-3 h-3" />
+                                  Active
+                                </Badge>
+                              </td>
+                              {isSuperAdmin && (
+                                <td>
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                                        <MoreHorizontal className="w-4 h-4" />
+                                      </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                      {!isCurrentUser && (
+                                        <DropdownMenuItem
+                                          className="text-destructive focus:text-destructive"
+                                          onClick={() =>
+                                            handleDeleteClick(user.id, user.full_name, user.email)
+                                          }
+                                        >
+                                          <Trash2 className="w-4 h-4 mr-2" />
+                                          Delete User
+                                        </DropdownMenuItem>
+                                      )}
+                                      {isCurrentUser && (
+                                        <DropdownMenuItem disabled>
+                                          <span className="text-muted-foreground">Cannot delete yourself</span>
+                                        </DropdownMenuItem>
+                                      )}
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
+                                </td>
+                              )}
+                            </tr>
+                          );
+                        })
+                      ) : (
+                        <tr>
+                          <td colSpan={isSuperAdmin ? 5 : 4} className="text-center py-8 text-muted-foreground">
+                            No users found
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -331,6 +425,39 @@ export default function Admin() {
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* Delete User Confirmation Dialog */}
+      <AlertDialog open={!!userToDelete} onOpenChange={handleDeleteCancel}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete User</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete{" "}
+              <strong>
+                {userToDelete?.name || userToDelete?.email || "this user"}
+              </strong>
+              ? This action cannot be undone and will permanently delete the user's profile and roles.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={handleDeleteCancel}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={deleteUserMutation.isPending}
+            >
+              {deleteUserMutation.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                "Delete User"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </MainLayout>
   );
 }

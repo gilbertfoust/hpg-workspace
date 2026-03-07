@@ -18,7 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Loader2 } from "lucide-react";
-import { NGO, useUpdateNGO, NGOStatus, FiscalType } from "@/hooks/useNGOs";
+import { NGO, useUpdateNGO, NGOStatus, DbFiscalType } from "@/hooks/useNGOs";
 
 interface NGOEditSheetProps {
   ngo: NGO;
@@ -134,7 +134,7 @@ export function NGOEditSheet({ ngo, open, onOpenChange }: NGOEditSheetProps) {
           </div>
           <div className="space-y-2">
             <Label>Fiscal Type</Label>
-            <Select value={formData.fiscal_type} onValueChange={(v) => setFormData({ ...formData, fiscal_type: v as FiscalType })}>
+            <Select value={formData.fiscal_type} onValueChange={(v) => setFormData({ ...formData, fiscal_type: v as DbFiscalType })}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="Model A">Model A</SelectItem>
