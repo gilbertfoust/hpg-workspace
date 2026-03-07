@@ -110,17 +110,17 @@ export function AppSidebar() {
   const { user, signOut } = useAuth();
   const { data: userRole } = useUserRole();
   const isAdminUser = useIsAdminUser();
-  const canAccessAdminConfig = userRole?.role === 'super_admin' || userRole?.role === 'admin_pm';
+  const canAccessAdminConfig = userRole?.role === "super_admin" || userRole?.role === "admin_pm";
 
   const userInitials = user?.user_metadata?.full_name
-    ?.split(' ')
+    ?.split(" ")
     .map((n: string) => n[0])
-    .join('')
+    .join("")
     .toUpperCase()
-    .slice(0, 2) || user?.email?.slice(0, 2).toUpperCase() || 'U';
+    .slice(0, 2) || user?.email?.slice(0, 2).toUpperCase() || "U";
 
-  const displayName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User';
-  const roleLabel = userRole?.role?.replace('_', ' ') || 'Staff';
+  const displayName = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "User";
+  const roleLabel = userRole?.role?.replace("_", " ") || "Staff";
 
   const handleSignOut = async () => {
     await signOut();
@@ -128,7 +128,6 @@ export function AppSidebar() {
 
   return (
     <>
-      {/* Mobile overlay */}
       {!isCollapsed && (
         <div
           className="fixed inset-0 bg-black/50 z-40 lg:hidden"
@@ -136,7 +135,6 @@ export function AppSidebar() {
         />
       )}
 
-      {/* Mobile toggle button */}
       <Button
         variant="ghost"
         size="icon"
@@ -146,7 +144,6 @@ export function AppSidebar() {
         {isCollapsed ? <Menu className="w-5 h-5" /> : <X className="w-5 h-5" />}
       </Button>
 
-      {/* Sidebar */}
       <aside
         className={cn(
           "fixed left-0 top-0 z-40 h-screen bg-sidebar transition-all duration-300",
@@ -155,7 +152,6 @@ export function AppSidebar() {
         )}
       >
         <div className="flex flex-col h-full">
-          {/* Logo / Header */}
           <div className="flex items-center gap-3 px-4 py-4 border-b border-sidebar-border">
             <img
               src="https://img1.wsimg.com/isteam/ip/8d5502d6-d937-4d80-bd56-8074053e4d77/Humanity%20Pathways%20Global.jpg/:/rs=h:175,m"
@@ -175,10 +171,8 @@ export function AppSidebar() {
             </Button>
           </div>
 
-          {/* Navigation */}
           <ScrollArea className="flex-1 py-4">
             <nav className="px-2 space-y-1">
-              {/* Main Navigation */}
               <NavItem to="/dashboard" icon={<LayoutDashboard className="w-4 h-4" />} label={isCollapsed ? "" : "Dashboard"} />
               <NavItem to="/ngos" icon={<Building2 className="w-4 h-4" />} label={isCollapsed ? "" : "NGOs"} />
               <NavItem to="/work-items" icon={<ClipboardList className="w-4 h-4" />} label={isCollapsed ? "" : "Work Items"} badge={12} />
@@ -196,7 +190,6 @@ export function AppSidebar() {
                 </div>
               )}
 
-              {/* Modules Section */}
               {!isCollapsed && (
                 <div className="pt-4">
                   <button
@@ -227,18 +220,17 @@ export function AppSidebar() {
                 </div>
               )}
 
-              {/* Footer Navigation */}
               <div className="pt-4 mt-4 border-t border-sidebar-border">
-                <NavItem to="/reports" icon={<BarChart3 className="w-4 h-4" />} label={isCollapsed ? "" : "Reports"} />
+                {isCollapsed && (
+                  <NavItem to="/reports" icon={<BarChart3 className="w-4 h-4" />} label="" />
+                )}
+                <NavItem to="/admin" icon={<Settings className="w-4 h-4" />} label={isCollapsed ? "" : "Admin"} />
                 {isAdminUser && (
                   <>
                     <NavItem to="/admin/roles" icon={<Settings className="w-4 h-4" />} label={isCollapsed ? "" : "Roles"} />
                     <NavItem to="/admin/departments" icon={<Settings className="w-4 h-4" />} label={isCollapsed ? "" : "Departments"} />
                   </>
-                {isCollapsed && (
-                  <NavItem to="/reports" icon={<BarChart3 className="w-4 h-4" />} label="" />
                 )}
-                <NavItem to="/admin" icon={<Settings className="w-4 h-4" />} label={isCollapsed ? "" : "Admin"} />
                 {canAccessAdminConfig && (
                   <NavItem
                     to="/admin/config"
@@ -250,7 +242,6 @@ export function AppSidebar() {
             </nav>
           </ScrollArea>
 
-          {/* User section */}
           {!isCollapsed && (
             <div className="p-4 border-t border-sidebar-border">
               <div className="flex items-center gap-3">
