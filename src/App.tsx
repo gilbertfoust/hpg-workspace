@@ -13,6 +13,7 @@ import AuthCallback from "./pages/AuthCallback";
 import Dashboard from "./pages/Dashboard";
 import NGOs from "./pages/NGOs";
 import NGODetail from "./pages/NGODetail";
+import NGOMissingItems from "./pages/NGOMissingItems";
 import WorkItems from "./pages/WorkItems";
 import Forms from "./pages/Forms";
 import Documents from "./pages/Documents";

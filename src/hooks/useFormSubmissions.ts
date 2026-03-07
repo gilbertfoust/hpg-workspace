@@ -1,36 +1,20 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getSupabaseNotConfiguredError, supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import type { Database, Json } from '@/integrations/supabase/types';
 import { useAuth } from '@/contexts/AuthContext';
 import type { Json } from '@/integrations/supabase/types';
 import { ModuleType } from '@/hooks/useWorkItems';
 import { createWorkItemForSubmission } from '@/lib/createWorkItemForSubmission';
 
-export interface FormSubmission {
-  id: string;
-  form_template_id: string;
-  ngo_id: string | null;
-  work_item_id: string | null;
-  submitted_by_user_id: string | null;
-  payload_json: Json;
-  submission_status: string | null;
-  submitted_at: string | null;
-  created_at: string;
-  updated_at: string;
+export type FormSubmission = Database['public']['Tables']['form_submissions']['Row'] & {
   form_template?: {
     name: string;
     module: string;
   };
-}
+};
 
-export interface CreateFormSubmissionInput {
-  form_template_id: string;
-  ngo_id?: string;
-  work_item_id?: string;
-  submitted_by_user_id?: string;
-  payload_json?: Json;
-  submission_status?: string;
-}
+export type CreateFormSubmissionInput = Database['public']['Tables']['form_submissions']['Insert'];
 
 const ensureSupabase = () => {
   if (!supabase) {
@@ -396,6 +380,7 @@ export const useUpdateFormSubmission = () => {
   const { user } = useAuth();
 
   return useMutation({
+    mutationFn: async ({ id, ...input }: Database['public']['Tables']['form_submissions']['Update'] & { id: string }) => {
     mutationFn: async ({ id, ...input }: Partial<FormSubmission> & { id: string }) => {
       ensureSupabase();
       

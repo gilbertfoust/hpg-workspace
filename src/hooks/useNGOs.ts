@@ -187,6 +187,7 @@ export const useUpdateNGO = () => {
   const { user } = useAuth();
 
   return useMutation({
+    mutationFn: async ({ id, ...input }: Database['public']['Tables']['ngos']['Update'] & { id: string }) => {
     mutationFn: async ({ id, ...input }: Partial<NGO> & { id: string }) => {
       const { data: beforeData } = await supabase
         .from('ngos')

@@ -44,7 +44,9 @@ interface FormSubmissionSheetProps {
   onOpenChange: (open: boolean) => void;
   template: FormTemplate | null;
   submission?: FormSubmission | null;
-  ngoId?: string; // Optional for forms that don't require NGO context
+  ngoId: string;
+  initialValues?: Record<string, unknown>;
+  onSubmitSuccess?: (submission: FormSubmission, payload: Record<string, unknown>, submitted: boolean) => void;
   workItemConfig?: WorkItemConfig;
 }
 
@@ -54,6 +56,8 @@ export function FormSubmissionSheet({
   template,
   submission,
   ngoId,
+  initialValues,
+  onSubmitSuccess,
   workItemConfig,
 }: FormSubmissionSheetProps) {
   const { user } = useAuth();
@@ -74,14 +78,15 @@ export function FormSubmissionSheet({
   useEffect(() => {
     if (submission?.payload_json && typeof submission.payload_json === 'object') {
       setFormData(submission.payload_json as Record<string, unknown>);
-      // Note: File uploads from previous submissions are stored as metadata in payload_json
-      // We don't restore the actual File objects, just display the metadata if needed
+      return;
+    }
+
+    if (open) {
+      setFormData(initialValues || {});
     } else {
       setFormData({});
     }
-    // Reset file uploads when template changes
-    setFileUploads({});
-  }, [submission, template]);
+  }, [submission, template, initialValues, open]);
 
   const fields: FormField[] = template?.schema_json?.fields || [];
 
