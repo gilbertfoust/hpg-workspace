@@ -34,7 +34,7 @@ export const useITTickets = () => {
     queryKey: ["it-tickets"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("tickets" as never)
+        .from("tickets")
         .select("*")
         .order("created_at", { ascending: false });
 
@@ -77,7 +77,7 @@ export const useCreateITTicket = () => {
       if (workItemError) throw workItemError;
 
       const { data, error } = await supabase
-        .from("tickets" as never)
+        .from("tickets")
         .insert({
           subject: input.subject,
           description: input.description,
@@ -87,7 +87,7 @@ export const useCreateITTicket = () => {
           assigned_to_user_id: input.assigned_to_user_id || null,
           related_ngo_id: input.related_ngo_id || null,
           work_item_id: (workItem as WorkItem).id,
-        } as never)
+        })
         .select()
         .single();
 
@@ -120,8 +120,8 @@ export const useUpdateITTicket = () => {
   return useMutation({
     mutationFn: async ({ id, ...input }: Partial<Ticket> & { id: string }) => {
       const { data, error } = await supabase
-        .from("tickets" as never)
-        .update(input as never)
+        .from("tickets")
+        .update(input as any)
         .eq("id", id)
         .select()
         .single();
