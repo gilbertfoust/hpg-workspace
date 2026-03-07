@@ -37,7 +37,7 @@ const formSchema = z.object({
   module: z.string().min(1, "Module is required"),
   ngo_id: z.string().optional(),
   description: z.string().optional(),
-  priority: z.enum(["low", "medium", "high"]),
+  priority: z.enum(["Low", "Med", "High"]),
   due_date: z.string().optional(),
   evidence_required: z.boolean(),
   approval_required: z.boolean(),
@@ -78,7 +78,7 @@ export function CreateWorkItemDialog({ open, onOpenChange }: CreateWorkItemDialo
       module: "",
       ngo_id: "",
       description: "",
-      priority: "medium",
+      priority: "Med",
       due_date: "",
       evidence_required: false,
       approval_required: false,
@@ -167,9 +167,9 @@ export function CreateWorkItemDialog({ open, onOpenChange }: CreateWorkItemDialo
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="low">Low</SelectItem>
-                        <SelectItem value="medium">Medium</SelectItem>
-                        <SelectItem value="high">High</SelectItem>
+                        <SelectItem value="Low">Low</SelectItem>
+                        <SelectItem value="Med">Med</SelectItem>
+                        <SelectItem value="High">High</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />

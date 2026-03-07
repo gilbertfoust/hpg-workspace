@@ -14,6 +14,118 @@ export type Database = {
   }
   public: {
     Tables: {
+      accounts: {
+        Row: {
+          code: string
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          ngo_id: string | null
+          parent_account_id: string | null
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          ngo_id?: string | null
+          parent_account_id?: string | null
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          ngo_id?: string | null
+          parent_account_id?: string | null
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "accounts_ngo_id_fkey"
+            columns: ["ngo_id"]
+            isOneToOne: false
+            referencedRelation: "ngos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accounts_parent_account_id_fkey"
+            columns: ["parent_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      actuals: {
+        Row: {
+          amount: number
+          category_id: string
+          created_at: string
+          created_by_user_id: string | null
+          fiscal_period_id: string
+          id: string
+          ngo_id: string
+          source: string
+          supporting_document_url: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          category_id: string
+          created_at?: string
+          created_by_user_id?: string | null
+          fiscal_period_id: string
+          id?: string
+          ngo_id: string
+          source?: string
+          supporting_document_url?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          category_id?: string
+          created_at?: string
+          created_by_user_id?: string | null
+          fiscal_period_id?: string
+          id?: string
+          ngo_id?: string
+          source?: string
+          supporting_document_url?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "actuals_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "budget_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "actuals_fiscal_period_id_fkey"
+            columns: ["fiscal_period_id"]
+            isOneToOne: false
+            referencedRelation: "fiscal_periods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "actuals_ngo_id_fkey"
+            columns: ["ngo_id"]
+            isOneToOne: false
+            referencedRelation: "ngos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       approvals: {
         Row: {
           created_at: string
@@ -59,6 +171,241 @@ export type Database = {
           },
         ]
       }
+      asset_depreciation: {
+        Row: {
+          accumulated_depreciation: number
+          asset_id: string
+          book_value: number
+          created_at: string
+          depreciation_amount: number
+          id: string
+          ngo_id: string
+          period_date: string
+          period_label: string
+          transaction_id: string | null
+        }
+        Insert: {
+          accumulated_depreciation?: number
+          asset_id: string
+          book_value?: number
+          created_at?: string
+          depreciation_amount?: number
+          id?: string
+          ngo_id: string
+          period_date: string
+          period_label: string
+          transaction_id?: string | null
+        }
+        Update: {
+          accumulated_depreciation?: number
+          asset_id?: string
+          book_value?: number
+          created_at?: string
+          depreciation_amount?: number
+          id?: string
+          ngo_id?: string
+          period_date?: string
+          period_label?: string
+          transaction_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asset_depreciation_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asset_depreciation_ngo_id_fkey"
+            columns: ["ngo_id"]
+            isOneToOne: false
+            referencedRelation: "ngos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asset_depreciation_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      asset_maintenance: {
+        Row: {
+          asset_id: string
+          assigned_to_user_id: string | null
+          completed_date: string | null
+          cost: number | null
+          created_at: string
+          description: string
+          id: string
+          maintenance_type: string
+          ngo_id: string
+          notes: string | null
+          scheduled_date: string | null
+          status: string
+          updated_at: string
+          vendor_org_id: string | null
+        }
+        Insert: {
+          asset_id: string
+          assigned_to_user_id?: string | null
+          completed_date?: string | null
+          cost?: number | null
+          created_at?: string
+          description: string
+          id?: string
+          maintenance_type?: string
+          ngo_id: string
+          notes?: string | null
+          scheduled_date?: string | null
+          status?: string
+          updated_at?: string
+          vendor_org_id?: string | null
+        }
+        Update: {
+          asset_id?: string
+          assigned_to_user_id?: string | null
+          completed_date?: string | null
+          cost?: number | null
+          created_at?: string
+          description?: string
+          id?: string
+          maintenance_type?: string
+          ngo_id?: string
+          notes?: string | null
+          scheduled_date?: string | null
+          status?: string
+          updated_at?: string
+          vendor_org_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asset_maintenance_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asset_maintenance_assigned_to_user_id_fkey"
+            columns: ["assigned_to_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asset_maintenance_ngo_id_fkey"
+            columns: ["ngo_id"]
+            isOneToOne: false
+            referencedRelation: "ngos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asset_maintenance_vendor_org_id_fkey"
+            columns: ["vendor_org_id"]
+            isOneToOne: false
+            referencedRelation: "crm_organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      assets: {
+        Row: {
+          account_id: string | null
+          acquisition_cost: number
+          acquisition_date: string | null
+          asset_tag: string | null
+          assigned_to_staff_id: string | null
+          category: string
+          created_at: string
+          depreciation_method: string
+          description: string | null
+          disposed_date: string | null
+          disposed_value: number | null
+          id: string
+          location: string | null
+          name: string
+          ngo_id: string
+          notes: string | null
+          salvage_value: number
+          serial_number: string | null
+          status: string
+          updated_at: string
+          useful_life_months: number | null
+        }
+        Insert: {
+          account_id?: string | null
+          acquisition_cost?: number
+          acquisition_date?: string | null
+          asset_tag?: string | null
+          assigned_to_staff_id?: string | null
+          category?: string
+          created_at?: string
+          depreciation_method?: string
+          description?: string | null
+          disposed_date?: string | null
+          disposed_value?: number | null
+          id?: string
+          location?: string | null
+          name: string
+          ngo_id: string
+          notes?: string | null
+          salvage_value?: number
+          serial_number?: string | null
+          status?: string
+          updated_at?: string
+          useful_life_months?: number | null
+        }
+        Update: {
+          account_id?: string | null
+          acquisition_cost?: number
+          acquisition_date?: string | null
+          asset_tag?: string | null
+          assigned_to_staff_id?: string | null
+          category?: string
+          created_at?: string
+          depreciation_method?: string
+          description?: string | null
+          disposed_date?: string | null
+          disposed_value?: number | null
+          id?: string
+          location?: string | null
+          name?: string
+          ngo_id?: string
+          notes?: string | null
+          salvage_value?: number
+          serial_number?: string | null
+          status?: string
+          updated_at?: string
+          useful_life_months?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assets_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assets_assigned_to_staff_id_fkey"
+            columns: ["assigned_to_staff_id"]
+            isOneToOne: false
+            referencedRelation: "staff_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assets_ngo_id_fkey"
+            columns: ["ngo_id"]
+            isOneToOne: false
+            referencedRelation: "ngos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_log: {
         Row: {
           action_type: string
@@ -95,6 +442,153 @@ export type Database = {
         }
         Relationships: []
       }
+      budget_categories: {
+        Row: {
+          code: string
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          ngo_id: string | null
+          type: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          ngo_id?: string | null
+          type: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          ngo_id?: string | null
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "budget_categories_ngo_id_fkey"
+            columns: ["ngo_id"]
+            isOneToOne: false
+            referencedRelation: "ngos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      budgets: {
+        Row: {
+          amount: number
+          category_id: string
+          created_at: string
+          created_by_user_id: string | null
+          fiscal_period_id: string
+          id: string
+          ngo_id: string
+          notes: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          category_id: string
+          created_at?: string
+          created_by_user_id?: string | null
+          fiscal_period_id: string
+          id?: string
+          ngo_id: string
+          notes?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          category_id?: string
+          created_at?: string
+          created_by_user_id?: string | null
+          fiscal_period_id?: string
+          id?: string
+          ngo_id?: string
+          notes?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "budgets_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "budget_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "budgets_fiscal_period_id_fkey"
+            columns: ["fiscal_period_id"]
+            isOneToOne: false
+            referencedRelation: "fiscal_periods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "budgets_ngo_id_fkey"
+            columns: ["ngo_id"]
+            isOneToOne: false
+            referencedRelation: "ngos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      closing_entries: {
+        Row: {
+          account_id: string
+          created_at: string
+          created_by_user_id: string | null
+          credit: number
+          debit: number
+          fiscal_year: number
+          id: string
+          memo: string | null
+          ngo_id: string
+        }
+        Insert: {
+          account_id: string
+          created_at?: string
+          created_by_user_id?: string | null
+          credit?: number
+          debit?: number
+          fiscal_year: number
+          id?: string
+          memo?: string | null
+          ngo_id: string
+        }
+        Update: {
+          account_id?: string
+          created_at?: string
+          created_by_user_id?: string | null
+          credit?: number
+          debit?: number
+          fiscal_year?: number
+          id?: string
+          memo?: string | null
+          ngo_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "closing_entries_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "closing_entries_ngo_id_fkey"
+            columns: ["ngo_id"]
+            isOneToOne: false
+            referencedRelation: "ngos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       comments: {
         Row: {
           author_user_id: string
@@ -130,6 +624,53 @@ export type Database = {
             columns: ["work_item_id"]
             isOneToOne: false
             referencedRelation: "work_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      compliance_packages: {
+        Row: {
+          created_at: string
+          created_by_user_id: string | null
+          data_json: Json
+          file_path: string | null
+          fiscal_year: number
+          id: string
+          ngo_id: string
+          package_type: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by_user_id?: string | null
+          data_json?: Json
+          file_path?: string | null
+          fiscal_year: number
+          id?: string
+          ngo_id: string
+          package_type: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by_user_id?: string | null
+          data_json?: Json
+          file_path?: string | null
+          fiscal_year?: number
+          id?: string
+          ngo_id?: string
+          package_type?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "compliance_packages_ngo_id_fkey"
+            columns: ["ngo_id"]
+            isOneToOne: false
+            referencedRelation: "ngos"
             referencedColumns: ["id"]
           },
         ]
@@ -183,6 +724,484 @@ export type Database = {
             columns: ["ngo_id"]
             isOneToOne: false
             referencedRelation: "ngos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      controller_alerts: {
+        Row: {
+          context_json: Json | null
+          created_at: string
+          id: string
+          message: string
+          module: string
+          ngo_id: string | null
+          resolved_at: string | null
+          severity: string
+          status: string
+        }
+        Insert: {
+          context_json?: Json | null
+          created_at?: string
+          id?: string
+          message: string
+          module: string
+          ngo_id?: string | null
+          resolved_at?: string | null
+          severity?: string
+          status?: string
+        }
+        Update: {
+          context_json?: Json | null
+          created_at?: string
+          id?: string
+          message?: string
+          module?: string
+          ngo_id?: string | null
+          resolved_at?: string | null
+          severity?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "controller_alerts_ngo_id_fkey"
+            columns: ["ngo_id"]
+            isOneToOne: false
+            referencedRelation: "ngos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_contacts: {
+        Row: {
+          created_at: string
+          created_by_user_id: string | null
+          department: string | null
+          email: string | null
+          first_name: string
+          id: string
+          is_active: boolean
+          is_primary: boolean
+          last_name: string
+          notes: string | null
+          organization_id: string | null
+          phone: string | null
+          tags: string[] | null
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by_user_id?: string | null
+          department?: string | null
+          email?: string | null
+          first_name: string
+          id?: string
+          is_active?: boolean
+          is_primary?: boolean
+          last_name: string
+          notes?: string | null
+          organization_id?: string | null
+          phone?: string | null
+          tags?: string[] | null
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by_user_id?: string | null
+          department?: string | null
+          email?: string | null
+          first_name?: string
+          id?: string
+          is_active?: boolean
+          is_primary?: boolean
+          last_name?: string
+          notes?: string | null
+          organization_id?: string | null
+          phone?: string | null
+          tags?: string[] | null
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_contacts_created_by_user_id_fkey"
+            columns: ["created_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_contacts_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "crm_organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_deals: {
+        Row: {
+          actual_close_date: string | null
+          amount: number | null
+          assigned_user_id: string | null
+          contact_id: string | null
+          created_at: string
+          created_by_user_id: string | null
+          deal_type: string
+          expected_close_date: string | null
+          id: string
+          ngo_id: string | null
+          notes: string | null
+          organization_id: string | null
+          probability: number | null
+          stage: string
+          tags: string[] | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          actual_close_date?: string | null
+          amount?: number | null
+          assigned_user_id?: string | null
+          contact_id?: string | null
+          created_at?: string
+          created_by_user_id?: string | null
+          deal_type?: string
+          expected_close_date?: string | null
+          id?: string
+          ngo_id?: string | null
+          notes?: string | null
+          organization_id?: string | null
+          probability?: number | null
+          stage?: string
+          tags?: string[] | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          actual_close_date?: string | null
+          amount?: number | null
+          assigned_user_id?: string | null
+          contact_id?: string | null
+          created_at?: string
+          created_by_user_id?: string | null
+          deal_type?: string
+          expected_close_date?: string | null
+          id?: string
+          ngo_id?: string | null
+          notes?: string | null
+          organization_id?: string | null
+          probability?: number | null
+          stage?: string
+          tags?: string[] | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_deals_assigned_user_id_fkey"
+            columns: ["assigned_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_deals_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "crm_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_deals_created_by_user_id_fkey"
+            columns: ["created_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_deals_ngo_id_fkey"
+            columns: ["ngo_id"]
+            isOneToOne: false
+            referencedRelation: "ngos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_deals_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "crm_organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_interactions: {
+        Row: {
+          contact_id: string | null
+          created_at: string
+          description: string | null
+          id: string
+          interaction_date: string
+          interaction_type: string
+          logged_by_user_id: string | null
+          organization_id: string | null
+          subject: string
+          updated_at: string
+        }
+        Insert: {
+          contact_id?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          interaction_date?: string
+          interaction_type?: string
+          logged_by_user_id?: string | null
+          organization_id?: string | null
+          subject: string
+          updated_at?: string
+        }
+        Update: {
+          contact_id?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          interaction_date?: string
+          interaction_type?: string
+          logged_by_user_id?: string | null
+          organization_id?: string | null
+          subject?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_interactions_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "crm_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_interactions_logged_by_user_id_fkey"
+            columns: ["logged_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_interactions_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "crm_organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_organizations: {
+        Row: {
+          address: string | null
+          annual_revenue: number | null
+          city: string | null
+          country: string | null
+          created_at: string
+          created_by_user_id: string | null
+          description: string | null
+          email: string | null
+          employee_count: number | null
+          id: string
+          industry: string | null
+          is_active: boolean
+          name: string
+          org_type: string
+          phone: string | null
+          state_province: string | null
+          tags: string[] | null
+          updated_at: string
+          website: string | null
+        }
+        Insert: {
+          address?: string | null
+          annual_revenue?: number | null
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          created_by_user_id?: string | null
+          description?: string | null
+          email?: string | null
+          employee_count?: number | null
+          id?: string
+          industry?: string | null
+          is_active?: boolean
+          name: string
+          org_type?: string
+          phone?: string | null
+          state_province?: string | null
+          tags?: string[] | null
+          updated_at?: string
+          website?: string | null
+        }
+        Update: {
+          address?: string | null
+          annual_revenue?: number | null
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          created_by_user_id?: string | null
+          description?: string | null
+          email?: string | null
+          employee_count?: number | null
+          id?: string
+          industry?: string | null
+          is_active?: boolean
+          name?: string
+          org_type?: string
+          phone?: string | null
+          state_province?: string | null
+          tags?: string[] | null
+          updated_at?: string
+          website?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_organizations_created_by_user_id_fkey"
+            columns: ["created_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      document_extraction_logs: {
+        Row: {
+          confidence_score: number | null
+          created_at: string
+          extracted_data_json: Json
+          id: string
+          intake_id: string
+          raw_text: string | null
+        }
+        Insert: {
+          confidence_score?: number | null
+          created_at?: string
+          extracted_data_json?: Json
+          id?: string
+          intake_id: string
+          raw_text?: string | null
+        }
+        Update: {
+          confidence_score?: number | null
+          created_at?: string
+          extracted_data_json?: Json
+          id?: string
+          intake_id?: string
+          raw_text?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_extraction_logs_intake_id_fkey"
+            columns: ["intake_id"]
+            isOneToOne: false
+            referencedRelation: "document_intake_submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      document_intake_submissions: {
+        Row: {
+          created_at: string
+          extracted_data_json: Json
+          file_name: string | null
+          file_path: string | null
+          fiscal_period_id: string | null
+          id: string
+          ngo_id: string
+          reviewer_notes: string | null
+          reviewer_user_id: string | null
+          status: string
+          submitted_by_user_id: string | null
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          extracted_data_json?: Json
+          file_name?: string | null
+          file_path?: string | null
+          fiscal_period_id?: string | null
+          id?: string
+          ngo_id: string
+          reviewer_notes?: string | null
+          reviewer_user_id?: string | null
+          status?: string
+          submitted_by_user_id?: string | null
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          extracted_data_json?: Json
+          file_name?: string | null
+          file_path?: string | null
+          fiscal_period_id?: string | null
+          id?: string
+          ngo_id?: string
+          reviewer_notes?: string | null
+          reviewer_user_id?: string | null
+          status?: string
+          submitted_by_user_id?: string | null
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_intake_submissions_fiscal_period_id_fkey"
+            columns: ["fiscal_period_id"]
+            isOneToOne: false
+            referencedRelation: "fiscal_periods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_intake_submissions_ngo_id_fkey"
+            columns: ["ngo_id"]
+            isOneToOne: false
+            referencedRelation: "ngos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      document_to_transaction_links: {
+        Row: {
+          created_at: string
+          id: string
+          intake_id: string
+          transaction_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          intake_id: string
+          transaction_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          intake_id?: string
+          transaction_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_to_transaction_links_intake_id_fkey"
+            columns: ["intake_id"]
+            isOneToOne: false
+            referencedRelation: "document_intake_submissions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_to_transaction_links_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
             referencedColumns: ["id"]
           },
         ]
@@ -269,6 +1288,163 @@ export type Database = {
             columns: ["work_item_id"]
             isOneToOne: false
             referencedRelation: "work_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      esign_documents: {
+        Row: {
+          created_at: string
+          id: string
+          original_filename: string
+          owner_id: string
+          storage_path: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          original_filename: string
+          owner_id: string
+          storage_path: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          original_filename?: string
+          owner_id?: string
+          storage_path?: string
+        }
+        Relationships: []
+      }
+      financial_review_status: {
+        Row: {
+          comments: string | null
+          created_at: string
+          fiscal_period_id: string
+          id: string
+          last_updated_at: string
+          ngo_id: string
+          reviewer_id: string | null
+          status: string
+        }
+        Insert: {
+          comments?: string | null
+          created_at?: string
+          fiscal_period_id: string
+          id?: string
+          last_updated_at?: string
+          ngo_id: string
+          reviewer_id?: string | null
+          status?: string
+        }
+        Update: {
+          comments?: string | null
+          created_at?: string
+          fiscal_period_id?: string
+          id?: string
+          last_updated_at?: string
+          ngo_id?: string
+          reviewer_id?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "financial_review_status_fiscal_period_id_fkey"
+            columns: ["fiscal_period_id"]
+            isOneToOne: false
+            referencedRelation: "fiscal_periods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "financial_review_status_ngo_id_fkey"
+            columns: ["ngo_id"]
+            isOneToOne: false
+            referencedRelation: "ngos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      financial_statements: {
+        Row: {
+          created_at: string
+          data_json: Json
+          fiscal_year: number
+          generated_by_user_id: string | null
+          id: string
+          ngo_id: string
+          statement_type: string
+        }
+        Insert: {
+          created_at?: string
+          data_json?: Json
+          fiscal_year: number
+          generated_by_user_id?: string | null
+          id?: string
+          ngo_id: string
+          statement_type: string
+        }
+        Update: {
+          created_at?: string
+          data_json?: Json
+          fiscal_year?: number
+          generated_by_user_id?: string | null
+          id?: string
+          ngo_id?: string
+          statement_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "financial_statements_ngo_id_fkey"
+            columns: ["ngo_id"]
+            isOneToOne: false
+            referencedRelation: "ngos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fiscal_periods: {
+        Row: {
+          created_at: string
+          currency_code: string | null
+          end_date: string
+          id: string
+          is_locked: boolean
+          label: string
+          ngo_id: string
+          period_type: string
+          start_date: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          currency_code?: string | null
+          end_date: string
+          id?: string
+          is_locked?: boolean
+          label: string
+          ngo_id: string
+          period_type: string
+          start_date: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          currency_code?: string | null
+          end_date?: string
+          id?: string
+          is_locked?: boolean
+          label?: string
+          ngo_id?: string
+          period_type?: string
+          start_date?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fiscal_periods_ngo_id_fkey"
+            columns: ["ngo_id"]
+            isOneToOne: false
+            referencedRelation: "ngos"
             referencedColumns: ["id"]
           },
         ]
@@ -391,6 +1567,368 @@ export type Database = {
           },
         ]
       }
+      grant_applications: {
+        Row: {
+          amount_awarded: number | null
+          amount_requested: number | null
+          assigned_user_id: string | null
+          awarded_at: string | null
+          closed_at: string | null
+          created_at: string
+          id: string
+          ngo_id: string
+          notes: string | null
+          opportunity_id: string | null
+          reporting_due_at: string | null
+          stage: string
+          submitted_at: string | null
+          title: string
+          updated_at: string
+          work_item_id: string | null
+        }
+        Insert: {
+          amount_awarded?: number | null
+          amount_requested?: number | null
+          assigned_user_id?: string | null
+          awarded_at?: string | null
+          closed_at?: string | null
+          created_at?: string
+          id?: string
+          ngo_id: string
+          notes?: string | null
+          opportunity_id?: string | null
+          reporting_due_at?: string | null
+          stage?: string
+          submitted_at?: string | null
+          title: string
+          updated_at?: string
+          work_item_id?: string | null
+        }
+        Update: {
+          amount_awarded?: number | null
+          amount_requested?: number | null
+          assigned_user_id?: string | null
+          awarded_at?: string | null
+          closed_at?: string | null
+          created_at?: string
+          id?: string
+          ngo_id?: string
+          notes?: string | null
+          opportunity_id?: string | null
+          reporting_due_at?: string | null
+          stage?: string
+          submitted_at?: string | null
+          title?: string
+          updated_at?: string
+          work_item_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "grant_applications_assigned_user_id_fkey"
+            columns: ["assigned_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "grant_applications_ngo_id_fkey"
+            columns: ["ngo_id"]
+            isOneToOne: false
+            referencedRelation: "ngos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "grant_applications_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "grant_opportunities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "grant_applications_work_item_id_fkey"
+            columns: ["work_item_id"]
+            isOneToOne: false
+            referencedRelation: "work_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      grant_opportunities: {
+        Row: {
+          country: string | null
+          created_at: string
+          cycle: string | null
+          deadline: string | null
+          description: string | null
+          eligibility_criteria: string | null
+          focus_areas: string[] | null
+          id: string
+          max_award: number | null
+          min_award: number | null
+          notes: string | null
+          region: string | null
+          source_id: string | null
+          status: string
+          title: string
+          updated_at: string
+          url: string | null
+        }
+        Insert: {
+          country?: string | null
+          created_at?: string
+          cycle?: string | null
+          deadline?: string | null
+          description?: string | null
+          eligibility_criteria?: string | null
+          focus_areas?: string[] | null
+          id?: string
+          max_award?: number | null
+          min_award?: number | null
+          notes?: string | null
+          region?: string | null
+          source_id?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+          url?: string | null
+        }
+        Update: {
+          country?: string | null
+          created_at?: string
+          cycle?: string | null
+          deadline?: string | null
+          description?: string | null
+          eligibility_criteria?: string | null
+          focus_areas?: string[] | null
+          id?: string
+          max_award?: number | null
+          min_award?: number | null
+          notes?: string | null
+          region?: string | null
+          source_id?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+          url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "grant_opportunities_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "grant_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      grant_sources: {
+        Row: {
+          country: string | null
+          created_at: string
+          description: string | null
+          focus_areas: string[] | null
+          funder_type: string
+          id: string
+          is_active: boolean
+          max_award: number | null
+          min_award: number | null
+          name: string
+          region: string | null
+          updated_at: string
+          website: string | null
+        }
+        Insert: {
+          country?: string | null
+          created_at?: string
+          description?: string | null
+          focus_areas?: string[] | null
+          funder_type?: string
+          id?: string
+          is_active?: boolean
+          max_award?: number | null
+          min_award?: number | null
+          name: string
+          region?: string | null
+          updated_at?: string
+          website?: string | null
+        }
+        Update: {
+          country?: string | null
+          created_at?: string
+          description?: string | null
+          focus_areas?: string[] | null
+          funder_type?: string
+          id?: string
+          is_active?: boolean
+          max_award?: number | null
+          min_award?: number | null
+          name?: string
+          region?: string | null
+          updated_at?: string
+          website?: string | null
+        }
+        Relationships: []
+      }
+      inventory_items: {
+        Row: {
+          category: string
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          location: string | null
+          name: string
+          ngo_id: string
+          notes: string | null
+          quantity_on_hand: number
+          reorder_point: number | null
+          reorder_quantity: number | null
+          sku: string | null
+          unit_cost: number
+          unit_of_measure: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          location?: string | null
+          name: string
+          ngo_id: string
+          notes?: string | null
+          quantity_on_hand?: number
+          reorder_point?: number | null
+          reorder_quantity?: number | null
+          sku?: string | null
+          unit_cost?: number
+          unit_of_measure?: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          location?: string | null
+          name?: string
+          ngo_id?: string
+          notes?: string | null
+          quantity_on_hand?: number
+          reorder_point?: number | null
+          reorder_quantity?: number | null
+          sku?: string | null
+          unit_cost?: number
+          unit_of_measure?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_items_ngo_id_fkey"
+            columns: ["ngo_id"]
+            isOneToOne: false
+            referencedRelation: "ngos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      journal_entries: {
+        Row: {
+          account_id: string
+          created_at: string
+          credit: number
+          debit: number
+          id: string
+          memo: string | null
+          transaction_id: string
+        }
+        Insert: {
+          account_id: string
+          created_at?: string
+          credit?: number
+          debit?: number
+          id?: string
+          memo?: string | null
+          transaction_id: string
+        }
+        Update: {
+          account_id?: string
+          created_at?: string
+          credit?: number
+          debit?: number
+          id?: string
+          memo?: string | null
+          transaction_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journal_entries_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "journal_entries_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ngo_risk_profiles: {
+        Row: {
+          compliance_risk_score: number
+          created_at: string
+          financial_risk_score: number
+          hr_risk_score: number
+          id: string
+          ngo_id: string
+          notes: string | null
+          operations_risk_score: number
+          overall_risk_score: number
+          risk_level: string
+          updated_at: string
+        }
+        Insert: {
+          compliance_risk_score?: number
+          created_at?: string
+          financial_risk_score?: number
+          hr_risk_score?: number
+          id?: string
+          ngo_id: string
+          notes?: string | null
+          operations_risk_score?: number
+          overall_risk_score?: number
+          risk_level?: string
+          updated_at?: string
+        }
+        Update: {
+          compliance_risk_score?: number
+          created_at?: string
+          financial_risk_score?: number
+          hr_risk_score?: number
+          id?: string
+          ngo_id?: string
+          notes?: string | null
+          operations_risk_score?: number
+          overall_risk_score?: number
+          risk_level?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ngo_risk_profiles_ngo_id_fkey"
+            columns: ["ngo_id"]
+            isOneToOne: true
+            referencedRelation: "ngos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ngos: {
         Row: {
           admin_pm_user_id: string | null
@@ -405,6 +1943,7 @@ export type Database = {
           ngo_coordinator_user_id: string | null
           notes: string | null
           primary_contact_id: string | null
+          region: string | null
           state_province: string | null
           status: Database["public"]["Enums"]["ngo_status"] | null
           updated_at: string
@@ -423,6 +1962,7 @@ export type Database = {
           ngo_coordinator_user_id?: string | null
           notes?: string | null
           primary_contact_id?: string | null
+          region?: string | null
           state_province?: string | null
           status?: Database["public"]["Enums"]["ngo_status"] | null
           updated_at?: string
@@ -441,6 +1981,7 @@ export type Database = {
           ngo_coordinator_user_id?: string | null
           notes?: string | null
           primary_contact_id?: string | null
+          region?: string | null
           state_province?: string | null
           status?: Database["public"]["Enums"]["ngo_status"] | null
           updated_at?: string
@@ -505,6 +2046,57 @@ export type Database = {
           },
         ]
       }
+      po_line_items: {
+        Row: {
+          account_id: string | null
+          created_at: string
+          description: string
+          id: string
+          purchase_order_id: string
+          quantity: number
+          received_quantity: number | null
+          total_price: number
+          unit_price: number
+        }
+        Insert: {
+          account_id?: string | null
+          created_at?: string
+          description: string
+          id?: string
+          purchase_order_id: string
+          quantity?: number
+          received_quantity?: number | null
+          total_price?: number
+          unit_price?: number
+        }
+        Update: {
+          account_id?: string | null
+          created_at?: string
+          description?: string
+          id?: string
+          purchase_order_id?: string
+          quantity?: number
+          received_quantity?: number | null
+          total_price?: number
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "po_line_items_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "po_line_items_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -543,6 +2135,941 @@ export type Database = {
           },
         ]
       }
+      pto_requests: {
+        Row: {
+          approved_at: string | null
+          approved_by_user_id: string | null
+          created_at: string
+          end_date: string
+          hours_requested: number
+          id: string
+          leave_type: string
+          ngo_id: string
+          notes: string | null
+          reason: string | null
+          staff_id: string
+          start_date: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by_user_id?: string | null
+          created_at?: string
+          end_date: string
+          hours_requested?: number
+          id?: string
+          leave_type?: string
+          ngo_id: string
+          notes?: string | null
+          reason?: string | null
+          staff_id: string
+          start_date: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by_user_id?: string | null
+          created_at?: string
+          end_date?: string
+          hours_requested?: number
+          id?: string
+          leave_type?: string
+          ngo_id?: string
+          notes?: string | null
+          reason?: string | null
+          staff_id?: string
+          start_date?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pto_requests_approved_by_user_id_fkey"
+            columns: ["approved_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pto_requests_ngo_id_fkey"
+            columns: ["ngo_id"]
+            isOneToOne: false
+            referencedRelation: "ngos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pto_requests_staff_id_fkey"
+            columns: ["staff_id"]
+            isOneToOne: false
+            referencedRelation: "staff_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      purchase_orders: {
+        Row: {
+          approved_at: string | null
+          approved_by_user_id: string | null
+          created_at: string
+          created_by_user_id: string | null
+          currency_code: string | null
+          expected_delivery: string | null
+          id: string
+          ngo_id: string
+          notes: string | null
+          order_date: string
+          po_number: string
+          purchase_request_id: string | null
+          shipping_address: string | null
+          status: string
+          subtotal: number
+          tax_amount: number
+          total_amount: number
+          updated_at: string
+          vendor_org_id: string | null
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by_user_id?: string | null
+          created_at?: string
+          created_by_user_id?: string | null
+          currency_code?: string | null
+          expected_delivery?: string | null
+          id?: string
+          ngo_id: string
+          notes?: string | null
+          order_date?: string
+          po_number: string
+          purchase_request_id?: string | null
+          shipping_address?: string | null
+          status?: string
+          subtotal?: number
+          tax_amount?: number
+          total_amount?: number
+          updated_at?: string
+          vendor_org_id?: string | null
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by_user_id?: string | null
+          created_at?: string
+          created_by_user_id?: string | null
+          currency_code?: string | null
+          expected_delivery?: string | null
+          id?: string
+          ngo_id?: string
+          notes?: string | null
+          order_date?: string
+          po_number?: string
+          purchase_request_id?: string | null
+          shipping_address?: string | null
+          status?: string
+          subtotal?: number
+          tax_amount?: number
+          total_amount?: number
+          updated_at?: string
+          vendor_org_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_orders_approved_by_user_id_fkey"
+            columns: ["approved_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_orders_created_by_user_id_fkey"
+            columns: ["created_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_orders_ngo_id_fkey"
+            columns: ["ngo_id"]
+            isOneToOne: false
+            referencedRelation: "ngos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_orders_purchase_request_id_fkey"
+            columns: ["purchase_request_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_orders_vendor_org_id_fkey"
+            columns: ["vendor_org_id"]
+            isOneToOne: false
+            referencedRelation: "crm_organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      purchase_requests: {
+        Row: {
+          approved_at: string | null
+          approved_by_user_id: string | null
+          created_at: string
+          currency_code: string | null
+          department_id: string | null
+          description: string | null
+          estimated_amount: number | null
+          id: string
+          needed_by: string | null
+          ngo_id: string
+          notes: string | null
+          priority: string
+          rejected_reason: string | null
+          requested_by_user_id: string | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by_user_id?: string | null
+          created_at?: string
+          currency_code?: string | null
+          department_id?: string | null
+          description?: string | null
+          estimated_amount?: number | null
+          id?: string
+          needed_by?: string | null
+          ngo_id: string
+          notes?: string | null
+          priority?: string
+          rejected_reason?: string | null
+          requested_by_user_id?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by_user_id?: string | null
+          created_at?: string
+          currency_code?: string | null
+          department_id?: string | null
+          description?: string | null
+          estimated_amount?: number | null
+          id?: string
+          needed_by?: string | null
+          ngo_id?: string
+          notes?: string | null
+          priority?: string
+          rejected_reason?: string | null
+          requested_by_user_id?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_requests_approved_by_user_id_fkey"
+            columns: ["approved_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_requests_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "org_units"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_requests_ngo_id_fkey"
+            columns: ["ngo_id"]
+            isOneToOne: false
+            referencedRelation: "ngos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_requests_requested_by_user_id_fkey"
+            columns: ["requested_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      receipts: {
+        Row: {
+          file_name: string
+          file_path: string
+          id: string
+          transaction_id: string
+          uploaded_at: string
+          uploaded_by_user_id: string | null
+        }
+        Insert: {
+          file_name: string
+          file_path: string
+          id?: string
+          transaction_id: string
+          uploaded_at?: string
+          uploaded_by_user_id?: string | null
+        }
+        Update: {
+          file_name?: string
+          file_path?: string
+          id?: string
+          transaction_id?: string
+          uploaded_at?: string
+          uploaded_by_user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "receipts_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reconciliations: {
+        Row: {
+          created_at: string
+          fiscal_period_id: string
+          id: string
+          ngo_id: string
+          notes: string | null
+          reconciled_at: string | null
+          reconciled_by_user_id: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          fiscal_period_id: string
+          id?: string
+          ngo_id: string
+          notes?: string | null
+          reconciled_at?: string | null
+          reconciled_by_user_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          fiscal_period_id?: string
+          id?: string
+          ngo_id?: string
+          notes?: string | null
+          reconciled_at?: string | null
+          reconciled_by_user_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reconciliations_fiscal_period_id_fkey"
+            columns: ["fiscal_period_id"]
+            isOneToOne: false
+            referencedRelation: "fiscal_periods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reconciliations_ngo_id_fkey"
+            columns: ["ngo_id"]
+            isOneToOne: false
+            referencedRelation: "ngos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recurring_donations: {
+        Row: {
+          amount: number
+          created_at: string
+          currency_code: string | null
+          donor_email: string | null
+          donor_name: string
+          donor_org_id: string | null
+          end_date: string | null
+          frequency: string
+          id: string
+          next_expected_date: string | null
+          ngo_id: string
+          notes: string | null
+          payment_method: string | null
+          revenue_stream_id: string | null
+          start_date: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          currency_code?: string | null
+          donor_email?: string | null
+          donor_name: string
+          donor_org_id?: string | null
+          end_date?: string | null
+          frequency?: string
+          id?: string
+          next_expected_date?: string | null
+          ngo_id: string
+          notes?: string | null
+          payment_method?: string | null
+          revenue_stream_id?: string | null
+          start_date: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          currency_code?: string | null
+          donor_email?: string | null
+          donor_name?: string
+          donor_org_id?: string | null
+          end_date?: string | null
+          frequency?: string
+          id?: string
+          next_expected_date?: string | null
+          ngo_id?: string
+          notes?: string | null
+          payment_method?: string | null
+          revenue_stream_id?: string | null
+          start_date?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recurring_donations_donor_org_id_fkey"
+            columns: ["donor_org_id"]
+            isOneToOne: false
+            referencedRelation: "crm_organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recurring_donations_ngo_id_fkey"
+            columns: ["ngo_id"]
+            isOneToOne: false
+            referencedRelation: "ngos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recurring_donations_revenue_stream_id_fkey"
+            columns: ["revenue_stream_id"]
+            isOneToOne: false
+            referencedRelation: "revenue_streams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      revenue_recognition: {
+        Row: {
+          amount: number
+          created_at: string
+          deferred_amount: number
+          description: string | null
+          fiscal_period_id: string | null
+          id: string
+          ngo_id: string
+          notes: string | null
+          recognition_date: string
+          recognition_type: string
+          revenue_stream_id: string | null
+          transaction_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          deferred_amount?: number
+          description?: string | null
+          fiscal_period_id?: string | null
+          id?: string
+          ngo_id: string
+          notes?: string | null
+          recognition_date: string
+          recognition_type?: string
+          revenue_stream_id?: string | null
+          transaction_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          deferred_amount?: number
+          description?: string | null
+          fiscal_period_id?: string | null
+          id?: string
+          ngo_id?: string
+          notes?: string | null
+          recognition_date?: string
+          recognition_type?: string
+          revenue_stream_id?: string | null
+          transaction_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "revenue_recognition_fiscal_period_id_fkey"
+            columns: ["fiscal_period_id"]
+            isOneToOne: false
+            referencedRelation: "fiscal_periods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "revenue_recognition_ngo_id_fkey"
+            columns: ["ngo_id"]
+            isOneToOne: false
+            referencedRelation: "ngos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "revenue_recognition_revenue_stream_id_fkey"
+            columns: ["revenue_stream_id"]
+            isOneToOne: false
+            referencedRelation: "revenue_streams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "revenue_recognition_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      revenue_streams: {
+        Row: {
+          account_id: string | null
+          annual_target: number | null
+          created_at: string
+          currency_code: string | null
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          ngo_id: string
+          notes: string | null
+          source: string | null
+          stream_type: string
+          updated_at: string
+        }
+        Insert: {
+          account_id?: string | null
+          annual_target?: number | null
+          created_at?: string
+          currency_code?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          ngo_id: string
+          notes?: string | null
+          source?: string | null
+          stream_type?: string
+          updated_at?: string
+        }
+        Update: {
+          account_id?: string | null
+          annual_target?: number | null
+          created_at?: string
+          currency_code?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          ngo_id?: string
+          notes?: string | null
+          source?: string | null
+          stream_type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "revenue_streams_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "revenue_streams_ngo_id_fkey"
+            columns: ["ngo_id"]
+            isOneToOne: false
+            referencedRelation: "ngos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      signed_documents: {
+        Row: {
+          created_at: string
+          id: string
+          signing_request_id: string
+          storage_path: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          signing_request_id: string
+          storage_path: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          signing_request_id?: string
+          storage_path?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "signed_documents_signing_request_id_fkey"
+            columns: ["signing_request_id"]
+            isOneToOne: false
+            referencedRelation: "signing_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      signing_requests: {
+        Row: {
+          created_at: string
+          created_by_user_id: string | null
+          document_id: string
+          expires_at: string
+          id: string
+          ngo_id: string | null
+          signed_at: string | null
+          signer_email: string
+          signer_ip: string | null
+          signer_name: string
+          status: string
+          token: string
+          work_item_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by_user_id?: string | null
+          document_id: string
+          expires_at: string
+          id?: string
+          ngo_id?: string | null
+          signed_at?: string | null
+          signer_email: string
+          signer_ip?: string | null
+          signer_name: string
+          status?: string
+          token?: string
+          work_item_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by_user_id?: string | null
+          document_id?: string
+          expires_at?: string
+          id?: string
+          ngo_id?: string | null
+          signed_at?: string | null
+          signer_email?: string
+          signer_ip?: string | null
+          signer_name?: string
+          status?: string
+          token?: string
+          work_item_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "signing_requests_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "esign_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "signing_requests_ngo_id_fkey"
+            columns: ["ngo_id"]
+            isOneToOne: false
+            referencedRelation: "ngos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "signing_requests_work_item_id_fkey"
+            columns: ["work_item_id"]
+            isOneToOne: false
+            referencedRelation: "work_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      staff_profiles: {
+        Row: {
+          annual_salary: number | null
+          created_at: string
+          department_id: string | null
+          email: string | null
+          emergency_contact_name: string | null
+          emergency_contact_phone: string | null
+          employment_type: string
+          end_date: string | null
+          first_name: string
+          hourly_rate: number | null
+          id: string
+          job_title: string | null
+          last_name: string
+          ngo_id: string | null
+          notes: string | null
+          phone: string | null
+          pto_balance_hours: number
+          start_date: string | null
+          status: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          annual_salary?: number | null
+          created_at?: string
+          department_id?: string | null
+          email?: string | null
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
+          employment_type?: string
+          end_date?: string | null
+          first_name: string
+          hourly_rate?: number | null
+          id?: string
+          job_title?: string | null
+          last_name: string
+          ngo_id?: string | null
+          notes?: string | null
+          phone?: string | null
+          pto_balance_hours?: number
+          start_date?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          annual_salary?: number | null
+          created_at?: string
+          department_id?: string | null
+          email?: string | null
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
+          employment_type?: string
+          end_date?: string | null
+          first_name?: string
+          hourly_rate?: number | null
+          id?: string
+          job_title?: string | null
+          last_name?: string
+          ngo_id?: string | null
+          notes?: string | null
+          phone?: string | null
+          pto_balance_hours?: number
+          start_date?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staff_profiles_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "org_units"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "staff_profiles_ngo_id_fkey"
+            columns: ["ngo_id"]
+            isOneToOne: false
+            referencedRelation: "ngos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "staff_profiles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stock_movements: {
+        Row: {
+          created_at: string
+          id: string
+          item_id: string
+          movement_type: string
+          ngo_id: string
+          notes: string | null
+          performed_by_user_id: string | null
+          quantity: number
+          reference_number: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          item_id: string
+          movement_type?: string
+          ngo_id: string
+          notes?: string | null
+          performed_by_user_id?: string | null
+          quantity: number
+          reference_number?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          item_id?: string
+          movement_type?: string
+          ngo_id?: string
+          notes?: string | null
+          performed_by_user_id?: string | null
+          quantity?: number
+          reference_number?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_movements_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_movements_ngo_id_fkey"
+            columns: ["ngo_id"]
+            isOneToOne: false
+            referencedRelation: "ngos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_movements_performed_by_user_id_fkey"
+            columns: ["performed_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      supply_request_items: {
+        Row: {
+          created_at: string
+          id: string
+          item_id: string
+          notes: string | null
+          quantity_fulfilled: number
+          quantity_requested: number
+          supply_request_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          item_id: string
+          notes?: string | null
+          quantity_fulfilled?: number
+          quantity_requested?: number
+          supply_request_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          item_id?: string
+          notes?: string | null
+          quantity_fulfilled?: number
+          quantity_requested?: number
+          supply_request_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supply_request_items_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supply_request_items_supply_request_id_fkey"
+            columns: ["supply_request_id"]
+            isOneToOne: false
+            referencedRelation: "supply_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      supply_requests: {
+        Row: {
+          approved_at: string | null
+          approved_by_user_id: string | null
+          created_at: string
+          id: string
+          needed_by: string | null
+          ngo_id: string
+          notes: string | null
+          priority: string
+          request_number: string
+          requested_by_user_id: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by_user_id?: string | null
+          created_at?: string
+          id?: string
+          needed_by?: string | null
+          ngo_id: string
+          notes?: string | null
+          priority?: string
+          request_number: string
+          requested_by_user_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by_user_id?: string | null
+          created_at?: string
+          id?: string
+          needed_by?: string | null
+          ngo_id?: string
+          notes?: string | null
+          priority?: string
+          request_number?: string
+          requested_by_user_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supply_requests_approved_by_user_id_fkey"
+            columns: ["approved_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supply_requests_ngo_id_fkey"
+            columns: ["ngo_id"]
+            isOneToOne: false
+            referencedRelation: "ngos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supply_requests_requested_by_user_id_fkey"
+            columns: ["requested_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       template_groups: {
         Row: {
           category: string | null
@@ -576,6 +3103,130 @@ export type Database = {
         }
         Relationships: []
       }
+      timesheets: {
+        Row: {
+          approved_at: string | null
+          approved_by_user_id: string | null
+          created_at: string
+          id: string
+          ngo_id: string
+          notes: string | null
+          period_end: string
+          period_start: string
+          staff_id: string
+          status: string
+          submitted_at: string | null
+          total_hours: number
+          updated_at: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by_user_id?: string | null
+          created_at?: string
+          id?: string
+          ngo_id: string
+          notes?: string | null
+          period_end: string
+          period_start: string
+          staff_id: string
+          status?: string
+          submitted_at?: string | null
+          total_hours?: number
+          updated_at?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by_user_id?: string | null
+          created_at?: string
+          id?: string
+          ngo_id?: string
+          notes?: string | null
+          period_end?: string
+          period_start?: string
+          staff_id?: string
+          status?: string
+          submitted_at?: string | null
+          total_hours?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "timesheets_approved_by_user_id_fkey"
+            columns: ["approved_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "timesheets_ngo_id_fkey"
+            columns: ["ngo_id"]
+            isOneToOne: false
+            referencedRelation: "ngos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "timesheets_staff_id_fkey"
+            columns: ["staff_id"]
+            isOneToOne: false
+            referencedRelation: "staff_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      transactions: {
+        Row: {
+          created_at: string
+          created_by_user_id: string | null
+          description: string
+          fiscal_period_id: string | null
+          id: string
+          is_void: boolean
+          ngo_id: string
+          reference_number: string | null
+          transaction_date: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by_user_id?: string | null
+          description: string
+          fiscal_period_id?: string | null
+          id?: string
+          is_void?: boolean
+          ngo_id: string
+          reference_number?: string | null
+          transaction_date: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by_user_id?: string | null
+          description?: string
+          fiscal_period_id?: string | null
+          id?: string
+          is_void?: boolean
+          ngo_id?: string
+          reference_number?: string | null
+          transaction_date?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transactions_fiscal_period_id_fkey"
+            columns: ["fiscal_period_id"]
+            isOneToOne: false
+            referencedRelation: "fiscal_periods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_ngo_id_fkey"
+            columns: ["ngo_id"]
+            isOneToOne: false
+            referencedRelation: "ngos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -596,6 +3247,111 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      vendor_invoices: {
+        Row: {
+          approved_at: string | null
+          approved_by_user_id: string | null
+          created_at: string
+          currency_code: string | null
+          due_date: string | null
+          id: string
+          invoice_date: string
+          invoice_number: string
+          ngo_id: string
+          notes: string | null
+          payment_date: string | null
+          payment_reference: string | null
+          purchase_order_id: string | null
+          status: string
+          subtotal: number
+          tax_amount: number
+          total_amount: number
+          transaction_id: string | null
+          updated_at: string
+          vendor_org_id: string | null
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by_user_id?: string | null
+          created_at?: string
+          currency_code?: string | null
+          due_date?: string | null
+          id?: string
+          invoice_date?: string
+          invoice_number: string
+          ngo_id: string
+          notes?: string | null
+          payment_date?: string | null
+          payment_reference?: string | null
+          purchase_order_id?: string | null
+          status?: string
+          subtotal?: number
+          tax_amount?: number
+          total_amount?: number
+          transaction_id?: string | null
+          updated_at?: string
+          vendor_org_id?: string | null
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by_user_id?: string | null
+          created_at?: string
+          currency_code?: string | null
+          due_date?: string | null
+          id?: string
+          invoice_date?: string
+          invoice_number?: string
+          ngo_id?: string
+          notes?: string | null
+          payment_date?: string | null
+          payment_reference?: string | null
+          purchase_order_id?: string | null
+          status?: string
+          subtotal?: number
+          tax_amount?: number
+          total_amount?: number
+          transaction_id?: string | null
+          updated_at?: string
+          vendor_org_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendor_invoices_approved_by_user_id_fkey"
+            columns: ["approved_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendor_invoices_ngo_id_fkey"
+            columns: ["ngo_id"]
+            isOneToOne: false
+            referencedRelation: "ngos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendor_invoices_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendor_invoices_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendor_invoices_vendor_org_id_fkey"
+            columns: ["vendor_org_id"]
+            isOneToOne: false
+            referencedRelation: "crm_organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       work_items: {
         Row: {
@@ -731,6 +3487,23 @@ export type Database = {
       get_my_role: {
         Args: never
         Returns: Database["public"]["Enums"]["app_role"]
+      }
+      get_signing_request_by_token: {
+        Args: { request_token: string }
+        Returns: {
+          created_at: string
+          document_id: string
+          expires_at: string
+          id: string
+          original_filename: string
+          signed_at: string
+          signer_email: string
+          signer_ip: string
+          signer_name: string
+          status: string
+          storage_path: string
+          token: string
+        }[]
       }
       has_ngo_access: { Args: { _ngo_id: string }; Returns: boolean }
       has_role: {

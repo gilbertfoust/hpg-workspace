@@ -1,22 +1,37 @@
 <!doctype html>
 <html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <title>Redirecting…</title>
-  <!-- GitHub Pages: send any unknown route back to the SPA entrypoint -->
-  <meta http-equiv="refresh" content="0;url=/hpg-workspace/#/" />
-  <script>
-    // JS fallback in case meta refresh is blocked or delayed
-    (function () {
-      // Always send them to the SPA root on GitHub Pages
-      var target = "/hpg-workspace/#/";
-      if (window.location.pathname !== target) {
-        window.location.replace(target);
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>HPG Workstation</title>
+    <script>
+      // GitHub Pages SPA fallback
+      // Redirect to index.html while preserving the pathname for React Router
+      var path = window.location.pathname;
+      var search = window.location.search;
+      var hash = window.location.hash;
+      
+      // Determine base path (repo name for GitHub Pages)
+      // e.g., /hpg-workspace/ or /
+      var pathParts = path.split('/').filter(function(p) { return p; });
+      var base = '/';
+      
+      // If we have a repo name segment (first part without extension), use it as base
+      if (pathParts.length > 0 && pathParts[0] && !pathParts[0].includes('.')) {
+        base = '/' + pathParts[0] + '/';
       }
-    })();
-  </script>
-</head>
-<body>
-  <p>Redirecting…</p>
-</body>
+      
+      // Only redirect if not already at index.html
+      if (!path.includes('index.html')) {
+        // Redirect to index.html - React Router will read the pathname from window.location
+        window.location.replace(base + 'index.html' + search + hash);
+      }
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <noscript>
+      <p>Please enable JavaScript to use this application.</p>
+    </noscript>
+  </body>
 </html>

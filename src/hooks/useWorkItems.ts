@@ -1,286 +1,250 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getSupabaseNotConfiguredError, supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/contexts/AuthContext';
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
-export type WorkItemStatus = 
-  | 'draft'
-  | 'not_started'
-  | 'in_progress'
-  | 'waiting_on_ngo'
-  | 'waiting_on_hpg'
-  | 'submitted'
-  | 'under_review'
-  | 'approved'
-  | 'rejected'
-  | 'complete'
-  | 'canceled';
+export type WorkItemStatus =
+  | "draft"
+  | "not_started"
+  | "in_progress"
+  | "waiting_on_ngo"
+  | "waiting_on_hpg"
+  | "submitted"
+  | "under_review"
+  | "approved"
+  | "rejected"
+  | "complete"
+  | "canceled";
 
-export type Priority = 'low' | 'medium' | 'high';
-export type EvidenceStatus = 'missing' | 'uploaded' | 'under_review' | 'approved' | 'rejected';
-export type ModuleType = 
-  | 'ngo_coordination'
-  | 'administration'
-  | 'operations'
-  | 'program'
-  | 'curriculum'
-  | 'development'
-  | 'partnership'
-  | 'marketing'
-  | 'communications'
-  | 'hr'
-  | 'it'
-  | 'finance'
-  | 'legal';
+export type ModuleType =
+  | "ngo_coordination"
+  | "administration"
+  | "operations"
+  | "program"
+  | "curriculum"
+  | "development"
+  | "partnership"
+  | "marketing"
+  | "communications"
+  | "hr"
+  | "it"
+  | "finance"
+  | "legal";
+
+export type Priority = "low" | "medium" | "high" | "urgent";
 
 export interface WorkItem {
   id: string;
-  ngo_id: string | null;
-  module: ModuleType;
-  type: string | null;
   title: string;
-  description: string | null;
-  department_id: string | null;
-  owner_user_id: string | null;
-  created_by_user_id: string | null;
+  description?: string | null;
   status: WorkItemStatus;
-  priority: Priority;
-  due_date: string | null;
-  start_date: string | null;
-  completed_at: string | null;
-  dependencies: string[];
-  evidence_required: boolean;
-  evidence_status: EvidenceStatus;
-  approval_required: boolean;
-  approver_user_id: string | null;
-  approval_policy: unknown;
-  external_visible: boolean;
-  trello_sync: boolean;
-  trello_card_id: string | null;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface CreateWorkItemInput {
-  title: string;
-  module: ModuleType;
-  ngo_id?: string;
-  description?: string;
-  department_id?: string;
-  owner_user_id?: string;
-  priority?: Priority;
-  due_date?: string;
-  start_date?: string;
-  evidence_required?: boolean;
+  ngo_id?: string | null;
+  module?: ModuleType | null;
+  department_id?: string | null;
+  due_date?: string | null;
+  owner_user_id?: string | null;
   approval_required?: boolean;
+  approver_user_id?: string | null;
+  evidence_required?: boolean;
+  evidence_status?: string | null;
+  priority?: Priority | null;
+  type?: string | null;
   external_visible?: boolean;
+  created_at?: string;
+  updated_at?: string;
+  dependencies?: string[] | null;
 }
 
-const ensureSupabase = () => {
-  if (!supabase) {
-    throw getSupabaseNotConfiguredError();
-  }
+export type ListFilters = {
+  ngoId?: string | null;
+  ngo_id?: string | null;
+  status?: WorkItemStatus | WorkItemStatus[];
+  module?: ModuleType | string;
+  type?: string;
+  owner_user_id?: string;
+  department_id?: string;
 };
 
-export const useWorkItems = (filters?: {
-  ngo_id?: string;
-  status?: WorkItemStatus[];
-  module?: ModuleType;
-  owner_user_id?: string;
-}) => {
-  return useQuery({
-    queryKey: ['work-items', filters],
+export const useWorkItems = (filters?: ListFilters) => {
+  return useQuery<WorkItem[]>({
+    queryKey: ["work-items", filters],
     queryFn: async () => {
-      ensureSupabase();
-      let query = supabase
-        .from('work_items')
-        .select('*')
-        .order('due_date', { ascending: true, nullsFirst: false });
-      
-      if (filters?.ngo_id) {
-        query = query.eq('ngo_id', filters.ngo_id);
+      let query = supabase.from("work_items" as never).select("*").order("created_at", { ascending: false });
+
+      const ngoId = filters?.ngoId || filters?.ngo_id;
+      if (ngoId) {
+        query = query.eq("ngo_id", ngoId);
       }
-      if (filters?.status && filters.status.length > 0) {
-        query = query.in('status', filters.status);
+      if (filters?.status) {
+        if (Array.isArray(filters.status)) {
+          query = query.in("status", filters.status);
+        } else {
+          query = query.eq("status", filters.status);
+        }
       }
       if (filters?.module) {
-        query = query.eq('module', filters.module);
+        query = query.eq("module", filters.module);
+      }
+      if (filters?.type) {
+        query = query.eq("type", filters.type);
       }
       if (filters?.owner_user_id) {
-        query = query.eq('owner_user_id', filters.owner_user_id);
+        query = query.eq("owner_user_id", filters.owner_user_id);
       }
-      
+      if (filters?.department_id) {
+        query = query.eq("department_id", filters.department_id);
+      }
+
       const { data, error } = await query;
-      
       if (error) throw error;
-      return data as WorkItem[];
+      return (data ?? []) as WorkItem[];
     },
   });
 };
 
-export const useWorkItem = (id: string) => {
-  return useQuery({
-    queryKey: ['work-items', id],
-    queryFn: async () => {
-      ensureSupabase();
-      const { data, error } = await supabase
-        .from('work_items')
-        .select('*')
-        .eq('id', id)
-        .single();
-      
-      if (error) throw error;
-      return data as WorkItem;
-    },
+export const useWorkItem = (id?: string | null) => {
+  return useQuery<WorkItem | null>({
+    queryKey: ["work-item", id],
     enabled: !!id,
+    queryFn: async () => {
+      if (!id) return null;
+      const { data, error } = await supabase.from("work_items" as never).select("*").eq("id", id).maybeSingle();
+      if (error) throw error;
+      return (data as WorkItem) ?? null;
+    },
   });
 };
 
 export const useCreateWorkItem = () => {
   const queryClient = useQueryClient();
-  const { toast } = useToast();
-  const { user } = useAuth();
 
   return useMutation({
-    mutationFn: async (input: CreateWorkItemInput) => {
-      ensureSupabase();
-      const { data, error } = await supabase
-        .from('work_items')
-        .insert({
-          ...input,
-          created_by_user_id: user?.id,
-        })
-        .select()
-        .single();
-      
+    mutationFn: async (input: Partial<WorkItem> & { module: ModuleType }) => {
+      const { data, error } = await supabase.from("work_items" as never).insert(input as never).select().single();
       if (error) throw error;
       return data as WorkItem;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['work-items'] });
-      queryClient.invalidateQueries({ queryKey: ['work-item-stats'] });
-      toast({
-        title: 'Work item created',
-        description: 'The work item has been successfully created.',
-      });
-    },
-    onError: (error) => {
-      toast({
-        variant: 'destructive',
-        title: 'Error creating work item',
-        description: error.message,
-      });
+      queryClient.invalidateQueries({ queryKey: ["work-items"] });
+      queryClient.invalidateQueries({ queryKey: ["my-queue-work-items"] });
+      queryClient.invalidateQueries({ queryKey: ["department-queue-work-items"] });
     },
   });
 };
 
 export const useUpdateWorkItem = () => {
   const queryClient = useQueryClient();
-  const { toast } = useToast();
 
   return useMutation({
-    mutationFn: async ({ id, ...input }: Partial<WorkItem> & { id: string }) => {
-      ensureSupabase();
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { approval_policy, ...safeInput } = input;
-      const { data, error } = await supabase
-        .from('work_items')
-        .update(safeInput)
-        .eq('id', id)
-        .select()
-        .single();
-      
+    mutationFn: async (input: Partial<WorkItem> & { id: string }) => {
+      const { id, ...rest } = input;
+      const { data, error } = await supabase.from("work_items" as never).update(rest as never).eq("id", id).select().single();
       if (error) throw error;
       return data as WorkItem;
     },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['work-items'] });
-      queryClient.invalidateQueries({ queryKey: ['work-items', data.id] });
-      queryClient.invalidateQueries({ queryKey: ['work-item-stats'] });
-      toast({
-        title: 'Work item updated',
-        description: 'The work item has been successfully updated.',
-      });
-    },
-    onError: (error) => {
-      toast({
-        variant: 'destructive',
-        title: 'Error updating work item',
-        description: error.message,
-      });
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["work-items"] });
+      queryClient.invalidateQueries({ queryKey: ["work-item", variables.id] });
+      queryClient.invalidateQueries({ queryKey: ["my-queue-work-items"] });
+      queryClient.invalidateQueries({ queryKey: ["department-queue-work-items"] });
     },
   });
 };
 
-export const useWorkItemStats = () => {
-  return useQuery({
-    queryKey: ['work-item-stats'],
-    queryFn: async () => {
-      ensureSupabase();
-      const { data, error } = await supabase
-        .from('work_items')
-        .select('status, due_date, evidence_required, evidence_status');
-      
-      if (error) throw error;
-      
-      const today = new Date();
-      const in7Days = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
-      const in30Days = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000);
-      
-      const activeStatuses: WorkItemStatus[] = ['not_started', 'in_progress', 'waiting_on_ngo', 'waiting_on_hpg', 'submitted', 'under_review'];
-      
-      const activeItems = data.filter(item => activeStatuses.includes(item.status as WorkItemStatus));
-      
-      const stats = {
-        total: data.length,
-        active: activeItems.length,
-        dueIn7Days: activeItems.filter(item => {
-          if (!item.due_date) return false;
-          const dueDate = new Date(item.due_date);
-          return dueDate >= today && dueDate <= in7Days;
-        }).length,
-        dueIn30Days: activeItems.filter(item => {
-          if (!item.due_date) return false;
-          const dueDate = new Date(item.due_date);
-          return dueDate >= today && dueDate <= in30Days;
-        }).length,
-        overdue: activeItems.filter(item => {
-          if (!item.due_date) return false;
-          const dueDate = new Date(item.due_date);
-          return dueDate < today;
-        }).length,
-        pendingEvidence: data.filter(item => 
-          item.evidence_required && 
-          item.evidence_status === 'missing' &&
-          activeStatuses.includes(item.status as WorkItemStatus)
-        ).length,
-        complete: data.filter(item => item.status === 'complete').length,
-      };
-      
-      return stats;
-    },
-  });
-};
-
-export const useMyWorkItems = () => {
+export const useMyQueueWorkItems = () => {
   const { user } = useAuth();
-  
-  return useQuery({
-    queryKey: ['my-work-items', user?.id],
+  return useQuery<WorkItem[]>({
+    queryKey: ["my-queue-work-items", user?.id],
+    enabled: !!user?.id && !!supabase,
     queryFn: async () => {
-      if (!user?.id) return [];
-      ensureSupabase();
-      
+      if (!user?.id || !supabase) return [];
+
       const { data, error } = await supabase
-        .from('work_items')
-        .select('*')
-        .eq('owner_user_id', user.id)
-        .not('status', 'in', '("complete","canceled")')
-        .order('due_date', { ascending: true, nullsFirst: false });
-      
+        .from("work_items" as never)
+        .select("*")
+        .eq("owner_user_id", user.id)
+        .order("created_at", { ascending: false });
+
       if (error) throw error;
-      return data as WorkItem[];
+      return (data ?? []) as WorkItem[];
     },
-    enabled: !!user?.id,
+  });
+};
+
+export const useDepartmentQueueWorkItems = (departmentIds: string[]) => {
+  return useQuery<WorkItem[]>({
+    queryKey: ["department-queue-work-items", departmentIds],
+    enabled: departmentIds.length > 0 && !!supabase,
+    queryFn: async () => {
+      if (departmentIds.length === 0 || !supabase) return [];
+
+      const { data, error } = await supabase
+        .from("work_items" as never)
+        .select("*")
+        .in("department_id", departmentIds)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      return (data ?? []) as WorkItem[];
+    },
+  });
+};
+
+export const useBulkUpdateWorkItems = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ ids, updates }: { ids: string[]; updates: Partial<WorkItem> }) => {
+      return { ids, updates };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["work-items"] });
+      queryClient.invalidateQueries({ queryKey: ["my-queue-work-items"] });
+      queryClient.invalidateQueries({ queryKey: ["department-queue-work-items"] });
+    },
+  });
+};
+
+export const useBulkBumpWorkItemDueDates = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ items, bumpDays }: { items: WorkItem[]; bumpDays: number }) => {
+      if (!supabase) throw new Error("Supabase client not available");
+      if (items.length === 0) return { items, bumpDays };
+
+      const updates = items
+        .map((item) => {
+          if (!item.due_date) return null;
+          const currentDate = new Date(item.due_date);
+          const newDate = new Date(currentDate);
+          newDate.setDate(newDate.getDate() + bumpDays);
+          return {
+            id: item.id,
+            due_date: newDate.toISOString().split("T")[0],
+          };
+        })
+        .filter((update): update is { id: string; due_date: string } => update !== null);
+
+      if (updates.length === 0) return { items, bumpDays };
+
+      const updatePromises = updates.map((update) =>
+        supabase
+          .from("work_items" as never)
+          .update({ due_date: update.due_date } as never)
+          .eq("id", update.id)
+      );
+
+      const results = await Promise.all(updatePromises);
+      const errors = results.filter((r) => r.error).map((r) => r.error);
+
+      if (errors.length > 0) {
+        throw new Error(`Failed to update some work items: ${errors[0]?.message}`);
+      }
+
+      return { items, bumpDays, updated: updates.length };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["work-items"] });
+      queryClient.invalidateQueries({ queryKey: ["my-queue-work-items"] });
+      queryClient.invalidateQueries({ queryKey: ["department-queue-work-items"] });
+    },
   });
 };

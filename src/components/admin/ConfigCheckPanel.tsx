@@ -19,15 +19,9 @@ const ConfigCheckPanel = () => {
       isPublic: true,
     },
     {
-      name: "VITE_SUPABASE_PUBLISHABLE_KEY",
-      displayName: "API Key (Public)",
-      present: !!import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-      isPublic: true,
-    },
-    {
-      name: "VITE_SUPABASE_PROJECT_ID",
-      displayName: "Project ID",
-      present: !!import.meta.env.VITE_SUPABASE_PROJECT_ID,
+      name: "VITE_SUPABASE_ANON_KEY",
+      displayName: "Anon Key",
+      present: !!import.meta.env.VITE_SUPABASE_ANON_KEY,
       isPublic: true,
     },
   ];

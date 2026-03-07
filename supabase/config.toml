@@ -1,1 +1,13 @@
 project_id = "mlmjlgmsrkemsuwdohsa"
+
+[functions.process-signature]
+verify_jwt = false
+
+[functions.send-signing-email]
+verify_jwt = false
+
+[functions.send-signed-notification]
+verify_jwt = false
+
+[functions.process-intake-document]
+verify_jwt = false
