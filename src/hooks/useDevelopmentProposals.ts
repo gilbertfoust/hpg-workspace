@@ -71,12 +71,12 @@ export const useDevelopmentProposals = () =>
       const { data, error } = await supabase
         .from(proposalsTable)
         .select(
-          "*, opportunity:grant_opportunities(id, name, funder_id, program_area, deadline, loi_due, proposal_due), ngo:ngos(id, legal_name, common_name, bundle), owner:profiles(id, full_name, email)",
+          "*, opportunity:grant_opportunities(id, title, source_id, deadline), ngo:ngos(id, legal_name, common_name, bundle), owner:profiles(id, full_name, email)",
         )
         .order("submitted_at", { ascending: false, nullsFirst: false });
 
       if (error) throw error;
-      return data as DevelopmentProposalWithRelations[];
+      return (data as unknown) as DevelopmentProposalWithRelations[];
     },
   });
 

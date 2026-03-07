@@ -47,11 +47,11 @@ export const useDevelopmentOpportunities = () =>
     queryFn: async () => {
       const { data, error } = await supabase
         .from(opportunitiesTable)
-        .select("*, funder:funders(id, name, type)")
+        .select("*")
         .order("deadline", { ascending: true, nullsFirst: false });
 
       if (error) throw error;
-      return data as DevelopmentOpportunityWithFunder[];
+      return (data as unknown) as DevelopmentOpportunityWithFunder[];
     },
   });
 
@@ -68,7 +68,7 @@ export const useCreateDevelopmentOpportunity = () => {
         .single();
 
       if (error) throw error;
-      return data as DevelopmentOpportunity;
+      return (data as unknown) as DevelopmentOpportunity;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["development-opportunities"] });
@@ -101,7 +101,7 @@ export const useUpdateDevelopmentOpportunity = () => {
         .single();
 
       if (error) throw error;
-      return data as DevelopmentOpportunity;
+      return (data as unknown) as DevelopmentOpportunity;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["development-opportunities"] });

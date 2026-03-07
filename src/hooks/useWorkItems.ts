@@ -77,7 +77,7 @@ export const useWorkItems = (filters?: ListFilters) => {
         query = query.eq("status", filters.status);
       }
       if (filters?.module) {
-        query = query.eq("module", filters.module);
+        query = query.eq("module", filters.module as any);
       }
       if (filters?.type) {
         query = query.eq("type", filters.type);
