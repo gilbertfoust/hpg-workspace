@@ -14,6 +14,60 @@ export type Database = {
   }
   public: {
     Tables: {
+      access_requests: {
+        Row: {
+          created_at: string
+          id: string
+          justification: string
+          priority: string
+          request_type: string
+          requested_by_user_id: string
+          status: string
+          target_user: string
+          updated_at: string
+          work_item_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          justification?: string
+          priority?: string
+          request_type: string
+          requested_by_user_id: string
+          status?: string
+          target_user: string
+          updated_at?: string
+          work_item_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          justification?: string
+          priority?: string
+          request_type?: string
+          requested_by_user_id?: string
+          status?: string
+          target_user?: string
+          updated_at?: string
+          work_item_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "access_requests_requested_by_user_id_fkey"
+            columns: ["requested_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "access_requests_work_item_id_fkey"
+            columns: ["work_item_id"]
+            isOneToOne: false
+            referencedRelation: "work_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       accounts: {
         Row: {
           code: string
@@ -125,6 +179,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      applicants: {
+        Row: {
+          created_at: string
+          email: string | null
+          full_name: string
+          id: string
+          notes: string | null
+          phone: string | null
+          role_applied_for: string | null
+          stage: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          full_name: string
+          id?: string
+          notes?: string | null
+          phone?: string | null
+          role_applied_for?: string | null
+          stage?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          full_name?: string
+          id?: string
+          notes?: string | null
+          phone?: string | null
+          role_applied_for?: string | null
+          stage?: string
+        }
+        Relationships: []
       }
       approvals: {
         Row: {
@@ -1567,6 +1654,36 @@ export type Database = {
           },
         ]
       }
+      funders: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          notes: string | null
+          type: string | null
+          updated_at: string
+          website: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          notes?: string | null
+          type?: string | null
+          updated_at?: string
+          website?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          notes?: string | null
+          type?: string | null
+          updated_at?: string
+          website?: string | null
+        }
+        Relationships: []
+      }
       grant_applications: {
         Row: {
           amount_awarded: number | null
@@ -1769,6 +1886,54 @@ export type Database = {
         }
         Relationships: []
       }
+      interviews: {
+        Row: {
+          applicant_id: string
+          created_at: string
+          id: string
+          interview_date: string
+          interviewer_user_id: string | null
+          notes: string | null
+          recommendation: string | null
+          rubric_scores: Json | null
+        }
+        Insert: {
+          applicant_id: string
+          created_at?: string
+          id?: string
+          interview_date: string
+          interviewer_user_id?: string | null
+          notes?: string | null
+          recommendation?: string | null
+          rubric_scores?: Json | null
+        }
+        Update: {
+          applicant_id?: string
+          created_at?: string
+          id?: string
+          interview_date?: string
+          interviewer_user_id?: string | null
+          notes?: string | null
+          recommendation?: string | null
+          rubric_scores?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "interviews_applicant_id_fkey"
+            columns: ["applicant_id"]
+            isOneToOne: false
+            referencedRelation: "applicants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "interviews_interviewer_user_id_fkey"
+            columns: ["interviewer_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       inventory_items: {
         Row: {
           category: string
@@ -1830,6 +1995,47 @@ export type Database = {
             columns: ["ngo_id"]
             isOneToOne: false
             referencedRelation: "ngos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      job_requisitions: {
+        Row: {
+          created_at: string
+          department_id: string | null
+          description: string | null
+          employment_type: string | null
+          id: string
+          location: string | null
+          status: string
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          department_id?: string | null
+          description?: string | null
+          employment_type?: string | null
+          id?: string
+          location?: string | null
+          status?: string
+          title: string
+        }
+        Update: {
+          created_at?: string
+          department_id?: string | null
+          description?: string | null
+          employment_type?: string | null
+          id?: string
+          location?: string | null
+          status?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_requisitions_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "org_units"
             referencedColumns: ["id"]
           },
         ]
@@ -2046,6 +2252,90 @@ export type Database = {
           },
         ]
       }
+      partners: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          notes: string | null
+          primary_contact: string | null
+          region: string | null
+          status: string | null
+          type: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          notes?: string | null
+          primary_contact?: string | null
+          region?: string | null
+          status?: string | null
+          type?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          notes?: string | null
+          primary_contact?: string | null
+          region?: string | null
+          status?: string | null
+          type?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      partnership_pipeline: {
+        Row: {
+          created_at: string
+          id: string
+          key_commitments: string | null
+          ngo_id: string | null
+          notes: string | null
+          partner_id: string | null
+          stage: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          key_commitments?: string | null
+          ngo_id?: string | null
+          notes?: string | null
+          partner_id?: string | null
+          stage?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          key_commitments?: string | null
+          ngo_id?: string | null
+          notes?: string | null
+          partner_id?: string | null
+          stage?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "partnership_pipeline_ngo_id_fkey"
+            columns: ["ngo_id"]
+            isOneToOne: false
+            referencedRelation: "ngos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "partnership_pipeline_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "partners"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       po_line_items: {
         Row: {
           account_id: string | null
@@ -2131,6 +2421,76 @@ export type Database = {
             columns: ["department_id"]
             isOneToOne: false
             referencedRelation: "org_units"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      proposals: {
+        Row: {
+          awarded_amount: number | null
+          created_at: string
+          decision_at: string | null
+          grant_opportunity_id: string | null
+          id: string
+          internal_owner: string | null
+          ngo_id: string | null
+          notes: string | null
+          phase: string | null
+          requested_amount: number | null
+          submitted_at: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          awarded_amount?: number | null
+          created_at?: string
+          decision_at?: string | null
+          grant_opportunity_id?: string | null
+          id?: string
+          internal_owner?: string | null
+          ngo_id?: string | null
+          notes?: string | null
+          phase?: string | null
+          requested_amount?: number | null
+          submitted_at?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          awarded_amount?: number | null
+          created_at?: string
+          decision_at?: string | null
+          grant_opportunity_id?: string | null
+          id?: string
+          internal_owner?: string | null
+          ngo_id?: string | null
+          notes?: string | null
+          phase?: string | null
+          requested_amount?: number | null
+          submitted_at?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposals_grant_opportunity_id_fkey"
+            columns: ["grant_opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "grant_opportunities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposals_internal_owner_fkey"
+            columns: ["internal_owner"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposals_ngo_id_fkey"
+            columns: ["ngo_id"]
+            isOneToOne: false
+            referencedRelation: "ngos"
             referencedColumns: ["id"]
           },
         ]
@@ -2563,6 +2923,51 @@ export type Database = {
             columns: ["revenue_stream_id"]
             isOneToOne: false
             referencedRelation: "revenue_streams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reminders: {
+        Row: {
+          channel: string | null
+          created_at: string
+          id: string
+          remind_at: string
+          status: string | null
+          user_id: string
+          work_item_id: string
+        }
+        Insert: {
+          channel?: string | null
+          created_at?: string
+          id?: string
+          remind_at: string
+          status?: string | null
+          user_id: string
+          work_item_id: string
+        }
+        Update: {
+          channel?: string | null
+          created_at?: string
+          id?: string
+          remind_at?: string
+          status?: string | null
+          user_id?: string
+          work_item_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reminders_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reminders_work_item_id_fkey"
+            columns: ["work_item_id"]
+            isOneToOne: false
+            referencedRelation: "work_items"
             referencedColumns: ["id"]
           },
         ]
@@ -3102,6 +3507,77 @@ export type Database = {
           work_item_templates?: Json | null
         }
         Relationships: []
+      }
+      tickets: {
+        Row: {
+          assigned_to_user_id: string | null
+          created_at: string
+          description: string
+          id: string
+          related_ngo_id: string | null
+          reporter_user_id: string
+          severity: string
+          status: string
+          subject: string
+          updated_at: string
+          work_item_id: string | null
+        }
+        Insert: {
+          assigned_to_user_id?: string | null
+          created_at?: string
+          description?: string
+          id?: string
+          related_ngo_id?: string | null
+          reporter_user_id: string
+          severity?: string
+          status?: string
+          subject: string
+          updated_at?: string
+          work_item_id?: string | null
+        }
+        Update: {
+          assigned_to_user_id?: string | null
+          created_at?: string
+          description?: string
+          id?: string
+          related_ngo_id?: string | null
+          reporter_user_id?: string
+          severity?: string
+          status?: string
+          subject?: string
+          updated_at?: string
+          work_item_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tickets_assigned_to_user_id_fkey"
+            columns: ["assigned_to_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tickets_related_ngo_id_fkey"
+            columns: ["related_ngo_id"]
+            isOneToOne: false
+            referencedRelation: "ngos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tickets_reporter_user_id_fkey"
+            columns: ["reporter_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tickets_work_item_id_fkey"
+            columns: ["work_item_id"]
+            isOneToOne: false
+            referencedRelation: "work_items"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       timesheets: {
         Row: {
