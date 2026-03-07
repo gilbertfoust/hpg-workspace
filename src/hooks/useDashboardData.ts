@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { getSupabaseNotConfiguredError, supabase } from "@/integrations/supabase/client";
+import { ensureSupabase } from "../integrations/supabase/client";
 import { ModuleType, WorkItemStatus } from "@/hooks/useWorkItems";
 
 export type DashboardFilters = {
@@ -54,12 +54,6 @@ const ACTIVE_STATUSES: WorkItemStatus[] = [
   "under_review",
 ];
 
-const ensureSupabase = () => {
-  if (!supabase) {
-    throw getSupabaseNotConfiguredError();
-  }
-};
-
 const uniqueSorted = (values: (string | null | undefined)[]) => {
   return [...new Set(values.filter((value): value is string => Boolean(value)))]
     .sort((a, b) => a.localeCompare(b));
@@ -69,12 +63,15 @@ export const useDashboardFilters = () => {
   return useQuery({
     queryKey: ["dashboard-filters"],
     queryFn: async () => {
-      ensureSupabase();
-      const [{ data: ngoData, error: ngoError }, { data: workItemData, error: workItemError }] =
-        await Promise.all([
-          supabase.from("ngos").select("bundle, country, state_province"),
-          supabase.from("work_items").select("module"),
-        ]);
+      const supabase = ensureSupabase();
+
+      const [
+        { data: ngoData, error: ngoError },
+        { data: workItemData, error: workItemError },
+      ] = await Promise.all([
+        supabase.from("ngos").select("bundle, country, state_province"),
+        supabase.from("work_items").select("module"),
+      ]);
 
       if (ngoError) throw ngoError;
       if (workItemError) throw workItemError;
@@ -93,7 +90,8 @@ export const useDashboardData = (filters: DashboardFilters) => {
   return useQuery({
     queryKey: ["dashboard-data", filters],
     queryFn: async (): Promise<DashboardData> => {
-      ensureSupabase();
+      const supabase = ensureSupabase();
+
       const hasNgoFilters = Boolean(filters.bundle || filters.country || filters.state);
 
       let ngoFilterQuery = supabase.from("ngos").select("id");
@@ -169,13 +167,15 @@ export const useDashboardData = (filters: DashboardFilters) => {
         (workItems ?? []).map((item) => item.ngo_id).filter(Boolean),
       );
 
-      const [{ data: ngoMapData, error: ngoMapError }, { data: orgUnits, error: orgUnitsError }] =
-        await Promise.all([
-          ngoIdsForMap.length
-            ? supabase.from("ngos").select("id, legal_name, common_name").in("id", ngoIdsForMap)
-            : Promise.resolve({ data: [], error: null }),
-          supabase.from("org_units").select("id, department_name"),
-        ]);
+      const [
+        { data: ngoMapData, error: ngoMapError },
+        { data: orgUnits, error: orgUnitsError },
+      ] = await Promise.all([
+        ngoIdsForMap.length
+          ? supabase.from("ngos").select("id, legal_name, common_name").in("id", ngoIdsForMap)
+          : Promise.resolve({ data: [], error: null }),
+        supabase.from("org_units").select("id, department_name"),
+      ]);
 
       if (ngoMapError) throw ngoMapError;
       if (orgUnitsError) throw orgUnitsError;
@@ -265,7 +265,8 @@ export const useDashboardData = (filters: DashboardFilters) => {
           if (!a.dueDate) return 1;
           if (!b.dueDate) return -1;
           return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
-        });
+        })
+        .slice(0, 50); // Limit to top 50 for performance
 
       const workloadTotals = new Map<string, number>();
       (workItems ?? []).forEach((item) => {
@@ -279,12 +280,14 @@ export const useDashboardData = (filters: DashboardFilters) => {
         .map(([department, count]) => ({ department, count }))
         .sort((a, b) => b.count - a.count);
 
-      const atRiskNgos = (atRiskData ?? []).map((ngo) => ({
-        id: ngo.id,
-        name: ngo.common_name || ngo.legal_name,
-        bundle: ngo.bundle,
-        location: [ngo.city, ngo.state_province, ngo.country].filter(Boolean).join(", ") || "-",
-      }));
+      const atRiskNgos = (atRiskData ?? [])
+        .map((ngo) => ({
+          id: ngo.id,
+          name: ngo.common_name || ngo.legal_name,
+          bundle: ngo.bundle,
+          location: [ngo.city, ngo.state_province, ngo.country].filter(Boolean).join(", ") || "-",
+        }))
+        .slice(0, 20); // Limit to top 20 for performance
 
       return {
         kpis: {

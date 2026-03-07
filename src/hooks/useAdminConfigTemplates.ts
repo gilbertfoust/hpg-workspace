@@ -137,7 +137,7 @@ export const useUpdateTemplateGroupAssignment = () => {
             work_item_templates: nextTemplateIds,
           };
         })
-        .filter((update): update is { id: string; work_item_templates: Json } => Boolean(update));
+        .filter((update): update is { id: string; work_item_templates: any } => Boolean(update));
 
       for (const update of updates) {
         const { error } = await supabase

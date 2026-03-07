@@ -1,12 +1,17 @@
 import { addDays, subDays } from "date-fns";
 import { getSupabaseNotConfiguredError, supabase } from "@/integrations/supabase/client";
-import type { Database } from "@/integrations/supabase/types";
 
 export const DEFAULT_REMINDER_OFFSET_DAYS = 3;
 export const REMINDER_CHANNEL_IN_APP = "in_app";
 export const REMINDER_STATUS_SCHEDULED = "scheduled";
 
-type ReminderInsert = Database["public"]["Tables"]["reminders"]["Insert"];
+type ReminderInsert = {
+  work_item_id?: string;
+  user_id?: string;
+  remind_at?: string;
+  channel?: string;
+  status?: string;
+};
 
 type ReminderSourceWorkItem = {
   id: string;
@@ -28,7 +33,7 @@ export const insertReminder = async (payload: ReminderInsert) => {
 
   return supabase
     .from("reminders")
-    .insert(payload)
+    .insert(payload as any)
     .select()
     .single();
 };

@@ -28,25 +28,38 @@ import {
   Calendar
 } from "lucide-react";
 import { format } from "date-fns";
-import { useWorkItems, WorkItemStatus, ModuleType } from "@/hooks/useWorkItems";
+import { useWorkItems, WorkItemStatus, ModuleType, type ListFilters } from "@/hooks/useWorkItems";
 import { WorkItemDrawer } from "@/components/work-items/WorkItemDrawer";
 
 interface NGOWorkItemsTabProps {
   ngoId: string;
 }
 
-const statusMap: Record<string, "approved" | "in-progress" | "rejected" | "draft" | "waiting-ngo" | "waiting-hpg" | "under-review" | "submitted"> = {
-  draft: "draft",
-  not_started: "draft",
-  in_progress: "in-progress",
-  waiting_on_ngo: "waiting-ngo",
-  waiting_on_hpg: "waiting-hpg",
-  submitted: "submitted",
-  under_review: "under-review",
-  approved: "approved",
-  rejected: "rejected",
-  complete: "approved",
-  canceled: "draft",
+const statusMap: Record<
+  string,
+  | "approved"
+  | "in-progress"
+  | "rejected"
+  | "draft"
+  | "waiting-ngo"
+  | "waiting-hpg"
+  | "under-review"
+  | "submitted"
+  | "not-started"
+  | "complete"
+  | "canceled"
+> = {
+  Draft: "draft",
+  "Not Started": "not-started",
+  "In Progress": "in-progress",
+  "Waiting on NGO": "waiting-ngo",
+  "Waiting on HPG": "waiting-hpg",
+  Submitted: "submitted",
+  "Under Review": "under-review",
+  Approved: "approved",
+  Rejected: "rejected",
+  Complete: "complete",
+  Canceled: "canceled",
 };
 
 const statusOptions: { label: string; value: WorkItemStatus | "all" }[] = [
@@ -76,9 +89,9 @@ export function NGOWorkItemsTab({ ngoId }: NGOWorkItemsTabProps) {
   const [moduleFilter, setModuleFilter] = useState<ModuleType | "all">("all");
   const [selectedWorkItemId, setSelectedWorkItemId] = useState<string | null>(null);
 
-  const filters = {
+  const filters: ListFilters = {
     ngo_id: ngoId,
-    ...(statusFilter !== "all" && { status: [statusFilter] }),
+    ...(statusFilter !== "all" && { status: statusFilter }),
     ...(moduleFilter !== "all" && { module: moduleFilter }),
   };
 

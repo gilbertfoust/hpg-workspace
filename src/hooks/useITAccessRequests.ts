@@ -44,7 +44,7 @@ export const useITAccessRequests = () => {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      return data as AccessRequest[];
+      return data as unknown as AccessRequest[];
     },
   });
 };
@@ -69,14 +69,14 @@ export const useCreateITAccessRequest = () => {
         .insert({
           title,
           description,
-          module: "it",
+          module: "it" as const,
           type: "Access Request",
           status: mapITStatusToWorkItemStatus(input.status),
-          priority: input.priority,
+          priority: input.priority === "urgent" ? "high" : input.priority,
           evidence_required: true,
           approval_required: false,
           external_visible: false,
-        })
+        } as any)
         .select()
         .single();
 
@@ -97,7 +97,7 @@ export const useCreateITAccessRequest = () => {
         .single();
 
       if (error) throw error;
-      return data as AccessRequest;
+      return data as unknown as AccessRequest;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["access-requests"] });
@@ -126,13 +126,13 @@ export const useUpdateITAccessRequest = () => {
     mutationFn: async ({ id, ...input }: Partial<AccessRequest> & { id: string }) => {
       const { data, error } = await supabase
         .from("access_requests")
-        .update(input)
+        .update(input as any)
         .eq("id", id)
         .select()
         .single();
 
       if (error) throw error;
-      return data as AccessRequest;
+      return data as unknown as AccessRequest;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["access-requests"] });

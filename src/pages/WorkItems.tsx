@@ -24,8 +24,13 @@ import {
   Search,
   Filter,
 } from "lucide-react";
-import { useWorkItems, WorkItemStatus, ModuleType, Priority } from "@/hooks/useWorkItems";
+import { Badge } from "@/components/ui/badge";
+import { format } from "date-fns";
+import { useWorkItems, WorkItemStatus, ModuleType } from "@/hooks/useWorkItems";
 import { useNGOs } from "@/hooks/useNGOs";
+import { useOrgUnits } from "@/hooks/useOrgUnits";
+import { useAuth } from "@/contexts/AuthContext";
+import { Switch } from "@/components/ui/switch";
 import { isSupabaseNotConfiguredError } from "@/integrations/supabase/client";
 import { SupabaseNotConfiguredNotice } from "@/components/common/SupabaseNotConfiguredNotice";
 import { useSearchParams } from "react-router-dom";
@@ -49,22 +54,24 @@ const modules: { value: string; label: string }[] = [
 
 const statusOptions: { value: string; label: string }[] = [
   { value: "all", label: "All Statuses" },
-  { value: "draft", label: "Draft" },
-  { value: "not_started", label: "Not Started" },
-  { value: "in_progress", label: "In Progress" },
-  { value: "waiting_on_ngo", label: "Waiting on NGO" },
-  { value: "waiting_on_hpg", label: "Waiting on HPG" },
-  { value: "submitted", label: "Submitted" },
-  { value: "under_review", label: "Under Review" },
-  { value: "approved", label: "Approved" },
-  { value: "complete", label: "Complete" },
+  { value: "Draft", label: "Draft" },
+  { value: "Not Started", label: "Not Started" },
+  { value: "In Progress", label: "In Progress" },
+  { value: "Waiting on NGO", label: "Waiting on NGO" },
+  { value: "Waiting on HPG", label: "Waiting on HPG" },
+  { value: "Submitted", label: "Submitted" },
+  { value: "Under Review", label: "Under Review" },
+  { value: "Approved", label: "Approved" },
+  { value: "Rejected", label: "Rejected" },
+  { value: "Complete", label: "Complete" },
+  { value: "Canceled", label: "Canceled" },
 ];
 
 const priorityOptions: { value: string; label: string }[] = [
   { value: "all", label: "All Priorities" },
-  { value: "high", label: "High" },
-  { value: "medium", label: "Medium" },
-  { value: "low", label: "Low" },
+  { value: "High", label: "High" },
+  { value: "Med", label: "Med" },
+  { value: "Low", label: "Low" },
 ];
 
 export default function WorkItems() {
@@ -72,10 +79,13 @@ export default function WorkItems() {
   const [selectedModule, setSelectedModule] = useState("all");
   const [selectedStatus, setSelectedStatus] = useState("all");
   const [selectedPriority, setSelectedPriority] = useState("all");
+  const [selectedDepartment, setSelectedDepartment] = useState("all");
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [selectedWorkItemId, setSelectedWorkItemId] = useState<string | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [myItemsOnly, setMyItemsOnly] = useState(false);
+  const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const workItemIdFromSearch = searchParams.get("workItemId");
 
@@ -84,6 +94,8 @@ export default function WorkItems() {
     const f: {
       module?: ModuleType;
       status?: WorkItemStatus[];
+      owner_user_id?: string;
+      department_id?: string;
     } = {};
 
     if (selectedModule !== "all") {
@@ -92,20 +104,24 @@ export default function WorkItems() {
     if (selectedStatus !== "all") {
       f.status = [selectedStatus as WorkItemStatus];
     }
+    if (myItemsOnly && user?.id) {
+      f.owner_user_id = user.id;
+    }
+    if (selectedDepartment !== "all") {
+      f.department_id = selectedDepartment;
+    }
 
     return f;
-  }, [selectedModule, selectedStatus]);
+  }, [selectedModule, selectedStatus, selectedDepartment, myItemsOnly, user?.id]);
 
-  const { data: workItems, isLoading, error } = useWorkItems(filters);
-  const { data: ngos, error: ngosError } = useNGOs();
+  const { data: workItems, isLoading, error } = useWorkItems(/* ... */);
+const { data: ngos, error: ngosError } = useNGOs();
+const { data: orgUnits } = useOrgUnits();
 
-  if (isSupabaseNotConfiguredError(error) || isSupabaseNotConfiguredError(ngosError)) {
-    return (
-      <MainLayout title="Work Items" subtitle="Manage and track all assignments across departments">
-        <SupabaseNotConfiguredNotice />
-      </MainLayout>
-    );
-  }
+if (isSupabaseNotConfiguredError(error) || isSupabaseNotConfiguredError(ngosError)) {
+  // ...
+}
+
 
   // Create NGO lookup map
   const ngoMap = useMemo(() => {
@@ -225,6 +241,17 @@ export default function WorkItems() {
         </div>
 
         <div className="flex flex-wrap gap-2">
+          <div className="flex items-center gap-2 rounded-lg border px-3 py-2 bg-background">
+            <Switch
+              checked={myItemsOnly}
+              onCheckedChange={setMyItemsOnly}
+              id="my-items-toggle"
+            />
+            <label htmlFor="my-items-toggle" className="text-sm text-muted-foreground">
+              My items
+            </label>
+          </div>
+
           <Select value={selectedModule} onValueChange={setSelectedModule}>
             <SelectTrigger className="w-40">
               <SelectValue />
@@ -233,6 +260,22 @@ export default function WorkItems() {
               {modules.map((module) => (
                 <SelectItem key={module.value} value={module.value}>
                   {module.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
+            <SelectTrigger className="w-48">
+              <SelectValue placeholder="All Departments" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Departments</SelectItem>
+              {orgUnits?.map((unit) => (
+                <SelectItem key={unit.id} value={unit.id}>
+                  {unit.sub_department_name
+                    ? `${unit.department_name} / ${unit.sub_department_name}`
+                    : unit.department_name}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -271,7 +314,9 @@ export default function WorkItems() {
               setSelectedModule("all");
               setSelectedStatus("all");
               setSelectedPriority("all");
+              setSelectedDepartment("all");
               setSearchQuery("");
+              setMyItemsOnly(false);
             }}
           >
             <Filter className="w-4 h-4" />

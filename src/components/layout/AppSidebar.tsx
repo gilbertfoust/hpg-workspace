@@ -18,6 +18,7 @@ import {
   DollarSign,
   Scale,
   Megaphone,
+  ShieldCheck,
   MessageSquare,
   GraduationCap,
   Wrench,
@@ -27,12 +28,30 @@ import {
   Menu,
   X,
   LogOut,
+  Contact,
+  ShoppingCart,
+  Award,
+  Package,
+  Warehouse,
+  TrendingUp,
+  Globe,
+  Eye,
+  Building,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface NavItemProps {
   to: string;
@@ -86,10 +105,10 @@ const modulesSections: ModuleSection[] = [
     ],
   },
   {
-    title: "Growth",
+    title: "Development",
     items: [
-      { to: "/modules/development", icon: <DollarSign className="w-4 h-4" />, label: "Development" },
-      { to: "/modules/partnerships", icon: <Handshake className="w-4 h-4" />, label: "Partnerships" },
+      { to: "/development", icon: <DollarSign className="w-4 h-4" />, label: "Development" },
+      { to: "/partnerships", icon: <Handshake className="w-4 h-4" />, label: "Partnerships" },
       { to: "/modules/marketing", icon: <Megaphone className="w-4 h-4" />, label: "Marketing" },
       { to: "/modules/communications", icon: <MessageSquare className="w-4 h-4" />, label: "Communications" },
     ],
@@ -105,11 +124,28 @@ const modulesSections: ModuleSection[] = [
   },
 ];
 
+const erpModules = [
+  { to: "/crm", icon: <Contact className="w-4 h-4" />, label: "CRM" },
+  { to: "/procurement", icon: <ShoppingCart className="w-4 h-4" />, label: "Procurement" },
+  { to: "/grants", icon: <Award className="w-4 h-4" />, label: "Grants" },
+  { to: "/erp/hr", icon: <Users className="w-4 h-4" />, label: "HR & Workforce" },
+  { to: "/assets", icon: <Package className="w-4 h-4" />, label: "Assets" },
+  { to: "/inventory", icon: <Warehouse className="w-4 h-4" />, label: "Inventory" },
+  { to: "/revenue", icon: <TrendingUp className="w-4 h-4" />, label: "Revenue" },
+  { to: "/governance", icon: <Globe className="w-4 h-4" />, label: "Governance" },
+  { to: "/audit", icon: <Eye className="w-4 h-4" />, label: "Audit" },
+  { to: "/controller", icon: <Building className="w-4 h-4" />, label: "Controller Hub" },
+];
+
 export function AppSidebar() {
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const location = useLocation();
   const [expandedModules, setExpandedModules] = useState(false);
+  const [expandedERP, setExpandedERP] = useState(false);
   const { user, signOut } = useAuth();
   const { data: userRole } = useUserRole();
+  const { toast } = useToast();
+  const navigate = useNavigate();
   const canAccessAdminConfig = userRole?.role === 'super_admin' || userRole?.role === 'admin_pm';
 
   const userInitials = user?.user_metadata?.full_name
@@ -123,8 +159,26 @@ export function AppSidebar() {
   const roleLabel = userRole?.role?.replace('_', ' ') || 'Staff';
 
   const handleSignOut = async () => {
-    await signOut();
+    const { error } = await signOut();
+    
+    if (error) {
+      toast({
+        variant: "destructive",
+        title: "Sign out failed",
+        description: error.message || "Unable to sign out. Please try again.",
+      });
+    } else {
+      toast({
+        title: "Signed out",
+        description: "You have been successfully signed out.",
+      });
+      const base = import.meta.env.BASE_URL || "/";
+      navigate(`${base}auth`, { replace: true });
+    }
   };
+
+  // Auto-expand ERP section if on an ERP route
+  const isOnERPRoute = erpModules.some(m => location.pathname.startsWith(m.to));
 
   return (
     <>
@@ -157,18 +211,40 @@ export function AppSidebar() {
         <div className="flex flex-col h-full">
           {/* Logo / Header */}
           <div className="flex items-center gap-3 px-4 py-4 border-b border-sidebar-border">
-            <img
-              src="https://img1.wsimg.com/isteam/ip/8d5502d6-d937-4d80-bd56-8074053e4d77/Humanity%20Pathways%20Global.jpg/:/rs=h:175,m"
-              alt="Humanity Pathways Global"
-              className={cn(
-                "w-auto max-w-full object-contain",
-                isCollapsed ? "h-8" : "h-10 max-w-[180px]"
-              )}
-            />
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  className={cn(
+                    "w-auto max-w-full object-contain cursor-pointer hover:opacity-80 transition-opacity",
+                    isCollapsed ? "h-8" : "h-10 max-w-[180px]"
+                  )}
+                >
+                  <img
+                    src="https://img1.wsimg.com/isteam/ip/8d5502d6-d937-4d80-bd56-8074053e4d77/Humanity%20Pathways%20Global.jpg/:/rs=h:175,m"
+                    alt="Humanity Pathways Global"
+                    className={cn(
+                      "w-auto max-w-full object-contain",
+                      isCollapsed ? "h-8" : "h-10 max-w-[180px]"
+                    )}
+                  />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-48">
+                <DropdownMenuItem onClick={() => navigate("/dashboard")}>
+                  <LayoutDashboard className="w-4 h-4 mr-2" />
+                  Dashboard
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleSignOut}>
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Log out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             <Button
               variant="ghost"
               size="icon"
-              className="hidden lg:flex text-sidebar-foreground hover:bg-sidebar-accent"
+              className="hidden lg:flex text-white hover:bg-sidebar-accent"
               onClick={() => setIsCollapsed(!isCollapsed)}
             >
               {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronDown className="w-4 h-4 rotate-90" />}
@@ -188,6 +264,17 @@ export function AppSidebar() {
               <NavItem to="/documents" icon={<FolderOpen className="w-4 h-4" />} label={isCollapsed ? "" : "Documents"} />
               <NavItem to="/calendar" icon={<Calendar className="w-4 h-4" />} label={isCollapsed ? "" : "Calendar"} />
               <NavItem to="/hr" icon={<UserPlus className="w-4 h-4" />} label={isCollapsed ? "" : "HR"} />
+              <NavItem to="/financial-hub" icon={<DollarSign className="w-4 h-4" />} label={isCollapsed ? "" : "Financial Hub"} />
+              {!isCollapsed && location.pathname.startsWith("/financial-hub") && (
+                <div className="ml-6 space-y-0.5">
+                  <NavItem to="/financial-hub/accounts" icon={<Layers className="w-3.5 h-3.5" />} label="Accounts" />
+                  <NavItem to="/financial-hub/transactions" icon={<ClipboardList className="w-3.5 h-3.5" />} label="Transactions" />
+                  <NavItem to="/financial-hub/ledger" icon={<FileText className="w-3.5 h-3.5" />} label="General Ledger" />
+                  <NavItem to="/financial-hub/trial-balance" icon={<BarChart3 className="w-3.5 h-3.5" />} label="Trial Balance" />
+                  <NavItem to="/financial-hub/intake" icon={<FileText className="w-3.5 h-3.5" />} label="Intake" />
+                  <NavItem to="/financial-hub/compliance" icon={<ShieldCheck className="w-3.5 h-3.5" />} label="Compliance" />
+                </div>
+              )}
 
               {!isCollapsed && (
                 <div className="pt-4">
@@ -203,7 +290,7 @@ export function AppSidebar() {
                 <div className="pt-4">
                   <button
                     onClick={() => setExpandedModules(!expandedModules)}
-                    className="flex items-center justify-between w-full px-3 py-2 text-xs font-semibold uppercase tracking-wider text-sidebar-muted hover:text-sidebar-foreground"
+                    className="flex items-center justify-between w-full px-3 py-2 text-xs font-semibold uppercase tracking-wider text-white/70 hover:text-white"
                   >
                     <span className="flex items-center gap-2">
                       <Layers className="w-4 h-4" />
@@ -223,6 +310,30 @@ export function AppSidebar() {
                             ))}
                           </div>
                         </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* ERP Modules Section */}
+              {!isCollapsed && (
+                <div className="pt-4">
+                  <button
+                    onClick={() => setExpandedERP(!expandedERP)}
+                    className="flex items-center justify-between w-full px-3 py-2 text-xs font-semibold uppercase tracking-wider text-white/70 hover:text-white"
+                  >
+                    <span className="flex items-center gap-2">
+                      <Building className="w-4 h-4" />
+                      ERP Modules
+                    </span>
+                    <ChevronDown className={cn("w-4 h-4 transition-transform", (expandedERP || isOnERPRoute) && "rotate-180")} />
+                  </button>
+
+                  {(expandedERP || isOnERPRoute) && (
+                    <div className="mt-2 space-y-1 animate-fade-in">
+                      {erpModules.map((item) => (
+                        <NavItem key={item.to} {...item} />
                       ))}
                     </div>
                   )}

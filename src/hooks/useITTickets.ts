@@ -39,7 +39,7 @@ export const useITTickets = () => {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      return data as Ticket[];
+      return data as unknown as Ticket[];
     },
   });
 };
@@ -61,16 +61,16 @@ export const useCreateITTicket = () => {
         .insert({
           title: `Support Ticket: ${input.subject}`,
           description: input.description,
-          module: "it",
+          module: "it" as const,
           type: "Support Ticket",
           status: mapITStatusToWorkItemStatus(input.status),
-          priority: input.severity,
+          priority: input.severity === "urgent" ? "high" : input.severity,
           owner_user_id: input.assigned_to_user_id || null,
           ngo_id: input.related_ngo_id || null,
           evidence_required: false,
           approval_required: false,
           external_visible: false,
-        })
+        } as any)
         .select()
         .single();
 
@@ -92,7 +92,7 @@ export const useCreateITTicket = () => {
         .single();
 
       if (error) throw error;
-      return data as Ticket;
+      return data as unknown as Ticket;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["it-tickets"] });
@@ -121,13 +121,13 @@ export const useUpdateITTicket = () => {
     mutationFn: async ({ id, ...input }: Partial<Ticket> & { id: string }) => {
       const { data, error } = await supabase
         .from("tickets")
-        .update(input)
+        .update(input as any)
         .eq("id", id)
         .select()
         .single();
 
       if (error) throw error;
-      return data as Ticket;
+      return data as unknown as Ticket;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["it-tickets"] });

@@ -1,62 +1,81 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import type { User, Session } from '@supabase/supabase-js';
-import { getSupabaseNotConfiguredError, supabase } from '@/integrations/supabase/client';
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
+import type { User, Session } from "@supabase/supabase-js";
+import { supabase } from "@/integrations/supabase/client";
 
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
-  signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
-  signUp: (email: string, password: string, fullName: string) => Promise<{ error: Error | null }>;
-  signOut: () => Promise<void>;
+  signIn: (
+    email: string,
+    password: string
+  ) => Promise<{ error: Error | null }>;
+  signUp: (
+    email: string,
+    password: string,
+    fullName: string
+  ) => Promise<{ error: Error | null }>;
+  signInWithGitHub: () => Promise<{ data: { url: string } | null; error: Error | null }>;
+  signOut: () => Promise<{ error: Error | null }>;
+  deleteAccount: () => Promise<{ error: Error | null }>;
+  deleteUser: (userId: string) => Promise<{ error: Error | null }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Single flag we use everywhere to decide if Supabase is really available
-const supabaseReady = !!supabase;
+const getSupabaseNotConfiguredError = () =>
+  new Error(
+    "Supabase not configured: missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY"
+  );
 
-const supabaseNotConfiguredError = () =>
-  getSupabaseNotConfiguredError();
-
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // If Supabase is not wired (e.g., Lovable preview without env), do not touch supabase.auth
-    if (!supabaseReady || !supabase) {
-      setUser(null);
-      setSession(null);
+    // If Supabase is not configured, skip wiring auth
+    if (!supabase) {
+      console.warn(
+        "AuthProvider: Supabase not configured, running in demo / unauthenticated mode."
+      );
       setLoading(false);
       return;
     }
 
-    // Set up auth state listener FIRST
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        setLoading(false);
-      }
-    );
-
-    // THEN get the initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    // Listen for auth state changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
     });
 
+    // Get initial session
+    supabase.auth
+      .getSession()
+      .then(({ data: { session } }) => {
+        setSession(session);
+        setUser(session?.user ?? null);
+      })
+      .finally(() => setLoading(false));
+
     return () => {
-      subscription?.unsubscribe();
+      subscription.unsubscribe();
     };
   }, []);
 
   const signIn = async (email: string, password: string) => {
-    if (!supabaseReady || !supabase) {
-      return { error: supabaseNotConfiguredError() };
+    if (!supabase) {
+      return { error: getSupabaseNotConfiguredError() };
     }
 
     const { error } = await supabase.auth.signInWithPassword({
@@ -64,12 +83,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       password,
     });
 
-    return { error: error as Error | null };
+    return { error: error ?? null };
   };
 
-  const signUp = async (email: string, password: string, fullName: string) => {
-    if (!supabaseReady || !supabase) {
-      return { error: supabaseNotConfiguredError() };
+  const signUp = async (
+    email: string,
+    password: string,
+    fullName: string
+  ) => {
+    if (!supabase) {
+      return { error: getSupabaseNotConfiguredError() };
     }
 
     const { error } = await supabase.auth.signUp({
@@ -83,20 +106,125 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       },
     });
 
-    return { error: error as Error | null };
+    return { error: error ?? null };
+  };
+
+  const signInWithGitHub = async () => {
+    if (!supabase) {
+      return { data: null, error: getSupabaseNotConfiguredError() };
+    }
+
+    // Build redirectTo URL respecting GitHub Pages base path
+    const base = import.meta.env.BASE_URL || "/";
+    const redirectTo = `${window.location.origin}${base}auth/callback`;
+
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: "github",
+      options: {
+        redirectTo,
+      },
+    });
+
+    return { data, error: error ? (error as Error) : null };
   };
 
   const signOut = async () => {
-    if (!supabaseReady || !supabase) {
-      // In environments without Supabase (Lovable preview), just no-op
-      return;
+    if (!supabase) {
+      // Nothing to do if we have no backend
+      return { error: null };
     }
 
-    await supabase.auth.signOut();
+    try {
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) {
+        console.error("Sign out error:", error);
+        return { error: error as Error };
+      }
+
+      // Clear local state immediately
+      setSession(null);
+      setUser(null);
+      
+      return { error: null };
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error("An unexpected error occurred during sign out");
+      console.error("Sign out error:", error);
+      return { error };
+    }
+  };
+
+  const deleteAccount = async () => {
+    if (!supabase) {
+      return { error: getSupabaseNotConfiguredError() };
+    }
+
+    if (!user) {
+      return { error: new Error("No user logged in") };
+    }
+
+    try {
+      const { data, error: fnError } = await supabase.functions.invoke("delete-user", {
+        body: { target_user_id: user.id },
+      });
+
+      if (fnError) {
+        console.error("Delete account error:", fnError);
+        return { error: fnError as Error };
+      }
+
+      if (data?.error) {
+        return { error: new Error(data.error) };
+      }
+
+      // Sign out and clear local state
+      await supabase.auth.signOut();
+      setSession(null);
+      setUser(null);
+
+      return { error: null };
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error("An unexpected error occurred during account deletion");
+      console.error("Delete account error:", error);
+      return { error };
+    }
+  };
+
+  const deleteUser = async (userId: string) => {
+    if (!supabase) {
+      return { error: getSupabaseNotConfiguredError() };
+    }
+
+    if (!user) {
+      return { error: new Error("No user logged in") };
+    }
+
+    try {
+      const { data, error: fnError } = await supabase.functions.invoke("delete-user", {
+        body: { target_user_id: userId },
+      });
+
+      if (fnError) {
+        console.error("Delete user error:", fnError);
+        return { error: fnError as Error };
+      }
+
+      if (data?.error) {
+        return { error: new Error(data.error) };
+      }
+
+      return { error: null };
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error("An unexpected error occurred during user deletion");
+      console.error("Delete user error:", error);
+      return { error };
+    }
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, signIn, signUp, signOut }}>
+    <AuthContext.Provider
+      value={{ user, session, loading, signIn, signUp, signInWithGitHub, signOut, deleteAccount, deleteUser }}
+    >
       {children}
     </AuthContext.Provider>
   );
@@ -105,7 +233,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 };

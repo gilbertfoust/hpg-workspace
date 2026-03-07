@@ -21,11 +21,13 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { Save, Send, Loader2 } from "lucide-react";
+import { Save, Send, Loader2, Upload, X, File } from "lucide-react";
 import { FormTemplate, FormField } from "@/hooks/useFormTemplates";
 import { FormSubmission, useCreateFormSubmission, useUpdateFormSubmission } from "@/hooks/useFormSubmissions";
 import { ModuleType, useCreateWorkItem } from "@/hooks/useWorkItems";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase, ensureSupabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 import type { Json } from "@/integrations/supabase/types";
 
 interface WorkItemConfig {
@@ -42,7 +44,7 @@ interface FormSubmissionSheetProps {
   onOpenChange: (open: boolean) => void;
   template: FormTemplate | null;
   submission?: FormSubmission | null;
-  ngoId: string;
+  ngoId?: string; // Optional for forms that don't require NGO context
   workItemConfig?: WorkItemConfig;
 }
 
@@ -55,11 +57,15 @@ export function FormSubmissionSheet({
   workItemConfig,
 }: FormSubmissionSheetProps) {
   const { user } = useAuth();
+  const { toast } = useToast();
   const createMutation = useCreateFormSubmission();
   const updateMutation = useUpdateFormSubmission();
   const createWorkItem = useCreateWorkItem();
   
   const [formData, setFormData] = useState<Record<string, unknown>>({});
+  const [fileUploads, setFileUploads] = useState<Record<string, File[]>>({});
+  const [isDragging, setIsDragging] = useState<string | null>(null);
+  const fileInputRefs = useState<Record<string, HTMLInputElement | null>>({})[0];
   const isEditing = !!submission;
   const isSubmitted = submission?.submission_status === "submitted" || 
                       submission?.submission_status === "accepted";
@@ -68,9 +74,13 @@ export function FormSubmissionSheet({
   useEffect(() => {
     if (submission?.payload_json && typeof submission.payload_json === 'object') {
       setFormData(submission.payload_json as Record<string, unknown>);
+      // Note: File uploads from previous submissions are stored as metadata in payload_json
+      // We don't restore the actual File objects, just display the metadata if needed
     } else {
       setFormData({});
     }
+    // Reset file uploads when template changes
+    setFileUploads({});
   }, [submission, template]);
 
   const fields: FormField[] = template?.schema_json?.fields || [];
@@ -88,51 +98,157 @@ export function FormSubmissionSheet({
   };
 
   const handleSave = async (submit: boolean = false) => {
-    if (!template) return;
+    console.log('[FormSubmissionSheet] handleSave called', {
+      submit,
+      template_id: template?.id,
+      template_name: template?.name,
+      isEditing: !!submission,
+      submission_id: submission?.id,
+      ngoId,
+      user_id: user?.id,
+    });
 
-    const payload: Json = formData as Json;
-    const status = submit ? "submitted" : "draft";
-    let workItemId = submission?.work_item_id ?? undefined;
-
-    if (submit && workItemConfig && !workItemId) {
-      const workItem = await createWorkItem.mutateAsync({
-        title: workItemConfig.title,
-        module: workItemConfig.module,
-        type: workItemConfig.type,
-        ngo_id: workItemConfig.ngoId ?? ngoId,
-        description: workItemConfig.description,
-        external_visible: workItemConfig.external_visible,
-      });
-      workItemId = workItem.id;
+    if (!template) {
+      console.warn('[FormSubmissionSheet] handleSave called but no template');
+      return;
     }
 
-    if (isEditing && submission) {
-      const updatePayload: Partial<FormSubmission> = {
-        payload_json: payload,
-        submission_status: status,
-        submitted_at: submit ? new Date().toISOString() : submission.submitted_at,
-      };
+    try {
+      // File upload metadata (files not yet supported in this environment)
+      const fileMetadata: Record<string, Array<{ path: string; name: string; size: number; type: string }>> = {};
 
-      if (submit && workItemId && !submission.work_item_id) {
-        updatePayload.work_item_id = workItemId;
+      // Merge file metadata into payload
+      const payload: Json = {
+        ...formData,
+        ...fileMetadata,
+      } as Json;
+
+
+      const status = submit ? "submitted" : "draft";
+      let workItemId = submission?.work_item_id ?? undefined;
+
+      if (submit && workItemConfig && !workItemId) {
+        const workItem = await createWorkItem.mutateAsync({
+          title: workItemConfig.title,
+          module: workItemConfig.module,
+          type: workItemConfig.type,
+          ngo_id: workItemConfig.ngoId ?? (ngoId && ngoId.trim() ? ngoId : undefined),
+          description: workItemConfig.description,
+          external_visible: workItemConfig.external_visible,
+        });
+        workItemId = workItem.id;
       }
 
-      await updateMutation.mutateAsync({
-        id: submission.id,
-        ...updatePayload,
-      });
-    } else {
-      await createMutation.mutateAsync({
-        form_template_id: template.id,
-        ngo_id: ngoId,
-        work_item_id: workItemId,
-        submitted_by_user_id: user?.id,
-        payload_json: payload,
-        submission_status: status,
-      });
-    }
+      if (isEditing && submission) {
+        const updatePayload: Partial<FormSubmission> = {
+          payload_json: payload,
+          submission_status: status,
+        };
 
-    onOpenChange(false);
+        // Only update submitted_at if we're submitting and it wasn't already submitted
+        if (submit) {
+          updatePayload.submitted_at = new Date().toISOString();
+        }
+        // If saving as draft, don't modify submitted_at (keep existing value or null)
+
+        // Preserve work_item_id if it exists, or add it if submitting and creating new work item
+        if (submission.work_item_id) {
+          // Keep existing work_item_id
+          updatePayload.work_item_id = submission.work_item_id;
+        } else if (submit && workItemId) {
+          // Add work_item_id if submitting and we have one
+          updatePayload.work_item_id = workItemId;
+        }
+
+        console.log('[FormSubmissionSheet] Updating form submission', {
+          submission_id: submission.id,
+          update_keys: Object.keys(updatePayload),
+          submission_status: updatePayload.submission_status,
+          has_work_item_id: !!updatePayload.work_item_id,
+          has_payload: !!updatePayload.payload_json,
+        });
+
+        await updateMutation.mutateAsync({
+          id: submission.id,
+          ...updatePayload,
+        });
+      } else {
+        // Don't pass work_item_id if it's undefined - let the hook create it automatically
+        console.log('[FormSubmissionSheet] Creating new form submission', {
+          template_id: template.id,
+          template_name: template.name,
+          ngo_id: ngoId,
+          status: status,
+          submit: submit,
+          workItemId: workItemId,
+          user_id: user?.id,
+        });
+
+        const createInput: Parameters<typeof createMutation.mutateAsync>[0] = {
+          form_template_id: template.id,
+          ngo_id: ngoId,
+          submitted_by_user_id: user?.id,
+          payload_json: payload,
+          submission_status: status,
+        };
+        
+        // Only include work_item_id if it was explicitly created via workItemConfig
+        if (workItemId) {
+          createInput.work_item_id = workItemId;
+          console.log('[FormSubmissionSheet] Including work_item_id from workItemConfig:', workItemId);
+        } else {
+          console.log('[FormSubmissionSheet] Not including work_item_id - hook will create it automatically');
+        }
+
+        console.log('[FormSubmissionSheet] Calling createMutation.mutateAsync with:', {
+          ...createInput,
+          payload_json_keys: createInput.payload_json && typeof createInput.payload_json === 'object' 
+            ? Object.keys(createInput.payload_json as Record<string, unknown>)
+            : 'not an object',
+        });
+
+        const result = await createMutation.mutateAsync(createInput);
+        
+        console.log('[FormSubmissionSheet] createMutation completed', {
+          submission_id: result.id,
+          work_item_id: result.work_item_id,
+        });
+      }
+
+      // Clear file uploads after successful save
+      setFileUploads({});
+      onOpenChange(false);
+    } catch (error) {
+      console.error('[FormSubmissionSheet] handleSave error caught', {
+        error,
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+        submit,
+        template_id: template?.id,
+        isEditing,
+        submission_id: submission?.id,
+      });
+      
+      // Extract more detailed error message
+      let errorMessage = error instanceof Error ? error.message : "Failed to save form submission";
+      const supabaseError = (error as any)?.supabaseError;
+      if (supabaseError) {
+        errorMessage = supabaseError.message || errorMessage;
+        if (supabaseError.details) {
+          errorMessage += `\n${supabaseError.details}`;
+        }
+        if (supabaseError.hint) {
+          errorMessage += `\n${supabaseError.hint}`;
+        }
+      }
+      
+      toast({
+        variant: "destructive",
+        title: isEditing ? "Error updating form" : "Error saving form",
+        description: errorMessage,
+      });
+      throw error;
+    }
   };
 
   const isSaving = createMutation.isPending || updateMutation.isPending || createWorkItem.isPending;
@@ -216,7 +332,7 @@ export function FormSubmissionSheet({
           </Select>
         );
 
-      case "multiselect":
+      case "multiselect": {
         const selected = (value as string[]) || [];
         return (
           <div className="space-y-2">
@@ -239,6 +355,7 @@ export function FormSubmissionSheet({
             )}
           </div>
         );
+      }
 
       default:
         return null;

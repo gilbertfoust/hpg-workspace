@@ -92,7 +92,7 @@ export const useHRApplicants = () => {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      return data as Applicant[];
+      return data as unknown as Applicant[];
     },
   });
 };
@@ -121,12 +121,12 @@ export const useCreateHRApplicant = () => {
 
       await createAuditEntry({
         action_type: "created",
-        entity_id: data.id,
+        entity_id: (data as any).id,
         after_json: data as Json,
         actor_user_id: user?.id ?? null,
       });
 
-      return data as Applicant;
+      return data as unknown as Applicant;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["hr", "applicants"] });
@@ -160,15 +160,16 @@ export const useUpdateHRApplicant = () => {
 
       if (beforeError) throw beforeError;
 
+      const b = before as any;
       const { data, error } = await supabase
         .from(applicantsTable)
         .update({
-          full_name: input.full_name ?? before.full_name,
-          email: input.email ?? before.email,
-          phone: input.phone ?? before.phone,
-          role_applied_for: input.role_applied_for ?? before.role_applied_for,
-          stage: input.stage ?? before.stage,
-          notes: input.notes ?? before.notes,
+          full_name: input.full_name ?? b.full_name,
+          email: input.email ?? b.email,
+          phone: input.phone ?? b.phone,
+          role_applied_for: input.role_applied_for ?? b.role_applied_for,
+          stage: input.stage ?? b.stage,
+          notes: input.notes ?? b.notes,
         })
         .eq("id", input.id)
         .select("*")
@@ -178,14 +179,15 @@ export const useUpdateHRApplicant = () => {
 
       await createAuditEntry({
         action_type: "updated",
-        entity_id: data.id,
+        entity_id: (data as any).id,
         before_json: before as Json,
         after_json: data as Json,
         actor_user_id: user?.id ?? null,
       });
 
-      if (before.stage !== "Hired" && data.stage === "Hired") {
-        const workItems = onboardingWorkItems(data).map((item) => ({
+      const d = data as any;
+      if (b.stage !== "Hired" && d.stage === "Hired") {
+        const workItems = onboardingWorkItems(d as Applicant).map((item) => ({
           ...item,
           status: "not_started" as WorkItemStatus,
           priority: "medium" as Priority,
@@ -198,17 +200,17 @@ export const useUpdateHRApplicant = () => {
 
         const { data: createdWorkItems, error: workItemError } = await supabase
           .from("work_items")
-          .insert(workItems)
+          .insert(workItems as any)
           .select("*");
 
         if (workItemError) throw workItemError;
 
         await createAuditEntry({
           action_type: "onboarding_created",
-          entity_id: data.id,
+          entity_id: d.id,
           before_json: before as Json,
           after_json: {
-            applicant: data,
+            applicant: d,
             work_items: createdWorkItems,
           } as Json,
           actor_user_id: user?.id ?? null,
@@ -216,7 +218,7 @@ export const useUpdateHRApplicant = () => {
         });
       }
 
-      return data as Applicant;
+      return d as Applicant;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["hr", "applicants"] });
