@@ -39,7 +39,7 @@ export const useITAccessRequests = () => {
     queryKey: ["access-requests"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("access_requests" as never)
+        .from("access_requests")
         .select("*")
         .order("created_at", { ascending: false });
 
@@ -83,7 +83,7 @@ export const useCreateITAccessRequest = () => {
       if (workItemError) throw workItemError;
 
       const { data, error } = await supabase
-        .from("access_requests" as never)
+        .from("access_requests")
         .insert({
           request_type: input.request_type,
           target_user: input.target_user,
@@ -92,7 +92,7 @@ export const useCreateITAccessRequest = () => {
           priority: input.priority,
           status: input.status,
           work_item_id: (workItem as WorkItem).id,
-        } as never)
+        })
         .select()
         .single();
 
@@ -125,8 +125,8 @@ export const useUpdateITAccessRequest = () => {
   return useMutation({
     mutationFn: async ({ id, ...input }: Partial<AccessRequest> & { id: string }) => {
       const { data, error } = await supabase
-        .from("access_requests" as never)
-        .update(input as never)
+        .from("access_requests")
+        .update(input as any)
         .eq("id", id)
         .select()
         .single();

@@ -54,7 +54,7 @@ export const useHRInterviews = (applicantId?: string) => {
     queryKey: ["hr", "interviews", applicantId],
     queryFn: async () => {
       let query = supabase
-        .from(interviewsTable as never)
+        .from(interviewsTable)
         .select("*")
         .order("interview_date", { ascending: false });
 
@@ -78,7 +78,7 @@ export const useCreateHRInterview = () => {
   return useMutation({
     mutationFn: async (input: CreateInterviewInput) => {
       const { data, error } = await supabase
-        .from(interviewsTable as never)
+        .from(interviewsTable)
         .insert({
           applicant_id: input.applicant_id,
           interviewer_user_id: input.interviewer_user_id ?? null,
@@ -86,7 +86,7 @@ export const useCreateHRInterview = () => {
           recommendation: input.recommendation ?? null,
           notes: input.notes ?? null,
           rubric_scores: input.rubric_scores ?? null,
-        } as never)
+        })
         .select("*")
         .single();
 

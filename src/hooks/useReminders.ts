@@ -42,7 +42,7 @@ export const useUpcomingReminders = (options?: { hours?: number }) => {
       const until = addHours(now, hours);
 
       const { data, error } = await supabase
-        .from("reminders" as never)
+        .from("reminders")
         .select("id, work_item_id, user_id, remind_at, channel, status, created_at, work_items(id, title, due_date)")
         .eq("user_id", user!.id)
         .neq("status", "seen")
@@ -114,8 +114,8 @@ export const useMarkReminderSeen = () => {
     mutationFn: async (reminderId: string) => {
       ensureSupabase();
       const { data, error } = await supabase
-        .from("reminders" as never)
-        .update({ status: "seen" } as never)
+        .from("reminders")
+        .update({ status: "seen" })
         .eq("id", reminderId)
         .select()
         .single();

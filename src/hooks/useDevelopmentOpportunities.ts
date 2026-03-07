@@ -46,7 +46,7 @@ export const useDevelopmentOpportunities = () =>
     queryKey: ["development-opportunities"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from(opportunitiesTable as never)
+        .from(opportunitiesTable)
         .select("*, funder:funders(id, name, type)")
         .order("deadline", { ascending: true, nullsFirst: false });
 
@@ -62,8 +62,8 @@ export const useCreateDevelopmentOpportunity = () => {
   return useMutation({
     mutationFn: async (input: CreateDevelopmentOpportunityInput) => {
       const { data, error } = await supabase
-        .from(opportunitiesTable as never)
-        .insert(input as never)
+        .from(opportunitiesTable)
+        .insert(input as any)
         .select()
         .single();
 
@@ -94,8 +94,8 @@ export const useUpdateDevelopmentOpportunity = () => {
   return useMutation({
     mutationFn: async ({ id, ...input }: Partial<DevelopmentOpportunity> & { id: string }) => {
       const { data, error } = await supabase
-        .from(opportunitiesTable as never)
-        .update(input as never)
+        .from(opportunitiesTable)
+        .update(input as any)
         .eq("id", id)
         .select()
         .single();

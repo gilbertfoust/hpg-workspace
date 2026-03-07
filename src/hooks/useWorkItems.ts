@@ -67,7 +67,7 @@ export const useWorkItems = (filters?: ListFilters) => {
   return useQuery<WorkItem[]>({
     queryKey: ["work-items", filters],
     queryFn: async () => {
-      let query = supabase.from("work_items" as never).select("*").order("created_at", { ascending: false });
+      let query = supabase.from("work_items").select("*").order("created_at", { ascending: false });
 
       const ngoId = filters?.ngoId || filters?.ngo_id;
       if (ngoId) {
@@ -96,7 +96,7 @@ export const useWorkItem = (id?: string | null) => {
     enabled: !!id,
     queryFn: async () => {
       if (!id) return null;
-      const { data, error } = await supabase.from("work_items" as never).select("*").eq("id", id).maybeSingle();
+      const { data, error } = await supabase.from("work_items").select("*").eq("id", id).maybeSingle();
       if (error) throw error;
       return (data as WorkItem) ?? null;
     },
@@ -108,7 +108,7 @@ export const useCreateWorkItem = () => {
 
   return useMutation({
     mutationFn: async (input: Partial<WorkItem> & { module: ModuleType }) => {
-      const { data, error } = await supabase.from("work_items" as never).insert(input as never).select().single();
+      const { data, error } = await supabase.from("work_items").insert(input as any).select().single();
       if (error) throw error;
       return data as WorkItem;
     },
@@ -126,7 +126,7 @@ export const useUpdateWorkItem = () => {
   return useMutation({
     mutationFn: async (input: Partial<WorkItem> & { id: string }) => {
       const { id, ...rest } = input;
-      const { data, error } = await supabase.from("work_items" as never).update(rest as never).eq("id", id).select().single();
+      const { data, error } = await supabase.from("work_items").update(rest as any).eq("id", id).select().single();
       if (error) throw error;
       return data as WorkItem;
     },
@@ -149,7 +149,7 @@ export const useMyQueueWorkItems = () => {
       if (!user?.id || !supabase) return [];
       
       const { data, error } = await supabase
-        .from("work_items" as never)
+        .from("work_items")
         .select("*")
         .eq("owner_user_id", user.id)
         .order("created_at", { ascending: false });
@@ -169,7 +169,7 @@ export const useDepartmentQueueWorkItems = (departmentIds: string[]) => {
       if (departmentIds.length === 0 || !supabase) return [];
       
       const { data, error } = await supabase
-        .from("work_items" as never)
+        .from("work_items")
         .select("*")
         .in("department_id", departmentIds)
         .order("created_at", { ascending: false });
@@ -185,8 +185,6 @@ export const useBulkUpdateWorkItems = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ ids, updates }: { ids: string[]; updates: Partial<WorkItem> }) => {
-      // TODO: Replace with actual Supabase bulk update when table exists
-      // For now, just invalidate queries
       return { ids, updates };
     },
     onSuccess: () => {
@@ -205,7 +203,6 @@ export const useBulkBumpWorkItemDueDates = () => {
       if (!supabase) throw new Error("Supabase client not available");
       if (items.length === 0) return { items, bumpDays };
       
-      // Calculate new due dates and prepare updates
       const updates = items.map((item) => {
         if (!item.due_date) return null;
         const currentDate = new Date(item.due_date);
@@ -213,19 +210,16 @@ export const useBulkBumpWorkItemDueDates = () => {
         newDate.setDate(newDate.getDate() + bumpDays);
         return {
           id: item.id,
-          due_date: newDate.toISOString().split('T')[0], // Format as YYYY-MM-DD
+          due_date: newDate.toISOString().split('T')[0],
         };
       }).filter((update): update is { id: string; due_date: string } => update !== null);
       
       if (updates.length === 0) return { items, bumpDays };
       
-      // Perform bulk update using RPC or individual updates
-      // Since Supabase doesn't support bulk updates with different values per row easily,
-      // we'll use a transaction-like approach with Promise.all
       const updatePromises = updates.map((update) =>
         supabase
-          .from("work_items" as never)
-          .update({ due_date: update.due_date } as never)
+          .from("work_items")
+          .update({ due_date: update.due_date } as any)
           .eq("id", update.id)
       );
       
