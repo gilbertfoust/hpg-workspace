@@ -21,7 +21,7 @@ export function NGOCalendarTab({ ngoId }: NGOCalendarTabProps) {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [currentMonth, setCurrentMonth] = useState(new Date());
 
-  const { data: workItems, isLoading } = useWorkItems({ ngo_id: ngoId });
+  const { data: workItems, isLoading } = useWorkItems({ ngoId: ngoId });
 
   // Get work items with due dates
   const itemsWithDates = useMemo(() => {
@@ -58,7 +58,7 @@ export function NGOCalendarTab({ ngoId }: NGOCalendarTabProps) {
       const date = new Date(dateStr);
       hasTasks.push(date);
       
-      if (date < today && items.some(i => !['complete', 'canceled'].includes(i.status))) {
+      if (date < today && items.some(i => !['Complete', 'Canceled'].includes(i.status))) {
         hasOverdue.push(date);
       }
     });

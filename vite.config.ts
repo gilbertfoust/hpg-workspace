@@ -4,12 +4,14 @@ import path from "path";
 import { componentTagger } from "lovable-tagger";
 
 export default defineConfig(({ mode }) => {
-  const isGitHubPages = process.env.GITHUB_PAGES === "true";
+  // Use GITHUB_REPOSITORY env var if available (GitHub Actions), otherwise default to "/"
+  // GITHUB_REPOSITORY format: "owner/repo-name"
+  const repoName = process.env.GITHUB_REPOSITORY
+    ? `/${process.env.GITHUB_REPOSITORY.split("/")[1]}/`
+    : "/";
 
   return {
-    // For GitHub Pages, we want /hpg-workspace/
-    // For Lovable + localhost, we want root "/"
-    base: isGitHubPages ? "/hpg-workspace/" : "/",
+    base: repoName,
 
     server: {
       host: "::",

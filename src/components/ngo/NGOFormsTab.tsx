@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -9,15 +9,20 @@ import {
   CheckCircle,
   XCircle,
   ArrowRight,
-  Eye
+  Eye,
+  CalendarCheck
 } from "lucide-react";
 import { format } from "date-fns";
-import { useFormTemplates, FormTemplate } from "@/hooks/useFormTemplates";
-import { useFormSubmissions, FormSubmission } from "@/hooks/useFormSubmissions";
+import { useFormTemplates, FormTemplate, useEnsureFormTemplate } from "@/hooks/useFormTemplates";
+import { useFormSubmissions, FormSubmission, useUpdateFormSubmission } from "@/hooks/useFormSubmissions";
 import { FormSubmissionSheet } from "./FormSubmissionSheet";
+import { monthlyCheckInTemplate } from "./ngoFormTemplates";
+import { useCreateWorkItem } from "@/hooks/useWorkItems";
 
 interface NGOFormsTabProps {
   ngoId: string;
+  launchMonthlyCheckIn?: boolean;
+  onMonthlyCheckInHandled?: () => void;
 }
 
 const statusIcons: Record<string, React.ReactNode> = {
@@ -34,13 +39,17 @@ const statusLabels: Record<string, string> = {
   rejected: "Needs Revision",
 };
 
-export function NGOFormsTab({ ngoId }: NGOFormsTabProps) {
+export function NGOFormsTab({ ngoId, launchMonthlyCheckIn, onMonthlyCheckInHandled }: NGOFormsTabProps) {
   const { data: templates, isLoading: templatesLoading } = useFormTemplates();
   const { data: submissions, isLoading: submissionsLoading } = useFormSubmissions({ ngo_id: ngoId });
+  const ensureTemplate = useEnsureFormTemplate();
+  const createWorkItem = useCreateWorkItem();
+  const updateSubmission = useUpdateFormSubmission();
   
   const [sheetOpen, setSheetOpen] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<FormTemplate | null>(null);
   const [selectedSubmission, setSelectedSubmission] = useState<FormSubmission | null>(null);
+  const [initialValues, setInitialValues] = useState<Record<string, unknown> | undefined>(undefined);
 
   const isLoading = templatesLoading || submissionsLoading;
   const activeTemplates = templates?.filter(t => t.is_active) || [];
@@ -48,6 +57,7 @@ export function NGOFormsTab({ ngoId }: NGOFormsTabProps) {
   const handleStartForm = (template: FormTemplate) => {
     setSelectedTemplate(template);
     setSelectedSubmission(null);
+    setInitialValues(undefined);
     setSheetOpen(true);
   };
 
@@ -57,7 +67,53 @@ export function NGOFormsTab({ ngoId }: NGOFormsTabProps) {
     if (template) {
       setSelectedTemplate(template);
       setSelectedSubmission(submission);
+      setInitialValues(undefined);
       setSheetOpen(true);
+    }
+  };
+
+  const handleMonthlyCheckIn = useCallback(async () => {
+    const template = await ensureTemplate.mutateAsync(monthlyCheckInTemplate);
+    const today = new Date();
+    setSelectedTemplate(template);
+    setSelectedSubmission(null);
+    setInitialValues({
+      date: format(today, "yyyy-MM-dd"),
+      period: format(today, "MMMM yyyy"),
+    });
+    setSheetOpen(true);
+  }, [ensureTemplate]);
+
+  useEffect(() => {
+    if (launchMonthlyCheckIn) {
+      handleMonthlyCheckIn().finally(() => onMonthlyCheckInHandled?.());
+    }
+  }, [handleMonthlyCheckIn, launchMonthlyCheckIn, onMonthlyCheckInHandled]);
+
+  const handleSubmissionSuccess = async (
+    submission: FormSubmission,
+    payload: Record<string, unknown>,
+    submitted: boolean
+  ) => {
+    if (!submitted || !selectedTemplate) return;
+
+    if (selectedTemplate.name === monthlyCheckInTemplate.name) {
+      const period = String(payload.period || format(new Date(), "MMMM yyyy"));
+      const workItem = await createWorkItem.mutateAsync({
+        title: `Monthly Check-in — ${period}`,
+        module: "ngo_coordination",
+        type: "Monthly Check-in",
+        ngo_id: ngoId,
+        description: String(payload.summary || ""),
+        status: "submitted",
+        priority: "medium",
+        external_visible: false,
+      });
+
+      await updateSubmission.mutateAsync({
+        id: submission.id,
+        work_item_id: workItem.id,
+      });
     }
   };
 
@@ -68,6 +124,10 @@ export function NGOFormsTab({ ngoId }: NGOFormsTabProps) {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-medium">Available Forms</h3>
+            <Button size="sm" variant="outline" onClick={handleMonthlyCheckIn} disabled={ensureTemplate.isPending}>
+              <CalendarCheck className="w-4 h-4 mr-2" />
+              Monthly Check-in
+            </Button>
           </div>
 
           {isLoading && (
@@ -99,7 +159,7 @@ export function NGOFormsTab({ ngoId }: NGOFormsTabProps) {
                         </div>
                       </div>
                       <Button size="sm" onClick={() => handleStartForm(template)}>
-                        Start
+                        Launch
                         <ArrowRight className="w-4 h-4 ml-1" />
                       </Button>
                     </div>
@@ -190,6 +250,8 @@ export function NGOFormsTab({ ngoId }: NGOFormsTabProps) {
         template={selectedTemplate}
         submission={selectedSubmission}
         ngoId={ngoId}
+        initialValues={initialValues}
+        onSubmitSuccess={handleSubmissionSuccess}
       />
     </>
   );

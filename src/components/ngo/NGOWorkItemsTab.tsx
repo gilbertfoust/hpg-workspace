@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,28 +25,42 @@ import {
   Search, 
   ListTodo,
   ExternalLink,
-  Calendar
+  Calendar,
+  Filter
 } from "lucide-react";
 import { format } from "date-fns";
-import { useWorkItems, WorkItemStatus, ModuleType } from "@/hooks/useWorkItems";
+import { useWorkItems, WorkItemStatus, ModuleType, type ListFilters } from "@/hooks/useWorkItems";
 import { WorkItemDrawer } from "@/components/work-items/WorkItemDrawer";
 
 interface NGOWorkItemsTabProps {
   ngoId: string;
 }
 
-const statusMap: Record<string, "approved" | "in-progress" | "rejected" | "draft" | "waiting-ngo" | "waiting-hpg" | "under-review" | "submitted"> = {
-  draft: "draft",
-  not_started: "draft",
-  in_progress: "in-progress",
-  waiting_on_ngo: "waiting-ngo",
-  waiting_on_hpg: "waiting-hpg",
-  submitted: "submitted",
-  under_review: "under-review",
-  approved: "approved",
-  rejected: "rejected",
-  complete: "approved",
-  canceled: "draft",
+const statusMap: Record<
+  string,
+  | "approved"
+  | "in-progress"
+  | "rejected"
+  | "draft"
+  | "waiting-ngo"
+  | "waiting-hpg"
+  | "under-review"
+  | "submitted"
+  | "not-started"
+  | "complete"
+  | "canceled"
+> = {
+  Draft: "draft",
+  "Not Started": "not-started",
+  "In Progress": "in-progress",
+  "Waiting on NGO": "waiting-ngo",
+  "Waiting on HPG": "waiting-hpg",
+  Submitted: "submitted",
+  "Under Review": "under-review",
+  Approved: "approved",
+  Rejected: "rejected",
+  Complete: "complete",
+  Canceled: "canceled",
 };
 
 const statusOptions: { label: string; value: WorkItemStatus | "all" }[] = [
@@ -74,13 +88,15 @@ export function NGOWorkItemsTab({ ngoId }: NGOWorkItemsTabProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<WorkItemStatus | "all">("all");
   const [moduleFilter, setModuleFilter] = useState<ModuleType | "all">("all");
+  const [quickFilter, setQuickFilter] = useState<"monthly-check-ins" | "all">("all");
   const [selectedWorkItemId, setSelectedWorkItemId] = useState<string | null>(null);
 
-  const filters = {
+  const filters = useMemo(() => ({
     ngo_id: ngoId,
-    ...(statusFilter !== "all" && { status: [statusFilter] }),
+    ...(statusFilter !== "all" && { status: statusFilter }),
     ...(moduleFilter !== "all" && { module: moduleFilter }),
-  };
+    ...(quickFilter === "monthly-check-ins" && { type: "Monthly Check-in" }),
+  }), [moduleFilter, ngoId, quickFilter, statusFilter]);
 
   const { data: workItems, isLoading } = useWorkItems(filters);
 
@@ -127,6 +143,14 @@ export function NGOWorkItemsTab({ ngoId }: NGOWorkItemsTabProps) {
               ))}
             </SelectContent>
           </Select>
+          <Button
+            variant={quickFilter === "monthly-check-ins" ? "default" : "outline"}
+            className="whitespace-nowrap"
+            onClick={() => setQuickFilter(quickFilter === "monthly-check-ins" ? "all" : "monthly-check-ins")}
+          >
+            <Filter className="w-4 h-4 mr-2" />
+            Monthly Check-ins
+          </Button>
         </div>
         <Button>
           <Plus className="w-4 h-4 mr-2" />
