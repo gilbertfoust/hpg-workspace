@@ -164,42 +164,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     }
 
     try {
-      // Note: Deleting a user account typically requires admin privileges
-      // In Supabase, users cannot delete their own accounts directly via the client
-      // This would need to be handled via a server-side function or admin API
-      // For now, we'll attempt to delete the user's profile data and sign them out
-      
-      // Delete profile data (if RLS allows)
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .delete()
-        .eq('id', user.id);
+      const { data, error: fnError } = await supabase.functions.invoke("delete-user", {
+        body: { target_user_id: user.id },
+      });
 
-      if (profileError) {
-        console.warn("Profile deletion error (may require admin):", profileError);
-        // Continue anyway - profile might be deleted via cascade
+      if (fnError) {
+        console.error("Delete account error:", fnError);
+        return { error: fnError as Error };
       }
 
-      // Delete user roles (if RLS allows)
-      const { error: rolesError } = await supabase
-        .from('user_roles')
-        .delete()
-        .eq('user_id', user.id);
-
-      if (rolesError) {
-        console.warn("User roles deletion error (may require admin):", rolesError);
-        // Continue anyway - roles might be deleted via cascade
+      if (data?.error) {
+        return { error: new Error(data.error) };
       }
 
-      // Sign out the user
-      const { error: signOutError } = await supabase.auth.signOut();
-      
-      if (signOutError) {
-        console.error("Sign out error during account deletion:", signOutError);
-        return { error: signOutError as Error };
-      }
-
-      // Clear local state
+      // Sign out and clear local state
+      await supabase.auth.signOut();
       setSession(null);
       setUser(null);
 
@@ -221,31 +200,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     }
 
     try {
-      // Delete user roles first
-      const { error: rolesError } = await supabase
-        .from('user_roles')
-        .delete()
-        .eq('user_id', userId);
+      const { data, error: fnError } = await supabase.functions.invoke("delete-user", {
+        body: { target_user_id: userId },
+      });
 
-      if (rolesError) {
-        console.error("Error deleting user roles:", rolesError);
-        return { error: rolesError as Error };
+      if (fnError) {
+        console.error("Delete user error:", fnError);
+        return { error: fnError as Error };
       }
 
-      // Delete profile data
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .delete()
-        .eq('id', userId);
-
-      if (profileError) {
-        console.error("Error deleting profile:", profileError);
-        return { error: profileError as Error };
+      if (data?.error) {
+        return { error: new Error(data.error) };
       }
-
-      // Note: To delete the auth.users record, you would need to use Supabase Admin API
-      // or a server-side function. The profile and roles deletion will cascade
-      // if foreign keys are set up correctly, but auth.users requires admin privileges.
 
       return { error: null };
     } catch (err) {
