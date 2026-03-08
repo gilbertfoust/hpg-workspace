@@ -3476,6 +3476,51 @@ export type Database = {
           },
         ]
       }
+      saved_ledger_documents: {
+        Row: {
+          created_at: string
+          html_content: string
+          id: string
+          ngo_id: string
+          saved_by_user_id: string | null
+          title: string
+          transaction_id: string
+        }
+        Insert: {
+          created_at?: string
+          html_content: string
+          id?: string
+          ngo_id: string
+          saved_by_user_id?: string | null
+          title: string
+          transaction_id: string
+        }
+        Update: {
+          created_at?: string
+          html_content?: string
+          id?: string
+          ngo_id?: string
+          saved_by_user_id?: string | null
+          title?: string
+          transaction_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saved_ledger_documents_ngo_id_fkey"
+            columns: ["ngo_id"]
+            isOneToOne: false
+            referencedRelation: "ngos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "saved_ledger_documents_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       signed_documents: {
         Row: {
           created_at: string
