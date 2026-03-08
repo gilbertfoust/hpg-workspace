@@ -15,7 +15,7 @@ const statusColors: Record<string, string> = {
   allocated: "bg-blue-100 text-blue-800",
 };
 
-export function UsageEntriesTable({ filters }: { filters?: { fiscal_period_id?: string; cost_center_id?: string; ngo_id?: string } }) {
+export function UsageEntriesTable({ filters }: { filters?: { fiscal_period_id?: string; cost_center_id?: string; ngo_id?: string; status?: string } }) {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const effectiveFilters = { ...filters, ...(statusFilter !== "all" ? { status: statusFilter } : {}) };
   const { data: entries = [], isLoading, updateStatus } = useUsageEntries(effectiveFilters);

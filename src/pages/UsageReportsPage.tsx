@@ -31,7 +31,7 @@ const UsageReportsPage = () => (
           <RestrictionCheckPanel />
         </div>
       </div>
-      <UsageEntriesTable filters={{ status: "allocated" }} />
+      <UsageEntriesTable />
     </div>
   </MainLayout>
 );
