@@ -3,16 +3,19 @@ import { MainLayout } from "@/components/layout/MainLayout";
 import { TransactionsTable } from "@/components/finance/TransactionsTable";
 import { JournalEntryTable } from "@/components/finance/JournalEntryTable";
 import { TransactionForm } from "@/components/finance/TransactionForm";
+import { SavedLedgersSection } from "@/components/finance/SavedLedgersSection";
+import { generateTransactionHTML } from "@/components/finance/TransactionDocumentGenerator";
 import { useTransactions, Transaction } from "@/hooks/useTransactions";
 import { useJournalEntries } from "@/hooks/useJournalEntries";
 import { useAccounts } from "@/hooks/useAccounts";
+import { useSavedLedgerDocuments } from "@/hooks/useSavedLedgerDocuments";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Plus, ChevronDown, ChevronUp } from "lucide-react";
+import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
+import { Plus, Save, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { format } from "date-fns";
@@ -37,6 +40,10 @@ const TransactionsPage = () => {
   const { data: transactions, isLoading, voidTransaction, create } = useTransactions(activeNgoId);
   const { data: entries } = useJournalEntries(selected?.id);
   const { data: accounts } = useAccounts(activeNgoId);
+  const { data: savedDocs, isLoading: savedDocsLoading, save: saveLedgerDoc, remove: removeLedgerDoc } = useSavedLedgerDocuments(activeNgoId);
+
+  const activeNgo = (ngos || []).find((n) => n.id === activeNgoId);
+  const ngoName = activeNgo?.common_name || activeNgo?.legal_name || "NGO";
 
   const handleVoid = async (id: string) => {
     try {
@@ -66,6 +73,33 @@ const TransactionsPage = () => {
       });
       toast({ title: "Transaction posted to General Ledger" });
       setFormOpen(false);
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "Error", description: err.message });
+    }
+  };
+
+  const handleSaveAsDocument = async () => {
+    if (!selected || !entries || !accounts || !activeNgoId) return;
+    try {
+      const html = generateTransactionHTML(selected, entries, accounts, ngoName);
+      const title = `${selected.description} — ${format(new Date(selected.transaction_date), "MMM d, yyyy")}`;
+      await saveLedgerDoc.mutateAsync({
+        ngo_id: activeNgoId,
+        transaction_id: selected.id,
+        title,
+        html_content: html,
+        saved_by_user_id: user?.id || null,
+      });
+      toast({ title: "Transaction saved as ledger document" });
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "Error", description: err.message });
+    }
+  };
+
+  const handleDeleteDoc = async (id: string) => {
+    try {
+      await removeLedgerDoc.mutateAsync(id);
+      toast({ title: "Ledger document deleted" });
     } catch (err: any) {
       toast({ variant: "destructive", title: "Error", description: err.message });
     }
@@ -118,6 +152,15 @@ const TransactionsPage = () => {
           <TransactionsTable transactions={transactions || []} isLoading={isLoading} onVoid={handleVoid} onSelect={setSelected} />
         )}
 
+        {activeNgoId && (
+          <SavedLedgersSection
+            documents={savedDocs || []}
+            isLoading={savedDocsLoading}
+            onDelete={handleDeleteDoc}
+            deleting={removeLedgerDoc.isPending}
+          />
+        )}
+
         <Sheet open={!!selected} onOpenChange={(open) => !open && setSelected(null)}>
           <SheetContent className="sm:max-w-lg">
             <SheetHeader>
@@ -132,6 +175,16 @@ const TransactionsPage = () => {
                   <p><span className="font-medium">Status:</span> {selected.is_void ? "Void" : "Posted"}</p>
                 </div>
                 {entries && accounts && <JournalEntryTable entries={entries} accounts={accounts} />}
+                {entries && entries.length > 0 && !selected.is_void && (
+                  <Button onClick={handleSaveAsDocument} disabled={saveLedgerDoc.isPending} className="w-full">
+                    {saveLedgerDoc.isPending ? (
+                      <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                    ) : (
+                      <Save className="h-4 w-4 mr-1" />
+                    )}
+                    Save as Ledger Document
+                  </Button>
+                )}
               </div>
             )}
           </SheetContent>
