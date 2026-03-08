@@ -30,7 +30,7 @@ export const useProgramActivities = (filters?: ProgramActivityFilters) => {
     queryKey: ['program-activities', filters],
     queryFn: async () => {
       let query = supabase
-        .from('program_activities')
+        .from('program_activities' as any)
         .select('*')
         .order('activity_date', { ascending: false });
 
@@ -52,7 +52,7 @@ export const useProgramActivities = (filters?: ProgramActivityFilters) => {
 
       const { data, error } = await query;
       if (error) throw error;
-      return data as ProgramActivity[];
+      return data as unknown as ProgramActivity[];
     },
   });
 };
@@ -64,13 +64,13 @@ export const useCreateProgramActivity = () => {
   return useMutation({
     mutationFn: async (input: Partial<ProgramActivity>) => {
       const { data, error } = await supabase
-        .from('program_activities')
+        .from('program_activities' as any)
         .insert(input)
         .select()
         .single();
 
       if (error) throw error;
-      return data as ProgramActivity;
+      return data as unknown as ProgramActivity;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['program-activities'] });
@@ -96,14 +96,14 @@ export const useUpdateProgramActivity = () => {
   return useMutation({
     mutationFn: async ({ id, ...input }: Partial<ProgramActivity> & { id: string }) => {
       const { data, error } = await supabase
-        .from('program_activities')
+        .from('program_activities' as any)
         .update(input)
         .eq('id', id)
         .select()
         .single();
 
       if (error) throw error;
-      return data as ProgramActivity;
+      return data as unknown as ProgramActivity;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['program-activities'] });

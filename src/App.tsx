@@ -49,8 +49,6 @@ import DeptQueue from "./pages/DeptQueue";
 import HRDashboard from "./pages/HRDashboard";
 import DevelopmentDashboard from "./pages/DevelopmentDashboard";
 import PartnershipsDashboard from "./pages/PartnershipsDashboard";
-import ITDashboard from "./pages/ITDashboard";
-import NGOCoordination from "./pages/NGOCoordination";
 
 // Module pages (placeholders you can flesh out later)
 import {

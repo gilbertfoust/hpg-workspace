@@ -22,13 +22,13 @@ export const useCurriculumAssets = () => {
     queryKey: ['curriculum-assets'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('curriculum_assets')
+        .from('curriculum_assets' as any)
         .select('*')
         .order('last_updated_at', { ascending: false, nullsFirst: false })
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return data as CurriculumAsset[];
+      return data as unknown as CurriculumAsset[];
     },
   });
 };
@@ -40,13 +40,13 @@ export const useCreateCurriculumAsset = () => {
   return useMutation({
     mutationFn: async (input: Partial<CurriculumAsset>) => {
       const { data, error } = await supabase
-        .from('curriculum_assets')
+        .from('curriculum_assets' as any)
         .insert(input)
         .select()
         .single();
 
       if (error) throw error;
-      return data as CurriculumAsset;
+      return data as unknown as CurriculumAsset;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['curriculum-assets'] });
@@ -72,14 +72,14 @@ export const useUpdateCurriculumAsset = () => {
   return useMutation({
     mutationFn: async ({ id, ...input }: Partial<CurriculumAsset> & { id: string }) => {
       const { data, error } = await supabase
-        .from('curriculum_assets')
+        .from('curriculum_assets' as any)
         .update(input)
         .eq('id', id)
         .select()
         .single();
 
       if (error) throw error;
-      return data as CurriculumAsset;
+      return data as unknown as CurriculumAsset;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['curriculum-assets'] });

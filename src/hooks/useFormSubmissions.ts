@@ -3,7 +3,6 @@ import { getSupabaseNotConfiguredError, supabase } from '@/integrations/supabase
 import { useToast } from '@/hooks/use-toast';
 import type { Database, Json } from '@/integrations/supabase/types';
 import { useAuth } from '@/contexts/AuthContext';
-import type { Json } from '@/integrations/supabase/types';
 import { ModuleType } from '@/hooks/useWorkItems';
 import { createWorkItemForSubmission } from '@/lib/createWorkItemForSubmission';
 
@@ -380,7 +379,6 @@ export const useUpdateFormSubmission = () => {
   const { user } = useAuth();
 
   return useMutation({
-    mutationFn: async ({ id, ...input }: Database['public']['Tables']['form_submissions']['Update'] & { id: string }) => {
     mutationFn: async ({ id, ...input }: Partial<FormSubmission> & { id: string }) => {
       ensureSupabase();
       

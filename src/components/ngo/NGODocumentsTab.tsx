@@ -22,7 +22,7 @@ import {
   Eye,
   MoreHorizontal,
   FolderOpen,
-  FileClock
+  FileClock,
   Trash2,
   Loader2
 } from "lucide-react";
@@ -44,14 +44,13 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { format } from "date-fns";
-import { useDocuments, DocumentCategory } from "@/hooks/useDocuments";
+import { useDocuments, useDocumentUrl, useDeleteDocument, DocumentCategory, Document } from "@/hooks/useDocuments";
 import { FormSubmissionSheet } from "./FormSubmissionSheet";
 import { documentRequestTemplate } from "./ngoFormTemplates";
 import { FormSubmission, useUpdateFormSubmission } from "@/hooks/useFormSubmissions";
 import { StatusChip } from "@/components/common/StatusChip";
 import { useCreateWorkItem, useWorkItems } from "@/hooks/useWorkItems";
 import { useEnsureFormTemplate, FormTemplate } from "@/hooks/useFormTemplates";
-import { useDocuments, useDocumentUrl, useDeleteDocument, DocumentCategory, Document } from "@/hooks/useDocuments";
 import { DocumentUploadDialog } from "./DocumentUploadDialog";
 
 interface NGODocumentsTabProps {
@@ -279,15 +278,11 @@ export function NGODocumentsTab({ ngoId, launchDocumentRequest, onDocumentReques
             <FileClock className="w-4 h-4 mr-2" />
             Request Document
           </Button>
-          <Button>
+          <Button onClick={() => setUploadDialogOpen(true)}>
             <Upload className="w-4 h-4 mr-2" />
             Upload Document
           </Button>
         </div>
-        <Button onClick={() => setUploadDialogOpen(true)}>
-          <Upload className="w-4 h-4 mr-2" />
-          Upload Document
-        </Button>
       </div>
 
       {/* Document Requests */}
@@ -379,17 +374,29 @@ export function NGODocumentsTab({ ngoId, launchDocumentRequest, onDocumentReques
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button variant="ghost" size="icon" className="h-8 w-8">
-                              <MoreHorizontal className="w-4 h-4" />
+                              {loadingDocId === doc.id ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                              ) : (
+                                <MoreHorizontal className="w-4 h-4" />
+                              )}
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handlePreview(doc)}>
                               <Eye className="w-4 h-4 mr-2" />
                               Preview
                             </DropdownMenuItem>
-                            <DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleDownload(doc)}>
                               <Download className="w-4 h-4 mr-2" />
                               Download
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              className="text-destructive focus:text-destructive"
+                              onClick={() => handleDeleteClick(doc)}
+                            >
+                              <Trash2 className="w-4 h-4 mr-2" />
+                              Delete
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
@@ -399,69 +406,6 @@ export function NGODocumentsTab({ ngoId, launchDocumentRequest, onDocumentReques
                 ))}
               </div>
             </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredDocs.map((doc) => (
-            <Card key={doc.id} className="hover:border-primary/30 transition-colors">
-              <CardContent className="p-4">
-                <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
-                    {getFileIcon(doc.file_type)}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h4 className="font-medium truncate" title={doc.file_name}>
-                      {doc.file_name}
-                    </h4>
-                    <div className="flex items-center gap-2 mt-1">
-                      <Badge variant="outline" className="text-xs">
-                        {categoryLabels[doc.category] || "Other"}
-                      </Badge>
-                      <span className="text-xs text-muted-foreground">
-                        {formatFileSize(doc.file_size)}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between mt-3">
-                      <span className="text-xs text-muted-foreground">
-                        {format(new Date(doc.uploaded_at), "MMM d, yyyy")}
-                      </span>
-                      {doc.review_status && (
-                        <Badge className={`text-xs ${reviewStatusStyles[doc.review_status] || ""}`}>
-                          {doc.review_status}
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
-                        {loadingDocId === doc.id ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : (
-                          <MoreHorizontal className="w-4 h-4" />
-                        )}
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => handlePreview(doc)}>
-                        <Eye className="w-4 h-4 mr-2" />
-                        Preview
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleDownload(doc)}>
-                        <Download className="w-4 h-4 mr-2" />
-                        Download
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem
-                        className="text-destructive focus:text-destructive"
-                        onClick={() => handleDeleteClick(doc)}
-                      >
-                        <Trash2 className="w-4 h-4 mr-2" />
-                        Delete
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              </CardContent>
-            </Card>
           ))}
         </div>
       )}

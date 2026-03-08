@@ -20,7 +20,7 @@ export const useProgramMonthlyReports = (filters?: { ngo_id?: string; report_mon
     queryKey: ['program-monthly-reports', filters],
     queryFn: async () => {
       let query = supabase
-        .from('program_monthly_reports')
+        .from('program_monthly_reports' as any)
         .select('*')
         .order('report_year', { ascending: false })
         .order('report_month', { ascending: false });
@@ -37,7 +37,7 @@ export const useProgramMonthlyReports = (filters?: { ngo_id?: string; report_mon
 
       const { data, error } = await query;
       if (error) throw error;
-      return data as ProgramMonthlyReport[];
+      return data as unknown as ProgramMonthlyReport[];
     },
   });
 };
@@ -49,13 +49,13 @@ export const useUpsertProgramMonthlyReport = () => {
   return useMutation({
     mutationFn: async (input: Omit<ProgramMonthlyReport, 'id' | 'created_at' | 'updated_at'>) => {
       const { data, error } = await supabase
-        .from('program_monthly_reports')
+        .from('program_monthly_reports' as any)
         .upsert(input, { onConflict: 'ngo_id,report_month,report_year' })
         .select()
         .single();
 
       if (error) throw error;
-      return data as ProgramMonthlyReport;
+      return data as unknown as ProgramMonthlyReport;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['program-monthly-reports'] });

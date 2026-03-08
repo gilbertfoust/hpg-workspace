@@ -1,6 +1,4 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { useQuery } from '@tanstack/react-query';
 import { getSupabaseNotConfiguredError, supabase } from '@/integrations/supabase/client';
 import { ModuleType } from './useWorkItems';
 import { useToast } from '@/hooks/use-toast';
@@ -94,7 +92,7 @@ export const useEnsureFormTemplate = () => {
           name: input.name,
           module: input.module,
           description: input.description ?? null,
-          schema_json: input.schema_json as Json,
+          schema_json: input.schema_json as unknown as Json,
           mapping_json: input.mapping_json ?? {},
           is_active: input.is_active ?? true,
           version: input.version ?? 1,
