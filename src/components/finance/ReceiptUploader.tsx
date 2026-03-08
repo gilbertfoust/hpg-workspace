@@ -1,8 +1,9 @@
 import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { Upload, Loader2, FileText, X } from "lucide-react";
+import { Upload, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface ReceiptUploaderProps {
   transactionId: string;
@@ -13,6 +14,7 @@ export function ReceiptUploader({ transactionId, onUploaded }: ReceiptUploaderPr
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -24,15 +26,16 @@ export function ReceiptUploader({ transactionId, onUploaded }: ReceiptUploaderPr
       const { error: storageErr } = await supabase.storage.from("ledger-receipts").upload(path, file);
       if (storageErr) throw storageErr;
 
-      const { error: dbErr } = await (supabase as any).from("receipts").insert({
+      const { error: dbErr } = await supabase.from("receipts").insert({
         transaction_id: transactionId,
         file_path: path,
         file_name: file.name,
-        uploaded_by_user_id: (await supabase.auth.getUser()).data.user?.id,
+        uploaded_by_user_id: (await supabase.auth.getUser()).data.user?.id ?? null,
       });
       if (dbErr) throw dbErr;
 
       toast({ title: "Receipt uploaded" });
+      queryClient.invalidateQueries({ queryKey: ["receipts", transactionId] });
       onUploaded?.();
     } catch (err: any) {
       toast({ variant: "destructive", title: "Upload failed", description: err.message });
