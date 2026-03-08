@@ -37,7 +37,7 @@ export const useProgramMonthlyReports = (filters?: { ngo_id?: string; report_mon
 
       const { data, error } = await query;
       if (error) throw error;
-      return data as ProgramMonthlyReport[];
+      return data as unknown as ProgramMonthlyReport[];
     },
   });
 };
@@ -55,7 +55,7 @@ export const useUpsertProgramMonthlyReport = () => {
         .single();
 
       if (error) throw error;
-      return data as ProgramMonthlyReport;
+      return data as unknown as ProgramMonthlyReport;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['program-monthly-reports'] });

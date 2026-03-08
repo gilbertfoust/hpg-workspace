@@ -52,7 +52,7 @@ export const useProgramActivities = (filters?: ProgramActivityFilters) => {
 
       const { data, error } = await query;
       if (error) throw error;
-      return data as ProgramActivity[];
+      return data as unknown as ProgramActivity[];
     },
   });
 };
@@ -70,7 +70,7 @@ export const useCreateProgramActivity = () => {
         .single();
 
       if (error) throw error;
-      return data as ProgramActivity;
+      return data as unknown as ProgramActivity;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['program-activities'] });
@@ -103,7 +103,7 @@ export const useUpdateProgramActivity = () => {
         .single();
 
       if (error) throw error;
-      return data as ProgramActivity;
+      return data as unknown as ProgramActivity;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['program-activities'] });

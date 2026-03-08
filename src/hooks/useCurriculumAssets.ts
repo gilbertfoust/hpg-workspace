@@ -28,7 +28,7 @@ export const useCurriculumAssets = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return data as CurriculumAsset[];
+      return data as unknown as CurriculumAsset[];
     },
   });
 };
@@ -46,7 +46,7 @@ export const useCreateCurriculumAsset = () => {
         .single();
 
       if (error) throw error;
-      return data as CurriculumAsset;
+      return data as unknown as CurriculumAsset;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['curriculum-assets'] });
@@ -79,7 +79,7 @@ export const useUpdateCurriculumAsset = () => {
         .single();
 
       if (error) throw error;
-      return data as CurriculumAsset;
+      return data as unknown as CurriculumAsset;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['curriculum-assets'] });

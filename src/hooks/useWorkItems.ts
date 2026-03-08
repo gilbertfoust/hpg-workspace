@@ -75,7 +75,14 @@ export const useWorkItems = (filters?: ListFilters) => {
         query = query.eq("ngo_id", ngoId);
       }
       if (filters?.status) {
-        query = query.eq("status", filters.status);
+        if (Array.isArray(filters.status)) {
+          query = query.in("status", filters.status);
+        } else {
+          query = query.eq("status", filters.status);
+        }
+      }
+      if (filters?.evidence_required !== undefined) {
+        query = query.eq("evidence_required", filters.evidence_required);
       }
       if (filters?.module) {
         query = query.eq("module", filters.module as any);
