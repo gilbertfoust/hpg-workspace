@@ -279,15 +279,11 @@ export function NGODocumentsTab({ ngoId, launchDocumentRequest, onDocumentReques
             <FileClock className="w-4 h-4 mr-2" />
             Request Document
           </Button>
-          <Button>
+          <Button onClick={() => setUploadDialogOpen(true)}>
             <Upload className="w-4 h-4 mr-2" />
             Upload Document
           </Button>
         </div>
-        <Button onClick={() => setUploadDialogOpen(true)}>
-          <Upload className="w-4 h-4 mr-2" />
-          Upload Document
-        </Button>
       </div>
 
       {/* Document Requests */}
