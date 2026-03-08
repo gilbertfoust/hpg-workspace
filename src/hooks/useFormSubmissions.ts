@@ -3,7 +3,6 @@ import { getSupabaseNotConfiguredError, supabase } from '@/integrations/supabase
 import { useToast } from '@/hooks/use-toast';
 import type { Database, Json } from '@/integrations/supabase/types';
 import { useAuth } from '@/contexts/AuthContext';
-import type { Json } from '@/integrations/supabase/types';
 import { ModuleType } from '@/hooks/useWorkItems';
 import { createWorkItemForSubmission } from '@/lib/createWorkItemForSubmission';
 

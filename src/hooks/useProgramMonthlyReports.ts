@@ -20,7 +20,7 @@ export const useProgramMonthlyReports = (filters?: { ngo_id?: string; report_mon
     queryKey: ['program-monthly-reports', filters],
     queryFn: async () => {
       let query = supabase
-        .from('program_monthly_reports')
+        .from('program_monthly_reports' as any)
         .select('*')
         .order('report_year', { ascending: false })
         .order('report_month', { ascending: false });

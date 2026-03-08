@@ -30,7 +30,7 @@ export const useProgramActivities = (filters?: ProgramActivityFilters) => {
     queryKey: ['program-activities', filters],
     queryFn: async () => {
       let query = supabase
-        .from('program_activities')
+        .from('program_activities' as any)
         .select('*')
         .order('activity_date', { ascending: false });
 

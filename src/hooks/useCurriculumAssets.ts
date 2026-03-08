@@ -22,7 +22,7 @@ export const useCurriculumAssets = () => {
     queryKey: ['curriculum-assets'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('curriculum_assets')
+        .from('curriculum_assets' as any)
         .select('*')
         .order('last_updated_at', { ascending: false, nullsFirst: false })
         .order('created_at', { ascending: false });
