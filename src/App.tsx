@@ -42,6 +42,11 @@ import PackagesPage from "./pages/PackagesPage";
 import CloseYearPage from "./pages/CloseYearPage";
 import IntakeDashboard from "./pages/IntakeDashboard";
 import IntakeReviewPage from "./pages/IntakeReviewPage";
+import CostCentersPage from "./pages/CostCentersPage";
+import UsageEntriesPage from "./pages/UsageEntriesPage";
+import AllocationsPage from "./pages/AllocationsPage";
+import ChargebacksPage from "./pages/ChargebacksPage";
+import UsageReportsPage from "./pages/UsageReportsPage";
 
 // Feature pages
 import MyQueue from "./pages/MyQueue";
@@ -191,6 +196,11 @@ const App = () => {
                 <Route path="/financial-hub/compliance/statements" element={<P><StatementsPage /></P>} />
                 <Route path="/financial-hub/compliance/packages" element={<P><PackagesPage /></P>} />
                 <Route path="/financial-hub/compliance/close-year" element={<P><CloseYearPage /></P>} />
+                <Route path="/financial-hub/cost-centers" element={<P><CostCentersPage /></P>} />
+                <Route path="/financial-hub/usage" element={<P><UsageEntriesPage /></P>} />
+                <Route path="/financial-hub/allocations" element={<P><AllocationsPage /></P>} />
+                <Route path="/financial-hub/chargebacks" element={<P><ChargebacksPage /></P>} />
+                <Route path="/financial-hub/usage/reports" element={<P><UsageReportsPage /></P>} />
 
                 {/* Module placeholder routes */}
                 <Route path="/modules/ngo-coordination" element={<P><NGOCoordinationModule /></P>} />
