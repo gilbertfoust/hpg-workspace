@@ -16,6 +16,8 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
 import { Plus, Save, Loader2 } from "lucide-react";
+import { ReceiptUploader } from "@/components/finance/ReceiptUploader";
+import { ReceiptViewer } from "@/components/finance/ReceiptViewer";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { format } from "date-fns";
@@ -175,6 +177,10 @@ const TransactionsPage = () => {
                   <p><span className="font-medium">Status:</span> {selected.is_void ? "Void" : "Posted"}</p>
                 </div>
                 {entries && accounts && <JournalEntryTable entries={entries} accounts={accounts} />}
+                
+                <ReceiptViewer transactionId={selected.id} />
+                <ReceiptUploader transactionId={selected.id} />
+
                 {entries && entries.length > 0 && !selected.is_void && (
                   <Button onClick={handleSaveAsDocument} disabled={saveLedgerDoc.isPending} className="w-full">
                     {saveLedgerDoc.isPending ? (
