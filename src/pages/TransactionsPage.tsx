@@ -177,6 +177,10 @@ const TransactionsPage = () => {
                   <p><span className="font-medium">Status:</span> {selected.is_void ? "Void" : "Posted"}</p>
                 </div>
                 {entries && accounts && <JournalEntryTable entries={entries} accounts={accounts} />}
+                
+                <ReceiptViewer transactionId={selected.id} />
+                <ReceiptUploader transactionId={selected.id} />
+
                 {entries && entries.length > 0 && !selected.is_void && (
                   <Button onClick={handleSaveAsDocument} disabled={saveLedgerDoc.isPending} className="w-full">
                     {saveLedgerDoc.isPending ? (
