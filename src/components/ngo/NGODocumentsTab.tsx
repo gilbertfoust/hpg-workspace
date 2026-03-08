@@ -22,7 +22,7 @@ import {
   Eye,
   MoreHorizontal,
   FolderOpen,
-  FileClock
+  FileClock,
   Trash2,
   Loader2
 } from "lucide-react";

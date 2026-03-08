@@ -97,7 +97,6 @@ export const useUpdateDocument = () => {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: async ({ id, ...input }: Database['public']['Tables']['documents']['Update'] & { id: string }) => {
     mutationFn: async ({ id, ...input }: Partial<Document> & { id: string }) => {
       ensureSupabase();
       const { data, error } = await supabase

@@ -380,7 +380,6 @@ export const useUpdateFormSubmission = () => {
   const { user } = useAuth();
 
   return useMutation({
-    mutationFn: async ({ id, ...input }: Database['public']['Tables']['form_submissions']['Update'] & { id: string }) => {
     mutationFn: async ({ id, ...input }: Partial<FormSubmission> & { id: string }) => {
       ensureSupabase();
       

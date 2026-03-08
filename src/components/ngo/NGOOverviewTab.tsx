@@ -58,7 +58,7 @@ export function NGOOverviewTab({ ngo, onEdit, onGenerateFromTemplate, onMonthlyC
   ).length || 0;
   const missingEvidenceItems = workItems?.filter(wi => 
     wi.evidence_required && wi.evidence_status !== 'approved' &&
-    wi.status && activeStatuses.includes(wi.status)
+    wi.status && activeStatuses.includes(wi.status) &&
     !['Complete', 'Canceled'].includes(wi.status)
   ).length || 0;
   const pendingItems = workItems?.filter(wi => 
