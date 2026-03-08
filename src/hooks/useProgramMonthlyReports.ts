@@ -49,7 +49,7 @@ export const useUpsertProgramMonthlyReport = () => {
   return useMutation({
     mutationFn: async (input: Omit<ProgramMonthlyReport, 'id' | 'created_at' | 'updated_at'>) => {
       const { data, error } = await supabase
-        .from('program_monthly_reports')
+        .from('program_monthly_reports' as any)
         .upsert(input, { onConflict: 'ngo_id,report_month,report_year' })
         .select()
         .single();

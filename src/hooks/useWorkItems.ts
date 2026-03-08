@@ -58,9 +58,10 @@ export interface WorkItem {
 export type ListFilters = {
   ngoId?: string | null;
   ngo_id?: string | null;
-  status?: WorkItemStatus;
+  status?: WorkItemStatus | WorkItemStatus[];
   module?: ModuleType | string;
   type?: string;
+  evidence_required?: boolean;
 };
 
 export const useWorkItems = (filters?: ListFilters) => {

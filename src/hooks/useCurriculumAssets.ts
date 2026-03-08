@@ -40,7 +40,7 @@ export const useCreateCurriculumAsset = () => {
   return useMutation({
     mutationFn: async (input: Partial<CurriculumAsset>) => {
       const { data, error } = await supabase
-        .from('curriculum_assets')
+        .from('curriculum_assets' as any)
         .insert(input)
         .select()
         .single();
@@ -72,7 +72,7 @@ export const useUpdateCurriculumAsset = () => {
   return useMutation({
     mutationFn: async ({ id, ...input }: Partial<CurriculumAsset> & { id: string }) => {
       const { data, error } = await supabase
-        .from('curriculum_assets')
+        .from('curriculum_assets' as any)
         .update(input)
         .eq('id', id)
         .select()

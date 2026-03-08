@@ -64,7 +64,7 @@ export const useCreateProgramActivity = () => {
   return useMutation({
     mutationFn: async (input: Partial<ProgramActivity>) => {
       const { data, error } = await supabase
-        .from('program_activities')
+        .from('program_activities' as any)
         .insert(input)
         .select()
         .single();
@@ -96,7 +96,7 @@ export const useUpdateProgramActivity = () => {
   return useMutation({
     mutationFn: async ({ id, ...input }: Partial<ProgramActivity> & { id: string }) => {
       const { data, error } = await supabase
-        .from('program_activities')
+        .from('program_activities' as any)
         .update(input)
         .eq('id', id)
         .select()
