@@ -330,7 +330,25 @@ export const useCreateFormSubmission = () => {
         });
       }
 
-      return submission as FormSubmission;
+      const finalSubmission = submission as FormSubmission;
+
+      // Create a document record for submitted forms
+      if (input.submission_status === 'submitted' && user?.id) {
+        try {
+          await createDocumentFromSubmission(
+            finalSubmission,
+            input.form_template_id,
+            input.ngo_id || null,
+            user.id,
+            input.payload_json,
+          );
+          console.log('[useCreateFormSubmission] Document created for submission');
+        } catch (docError) {
+          console.error('[useCreateFormSubmission] Failed to create document (non-fatal):', docError);
+        }
+      }
+
+      return finalSubmission;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['form-submissions'] });
