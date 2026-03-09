@@ -43,6 +43,7 @@ import {
   ArrowLeftRight,
   PieChart,
   FolderKanban,
+  Zap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -358,6 +359,7 @@ export function AppSidebar() {
                 {isCollapsed && (
                   <NavItem to="/reports" icon={<BarChart3 className="w-4 h-4" />} label="" />
                 )}
+                <NavItem to="/automations" icon={<Zap className="w-4 h-4" />} label={isCollapsed ? "" : "Automations"} />
                 <NavItem to="/admin" icon={<Settings className="w-4 h-4" />} label={isCollapsed ? "" : "Admin"} />
                 {canAccessAdminConfig && (
                   <NavItem

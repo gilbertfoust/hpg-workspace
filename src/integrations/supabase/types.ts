@@ -2449,6 +2449,98 @@ export type Database = {
           },
         ]
       }
+      make_automation_logs: {
+        Row: {
+          automation_id: string
+          created_at: string
+          error_message: string | null
+          id: string
+          request_payload: Json | null
+          response_payload: Json | null
+          status: string
+          triggered_by_user_id: string | null
+        }
+        Insert: {
+          automation_id: string
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          request_payload?: Json | null
+          response_payload?: Json | null
+          status?: string
+          triggered_by_user_id?: string | null
+        }
+        Update: {
+          automation_id?: string
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          request_payload?: Json | null
+          response_payload?: Json | null
+          status?: string
+          triggered_by_user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "make_automation_logs_automation_id_fkey"
+            columns: ["automation_id"]
+            isOneToOne: false
+            referencedRelation: "make_automations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      make_automations: {
+        Row: {
+          automation_type: string
+          config_json: Json | null
+          created_at: string
+          created_by_user_id: string | null
+          description: string | null
+          id: string
+          is_active: boolean
+          last_triggered_at: string | null
+          name: string
+          trigger_count: number
+          trigger_event: string
+          updated_at: string
+          webhook_secret: string | null
+          webhook_url: string | null
+        }
+        Insert: {
+          automation_type?: string
+          config_json?: Json | null
+          created_at?: string
+          created_by_user_id?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          last_triggered_at?: string | null
+          name: string
+          trigger_count?: number
+          trigger_event: string
+          updated_at?: string
+          webhook_secret?: string | null
+          webhook_url?: string | null
+        }
+        Update: {
+          automation_type?: string
+          config_json?: Json | null
+          created_at?: string
+          created_by_user_id?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          last_triggered_at?: string | null
+          name?: string
+          trigger_count?: number
+          trigger_event?: string
+          updated_at?: string
+          webhook_secret?: string | null
+          webhook_url?: string | null
+        }
+        Relationships: []
+      }
       ngo_risk_profiles: {
         Row: {
           compliance_risk_score: number
