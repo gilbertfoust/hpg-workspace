@@ -2,10 +2,20 @@ import { useRevenueStreams } from "@/hooks/useRevenueStreams";
 import { useRecurringDonations } from "@/hooks/useRecurringDonations";
 import { useRevenueRecognition } from "@/hooks/useRevenueRecognition";
 import { KPICard } from "@/components/common/KPICard";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
 import { DollarSign, RefreshCw, BarChart3, TrendingUp } from "lucide-react";
 import { MainLayout } from "@/components/layout/MainLayout";
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
+
+const COLORS = [
+  "hsl(var(--primary))",
+  "hsl(210, 70%, 55%)",
+  "hsl(150, 60%, 45%)",
+  "hsl(40, 80%, 55%)",
+  "hsl(340, 65%, 50%)",
+  "hsl(270, 50%, 55%)",
+];
 
 export default function RevenueDashboard() {
   const navigate = useNavigate();
@@ -26,6 +36,22 @@ export default function RevenueDashboard() {
   }, 0);
   const totalRecognized = recognition?.reduce((s, r) => s + r.amount, 0) ?? 0;
 
+  // Chart data: streams by type
+  const streamsByType = new Map<string, number>();
+  activeStreams.forEach(s => {
+    const type = s.stream_type?.replace(/_/g, " ") ?? "Other";
+    streamsByType.set(type, (streamsByType.get(type) ?? 0) + (s.annual_target ?? 0));
+  });
+  const pieData = Array.from(streamsByType.entries()).map(([name, value]) => ({ name, value }));
+
+  // Recognition by type
+  const recByType = new Map<string, number>();
+  recognition?.forEach(r => {
+    const type = r.recognition_type?.replace(/_/g, " ") ?? "Other";
+    recByType.set(type, (recByType.get(type) ?? 0) + r.amount);
+  });
+  const recBarData = Array.from(recByType.entries()).map(([name, amount]) => ({ name, amount }));
+
   return (
     <MainLayout>
       <div className="space-y-6">
@@ -41,6 +67,57 @@ export default function RevenueDashboard() {
           <KPICard title="Total Recognized" value={`$${totalRecognized.toLocaleString()}`} icon={<DollarSign className="h-4 w-4" />} />
         </div>
 
+        {/* Charts */}
+        <div className="grid gap-4 md:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Revenue by Stream Type</CardTitle>
+              <CardDescription>Annual target by category</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {pieData.length > 0 ? (
+                <div className="h-[250px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`} labelLine={false}>
+                        {pieData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                      </Pie>
+                      <Tooltip formatter={(v: number) => `$${v.toLocaleString()}`} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground text-center py-12">No stream data</p>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Recognition by Type</CardTitle>
+              <CardDescription>Amount recognized per recognition method</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {recBarData.length > 0 ? (
+                <div className="h-[250px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={recBarData}>
+                      <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                      <XAxis dataKey="name" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }} />
+                      <YAxis tick={{ fill: "hsl(var(--muted-foreground))" }} />
+                      <Tooltip formatter={(v: number) => `$${v.toLocaleString()}`} contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px" }} />
+                      <Bar dataKey="amount" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} name="Recognized" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground text-center py-12">No recognition data</p>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Navigation Cards */}
         <div className="grid gap-4 md:grid-cols-3">
           <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate("/revenue/donations")}>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
