@@ -26,7 +26,7 @@ import { Badge } from "@/components/ui/badge";
 import { useDashboardData } from "@/hooks/useDashboardData";
 import { useNGOStats } from "@/hooks/useNGOs";
 import { useWorkItems } from "@/hooks/useWorkItems";
-import { useTransactions } from "@/hooks/useTransactions";
+import { useWorkItems as useWorkItemsAll } from "@/hooks/useWorkItems";
 import { Loader2 } from "lucide-react";
 import { format, subMonths, startOfMonth } from "date-fns";
 
