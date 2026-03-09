@@ -34,6 +34,20 @@ export function useCreateSigningRequest() {
 
       const { data: { user } } = await supabase.auth.getUser();
 
+      // Fetch document name for email
+      const { data: docData } = await supabase
+        .from("esign_documents" as never)
+        .select("original_filename")
+        .eq("id", params.document_id)
+        .single() as { data: { original_filename: string } | null };
+
+      // Fetch requester profile name
+      const { data: profileData } = await supabase
+        .from("profiles")
+        .select("full_name, email")
+        .eq("id", user?.id ?? "")
+        .single();
+
       const { data, error } = await supabase
         .from("signing_requests" as never)
         .insert({
@@ -58,6 +72,9 @@ export function useCreateSigningRequest() {
             signer_name: params.signer_name,
             signer_email: params.signer_email,
             token: record.token,
+            document_name: docData?.original_filename ?? null,
+            requester_name: profileData?.full_name ?? profileData?.email ?? null,
+            expires_at: params.expires_at,
           },
         });
 
