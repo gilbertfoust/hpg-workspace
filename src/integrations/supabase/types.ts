@@ -1110,6 +1110,54 @@ export type Database = {
           },
         ]
       }
+      country_compliance_profiles: {
+        Row: {
+          annual_audit_required: boolean | null
+          country_code: string
+          country_name: string
+          created_at: string
+          filing_deadline: string | null
+          id: string
+          is_active: boolean | null
+          notes: string | null
+          registration_required: boolean | null
+          regulatory_body: string | null
+          requirements_json: Json | null
+          tax_filing_required: boolean | null
+          updated_at: string
+        }
+        Insert: {
+          annual_audit_required?: boolean | null
+          country_code: string
+          country_name: string
+          created_at?: string
+          filing_deadline?: string | null
+          id?: string
+          is_active?: boolean | null
+          notes?: string | null
+          registration_required?: boolean | null
+          regulatory_body?: string | null
+          requirements_json?: Json | null
+          tax_filing_required?: boolean | null
+          updated_at?: string
+        }
+        Update: {
+          annual_audit_required?: boolean | null
+          country_code?: string
+          country_name?: string
+          created_at?: string
+          filing_deadline?: string | null
+          id?: string
+          is_active?: boolean | null
+          notes?: string | null
+          registration_required?: boolean | null
+          regulatory_body?: string | null
+          requirements_json?: Json | null
+          tax_filing_required?: boolean | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       crm_contacts: {
         Row: {
           created_at: string
@@ -1935,6 +1983,50 @@ export type Database = {
         }
         Relationships: []
       }
+      fx_rates: {
+        Row: {
+          created_at: string
+          created_by_user_id: string | null
+          effective_date: string
+          from_currency: string
+          id: string
+          rate: number
+          source: string | null
+          to_currency: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by_user_id?: string | null
+          effective_date?: string
+          from_currency?: string
+          id?: string
+          rate: number
+          source?: string | null
+          to_currency: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by_user_id?: string | null
+          effective_date?: string
+          from_currency?: string
+          id?: string
+          rate?: number
+          source?: string | null
+          to_currency?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fx_rates_created_by_user_id_fkey"
+            columns: ["created_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       grant_applications: {
         Row: {
           amount_awarded: number | null
@@ -2445,6 +2537,50 @@ export type Database = {
             columns: ["transaction_id"]
             isOneToOne: false
             referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      localized_coa_mappings: {
+        Row: {
+          country_code: string
+          created_at: string
+          id: string
+          is_active: boolean | null
+          local_account_code: string
+          local_account_name: string
+          mapping_notes: string | null
+          standard_account_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          country_code: string
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          local_account_code: string
+          local_account_name: string
+          mapping_notes?: string | null
+          standard_account_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          country_code?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          local_account_code?: string
+          local_account_name?: string
+          mapping_notes?: string | null
+          standard_account_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "localized_coa_mappings_standard_account_id_fkey"
+            columns: ["standard_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
             referencedColumns: ["id"]
           },
         ]
@@ -4197,6 +4333,56 @@ export type Database = {
           },
           {
             foreignKeyName: "transactions_ngo_id_fkey"
+            columns: ["ngo_id"]
+            isOneToOne: false
+            referencedRelation: "ngos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      treasury_positions: {
+        Row: {
+          account_name: string
+          account_type: string
+          as_of_date: string
+          bank_name: string | null
+          created_at: string
+          currency: string
+          current_balance: number
+          id: string
+          ngo_id: string | null
+          notes: string | null
+          updated_at: string
+        }
+        Insert: {
+          account_name: string
+          account_type?: string
+          as_of_date?: string
+          bank_name?: string | null
+          created_at?: string
+          currency?: string
+          current_balance?: number
+          id?: string
+          ngo_id?: string | null
+          notes?: string | null
+          updated_at?: string
+        }
+        Update: {
+          account_name?: string
+          account_type?: string
+          as_of_date?: string
+          bank_name?: string | null
+          created_at?: string
+          currency?: string
+          current_balance?: number
+          id?: string
+          ngo_id?: string | null
+          notes?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "treasury_positions_ngo_id_fkey"
             columns: ["ngo_id"]
             isOneToOne: false
             referencedRelation: "ngos"
