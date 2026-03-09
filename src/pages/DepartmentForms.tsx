@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useOrgUnits } from "@/hooks/useOrgUnits";
 import { useDepartmentFormTemplates, useDepartmentFormSubmissions } from "@/hooks/useDepartmentForms";
-import MainLayout from "@/components/layout/MainLayout";
+import { MainLayout } from "@/components/layout/MainLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -42,12 +42,12 @@ const DepartmentForms = () => {
   };
 
   const getStatusBadge = (status: string) => {
-    const variants: Record<string, "default" | "secondary" | "success" | "warning" | "destructive"> = {
+    const variants: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
       draft: "secondary",
       submitted: "default",
-      accepted: "success",
+      accepted: "outline",
       rejected: "destructive",
-      in_review: "warning",
+      in_review: "outline",
     };
     return <Badge variant={variants[status] || "default"}>{status}</Badge>;
   };
