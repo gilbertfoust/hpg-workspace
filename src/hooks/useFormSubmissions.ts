@@ -6,6 +6,90 @@ import { useAuth } from '@/contexts/AuthContext';
 import { ModuleType } from '@/hooks/useWorkItems';
 import { createWorkItemForSubmission } from '@/lib/createWorkItemForSubmission';
 
+const MODULE_TO_DOC_CATEGORY: Record<string, string> = {
+  ngo_coordination: 'other',
+  administration: 'other',
+  operations: 'other',
+  program: 'program',
+  curriculum: 'curriculum',
+  development: 'other',
+  partnership: 'other',
+  marketing: 'marketing',
+  communications: 'communications',
+  hr: 'hr',
+  it: 'it',
+  finance: 'finance',
+  legal: 'legal',
+};
+
+async function createDocumentFromSubmission(
+  submission: FormSubmission,
+  formTemplateId: string,
+  ngoId: string | null,
+  userId: string,
+  payloadJson: Json | undefined,
+) {
+  if (!supabase) return;
+
+  // Fetch template name and module
+  const { data: template } = await supabase
+    .from('form_templates')
+    .select('name, module')
+    .eq('id', formTemplateId)
+    .single();
+
+  const templateName = template?.name || 'Form Submission';
+  const module = template?.module || 'other';
+  const category = MODULE_TO_DOC_CATEGORY[module] || 'other';
+
+  // Build a JSON document from the submission data
+  const docContent = JSON.stringify({
+    form_name: templateName,
+    submission_id: submission.id,
+    submitted_at: new Date().toISOString(),
+    data: payloadJson || {},
+  }, null, 2);
+
+  const blob = new Blob([docContent], { type: 'application/json' });
+  const timestamp = Date.now();
+  const safeName = templateName.replace(/[^a-zA-Z0-9_-]/g, '_');
+  const fileName = `${safeName}_${timestamp}.json`;
+  const storagePath = ngoId
+    ? `${ngoId}/form-submissions/${fileName}`
+    : `general/form-submissions/${fileName}`;
+
+  // Upload to storage
+  const { error: uploadError } = await supabase.storage
+    .from('ngo-documents')
+    .upload(storagePath, blob, { cacheControl: '3600', upsert: false });
+
+  if (uploadError) {
+    console.error('[createDocumentFromSubmission] Storage upload failed:', uploadError);
+    throw uploadError;
+  }
+
+  // Create document record
+  const { error: dbError } = await supabase
+    .from('documents')
+    .insert({
+      file_name: fileName,
+      file_path: storagePath,
+      file_type: 'application/json',
+      file_size: blob.size,
+      category: category as any,
+      ngo_id: ngoId,
+      work_item_id: submission.work_item_id || null,
+      uploaded_by_user_id: userId,
+      review_status: 'Pending',
+    });
+
+  if (dbError) {
+    // Cleanup storage on failure
+    await supabase.storage.from('ngo-documents').remove([storagePath]);
+    throw dbError;
+  }
+}
+
 export type FormSubmission = Database['public']['Tables']['form_submissions']['Row'] & {
   form_template?: {
     name: string;
