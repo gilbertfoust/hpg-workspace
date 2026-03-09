@@ -1,5 +1,5 @@
 import { useState } from "react";
-import MainLayout from "@/components/layout/MainLayout";
+import { MainLayout } from "@/components/layout/MainLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -51,9 +51,9 @@ const AUTOMATION_TYPES = [
 
 function StatusIcon({ status }: { status: string }) {
   switch (status) {
-    case "success": return <CheckCircle className="w-4 h-4 text-green-500" />;
+    case "success": return <CheckCircle className="w-4 h-4 text-primary" />;
     case "error": return <XCircle className="w-4 h-4 text-destructive" />;
-    case "pending": return <Clock className="w-4 h-4 text-yellow-500" />;
+    case "pending": return <Clock className="w-4 h-4 text-accent-foreground" />;
     default: return <AlertTriangle className="w-4 h-4 text-muted-foreground" />;
   }
 }
@@ -134,7 +134,7 @@ export default function AutomationsDashboard() {
         {/* KPI Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Card><CardHeader className="pb-2"><CardDescription>Total Automations</CardDescription><CardTitle className="text-3xl">{automations?.length ?? 0}</CardTitle></CardHeader></Card>
-          <Card><CardHeader className="pb-2"><CardDescription>Active</CardDescription><CardTitle className="text-3xl text-green-600">{activeCount}</CardTitle></CardHeader></Card>
+          <Card><CardHeader className="pb-2"><CardDescription>Active</CardDescription><CardTitle className="text-3xl text-primary">{activeCount}</CardTitle></CardHeader></Card>
           <Card><CardHeader className="pb-2"><CardDescription>Total Triggers</CardDescription><CardTitle className="text-3xl">{totalTriggers}</CardTitle></CardHeader></Card>
         </div>
 

@@ -2,6 +2,12 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
+// Helper to bypass strict typing for tables not yet in generated types
+const db = () => {
+  if (!supabase) throw new Error("Backend not configured");
+  return supabase as any;
+};
+
 export interface MakeAutomation {
   id: string;
   name: string;
@@ -34,13 +40,12 @@ export function useMakeAutomations() {
   return useQuery({
     queryKey: ["make-automations"],
     queryFn: async () => {
-      if (!supabase) throw new Error("Backend not configured");
-      const { data, error } = await supabase
-        .from("make_automations" as string)
+      const { data, error } = await db()
+        .from("make_automations")
         .select("*")
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return data as unknown as MakeAutomation[];
+      return data as MakeAutomation[];
     },
   });
 }
@@ -50,15 +55,14 @@ export function useMakeAutomationLogs(automationId?: string) {
     queryKey: ["make-automation-logs", automationId],
     enabled: !!automationId,
     queryFn: async () => {
-      if (!supabase) throw new Error("Backend not configured");
-      const { data, error } = await supabase
-        .from("make_automation_logs" as string)
+      const { data, error } = await db()
+        .from("make_automation_logs")
         .select("*")
         .eq("automation_id", automationId!)
         .order("created_at", { ascending: false })
         .limit(50);
       if (error) throw error;
-      return data as unknown as MakeAutomationLog[];
+      return data as MakeAutomationLog[];
     },
   });
 }
@@ -69,14 +73,13 @@ export function useCreateMakeAutomation() {
 
   return useMutation({
     mutationFn: async (input: Partial<MakeAutomation>) => {
-      if (!supabase) throw new Error("Backend not configured");
-      const { data, error } = await supabase
-        .from("make_automations" as string)
+      const { data, error } = await db()
+        .from("make_automations")
         .insert(input)
         .select()
         .single();
       if (error) throw error;
-      return data as unknown as MakeAutomation;
+      return data as MakeAutomation;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["make-automations"] });
@@ -94,15 +97,14 @@ export function useUpdateMakeAutomation() {
 
   return useMutation({
     mutationFn: async ({ id, ...updates }: Partial<MakeAutomation> & { id: string }) => {
-      if (!supabase) throw new Error("Backend not configured");
-      const { data, error } = await supabase
-        .from("make_automations" as string)
+      const { data, error } = await db()
+        .from("make_automations")
         .update(updates)
         .eq("id", id)
         .select()
         .single();
       if (error) throw error;
-      return data as unknown as MakeAutomation;
+      return data as MakeAutomation;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["make-automations"] });
@@ -120,9 +122,8 @@ export function useDeleteMakeAutomation() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      if (!supabase) throw new Error("Backend not configured");
-      const { error } = await supabase
-        .from("make_automations" as string)
+      const { error } = await db()
+        .from("make_automations")
         .delete()
         .eq("id", id);
       if (error) throw error;
