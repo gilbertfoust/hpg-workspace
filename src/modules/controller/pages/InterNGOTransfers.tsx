@@ -25,7 +25,7 @@ const STATUS_COLORS: Record<string, string> = {
 
 export default function InterNGOTransfers() {
   const qc = useQueryClient();
-  const { ngos } = useNGOs();
+  const { data: ngos } = useNGOs();
   const [showDialog, setShowDialog] = useState(false);
   const [form, setForm] = useState({ from_ngo_id: "", to_ngo_id: "", amount: "", reason: "" });
 

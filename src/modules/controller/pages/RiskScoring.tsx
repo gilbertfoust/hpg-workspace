@@ -37,7 +37,7 @@ function ScoreBar({ score, label }: { score: number; label: string }) {
 
 export default function RiskScoring() {
   const { data: profiles, isLoading, upsert } = useNgoRiskProfiles();
-  const { ngos } = useNGOs();
+  const { data: ngos } = useNGOs();
   const [showDialog, setShowDialog] = useState(false);
   const [editing, setEditing] = useState<any>(null);
 
