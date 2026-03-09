@@ -48,6 +48,7 @@ import AllocationsPage from "./pages/AllocationsPage";
 import ChargebacksPage from "./pages/ChargebacksPage";
 import UsageReportsPage from "./pages/UsageReportsPage";
 import DepartmentForms from "./pages/DepartmentForms";
+import AutomationsDashboard from "./pages/AutomationsDashboard";
 
 // Feature pages
 import MyQueue from "./pages/MyQueue";
@@ -205,6 +206,9 @@ const App = () => {
 
                 {/* Department Forms */}
                 <Route path="/department-forms" element={<P><DepartmentForms /></P>} />
+
+                {/* Automations */}
+                <Route path="/automations" element={<P><AutomationsDashboard /></P>} />
 
                 {/* Module placeholder routes */}
                 <Route path="/modules/ngo-coordination" element={<P><NGOCoordinationModule /></P>} />
