@@ -47,6 +47,7 @@ import UsageEntriesPage from "./pages/UsageEntriesPage";
 import AllocationsPage from "./pages/AllocationsPage";
 import ChargebacksPage from "./pages/ChargebacksPage";
 import UsageReportsPage from "./pages/UsageReportsPage";
+import DepartmentForms from "./pages/DepartmentForms";
 
 // Feature pages
 import MyQueue from "./pages/MyQueue";
@@ -201,6 +202,9 @@ const App = () => {
                 <Route path="/financial-hub/allocations" element={<P><AllocationsPage /></P>} />
                 <Route path="/financial-hub/chargebacks" element={<P><ChargebacksPage /></P>} />
                 <Route path="/financial-hub/usage/reports" element={<P><UsageReportsPage /></P>} />
+
+                {/* Department Forms */}
+                <Route path="/department-forms" element={<P><DepartmentForms /></P>} />
 
                 {/* Module placeholder routes */}
                 <Route path="/modules/ngo-coordination" element={<P><NGOCoordinationModule /></P>} />
