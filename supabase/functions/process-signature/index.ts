@@ -155,6 +155,17 @@ serve(async (req) => {
         storage_path: signedPath,
       });
 
+    // Fetch requester email for notification routing
+    let requesterEmail: string | null = null;
+    if (signingRequest.created_by_user_id) {
+      const { data: profileRow } = await supabase
+        .from("profiles")
+        .select("email")
+        .eq("id", signingRequest.created_by_user_id)
+        .single();
+      requesterEmail = profileRow?.email ?? null;
+    }
+
     // Send notification (fire and forget)
     try {
       await fetch(`${supabaseUrl}/functions/v1/send-signed-notification`, {
@@ -168,6 +179,8 @@ serve(async (req) => {
           signer_name: signingRequest.signer_name,
           signer_email: signingRequest.signer_email,
           signed_at: new Date().toISOString(),
+          signer_ip: signerIp,
+          requester_email: requesterEmail,
         }),
       });
     } catch (notifError) {
