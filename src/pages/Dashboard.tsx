@@ -79,7 +79,7 @@ function useStatusDistribution() {
 const DashboardKPIs = () => {
   const { data: dashboardData, isLoading: dashboardLoading } = useDashboardData({});
   const { data: ngoStats, isLoading: ngoStatsLoading } = useNGOStats();
-  const { data: transactions } = useTransactions();
+  const { data: allWorkItems } = useWorkItemsAll({});
 
   if (dashboardLoading || ngoStatsLoading) {
     return (
@@ -98,7 +98,7 @@ const DashboardKPIs = () => {
   const activeNgoCount = ngoStats?.active || 0;
   const overdueCount = dashboardData?.kpis?.overdue || 0;
   const dueIn7Days = dashboardData?.kpis?.dueIn7Days || 0;
-  const totalTransactionValue = transactions?.reduce((s, t) => s + Number(t.amount ?? 0), 0) ?? 0;
+  const totalWorkItems = allWorkItems?.length ?? 0;
 
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
