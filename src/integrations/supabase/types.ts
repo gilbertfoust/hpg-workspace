@@ -2277,6 +2277,83 @@ export type Database = {
         }
         Relationships: []
       }
+      inter_ngo_transfers: {
+        Row: {
+          amount: number
+          approved_at: string | null
+          approved_by_user_id: string | null
+          completed_at: string | null
+          created_at: string
+          created_by_user_id: string | null
+          currency: string
+          from_ngo_id: string
+          id: string
+          reason: string | null
+          status: string
+          to_ngo_id: string
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          approved_at?: string | null
+          approved_by_user_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          created_by_user_id?: string | null
+          currency?: string
+          from_ngo_id: string
+          id?: string
+          reason?: string | null
+          status?: string
+          to_ngo_id: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          approved_at?: string | null
+          approved_by_user_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          created_by_user_id?: string | null
+          currency?: string
+          from_ngo_id?: string
+          id?: string
+          reason?: string | null
+          status?: string
+          to_ngo_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inter_ngo_transfers_approved_by_user_id_fkey"
+            columns: ["approved_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inter_ngo_transfers_created_by_user_id_fkey"
+            columns: ["created_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inter_ngo_transfers_from_ngo_id_fkey"
+            columns: ["from_ngo_id"]
+            isOneToOne: false
+            referencedRelation: "ngos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inter_ngo_transfers_to_ngo_id_fkey"
+            columns: ["to_ngo_id"]
+            isOneToOne: false
+            referencedRelation: "ngos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       internal_charges: {
         Row: {
           amount: number
