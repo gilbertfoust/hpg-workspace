@@ -15,6 +15,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -36,126 +46,94 @@ import {
   Clock,
   XCircle,
   PenTool,
+  Loader2,
 } from "lucide-react";
+import { useDocuments, useDeleteDocument, useDocumentUrl, type Document } from "@/hooks/useDocuments";
+import { Skeleton } from "@/components/ui/skeleton";
+import { format } from "date-fns";
 
-// Mock data for regular documents
-const mockDocuments = [
-  {
-    id: "1",
-    fileName: "Q4_Financial_Report_2025.pdf",
-    fileType: "pdf",
-    category: "Finance",
-    ngo: "Detroit Community Foundation",
-    uploadedBy: "Jane Smith",
-    uploadedAt: "2026-01-10",
-    fileSize: "2.4 MB",
-    reviewStatus: "pending",
-    workItem: "WI-001",
-  },
-  {
-    id: "2",
-    fileName: "Onboarding_Checklist_CYI.xlsx",
-    fileType: "xlsx",
-    category: "Onboarding",
-    ngo: "Chicago Youth Initiative",
-    uploadedBy: "John Doe",
-    uploadedAt: "2026-01-09",
-    fileSize: "156 KB",
-    reviewStatus: "approved",
-    workItem: "WI-002",
-  },
-  {
-    id: "3",
-    fileName: "Grant_Application_Ford.docx",
-    fileType: "docx",
-    category: "Development",
-    ngo: "Mexican Education Alliance",
-    uploadedBy: "Maria Garcia",
-    uploadedAt: "2026-01-08",
-    fileSize: "1.1 MB",
-    reviewStatus: "pending",
-    workItem: "WI-003",
-  },
-  {
-    id: "4",
-    fileName: "Tax_Exemption_Certificate.pdf",
-    fileType: "pdf",
-    category: "Compliance",
-    ngo: "African Youth Network",
-    uploadedBy: "David Okonkwo",
-    uploadedAt: "2026-01-05",
-    fileSize: "890 KB",
-    reviewStatus: "approved",
-    workItem: null,
-  },
-  {
-    id: "5",
-    fileName: "Program_Photos_Dec2025.zip",
-    fileType: "zip",
-    category: "Program",
-    ngo: "Asian Development Partners",
-    uploadedBy: "Sarah Lee",
-    uploadedAt: "2026-01-03",
-    fileSize: "45.2 MB",
-    reviewStatus: "rejected",
-    workItem: null,
-  },
-];
+const categories = ["All Categories", "onboarding", "compliance", "finance", "hr", "marketing", "communications", "program", "curriculum", "it", "legal", "other"];
 
-const categories = ["All Categories", "Onboarding", "Compliance", "Finance", "HR", "Marketing", "Program", "Legal", "Development"];
-
-const FileIcon = ({ type }: { type: string }) => {
-  switch (type) {
-    case "pdf":
-      return <FileText className="w-5 h-5 text-destructive" />;
-    case "xlsx":
-    case "xls":
-      return <FileSpreadsheet className="w-5 h-5 text-primary" />;
-    case "docx":
-    case "doc":
-      return <FileText className="w-5 h-5 text-primary" />;
-    case "png":
-    case "jpg":
-    case "jpeg":
-      return <FileImage className="w-5 h-5 text-accent-foreground" />;
-    default:
-      return <File className="w-5 h-5 text-muted-foreground" />;
-  }
+const categoryLabels: Record<string, string> = {
+  "All Categories": "All Categories",
+  onboarding: "Onboarding",
+  compliance: "Compliance",
+  finance: "Finance",
+  hr: "HR",
+  marketing: "Marketing",
+  communications: "Communications",
+  program: "Program",
+  curriculum: "Curriculum",
+  it: "IT",
+  legal: "Legal",
+  other: "Other",
 };
 
-const ReviewStatusBadge = ({ status }: { status: string }) => {
-  switch (status) {
+const FileIcon = ({ type }: { type: string | null }) => {
+  if (!type) return <File className="w-5 h-5 text-muted-foreground" />;
+  if (type.includes("pdf")) return <FileText className="w-5 h-5 text-destructive" />;
+  if (type.includes("sheet") || type.includes("excel") || type.includes("csv")) return <FileSpreadsheet className="w-5 h-5 text-primary" />;
+  if (type.includes("image")) return <FileImage className="w-5 h-5 text-accent-foreground" />;
+  if (type.includes("word") || type.includes("document")) return <FileText className="w-5 h-5 text-primary" />;
+  return <File className="w-5 h-5 text-muted-foreground" />;
+};
+
+const ReviewStatusBadge = ({ status }: { status: string | null }) => {
+  switch (status?.toLowerCase()) {
     case "approved":
       return (
         <Badge className="bg-success/10 text-success hover:bg-success/20">
-          <CheckCircle2 className="w-3 h-3 mr-1" />
-          Approved
+          <CheckCircle2 className="w-3 h-3 mr-1" />Approved
         </Badge>
       );
     case "pending":
       return (
         <Badge className="bg-warning/10 text-warning hover:bg-warning/20">
-          <Clock className="w-3 h-3 mr-1" />
-          Pending
+          <Clock className="w-3 h-3 mr-1" />Pending
         </Badge>
       );
     case "rejected":
       return (
         <Badge className="bg-destructive/10 text-destructive hover:bg-destructive/20">
-          <XCircle className="w-3 h-3 mr-1" />
-          Rejected
+          <XCircle className="w-3 h-3 mr-1" />Rejected
         </Badge>
       );
     default:
-      return null;
+      return <Badge variant="outline">{status || "—"}</Badge>;
   }
 };
+
+function formatFileSize(bytes: number | null): string {
+  if (!bytes) return "—";
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
 
 export default function Documents() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All Categories");
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("documents");
+  const [deleteTarget, setDeleteTarget] = useState<Document | null>(null);
+
+  const categoryFilter = selectedCategory === "All Categories" ? undefined : selectedCategory as any;
+  const { data: documents, isLoading } = useDocuments({ category: categoryFilter });
+  const deleteMutation = useDeleteDocument();
+  const { downloadDocument, previewDocument } = useDocumentUrl();
+
+  const filteredDocs = (documents || []).filter((doc) => {
+    if (!searchQuery) return true;
+    const q = searchQuery.toLowerCase();
+    return doc.file_name.toLowerCase().includes(q);
+  });
+
+  const handleDelete = () => {
+    if (!deleteTarget) return;
+    deleteMutation.mutate(deleteTarget, {
+      onSuccess: () => setDeleteTarget(null),
+    });
+  };
 
   return (
     <MainLayout
@@ -206,15 +184,11 @@ export default function Documents() {
               <SelectContent>
                 {categories.map((cat) => (
                   <SelectItem key={cat} value={cat}>
-                    {cat}
+                    {categoryLabels[cat] || cat}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
-
-            <Button variant="outline" size="icon">
-              <Filter className="w-4 h-4" />
-            </Button>
           </div>
 
           {/* Documents Table */}
@@ -225,84 +199,95 @@ export default function Documents() {
                   <tr>
                     <th>File</th>
                     <th>Category</th>
-                    <th>NGO</th>
-                    <th>Uploaded By</th>
                     <th>Date</th>
                     <th>Size</th>
                     <th>Review Status</th>
-                    <th>Work Item</th>
                     <th className="w-10"></th>
                   </tr>
                 </thead>
                 <tbody>
-                  {mockDocuments.map((doc) => (
-                    <tr key={doc.id} className="group cursor-pointer">
-                      <td>
-                        <div className="flex items-center gap-3">
-                          <FileIcon type={doc.fileType} />
-                          <span className="font-medium">{doc.fileName}</span>
-                        </div>
-                      </td>
-                      <td>
-                        <Badge variant="outline" className="text-xs font-normal">
-                          {doc.category}
-                        </Badge>
-                      </td>
-                      <td className="text-muted-foreground">{doc.ngo}</td>
-                      <td className="text-muted-foreground">{doc.uploadedBy}</td>
-                      <td className="text-muted-foreground whitespace-nowrap">{doc.uploadedAt}</td>
-                      <td className="text-muted-foreground">{doc.fileSize}</td>
-                      <td>
-                        <ReviewStatusBadge status={doc.reviewStatus} />
-                      </td>
-                      <td className="text-muted-foreground font-mono text-xs">
-                        {doc.workItem || "—"}
-                      </td>
-                      <td onClick={(e) => e.stopPropagation()}>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 opacity-0 group-hover:opacity-100"
-                            >
-                              <MoreHorizontal className="w-4 h-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem>
-                              <Eye className="w-4 h-4 mr-2" />
-                              Preview
-                            </DropdownMenuItem>
-                            <DropdownMenuItem>
-                              <Download className="w-4 h-4 mr-2" />
-                              Download
-                            </DropdownMenuItem>
-                            <DropdownMenuItem className="text-destructive">
-                              <Trash2 className="w-4 h-4 mr-2" />
-                              Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                  {isLoading ? (
+                    Array.from({ length: 5 }).map((_, i) => (
+                      <tr key={i}>
+                        <td><Skeleton className="h-5 w-48" /></td>
+                        <td><Skeleton className="h-5 w-20" /></td>
+                        <td><Skeleton className="h-5 w-24" /></td>
+                        <td><Skeleton className="h-5 w-16" /></td>
+                        <td><Skeleton className="h-5 w-20" /></td>
+                        <td><Skeleton className="h-5 w-8" /></td>
+                      </tr>
+                    ))
+                  ) : filteredDocs.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="text-center py-12 text-muted-foreground">
+                        <FileText className="w-10 h-10 mx-auto mb-3 opacity-50" />
+                        <p>No documents found</p>
                       </td>
                     </tr>
-                  ))}
+                  ) : (
+                    filteredDocs.map((doc) => (
+                      <tr key={doc.id} className="group cursor-pointer">
+                        <td>
+                          <div className="flex items-center gap-3">
+                            <FileIcon type={doc.file_type} />
+                            <span className="font-medium truncate max-w-[300px]">{doc.file_name}</span>
+                          </div>
+                        </td>
+                        <td>
+                          <Badge variant="outline" className="text-xs font-normal capitalize">
+                            {doc.category || "—"}
+                          </Badge>
+                        </td>
+                        <td className="text-muted-foreground whitespace-nowrap">
+                          {format(new Date(doc.uploaded_at), "MMM d, yyyy")}
+                        </td>
+                        <td className="text-muted-foreground">
+                          {formatFileSize(doc.file_size)}
+                        </td>
+                        <td>
+                          <ReviewStatusBadge status={doc.review_status} />
+                        </td>
+                        <td onClick={(e) => e.stopPropagation()}>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 opacity-0 group-hover:opacity-100"
+                              >
+                                <MoreHorizontal className="w-4 h-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => previewDocument(doc.file_path)}>
+                                <Eye className="w-4 h-4 mr-2" />
+                                Preview
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => downloadDocument(doc.file_path, doc.file_name)}>
+                                <Download className="w-4 h-4 mr-2" />
+                                Download
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                className="text-destructive"
+                                onClick={() => setDeleteTarget(doc)}
+                              >
+                                <Trash2 className="w-4 h-4 mr-2" />
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
           </div>
 
-          {/* Pagination */}
+          {/* Count */}
           <div className="flex items-center justify-between mt-4 text-sm text-muted-foreground">
-            <span>Showing {mockDocuments.length} of {mockDocuments.length} documents</span>
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" disabled>
-                Previous
-              </Button>
-              <Button variant="outline" size="sm" disabled>
-                Next
-              </Button>
-            </div>
+            <span>Showing {filteredDocs.length} document{filteredDocs.length !== 1 ? "s" : ""}</span>
           </div>
         </TabsContent>
 
@@ -320,6 +305,32 @@ export default function Documents() {
         open={uploadDialogOpen}
         onOpenChange={setUploadDialogOpen}
       />
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Document</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete <strong>{deleteTarget?.file_name}</strong>? This will permanently remove the file from storage and cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteMutation.isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={deleteMutation.isPending}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteMutation.isPending ? (
+                <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Deleting...</>
+              ) : (
+                "Delete"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </MainLayout>
   );
 }
