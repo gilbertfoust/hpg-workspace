@@ -439,6 +439,7 @@ export const useCreateFormSubmission = () => {
       queryClient.invalidateQueries({ queryKey: ['work-items'] });
       queryClient.invalidateQueries({ queryKey: ['my-queue-work-items'] });
       queryClient.invalidateQueries({ queryKey: ['department-queue-work-items'] });
+      queryClient.invalidateQueries({ queryKey: ['documents'] });
       toast({
         title: 'Form submitted',
         description: 'Your form has been submitted and a work item has been created.',
