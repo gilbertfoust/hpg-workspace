@@ -134,12 +134,12 @@ const DashboardKPIs = () => {
       </Card>
       <Card>
         <CardHeader className="flex flex-row items-center justify-between pb-2">
-          <CardTitle className="text-sm font-medium">Transaction Volume</CardTitle>
+          <CardTitle className="text-sm font-medium">Total Work Items</CardTitle>
           <DollarSign className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <p className="text-2xl font-bold">${totalTransactionValue.toLocaleString()}</p>
-          <p className="text-xs text-muted-foreground">All time ledger total</p>
+          <p className="text-2xl font-bold">{totalWorkItems.toLocaleString()}</p>
+          <p className="text-xs text-muted-foreground">All time across modules</p>
         </CardContent>
       </Card>
     </div>
