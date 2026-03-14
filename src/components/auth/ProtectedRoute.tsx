@@ -2,6 +2,7 @@ import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserRole } from '@/hooks/useUserRole';
 import { Loader2 } from 'lucide-react';
+import { GlobalAtmosphereBackground } from "@/components/background/GlobalAtmosphereBackground";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -35,7 +36,12 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     return <Navigate to="/dashboard" replace />;
   }
 
-  return <>{children}</>;
+  return (
+    <div className="relative min-h-screen bg-background overflow-hidden">
+      <GlobalAtmosphereBackground />
+      <div className="relative z-10">{children}</div>
+    </div>
+  );
 };
 
 export default ProtectedRoute;
