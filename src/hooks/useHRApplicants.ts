@@ -87,7 +87,7 @@ export const useHRApplicants = () => {
     queryKey: ["hr", "applicants"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from(applicantsTable as never)
+        .from(applicantsTable)
         .select("*")
         .order("created_at", { ascending: false });
 
@@ -105,7 +105,7 @@ export const useCreateHRApplicant = () => {
   return useMutation({
     mutationFn: async (input: CreateApplicantInput) => {
       const { data, error } = await supabase
-        .from(applicantsTable as never)
+        .from(applicantsTable)
         .insert({
           full_name: input.full_name,
           email: input.email ?? null,
@@ -113,7 +113,7 @@ export const useCreateHRApplicant = () => {
           role_applied_for: input.role_applied_for ?? null,
           stage: input.stage ?? "Applied",
           notes: input.notes ?? null,
-        } as never)
+        })
         .select("*")
         .single();
 
@@ -153,7 +153,7 @@ export const useUpdateHRApplicant = () => {
   return useMutation({
     mutationFn: async (input: UpdateApplicantInput) => {
       const { data: before, error: beforeError } = await supabase
-        .from(applicantsTable as never)
+        .from(applicantsTable)
         .select("*")
         .eq("id", input.id)
         .single();
@@ -162,7 +162,7 @@ export const useUpdateHRApplicant = () => {
 
       const b = before as any;
       const { data, error } = await supabase
-        .from(applicantsTable as never)
+        .from(applicantsTable)
         .update({
           full_name: input.full_name ?? b.full_name,
           email: input.email ?? b.email,
@@ -170,7 +170,7 @@ export const useUpdateHRApplicant = () => {
           role_applied_for: input.role_applied_for ?? b.role_applied_for,
           stage: input.stage ?? b.stage,
           notes: input.notes ?? b.notes,
-        } as never)
+        })
         .eq("id", input.id)
         .select("*")
         .single();

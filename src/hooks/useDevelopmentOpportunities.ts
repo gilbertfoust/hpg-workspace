@@ -46,12 +46,12 @@ export const useDevelopmentOpportunities = () =>
     queryKey: ["development-opportunities"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from(opportunitiesTable as never)
-        .select("*, funder:funders(id, name, type)")
+        .from(opportunitiesTable)
+        .select("*")
         .order("deadline", { ascending: true, nullsFirst: false });
 
       if (error) throw error;
-      return data as DevelopmentOpportunityWithFunder[];
+      return (data as unknown) as DevelopmentOpportunityWithFunder[];
     },
   });
 
@@ -62,13 +62,13 @@ export const useCreateDevelopmentOpportunity = () => {
   return useMutation({
     mutationFn: async (input: CreateDevelopmentOpportunityInput) => {
       const { data, error } = await supabase
-        .from(opportunitiesTable as never)
-        .insert(input as never)
+        .from(opportunitiesTable)
+        .insert(input as any)
         .select()
         .single();
 
       if (error) throw error;
-      return data as DevelopmentOpportunity;
+      return (data as unknown) as DevelopmentOpportunity;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["development-opportunities"] });
@@ -94,14 +94,14 @@ export const useUpdateDevelopmentOpportunity = () => {
   return useMutation({
     mutationFn: async ({ id, ...input }: Partial<DevelopmentOpportunity> & { id: string }) => {
       const { data, error } = await supabase
-        .from(opportunitiesTable as never)
-        .update(input as never)
+        .from(opportunitiesTable)
+        .update(input as any)
         .eq("id", id)
         .select()
         .single();
 
       if (error) throw error;
-      return data as DevelopmentOpportunity;
+      return (data as unknown) as DevelopmentOpportunity;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["development-opportunities"] });

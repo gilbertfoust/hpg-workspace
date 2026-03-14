@@ -64,7 +64,7 @@ export const useHRRequisitions = () => {
     queryKey: ["hr", "job-requisitions"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from(requisitionsTable as never)
+        .from(requisitionsTable)
         .select("*")
         .order("created_at", { ascending: false });
 
@@ -82,7 +82,7 @@ export const useCreateHRRequisition = () => {
   return useMutation({
     mutationFn: async (input: CreateJobRequisitionInput) => {
       const { data, error } = await supabase
-        .from(requisitionsTable as never)
+        .from(requisitionsTable)
         .insert({
           title: input.title,
           department_id: input.department_id ?? null,
@@ -90,7 +90,7 @@ export const useCreateHRRequisition = () => {
           employment_type: input.employment_type ?? null,
           status: input.status ?? "Open",
           description: input.description ?? null,
-        } as never)
+        })
         .select("*")
         .single();
 
@@ -130,7 +130,7 @@ export const useUpdateHRRequisition = () => {
   return useMutation({
     mutationFn: async (input: UpdateJobRequisitionInput) => {
       const { data: before, error: beforeError } = await supabase
-        .from(requisitionsTable as never)
+        .from(requisitionsTable)
         .select("*")
         .eq("id", input.id)
         .single();
@@ -139,7 +139,7 @@ export const useUpdateHRRequisition = () => {
 
       const b = before as any;
       const { data, error } = await supabase
-        .from(requisitionsTable as never)
+        .from(requisitionsTable)
         .update({
           title: input.title ?? b.title,
           department_id: input.department_id ?? b.department_id,
@@ -147,7 +147,7 @@ export const useUpdateHRRequisition = () => {
           employment_type: input.employment_type ?? b.employment_type,
           status: input.status ?? b.status,
           description: input.description ?? b.description,
-        } as never)
+        })
         .eq("id", input.id)
         .select("*")
         .single();
@@ -189,7 +189,7 @@ export const useDeleteHRRequisition = () => {
   return useMutation({
     mutationFn: async (id: string) => {
       const { data: before, error: beforeError } = await supabase
-        .from(requisitionsTable as never)
+        .from(requisitionsTable)
         .select("*")
         .eq("id", id)
         .single();
@@ -197,7 +197,7 @@ export const useDeleteHRRequisition = () => {
       if (beforeError) throw beforeError;
 
       const { error } = await supabase
-        .from(requisitionsTable as never)
+        .from(requisitionsTable)
         .delete()
         .eq("id", id);
 

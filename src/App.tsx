@@ -13,6 +13,7 @@ import AuthCallback from "./pages/AuthCallback";
 import Dashboard from "./pages/Dashboard";
 import NGOs from "./pages/NGOs";
 import NGODetail from "./pages/NGODetail";
+import NGOMissingItems from "./pages/NGOMissingItems";
 import WorkItems from "./pages/WorkItems";
 import Forms from "./pages/Forms";
 import Documents from "./pages/Documents";
@@ -21,6 +22,11 @@ import ReportsDashboard from "./pages/ReportsDashboard";
 import Admin from "./pages/Admin";
 import AdminConfigHome from "./pages/AdminConfig/AdminConfigHome";
 import NotFound from "./pages/NotFound";
+import ProgramDashboard from "./pages/ProgramDashboard";
+import CurriculumDashboard from "./pages/CurriculumDashboard";
+import Portal from "./pages/Portal";
+import NGOCoordination from "./pages/NGOCoordination";
+import ITDashboard from "./pages/ITDashboard";
 import SignDocument from "./pages/SignDocument";
 import FinancialHub from "./pages/FinancialHub";
 import NGOFinancialOverview from "./pages/NGOFinancialOverview";
@@ -36,6 +42,13 @@ import PackagesPage from "./pages/PackagesPage";
 import CloseYearPage from "./pages/CloseYearPage";
 import IntakeDashboard from "./pages/IntakeDashboard";
 import IntakeReviewPage from "./pages/IntakeReviewPage";
+import CostCentersPage from "./pages/CostCentersPage";
+import UsageEntriesPage from "./pages/UsageEntriesPage";
+import AllocationsPage from "./pages/AllocationsPage";
+import ChargebacksPage from "./pages/ChargebacksPage";
+import UsageReportsPage from "./pages/UsageReportsPage";
+import DepartmentForms from "./pages/DepartmentForms";
+import AutomationsDashboard from "./pages/AutomationsDashboard";
 
 // Feature pages
 import MyQueue from "./pages/MyQueue";
@@ -43,8 +56,6 @@ import DeptQueue from "./pages/DeptQueue";
 import HRDashboard from "./pages/HRDashboard";
 import DevelopmentDashboard from "./pages/DevelopmentDashboard";
 import PartnershipsDashboard from "./pages/PartnershipsDashboard";
-import ITDashboard from "./pages/ITDashboard";
-import NGOCoordination from "./pages/NGOCoordination";
 
 // Module pages (placeholders you can flesh out later)
 import {
@@ -187,6 +198,17 @@ const App = () => {
                 <Route path="/financial-hub/compliance/statements" element={<P><StatementsPage /></P>} />
                 <Route path="/financial-hub/compliance/packages" element={<P><PackagesPage /></P>} />
                 <Route path="/financial-hub/compliance/close-year" element={<P><CloseYearPage /></P>} />
+                <Route path="/financial-hub/cost-centers" element={<P><CostCentersPage /></P>} />
+                <Route path="/financial-hub/usage" element={<P><UsageEntriesPage /></P>} />
+                <Route path="/financial-hub/allocations" element={<P><AllocationsPage /></P>} />
+                <Route path="/financial-hub/chargebacks" element={<P><ChargebacksPage /></P>} />
+                <Route path="/financial-hub/usage/reports" element={<P><UsageReportsPage /></P>} />
+
+                {/* Department Forms */}
+                <Route path="/department-forms" element={<P><DepartmentForms /></P>} />
+
+                {/* Automations */}
+                <Route path="/automations" element={<P><AutomationsDashboard /></P>} />
 
                 {/* Module placeholder routes */}
                 <Route path="/modules/ngo-coordination" element={<P><NGOCoordinationModule /></P>} />

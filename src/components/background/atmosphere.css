@@ -1,0 +1,415 @@
+.global-atmosphere-background {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  isolation: isolate;
+
+  /* Master tuning knobs:
+     Lower opacity for a quieter background, increase durations for slower motion,
+     and reduce glow strength by shrinking blur radii or shadow alpha values below. */
+  --parallax-x: 0px;
+  --parallax-y: 0px;
+  --atmosphere-opacity: 0.72;
+  --orbit-duration: 240s;
+  --orbit-duration-reverse: 320s;
+  --ribbon-duration: 90s;
+  --activity-pulse-scale: 1.65;
+  --activity-arc-opacity: 0.22;
+}
+
+.global-atmosphere-background__gradient,
+.global-atmosphere-background__horizon,
+.global-atmosphere-background__activity-shell,
+.global-atmosphere-background__orbits,
+.global-atmosphere-background__ribbons,
+.global-atmosphere-background__particles,
+.global-atmosphere-background__veil {
+  position: absolute;
+  inset: 0;
+}
+
+.global-atmosphere-background__gradient {
+  opacity: var(--atmosphere-opacity);
+  background:
+    radial-gradient(circle at 18% 16%, rgba(210, 234, 255, 0.46) 0, rgba(210, 234, 255, 0) 34%),
+    radial-gradient(circle at 68% 20%, rgba(232, 240, 249, 0.42) 0, rgba(232, 240, 249, 0) 38%),
+    radial-gradient(circle at 82% 72%, rgba(175, 205, 235, 0.26) 0, rgba(175, 205, 235, 0) 36%),
+    linear-gradient(140deg, rgba(244, 248, 252, 0.86) 0%, rgba(231, 238, 246, 0.82) 46%, rgba(220, 229, 238, 0.78) 100%);
+  transform: translate3d(calc(var(--parallax-x) * 0.14), calc(var(--parallax-y) * 0.14), 0);
+  animation: atmosphereGradientShift 40s ease-in-out infinite alternate;
+}
+
+.global-atmosphere-background__glow {
+  position: absolute;
+  border-radius: 999px;
+  filter: blur(64px);
+}
+
+.global-atmosphere-background__glow--primary {
+  top: 8%;
+  left: -8%;
+  width: 34rem;
+  height: 34rem;
+  background: radial-gradient(circle, rgba(190, 223, 255, 0.36) 0%, rgba(190, 223, 255, 0) 72%);
+  animation: atmosphereFloat 28s ease-in-out infinite alternate;
+}
+
+.global-atmosphere-background__glow--secondary {
+  top: 10%;
+  right: 6%;
+  width: 28rem;
+  height: 28rem;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.34) 0%, rgba(255, 255, 255, 0) 72%);
+  animation: atmosphereFloat 34s ease-in-out infinite alternate-reverse;
+}
+
+.global-atmosphere-background__glow--ambient {
+  right: 20%;
+  bottom: 8%;
+  width: 24rem;
+  height: 24rem;
+  background: radial-gradient(circle, rgba(171, 205, 236, 0.22) 0%, rgba(171, 205, 236, 0) 74%);
+  animation: atmosphereFloat 38s ease-in-out infinite alternate;
+}
+
+.global-atmosphere-background__horizon {
+  right: -14vw;
+  bottom: -36vh;
+  width: 78vw;
+  height: 78vw;
+  min-width: 42rem;
+  min-height: 42rem;
+  border-radius: 50%;
+  opacity: 0.48;
+  background:
+    radial-gradient(circle at 34% 30%, rgba(255, 255, 255, 0.22) 0, rgba(255, 255, 255, 0.08) 18%, rgba(255, 255, 255, 0) 34%),
+    radial-gradient(circle at 36% 34%, rgba(145, 198, 240, 0.18) 0, rgba(145, 198, 240, 0) 46%),
+    linear-gradient(180deg, rgba(188, 212, 234, 0.18) 0%, rgba(163, 189, 216, 0.12) 32%, rgba(109, 133, 160, 0.06) 62%, rgba(80, 101, 127, 0.02) 100%);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.08),
+    0 0 90px rgba(164, 198, 226, 0.16),
+    0 0 180px rgba(190, 220, 248, 0.08);
+  filter: blur(10px);
+  transform:
+    translate3d(calc(var(--parallax-x) * 0.48), calc(var(--parallax-y) * 0.48), 0)
+    rotate(-18deg);
+}
+
+.global-atmosphere-background__activity-shell {
+  right: -14vw;
+  bottom: -36vh;
+  width: 78vw;
+  height: 78vw;
+  min-width: 42rem;
+  min-height: 42rem;
+  border-radius: 50%;
+  overflow: hidden;
+  opacity: 0.86;
+  filter: blur(0.15px);
+  transform:
+    translate3d(calc(var(--parallax-x) * 0.58), calc(var(--parallax-y) * 0.58), 0)
+    rotate(-18deg);
+}
+
+.global-atmosphere-background__activity-shell::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background:
+    radial-gradient(circle at 44% 35%, rgba(255, 255, 255, 0.14) 0, rgba(255, 255, 255, 0.04) 26%, rgba(255, 255, 255, 0) 48%),
+    radial-gradient(circle at 58% 56%, rgba(148, 195, 234, 0.06) 0, rgba(148, 195, 234, 0) 42%);
+  mix-blend-mode: screen;
+}
+
+.global-atmosphere-background__activity {
+  width: 100%;
+  height: 100%;
+}
+
+.global-atmosphere-background__activity-arcs,
+.global-atmosphere-background__activity-nodes {
+  transform: translateY(2%);
+}
+
+.global-atmosphere-background__activity-arc {
+  fill: none;
+  stroke: url(#activityArcStroke);
+  stroke-width: 1.2;
+  stroke-linecap: round;
+  opacity: 0;
+  filter: drop-shadow(0 0 8px rgba(169, 214, 255, 0.14));
+  animation: activityArcPulse var(--arc-duration) ease-in-out infinite;
+  animation-delay: var(--arc-delay);
+}
+
+.global-atmosphere-background__activity-node {
+  opacity: var(--node-opacity);
+  transform: translate(var(--node-x), var(--node-y));
+  animation: activityNodePulse var(--pulse-duration) ease-in-out infinite;
+  animation-delay: var(--pulse-delay);
+}
+
+.global-atmosphere-background__activity-node-halo {
+  fill: url(#activityNodeGlow);
+}
+
+.global-atmosphere-background__activity-node-core {
+  fill: rgba(236, 246, 255, 0.92);
+  r: calc(var(--node-size) * 0.45);
+}
+
+.global-atmosphere-background__activity-node circle {
+  transform-origin: center;
+}
+
+.global-atmosphere-background__activity-node-halo {
+  transform: scale(calc(var(--node-size) / 12));
+}
+
+.global-atmosphere-background__activity-node-core {
+  transform: scale(calc(var(--node-size) / 2.1));
+  filter: drop-shadow(0 0 5px rgba(186, 224, 255, 0.4));
+}
+
+.global-atmosphere-background__orbits {
+  opacity: 0.6;
+  transform: translate3d(calc(var(--parallax-x) * 0.24), calc(var(--parallax-y) * 0.24), 0);
+}
+
+.global-atmosphere-background__orbit-group {
+  fill: none;
+  stroke: url(#orbitStroke);
+  stroke-width: 1.15;
+  stroke-linecap: round;
+}
+
+.global-atmosphere-background__orbit-group ellipse {
+  stroke-dasharray: 18 18 120 28;
+}
+
+.global-atmosphere-background__orbit-group--slow {
+  transform-origin: 62% 58%;
+  animation: orbitSpin var(--orbit-duration) linear infinite;
+}
+
+.global-atmosphere-background__orbit-group--reverse {
+  transform-origin: 66% 58%;
+  animation: orbitSpinReverse var(--orbit-duration-reverse) linear infinite;
+}
+
+.global-atmosphere-background__ribbons {
+  opacity: 0.72;
+  filter: blur(0.25px);
+  transform: translate3d(calc(var(--parallax-x) * 0.34), calc(var(--parallax-y) * 0.34), 0);
+}
+
+.global-atmosphere-background__ribbon {
+  fill: none;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-dasharray: 18 10 140 24;
+  animation: ribbonFlow var(--ribbon-duration) linear infinite;
+}
+
+.global-atmosphere-background__ribbon--a {
+  stroke: url(#ribbonGlowA);
+  opacity: 0.34;
+}
+
+.global-atmosphere-background__ribbon--b {
+  stroke: url(#ribbonGlowB);
+  opacity: 0.28;
+  animation-duration: calc(var(--ribbon-duration) * 1.25);
+}
+
+.global-atmosphere-background__ribbon--c {
+  stroke: url(#ribbonGlowA);
+  opacity: 0.18;
+  animation-duration: calc(var(--ribbon-duration) * 1.4);
+}
+
+.global-atmosphere-background__particles {
+  transform: translate3d(calc(var(--parallax-x) * 0.52), calc(var(--parallax-y) * 0.52), 0);
+}
+
+.global-atmosphere-background__particle {
+  position: absolute;
+  display: block;
+  border-radius: 999px;
+  background: rgba(232, 244, 255, 0.92);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.18),
+    0 0 10px rgba(155, 208, 255, 0.34),
+    0 0 22px rgba(207, 232, 255, 0.16);
+  animation: particleDrift ease-in-out infinite alternate;
+}
+
+.global-atmosphere-background__veil {
+  background:
+    linear-gradient(90deg, rgba(8, 14, 25, 0.08) 0%, rgba(8, 14, 25, 0) 20%, rgba(8, 14, 25, 0) 100%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0.02) 22%, rgba(255, 255, 255, 0) 55%);
+}
+
+@keyframes atmosphereGradientShift {
+  from {
+    transform: translate3d(calc(var(--parallax-x) * 0.14), calc(var(--parallax-y) * 0.14), 0) scale(1);
+  }
+
+  to {
+    transform: translate3d(calc(var(--parallax-x) * 0.14 + 1.1%), calc(var(--parallax-y) * 0.14 - 1.2%), 0) scale(1.03);
+  }
+}
+
+@keyframes atmosphereFloat {
+  from {
+    transform: translate3d(-1.5%, 0, 0);
+  }
+
+  to {
+    transform: translate3d(1.5%, 2.5%, 0);
+  }
+}
+
+@keyframes orbitSpin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes orbitSpinReverse {
+  from {
+    transform: rotate(360deg);
+  }
+
+  to {
+    transform: rotate(0deg);
+  }
+}
+
+@keyframes ribbonFlow {
+  from {
+    stroke-dashoffset: 0;
+  }
+
+  to {
+    stroke-dashoffset: -320;
+  }
+}
+
+@keyframes particleDrift {
+  from {
+    transform: translate3d(0, 0, 0) scale(0.92);
+  }
+
+  to {
+    transform: translate3d(var(--drift-x), var(--drift-y), 0) scale(1.08);
+  }
+}
+
+@keyframes activityNodePulse {
+  0%,
+  62%,
+  100% {
+    opacity: var(--node-opacity);
+  }
+
+  22% {
+    opacity: calc(var(--node-opacity) + 0.2);
+  }
+
+  38% {
+    opacity: calc(var(--node-opacity) + 0.08);
+  }
+}
+
+@keyframes activityArcPulse {
+  0%,
+  100% {
+    opacity: 0;
+    stroke-dashoffset: 0;
+  }
+
+  18% {
+    opacity: 0;
+  }
+
+  35% {
+    opacity: var(--activity-arc-opacity);
+  }
+
+  58% {
+    opacity: calc(var(--activity-arc-opacity) * 0.65);
+    stroke-dashoffset: -8;
+  }
+
+  76% {
+    opacity: 0;
+    stroke-dashoffset: -18;
+  }
+}
+
+@media (max-width: 1024px) {
+  .global-atmosphere-background {
+    --atmosphere-opacity: 0.64;
+  }
+
+  .global-atmosphere-background__horizon {
+    width: 92vw;
+    height: 92vw;
+    right: -24vw;
+    bottom: -34vh;
+  }
+
+  .global-atmosphere-background__activity-shell {
+    width: 92vw;
+    height: 92vw;
+    right: -24vw;
+    bottom: -34vh;
+  }
+}
+
+@media (max-width: 640px) {
+  .global-atmosphere-background {
+    --atmosphere-opacity: 0.58;
+  }
+
+  .global-atmosphere-background__ribbons {
+    opacity: 0.45;
+  }
+
+  .global-atmosphere-background__particles {
+    opacity: 0.82;
+  }
+
+  .global-atmosphere-background__activity-shell {
+    opacity: 0.72;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .global-atmosphere-background__gradient,
+  .global-atmosphere-background__glow,
+  .global-atmosphere-background__activity-arc,
+  .global-atmosphere-background__activity-node,
+  .global-atmosphere-background__orbit-group,
+  .global-atmosphere-background__ribbon,
+  .global-atmosphere-background__particle {
+    animation: none !important;
+  }
+
+  .global-atmosphere-background__gradient,
+  .global-atmosphere-background__horizon,
+  .global-atmosphere-background__activity-shell,
+  .global-atmosphere-background__orbits,
+  .global-atmosphere-background__ribbons,
+  .global-atmosphere-background__particles {
+    transform: none !important;
+  }
+}

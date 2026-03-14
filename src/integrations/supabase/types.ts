@@ -14,6 +14,60 @@ export type Database = {
   }
   public: {
     Tables: {
+      access_requests: {
+        Row: {
+          created_at: string
+          id: string
+          justification: string
+          priority: string
+          request_type: string
+          requested_by_user_id: string
+          status: string
+          target_user: string
+          updated_at: string
+          work_item_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          justification?: string
+          priority?: string
+          request_type: string
+          requested_by_user_id: string
+          status?: string
+          target_user: string
+          updated_at?: string
+          work_item_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          justification?: string
+          priority?: string
+          request_type?: string
+          requested_by_user_id?: string
+          status?: string
+          target_user?: string
+          updated_at?: string
+          work_item_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "access_requests_requested_by_user_id_fkey"
+            columns: ["requested_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "access_requests_work_item_id_fkey"
+            columns: ["work_item_id"]
+            isOneToOne: false
+            referencedRelation: "work_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       accounts: {
         Row: {
           code: string
@@ -125,6 +179,239 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      allocation_results: {
+        Row: {
+          allocated_amount: number
+          allocation_rule_id: string
+          allocation_run_id: string
+          created_at: string | null
+          details_json: Json | null
+          id: string
+          journal_transaction_id: string | null
+          source_cost_center_id: string | null
+          source_usage_entry_id: string
+          target_cost_center_id: string
+        }
+        Insert: {
+          allocated_amount?: number
+          allocation_rule_id: string
+          allocation_run_id: string
+          created_at?: string | null
+          details_json?: Json | null
+          id?: string
+          journal_transaction_id?: string | null
+          source_cost_center_id?: string | null
+          source_usage_entry_id: string
+          target_cost_center_id: string
+        }
+        Update: {
+          allocated_amount?: number
+          allocation_rule_id?: string
+          allocation_run_id?: string
+          created_at?: string | null
+          details_json?: Json | null
+          id?: string
+          journal_transaction_id?: string | null
+          source_cost_center_id?: string | null
+          source_usage_entry_id?: string
+          target_cost_center_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "allocation_results_allocation_rule_id_fkey"
+            columns: ["allocation_rule_id"]
+            isOneToOne: false
+            referencedRelation: "allocation_rules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "allocation_results_allocation_run_id_fkey"
+            columns: ["allocation_run_id"]
+            isOneToOne: false
+            referencedRelation: "allocation_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "allocation_results_journal_transaction_id_fkey"
+            columns: ["journal_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "allocation_results_source_cost_center_id_fkey"
+            columns: ["source_cost_center_id"]
+            isOneToOne: false
+            referencedRelation: "cost_centers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "allocation_results_source_usage_entry_id_fkey"
+            columns: ["source_usage_entry_id"]
+            isOneToOne: false
+            referencedRelation: "usage_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "allocation_results_target_cost_center_id_fkey"
+            columns: ["target_cost_center_id"]
+            isOneToOne: false
+            referencedRelation: "cost_centers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      allocation_rules: {
+        Row: {
+          basis_type: string
+          created_at: string | null
+          effective_end_date: string | null
+          effective_start_date: string
+          expense_account_id: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          offset_account_id: string | null
+          rule_config_json: Json | null
+          source_cost_center_id: string | null
+          target_scope_type: string
+          updated_at: string | null
+        }
+        Insert: {
+          basis_type: string
+          created_at?: string | null
+          effective_end_date?: string | null
+          effective_start_date: string
+          expense_account_id?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          offset_account_id?: string | null
+          rule_config_json?: Json | null
+          source_cost_center_id?: string | null
+          target_scope_type: string
+          updated_at?: string | null
+        }
+        Update: {
+          basis_type?: string
+          created_at?: string | null
+          effective_end_date?: string | null
+          effective_start_date?: string
+          expense_account_id?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          offset_account_id?: string | null
+          rule_config_json?: Json | null
+          source_cost_center_id?: string | null
+          target_scope_type?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "allocation_rules_expense_account_id_fkey"
+            columns: ["expense_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "allocation_rules_offset_account_id_fkey"
+            columns: ["offset_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "allocation_rules_source_cost_center_id_fkey"
+            columns: ["source_cost_center_id"]
+            isOneToOne: false
+            referencedRelation: "cost_centers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      allocation_runs: {
+        Row: {
+          created_at: string | null
+          created_by_user_id: string | null
+          fiscal_period_id: string
+          id: string
+          name: string
+          notes: string | null
+          posted_at: string | null
+          status: string
+        }
+        Insert: {
+          created_at?: string | null
+          created_by_user_id?: string | null
+          fiscal_period_id: string
+          id?: string
+          name: string
+          notes?: string | null
+          posted_at?: string | null
+          status?: string
+        }
+        Update: {
+          created_at?: string | null
+          created_by_user_id?: string | null
+          fiscal_period_id?: string
+          id?: string
+          name?: string
+          notes?: string | null
+          posted_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "allocation_runs_created_by_user_id_fkey"
+            columns: ["created_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "allocation_runs_fiscal_period_id_fkey"
+            columns: ["fiscal_period_id"]
+            isOneToOne: false
+            referencedRelation: "fiscal_periods"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      applicants: {
+        Row: {
+          created_at: string
+          email: string | null
+          full_name: string
+          id: string
+          notes: string | null
+          phone: string | null
+          role_applied_for: string | null
+          stage: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          full_name: string
+          id?: string
+          notes?: string | null
+          phone?: string | null
+          role_applied_for?: string | null
+          stage?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          full_name?: string
+          id?: string
+          notes?: string | null
+          phone?: string | null
+          role_applied_for?: string | null
+          stage?: string
+        }
+        Relationships: []
       }
       approvals: {
         Row: {
@@ -771,6 +1058,105 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      cost_centers: {
+        Row: {
+          code: string
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          ngo_id: string | null
+          parent_cost_center_id: string | null
+          type: string
+          updated_at: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          ngo_id?: string | null
+          parent_cost_center_id?: string | null
+          type: string
+          updated_at?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          ngo_id?: string | null
+          parent_cost_center_id?: string | null
+          type?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cost_centers_ngo_id_fkey"
+            columns: ["ngo_id"]
+            isOneToOne: false
+            referencedRelation: "ngos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cost_centers_parent_cost_center_id_fkey"
+            columns: ["parent_cost_center_id"]
+            isOneToOne: false
+            referencedRelation: "cost_centers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      country_compliance_profiles: {
+        Row: {
+          annual_audit_required: boolean | null
+          country_code: string
+          country_name: string
+          created_at: string
+          filing_deadline: string | null
+          id: string
+          is_active: boolean | null
+          notes: string | null
+          registration_required: boolean | null
+          regulatory_body: string | null
+          requirements_json: Json | null
+          tax_filing_required: boolean | null
+          updated_at: string
+        }
+        Insert: {
+          annual_audit_required?: boolean | null
+          country_code: string
+          country_name: string
+          created_at?: string
+          filing_deadline?: string | null
+          id?: string
+          is_active?: boolean | null
+          notes?: string | null
+          registration_required?: boolean | null
+          regulatory_body?: string | null
+          requirements_json?: Json | null
+          tax_filing_required?: boolean | null
+          updated_at?: string
+        }
+        Update: {
+          annual_audit_required?: boolean | null
+          country_code?: string
+          country_name?: string
+          created_at?: string
+          filing_deadline?: string | null
+          id?: string
+          is_active?: boolean | null
+          notes?: string | null
+          registration_required?: boolean | null
+          regulatory_body?: string | null
+          requirements_json?: Json | null
+          tax_filing_required?: boolean | null
+          updated_at?: string
+        }
+        Relationships: []
       }
       crm_contacts: {
         Row: {
@@ -1567,6 +1953,80 @@ export type Database = {
           },
         ]
       }
+      funders: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          notes: string | null
+          type: string | null
+          updated_at: string
+          website: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          notes?: string | null
+          type?: string | null
+          updated_at?: string
+          website?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          notes?: string | null
+          type?: string | null
+          updated_at?: string
+          website?: string | null
+        }
+        Relationships: []
+      }
+      fx_rates: {
+        Row: {
+          created_at: string
+          created_by_user_id: string | null
+          effective_date: string
+          from_currency: string
+          id: string
+          rate: number
+          source: string | null
+          to_currency: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by_user_id?: string | null
+          effective_date?: string
+          from_currency?: string
+          id?: string
+          rate: number
+          source?: string | null
+          to_currency: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by_user_id?: string | null
+          effective_date?: string
+          from_currency?: string
+          id?: string
+          rate?: number
+          source?: string | null
+          to_currency?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fx_rates_created_by_user_id_fkey"
+            columns: ["created_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       grant_applications: {
         Row: {
           amount_awarded: number | null
@@ -1721,6 +2181,54 @@ export type Database = {
           },
         ]
       }
+      grant_restriction_rules: {
+        Row: {
+          allowed_account_ids_json: Json | null
+          cost_center_id: string | null
+          created_at: string | null
+          grant_application_id: string | null
+          id: string
+          is_active: boolean | null
+          notes: string | null
+          restricted_categories_json: Json | null
+        }
+        Insert: {
+          allowed_account_ids_json?: Json | null
+          cost_center_id?: string | null
+          created_at?: string | null
+          grant_application_id?: string | null
+          id?: string
+          is_active?: boolean | null
+          notes?: string | null
+          restricted_categories_json?: Json | null
+        }
+        Update: {
+          allowed_account_ids_json?: Json | null
+          cost_center_id?: string | null
+          created_at?: string | null
+          grant_application_id?: string | null
+          id?: string
+          is_active?: boolean | null
+          notes?: string | null
+          restricted_categories_json?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "grant_restriction_rules_cost_center_id_fkey"
+            columns: ["cost_center_id"]
+            isOneToOne: false
+            referencedRelation: "cost_centers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "grant_restriction_rules_grant_application_id_fkey"
+            columns: ["grant_application_id"]
+            isOneToOne: false
+            referencedRelation: "grant_applications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       grant_sources: {
         Row: {
           country: string | null
@@ -1768,6 +2276,196 @@ export type Database = {
           website?: string | null
         }
         Relationships: []
+      }
+      inter_ngo_transfers: {
+        Row: {
+          amount: number
+          approved_at: string | null
+          approved_by_user_id: string | null
+          completed_at: string | null
+          created_at: string
+          created_by_user_id: string | null
+          currency: string
+          from_ngo_id: string
+          id: string
+          reason: string | null
+          status: string
+          to_ngo_id: string
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          approved_at?: string | null
+          approved_by_user_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          created_by_user_id?: string | null
+          currency?: string
+          from_ngo_id: string
+          id?: string
+          reason?: string | null
+          status?: string
+          to_ngo_id: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          approved_at?: string | null
+          approved_by_user_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          created_by_user_id?: string | null
+          currency?: string
+          from_ngo_id?: string
+          id?: string
+          reason?: string | null
+          status?: string
+          to_ngo_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inter_ngo_transfers_approved_by_user_id_fkey"
+            columns: ["approved_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inter_ngo_transfers_created_by_user_id_fkey"
+            columns: ["created_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inter_ngo_transfers_from_ngo_id_fkey"
+            columns: ["from_ngo_id"]
+            isOneToOne: false
+            referencedRelation: "ngos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inter_ngo_transfers_to_ngo_id_fkey"
+            columns: ["to_ngo_id"]
+            isOneToOne: false
+            referencedRelation: "ngos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      internal_charges: {
+        Row: {
+          amount: number
+          created_at: string | null
+          description: string | null
+          fiscal_period_id: string
+          from_cost_center_id: string
+          id: string
+          journal_transaction_id: string | null
+          status: string
+          to_cost_center_id: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string | null
+          description?: string | null
+          fiscal_period_id: string
+          from_cost_center_id: string
+          id?: string
+          journal_transaction_id?: string | null
+          status?: string
+          to_cost_center_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          description?: string | null
+          fiscal_period_id?: string
+          from_cost_center_id?: string
+          id?: string
+          journal_transaction_id?: string | null
+          status?: string
+          to_cost_center_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "internal_charges_fiscal_period_id_fkey"
+            columns: ["fiscal_period_id"]
+            isOneToOne: false
+            referencedRelation: "fiscal_periods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "internal_charges_from_cost_center_id_fkey"
+            columns: ["from_cost_center_id"]
+            isOneToOne: false
+            referencedRelation: "cost_centers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "internal_charges_journal_transaction_id_fkey"
+            columns: ["journal_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "internal_charges_to_cost_center_id_fkey"
+            columns: ["to_cost_center_id"]
+            isOneToOne: false
+            referencedRelation: "cost_centers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      interviews: {
+        Row: {
+          applicant_id: string
+          created_at: string
+          id: string
+          interview_date: string
+          interviewer_user_id: string | null
+          notes: string | null
+          recommendation: string | null
+          rubric_scores: Json | null
+        }
+        Insert: {
+          applicant_id: string
+          created_at?: string
+          id?: string
+          interview_date: string
+          interviewer_user_id?: string | null
+          notes?: string | null
+          recommendation?: string | null
+          rubric_scores?: Json | null
+        }
+        Update: {
+          applicant_id?: string
+          created_at?: string
+          id?: string
+          interview_date?: string
+          interviewer_user_id?: string | null
+          notes?: string | null
+          recommendation?: string | null
+          rubric_scores?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "interviews_applicant_id_fkey"
+            columns: ["applicant_id"]
+            isOneToOne: false
+            referencedRelation: "applicants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "interviews_interviewer_user_id_fkey"
+            columns: ["interviewer_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       inventory_items: {
         Row: {
@@ -1834,6 +2532,47 @@ export type Database = {
           },
         ]
       }
+      job_requisitions: {
+        Row: {
+          created_at: string
+          department_id: string | null
+          description: string | null
+          employment_type: string | null
+          id: string
+          location: string | null
+          status: string
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          department_id?: string | null
+          description?: string | null
+          employment_type?: string | null
+          id?: string
+          location?: string | null
+          status?: string
+          title: string
+        }
+        Update: {
+          created_at?: string
+          department_id?: string | null
+          description?: string | null
+          employment_type?: string | null
+          id?: string
+          location?: string | null
+          status?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_requisitions_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "org_units"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       journal_entries: {
         Row: {
           account_id: string
@@ -1878,6 +2617,142 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      localized_coa_mappings: {
+        Row: {
+          country_code: string
+          created_at: string
+          id: string
+          is_active: boolean | null
+          local_account_code: string
+          local_account_name: string
+          mapping_notes: string | null
+          standard_account_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          country_code: string
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          local_account_code: string
+          local_account_name: string
+          mapping_notes?: string | null
+          standard_account_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          country_code?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          local_account_code?: string
+          local_account_name?: string
+          mapping_notes?: string | null
+          standard_account_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "localized_coa_mappings_standard_account_id_fkey"
+            columns: ["standard_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      make_automation_logs: {
+        Row: {
+          automation_id: string
+          created_at: string
+          error_message: string | null
+          id: string
+          request_payload: Json | null
+          response_payload: Json | null
+          status: string
+          triggered_by_user_id: string | null
+        }
+        Insert: {
+          automation_id: string
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          request_payload?: Json | null
+          response_payload?: Json | null
+          status?: string
+          triggered_by_user_id?: string | null
+        }
+        Update: {
+          automation_id?: string
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          request_payload?: Json | null
+          response_payload?: Json | null
+          status?: string
+          triggered_by_user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "make_automation_logs_automation_id_fkey"
+            columns: ["automation_id"]
+            isOneToOne: false
+            referencedRelation: "make_automations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      make_automations: {
+        Row: {
+          automation_type: string
+          config_json: Json | null
+          created_at: string
+          created_by_user_id: string | null
+          description: string | null
+          id: string
+          is_active: boolean
+          last_triggered_at: string | null
+          name: string
+          trigger_count: number
+          trigger_event: string
+          updated_at: string
+          webhook_secret: string | null
+          webhook_url: string | null
+        }
+        Insert: {
+          automation_type?: string
+          config_json?: Json | null
+          created_at?: string
+          created_by_user_id?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          last_triggered_at?: string | null
+          name: string
+          trigger_count?: number
+          trigger_event: string
+          updated_at?: string
+          webhook_secret?: string | null
+          webhook_url?: string | null
+        }
+        Update: {
+          automation_type?: string
+          config_json?: Json | null
+          created_at?: string
+          created_by_user_id?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          last_triggered_at?: string | null
+          name?: string
+          trigger_count?: number
+          trigger_event?: string
+          updated_at?: string
+          webhook_secret?: string | null
+          webhook_url?: string | null
+        }
+        Relationships: []
       }
       ngo_risk_profiles: {
         Row: {
@@ -2046,6 +2921,90 @@ export type Database = {
           },
         ]
       }
+      partners: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          notes: string | null
+          primary_contact: string | null
+          region: string | null
+          status: string | null
+          type: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          notes?: string | null
+          primary_contact?: string | null
+          region?: string | null
+          status?: string | null
+          type?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          notes?: string | null
+          primary_contact?: string | null
+          region?: string | null
+          status?: string | null
+          type?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      partnership_pipeline: {
+        Row: {
+          created_at: string
+          id: string
+          key_commitments: string | null
+          ngo_id: string | null
+          notes: string | null
+          partner_id: string | null
+          stage: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          key_commitments?: string | null
+          ngo_id?: string | null
+          notes?: string | null
+          partner_id?: string | null
+          stage?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          key_commitments?: string | null
+          ngo_id?: string | null
+          notes?: string | null
+          partner_id?: string | null
+          stage?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "partnership_pipeline_ngo_id_fkey"
+            columns: ["ngo_id"]
+            isOneToOne: false
+            referencedRelation: "ngos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "partnership_pipeline_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "partners"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       po_line_items: {
         Row: {
           account_id: string | null
@@ -2131,6 +3090,76 @@ export type Database = {
             columns: ["department_id"]
             isOneToOne: false
             referencedRelation: "org_units"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      proposals: {
+        Row: {
+          awarded_amount: number | null
+          created_at: string
+          decision_at: string | null
+          grant_opportunity_id: string | null
+          id: string
+          internal_owner: string | null
+          ngo_id: string | null
+          notes: string | null
+          phase: string | null
+          requested_amount: number | null
+          submitted_at: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          awarded_amount?: number | null
+          created_at?: string
+          decision_at?: string | null
+          grant_opportunity_id?: string | null
+          id?: string
+          internal_owner?: string | null
+          ngo_id?: string | null
+          notes?: string | null
+          phase?: string | null
+          requested_amount?: number | null
+          submitted_at?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          awarded_amount?: number | null
+          created_at?: string
+          decision_at?: string | null
+          grant_opportunity_id?: string | null
+          id?: string
+          internal_owner?: string | null
+          ngo_id?: string | null
+          notes?: string | null
+          phase?: string | null
+          requested_amount?: number | null
+          submitted_at?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposals_grant_opportunity_id_fkey"
+            columns: ["grant_opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "grant_opportunities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposals_internal_owner_fkey"
+            columns: ["internal_owner"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposals_ngo_id_fkey"
+            columns: ["ngo_id"]
+            isOneToOne: false
+            referencedRelation: "ngos"
             referencedColumns: ["id"]
           },
         ]
@@ -2567,6 +3596,51 @@ export type Database = {
           },
         ]
       }
+      reminders: {
+        Row: {
+          channel: string | null
+          created_at: string
+          id: string
+          remind_at: string
+          status: string | null
+          user_id: string
+          work_item_id: string
+        }
+        Insert: {
+          channel?: string | null
+          created_at?: string
+          id?: string
+          remind_at: string
+          status?: string | null
+          user_id: string
+          work_item_id: string
+        }
+        Update: {
+          channel?: string | null
+          created_at?: string
+          id?: string
+          remind_at?: string
+          status?: string | null
+          user_id?: string
+          work_item_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reminders_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reminders_work_item_id_fkey"
+            columns: ["work_item_id"]
+            isOneToOne: false
+            referencedRelation: "work_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       revenue_recognition: {
         Row: {
           amount: number
@@ -2703,6 +3777,51 @@ export type Database = {
             columns: ["ngo_id"]
             isOneToOne: false
             referencedRelation: "ngos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      saved_ledger_documents: {
+        Row: {
+          created_at: string
+          html_content: string
+          id: string
+          ngo_id: string
+          saved_by_user_id: string | null
+          title: string
+          transaction_id: string
+        }
+        Insert: {
+          created_at?: string
+          html_content: string
+          id?: string
+          ngo_id: string
+          saved_by_user_id?: string | null
+          title: string
+          transaction_id: string
+        }
+        Update: {
+          created_at?: string
+          html_content?: string
+          id?: string
+          ngo_id?: string
+          saved_by_user_id?: string | null
+          title?: string
+          transaction_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saved_ledger_documents_ngo_id_fkey"
+            columns: ["ngo_id"]
+            isOneToOne: false
+            referencedRelation: "ngos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "saved_ledger_documents_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
             referencedColumns: ["id"]
           },
         ]
@@ -3103,6 +4222,77 @@ export type Database = {
         }
         Relationships: []
       }
+      tickets: {
+        Row: {
+          assigned_to_user_id: string | null
+          created_at: string
+          description: string
+          id: string
+          related_ngo_id: string | null
+          reporter_user_id: string
+          severity: string
+          status: string
+          subject: string
+          updated_at: string
+          work_item_id: string | null
+        }
+        Insert: {
+          assigned_to_user_id?: string | null
+          created_at?: string
+          description?: string
+          id?: string
+          related_ngo_id?: string | null
+          reporter_user_id: string
+          severity?: string
+          status?: string
+          subject: string
+          updated_at?: string
+          work_item_id?: string | null
+        }
+        Update: {
+          assigned_to_user_id?: string | null
+          created_at?: string
+          description?: string
+          id?: string
+          related_ngo_id?: string | null
+          reporter_user_id?: string
+          severity?: string
+          status?: string
+          subject?: string
+          updated_at?: string
+          work_item_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tickets_assigned_to_user_id_fkey"
+            columns: ["assigned_to_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tickets_related_ngo_id_fkey"
+            columns: ["related_ngo_id"]
+            isOneToOne: false
+            referencedRelation: "ngos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tickets_reporter_user_id_fkey"
+            columns: ["reporter_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tickets_work_item_id_fkey"
+            columns: ["work_item_id"]
+            isOneToOne: false
+            referencedRelation: "work_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       timesheets: {
         Row: {
           approved_at: string | null
@@ -3226,6 +4416,182 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      treasury_positions: {
+        Row: {
+          account_name: string
+          account_type: string
+          as_of_date: string
+          bank_name: string | null
+          created_at: string
+          currency: string
+          current_balance: number
+          id: string
+          ngo_id: string | null
+          notes: string | null
+          updated_at: string
+        }
+        Insert: {
+          account_name: string
+          account_type?: string
+          as_of_date?: string
+          bank_name?: string | null
+          created_at?: string
+          currency?: string
+          current_balance?: number
+          id?: string
+          ngo_id?: string | null
+          notes?: string | null
+          updated_at?: string
+        }
+        Update: {
+          account_name?: string
+          account_type?: string
+          as_of_date?: string
+          bank_name?: string | null
+          created_at?: string
+          currency?: string
+          current_balance?: number
+          id?: string
+          ngo_id?: string | null
+          notes?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "treasury_positions_ngo_id_fkey"
+            columns: ["ngo_id"]
+            isOneToOne: false
+            referencedRelation: "ngos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      usage_entries: {
+        Row: {
+          cost_center_id: string
+          created_at: string | null
+          description: string | null
+          fiscal_period_id: string
+          id: string
+          ngo_id: string | null
+          quantity: number
+          source_reference_id: string | null
+          source_reference_type: string | null
+          status: string
+          submitted_by_user_id: string | null
+          total_cost: number
+          unit_cost: number
+          unit_type: string
+          updated_at: string | null
+          usage_date: string
+          usage_source_id: string
+        }
+        Insert: {
+          cost_center_id: string
+          created_at?: string | null
+          description?: string | null
+          fiscal_period_id: string
+          id?: string
+          ngo_id?: string | null
+          quantity?: number
+          source_reference_id?: string | null
+          source_reference_type?: string | null
+          status?: string
+          submitted_by_user_id?: string | null
+          total_cost?: number
+          unit_cost?: number
+          unit_type: string
+          updated_at?: string | null
+          usage_date: string
+          usage_source_id: string
+        }
+        Update: {
+          cost_center_id?: string
+          created_at?: string | null
+          description?: string | null
+          fiscal_period_id?: string
+          id?: string
+          ngo_id?: string | null
+          quantity?: number
+          source_reference_id?: string | null
+          source_reference_type?: string | null
+          status?: string
+          submitted_by_user_id?: string | null
+          total_cost?: number
+          unit_cost?: number
+          unit_type?: string
+          updated_at?: string | null
+          usage_date?: string
+          usage_source_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "usage_entries_cost_center_id_fkey"
+            columns: ["cost_center_id"]
+            isOneToOne: false
+            referencedRelation: "cost_centers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "usage_entries_fiscal_period_id_fkey"
+            columns: ["fiscal_period_id"]
+            isOneToOne: false
+            referencedRelation: "fiscal_periods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "usage_entries_ngo_id_fkey"
+            columns: ["ngo_id"]
+            isOneToOne: false
+            referencedRelation: "ngos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "usage_entries_submitted_by_user_id_fkey"
+            columns: ["submitted_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "usage_entries_usage_source_id_fkey"
+            columns: ["usage_source_id"]
+            isOneToOne: false
+            referencedRelation: "usage_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      usage_sources: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          name: string
+          source_reference_id: string | null
+          source_table: string | null
+          type: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          source_reference_id?: string | null
+          source_table?: string | null
+          type: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          source_reference_id?: string | null
+          source_table?: string | null
+          type?: string
+        }
+        Relationships: []
       }
       user_roles: {
         Row: {

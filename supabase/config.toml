@@ -11,3 +11,12 @@ verify_jwt = false
 
 [functions.process-intake-document]
 verify_jwt = false
+
+[functions.delete-user]
+verify_jwt = true
+
+[functions.trigger-make-scenario]
+verify_jwt = false
+
+[functions.receive-make-webhook]
+verify_jwt = false

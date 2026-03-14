@@ -8,6 +8,7 @@ import {
   FileText,
   FolderOpen,
   Calendar,
+  AlertTriangle,
   Layers,
   BarChart3,
   Settings,
@@ -37,6 +38,12 @@ import {
   Globe,
   Eye,
   Building,
+  Combine,
+  Activity,
+  ArrowLeftRight,
+  PieChart,
+  FolderKanban,
+  Zap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -100,8 +107,8 @@ const modulesSections: ModuleSection[] = [
   {
     title: "Programs",
     items: [
-      { to: "/modules/program", icon: <GraduationCap className="w-4 h-4" />, label: "Program" },
-      { to: "/modules/curriculum", icon: <FileText className="w-4 h-4" />, label: "Curriculum" },
+      { to: "/program", icon: <GraduationCap className="w-4 h-4" />, label: "Program" },
+      { to: "/curriculum", icon: <FileText className="w-4 h-4" />, label: "Curriculum" },
     ],
   },
   {
@@ -259,8 +266,10 @@ export function AppSidebar() {
               <NavItem to="/my-queue" icon={<ListChecks className="w-4 h-4" />} label={isCollapsed ? "" : "My Queue"} />
               <NavItem to="/dept-queue" icon={<Users className="w-4 h-4" />} label={isCollapsed ? "" : "Dept Queue"} />
               <NavItem to="/ngos" icon={<Building2 className="w-4 h-4" />} label={isCollapsed ? "" : "NGOs"} />
+              <NavItem to="/ngo-missing-items" icon={<AlertTriangle className="w-4 h-4" />} label={isCollapsed ? "" : "NGO Missing Items"} />
               <NavItem to="/work-items" icon={<ClipboardList className="w-4 h-4" />} label={isCollapsed ? "" : "Work Items"} badge={12} />
               <NavItem to="/forms" icon={<FileText className="w-4 h-4" />} label={isCollapsed ? "" : "Forms"} />
+              <NavItem to="/department-forms" icon={<FolderKanban className="w-4 h-4" />} label={isCollapsed ? "" : "Department Forms"} />
               <NavItem to="/documents" icon={<FolderOpen className="w-4 h-4" />} label={isCollapsed ? "" : "Documents"} />
               <NavItem to="/calendar" icon={<Calendar className="w-4 h-4" />} label={isCollapsed ? "" : "Calendar"} />
               <NavItem to="/hr" icon={<UserPlus className="w-4 h-4" />} label={isCollapsed ? "" : "HR"} />
@@ -273,6 +282,11 @@ export function AppSidebar() {
                   <NavItem to="/financial-hub/trial-balance" icon={<BarChart3 className="w-3.5 h-3.5" />} label="Trial Balance" />
                   <NavItem to="/financial-hub/intake" icon={<FileText className="w-3.5 h-3.5" />} label="Intake" />
                   <NavItem to="/financial-hub/compliance" icon={<ShieldCheck className="w-3.5 h-3.5" />} label="Compliance" />
+                  <NavItem to="/financial-hub/cost-centers" icon={<Combine className="w-3.5 h-3.5" />} label="Cost Centers" />
+                  <NavItem to="/financial-hub/usage" icon={<Activity className="w-3.5 h-3.5" />} label="Usage Tracking" />
+                  <NavItem to="/financial-hub/allocations" icon={<PieChart className="w-3.5 h-3.5" />} label="Allocations" />
+                  <NavItem to="/financial-hub/chargebacks" icon={<ArrowLeftRight className="w-3.5 h-3.5" />} label="Chargebacks" />
+                  <NavItem to="/financial-hub/usage/reports" icon={<BarChart3 className="w-3.5 h-3.5" />} label="Usage Reports" />
                 </div>
               )}
 
@@ -345,6 +359,7 @@ export function AppSidebar() {
                 {isCollapsed && (
                   <NavItem to="/reports" icon={<BarChart3 className="w-4 h-4" />} label="" />
                 )}
+                <NavItem to="/automations" icon={<Zap className="w-4 h-4" />} label={isCollapsed ? "" : "Automations"} />
                 <NavItem to="/admin" icon={<Settings className="w-4 h-4" />} label={isCollapsed ? "" : "Admin"} />
                 {canAccessAdminConfig && (
                   <NavItem

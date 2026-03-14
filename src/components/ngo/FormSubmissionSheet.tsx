@@ -43,9 +43,9 @@ interface FormSubmissionSheetProps {
   onOpenChange: (open: boolean) => void;
   template: FormTemplate | null;
   submission?: FormSubmission | null;
-  ngoId?: string;
+  ngoId: string;
   initialValues?: Record<string, unknown>;
-  onSubmitSuccess?: (submission: FormSubmission) => void;
+  onSubmitSuccess?: (submission: FormSubmission, payload: Record<string, unknown>, submitted: boolean) => void;
   workItemConfig?: WorkItemConfig;
 }
 
@@ -74,12 +74,15 @@ export function FormSubmissionSheet({
   useEffect(() => {
     if (submission?.payload_json && typeof submission.payload_json === "object") {
       setFormData(submission.payload_json as Record<string, unknown>);
-    } else if (initialValues) {
-      setFormData(initialValues);
+      return;
+    }
+
+    if (open) {
+      setFormData(initialValues || {});
     } else {
       setFormData({});
     }
-  }, [submission, template, initialValues]);
+  }, [submission, template, initialValues, open]);
 
   const fields: FormField[] = template?.schema_json?.fields || [];
 
