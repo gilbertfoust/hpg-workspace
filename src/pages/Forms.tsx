@@ -22,7 +22,6 @@ import {
   ArrowRight,
   Clock,
   Building2,
-  BookOpen,
   TrendingUp,
 } from "lucide-react";
 import { useFormTemplates, FormTemplate } from "@/hooks/useFormTemplates";
@@ -31,7 +30,6 @@ import { FormSubmissionSheet } from "@/components/ngo/FormSubmissionSheet";
 import { isSupabaseNotConfiguredError } from "@/integrations/supabase/client";
 import { SupabaseNotConfiguredNotice } from "@/components/common/SupabaseNotConfiguredNotice";
 
-// Map ModuleType (snake_case) to display names
 const moduleDisplayNames: Record<ModuleType | "All Forms", string> = {
   "All Forms": "All Forms",
   ngo_coordination: "NGO Coordination",
@@ -49,7 +47,6 @@ const moduleDisplayNames: Record<ModuleType | "All Forms", string> = {
   legal: "Legal/Compliance",
 };
 
-// Map modules to icons
 const moduleIcons: Record<ModuleType, React.ReactNode> = {
   ngo_coordination: <Users className="w-5 h-5" />,
   administration: <Briefcase className="w-5 h-5" />,
@@ -71,23 +68,21 @@ export default function Forms() {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<FormTemplate | null>(null);
 
-  // Group templates by module and create module list
   const modules = useMemo(() => {
     if (!templates) return [{ name: "All Forms" as const, count: 0 }];
-    
+
     const activeTemplates = templates.filter((t) => t.is_active);
-    
-    // Debug logging (dev only)
+
     if (import.meta.env.DEV) {
-      console.log('[Forms] Total templates loaded:', templates.length);
-      console.log('[Forms] Active templates:', activeTemplates.length);
+      console.log("[Forms] Total templates loaded:", templates.length);
+      console.log("[Forms] Active templates:", activeTemplates.length);
       const moduleBreakdown = activeTemplates.reduce((acc, t) => {
         acc[t.module] = (acc[t.module] || 0) + 1;
         return acc;
       }, {} as Record<string, number>);
-      console.log('[Forms] Templates by module:', moduleBreakdown);
+      console.log("[Forms] Templates by module:", moduleBreakdown);
     }
-    
+
     const moduleCounts = new Map<ModuleType | "All Forms", number>();
     moduleCounts.set("All Forms", activeTemplates.length);
 
@@ -100,7 +95,6 @@ export default function Forms() {
       { name: "All Forms", count: activeTemplates.length },
     ];
 
-    // Add modules in a consistent order
     const moduleOrder: ModuleType[] = [
       "ngo_coordination",
       "administration",
@@ -123,13 +117,15 @@ export default function Forms() {
         moduleList.push({ name: module, count });
       }
     });
-    
-    // Add any modules not in the predefined order (shouldn't happen, but handle gracefully)
+
     activeTemplates.forEach((template) => {
       if (!moduleOrder.includes(template.module as ModuleType)) {
-        const existing = moduleList.find(m => m.name === template.module);
+        const existing = moduleList.find((m) => m.name === template.module);
         if (!existing) {
-          moduleList.push({ name: template.module as ModuleType, count: moduleCounts.get(template.module) || 0 });
+          moduleList.push({
+            name: template.module as ModuleType,
+            count: moduleCounts.get(template.module) || 0,
+          });
         }
       }
     });
@@ -138,11 +134,8 @@ export default function Forms() {
   }, [templates]);
 
   const handleLaunchForm = (template: FormTemplate) => {
-    // For forms that require NGO context, show coming soon
-    // For others, allow launching without NGO
     const requiresNGO = template.module === "ngo_coordination";
     if (requiresNGO) {
-      // Show tooltip or navigate to NGO selection
       return;
     }
     setSelectedTemplate(template);
@@ -221,8 +214,9 @@ export default function Forms() {
                     {filteredTemplates.map((form) => {
                       const requiresNGO = form.module === "ngo_coordination";
                       const moduleIcon = moduleIcons[form.module] || <FileText className="w-5 h-5" />;
-                      // Fallback to raw module name if not in mapping (shouldn't happen, but handle gracefully)
-                      const moduleDisplayName = moduleDisplayNames[form.module] || form.module.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                      const moduleDisplayName =
+                        moduleDisplayNames[form.module] ||
+                        form.module.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
 
                       return (
                         <Card key={form.id} className="module-card group">
@@ -282,7 +276,7 @@ export default function Forms() {
           open={sheetOpen}
           onOpenChange={setSheetOpen}
           template={selectedTemplate}
-          ngoId={undefined} // Undefined for forms that don't require NGO context
+          ngoId={undefined}
         />
       </MainLayout>
     </TooltipProvider>

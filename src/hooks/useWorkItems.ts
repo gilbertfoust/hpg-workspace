@@ -1,4 +1,3 @@
-// src/hooks/useWorkItems.ts
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -61,6 +60,8 @@ export type ListFilters = {
   status?: WorkItemStatus | WorkItemStatus[];
   module?: ModuleType | string;
   type?: string;
+  owner_user_id?: string;
+  department_id?: string;
   evidence_required?: boolean;
 };
 
@@ -89,6 +90,12 @@ export const useWorkItems = (filters?: ListFilters) => {
       }
       if (filters?.type) {
         query = query.eq("type", filters.type);
+      }
+      if (filters?.owner_user_id) {
+        query = query.eq("owner_user_id", filters.owner_user_id);
+      }
+      if (filters?.department_id) {
+        query = query.eq("department_id", filters.department_id);
       }
 
       const { data, error } = await query;
@@ -147,7 +154,6 @@ export const useUpdateWorkItem = () => {
   });
 };
 
-// Hook for My Queue - returns work items assigned to current user
 export const useMyQueueWorkItems = () => {
   const { user } = useAuth();
   return useQuery<WorkItem[]>({
@@ -155,40 +161,38 @@ export const useMyQueueWorkItems = () => {
     enabled: !!user?.id && !!supabase,
     queryFn: async () => {
       if (!user?.id || !supabase) return [];
-      
+
       const { data, error } = await supabase
         .from("work_items")
         .select("*")
         .eq("owner_user_id", user.id)
         .order("created_at", { ascending: false });
-      
+
       if (error) throw error;
       return (data ?? []) as WorkItem[];
     },
   });
 };
 
-// Hook for Department Queue - returns work items for departments where user is lead
 export const useDepartmentQueueWorkItems = (departmentIds: string[]) => {
   return useQuery<WorkItem[]>({
     queryKey: ["department-queue-work-items", departmentIds],
     enabled: departmentIds.length > 0 && !!supabase,
     queryFn: async () => {
       if (departmentIds.length === 0 || !supabase) return [];
-      
+
       const { data, error } = await supabase
         .from("work_items")
         .select("*")
         .in("department_id", departmentIds)
         .order("created_at", { ascending: false });
-      
+
       if (error) throw error;
       return (data ?? []) as WorkItem[];
     },
   });
 };
 
-// Bulk update work items
 export const useBulkUpdateWorkItems = () => {
   const queryClient = useQueryClient();
   return useMutation({
@@ -203,7 +207,6 @@ export const useBulkUpdateWorkItems = () => {
   });
 };
 
-// Bulk bump due dates
 export const useBulkBumpWorkItemDueDates = () => {
   const queryClient = useQueryClient();
   return useMutation({
@@ -230,14 +233,14 @@ export const useBulkBumpWorkItemDueDates = () => {
           .update({ due_date: update.due_date } as any)
           .eq("id", update.id)
       );
-      
+
       const results = await Promise.all(updatePromises);
       const errors = results.filter((r) => r.error).map((r) => r.error);
-      
+
       if (errors.length > 0) {
         throw new Error(`Failed to update some work items: ${errors[0]?.message}`);
       }
-      
+
       return { items, bumpDays, updated: updates.length };
     },
     onSuccess: () => {

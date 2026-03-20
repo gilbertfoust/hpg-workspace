@@ -3,8 +3,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { 
-  FileText, 
+import {
+  FileText,
   Clock,
   CheckCircle,
   XCircle,
@@ -52,7 +52,7 @@ export function NGOFormsTab({ ngoId, launchMonthlyCheckIn, onMonthlyCheckInHandl
   const [initialValues, setInitialValues] = useState<Record<string, unknown> | undefined>(undefined);
 
   const isLoading = templatesLoading || submissionsLoading;
-  const activeTemplates = templates?.filter(t => t.is_active) || [];
+  const activeTemplates = templates?.filter((t) => t.is_active) || [];
 
   const handleStartForm = (template: FormTemplate) => {
     setSelectedTemplate(template);
@@ -62,8 +62,7 @@ export function NGOFormsTab({ ngoId, launchMonthlyCheckIn, onMonthlyCheckInHandl
   };
 
   const handleViewSubmission = (submission: FormSubmission) => {
-    // Find the template for this submission
-    const template = templates?.find(t => t.id === submission.form_template_id);
+    const template = templates?.find((t) => t.id === submission.form_template_id);
     if (template) {
       setSelectedTemplate(template);
       setSelectedSubmission(submission);
@@ -72,6 +71,10 @@ export function NGOFormsTab({ ngoId, launchMonthlyCheckIn, onMonthlyCheckInHandl
     }
   };
 
+  const handleSubmissionSuccess = () => {
+    setSheetOpen(false);
+    setSelectedTemplate(null);
+    setSelectedSubmission(null);
   const handleMonthlyCheckIn = useCallback(async () => {
     const template = await ensureTemplate.mutateAsync(monthlyCheckInTemplate);
     const today = new Date();
@@ -120,7 +123,6 @@ export function NGOFormsTab({ ngoId, launchMonthlyCheckIn, onMonthlyCheckInHandl
   return (
     <>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Available Forms */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-medium">Available Forms</h3>
@@ -179,7 +181,6 @@ export function NGOFormsTab({ ngoId, launchMonthlyCheckIn, onMonthlyCheckInHandl
           )}
         </div>
 
-        {/* Recent Submissions */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-medium">Recent Submissions</h3>
@@ -196,8 +197,8 @@ export function NGOFormsTab({ ngoId, launchMonthlyCheckIn, onMonthlyCheckInHandl
           {!isLoading && submissions && submissions.length > 0 && (
             <div className="space-y-3">
               {submissions.map((submission) => (
-                <Card 
-                  key={submission.id} 
+                <Card
+                  key={submission.id}
                   className="hover:border-primary/30 transition-colors cursor-pointer"
                   onClick={() => handleViewSubmission(submission)}
                 >
@@ -210,10 +211,9 @@ export function NGOFormsTab({ ngoId, launchMonthlyCheckIn, onMonthlyCheckInHandl
                             {submission.form_template?.name || "Unknown Form"}
                           </h4>
                           <p className="text-sm text-muted-foreground">
-                            {submission.submitted_at 
+                            {submission.submitted_at
                               ? `Submitted ${format(new Date(submission.submitted_at), "MMM d, yyyy")}`
-                              : `Last edited ${format(new Date(submission.updated_at), "MMM d, yyyy")}`
-                            }
+                              : `Last edited ${format(new Date(submission.updated_at), "MMM d, yyyy")}`}
                           </p>
                         </div>
                       </div>
@@ -250,7 +250,7 @@ export function NGOFormsTab({ ngoId, launchMonthlyCheckIn, onMonthlyCheckInHandl
         template={selectedTemplate}
         submission={selectedSubmission}
         ngoId={ngoId}
-        initialValues={initialValues}
+        initialValues={(selectedSubmission?.payload_json as Record<string, unknown> | undefined) ?? undefined}
         onSubmitSuccess={handleSubmissionSuccess}
       />
     </>

@@ -24,8 +24,6 @@ import {
   Search,
   Filter,
 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { format } from "date-fns";
 import { useWorkItems, WorkItemStatus, ModuleType } from "@/hooks/useWorkItems";
 import { useNGOs } from "@/hooks/useNGOs";
 import { useOrgUnits } from "@/hooks/useOrgUnits";
@@ -54,24 +52,24 @@ const modules: { value: string; label: string }[] = [
 
 const statusOptions: { value: string; label: string }[] = [
   { value: "all", label: "All Statuses" },
-  { value: "Draft", label: "Draft" },
-  { value: "Not Started", label: "Not Started" },
-  { value: "In Progress", label: "In Progress" },
-  { value: "Waiting on NGO", label: "Waiting on NGO" },
-  { value: "Waiting on HPG", label: "Waiting on HPG" },
-  { value: "Submitted", label: "Submitted" },
-  { value: "Under Review", label: "Under Review" },
-  { value: "Approved", label: "Approved" },
-  { value: "Rejected", label: "Rejected" },
-  { value: "Complete", label: "Complete" },
-  { value: "Canceled", label: "Canceled" },
+  { value: "draft", label: "Draft" },
+  { value: "not_started", label: "Not Started" },
+  { value: "in_progress", label: "In Progress" },
+  { value: "waiting_on_ngo", label: "Waiting on NGO" },
+  { value: "waiting_on_hpg", label: "Waiting on HPG" },
+  { value: "submitted", label: "Submitted" },
+  { value: "under_review", label: "Under Review" },
+  { value: "approved", label: "Approved" },
+  { value: "rejected", label: "Rejected" },
+  { value: "complete", label: "Complete" },
+  { value: "canceled", label: "Canceled" },
 ];
 
 const priorityOptions: { value: string; label: string }[] = [
   { value: "all", label: "All Priorities" },
-  { value: "High", label: "High" },
-  { value: "Med", label: "Med" },
-  { value: "Low", label: "Low" },
+  { value: "high", label: "High" },
+  { value: "medium", label: "Medium" },
+  { value: "low", label: "Low" },
 ];
 
 export default function WorkItems() {
@@ -89,7 +87,6 @@ export default function WorkItems() {
   const [searchParams, setSearchParams] = useSearchParams();
   const workItemIdFromSearch = searchParams.get("workItemId");
 
-  // Build filters for the query
   const filters = useMemo(() => {
     const f: {
       module?: ModuleType;
@@ -114,16 +111,18 @@ export default function WorkItems() {
     return f;
   }, [selectedModule, selectedStatus, selectedDepartment, myItemsOnly, user?.id]);
 
-  const { data: workItems, isLoading, error } = useWorkItems(/* ... */);
-const { data: ngos, error: ngosError } = useNGOs();
-const { data: orgUnits } = useOrgUnits();
+  const { data: workItems, isLoading, error } = useWorkItems(filters);
+  const { data: ngos, error: ngosError } = useNGOs();
+  const { data: orgUnits } = useOrgUnits();
 
-if (isSupabaseNotConfiguredError(error) || isSupabaseNotConfiguredError(ngosError)) {
-  // ...
-}
+  if (isSupabaseNotConfiguredError(error) || isSupabaseNotConfiguredError(ngosError)) {
+    return (
+      <MainLayout title="Work Items">
+        <SupabaseNotConfiguredNotice />
+      </MainLayout>
+    );
+  }
 
-
-  // Create NGO lookup map
   const ngoMap = useMemo(() => {
     const map = new Map<string, string>();
     ngos?.forEach((ngo) => {
@@ -132,12 +131,10 @@ if (isSupabaseNotConfiguredError(error) || isSupabaseNotConfiguredError(ngosErro
     return map;
   }, [ngos]);
 
-  // Client-side filtering for search and priority
   const filteredItems = useMemo(() => {
     if (!workItems) return [];
 
     return workItems.filter((item) => {
-      // Search filter
       if (searchQuery) {
         const query = searchQuery.toLowerCase();
         const matchesTitle = item.title.toLowerCase().includes(query);
@@ -148,7 +145,6 @@ if (isSupabaseNotConfiguredError(error) || isSupabaseNotConfiguredError(ngosErro
         }
       }
 
-      // Priority filter
       if (selectedPriority !== "all" && item.priority !== selectedPriority) {
         return false;
       }
@@ -188,10 +184,6 @@ if (isSupabaseNotConfiguredError(error) || isSupabaseNotConfiguredError(ngosErro
     }
   };
 
-  const formatModuleName = (module: string) => {
-    return module.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
-  };
-
   useEffect(() => {
     if (workItemIdFromSearch) {
       setSelectedWorkItemId(workItemIdFromSearch);
@@ -228,7 +220,6 @@ if (isSupabaseNotConfiguredError(error) || isSupabaseNotConfiguredError(ngosErro
         </div>
       }
     >
-      {/* Filters */}
       <div className="flex flex-col lg:flex-row gap-4 mb-6">
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -337,7 +328,6 @@ if (isSupabaseNotConfiguredError(error) || isSupabaseNotConfiguredError(ngosErro
         emptyMessage="No work items found. Try adjusting your filters or create a new work item."
       />
 
-      {/* Pagination placeholder */}
       <div className="flex items-center justify-between mt-4 text-sm text-muted-foreground">
         <span>
           Showing {filteredItems.length} of {workItems?.length || 0} items
@@ -352,13 +342,11 @@ if (isSupabaseNotConfiguredError(error) || isSupabaseNotConfiguredError(ngosErro
         </div>
       </div>
 
-      {/* Create Dialog */}
       <CreateWorkItemDialog
         open={createDialogOpen}
         onOpenChange={setCreateDialogOpen}
       />
 
-      {/* Work Item Detail Drawer */}
       <WorkItemDrawer
         workItemId={selectedWorkItemId}
         open={drawerOpen}
