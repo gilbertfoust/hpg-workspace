@@ -290,9 +290,16 @@ const App = () => {
                 {/* HR & Workforce (ERP) */}
                 <Route path="/erp/hr" element={<P><HRModuleDashboard /></P>} />
                 <Route path="/erp/hr/staff" element={<P><StaffProfiles /></P>} />
+                <Route path="/erp/hr/staff/:staffId" element={<P><StaffProfileDetail /></P>} />
                 <Route path="/erp/hr/timesheets" element={<P><Timesheets /></P>} />
+                <Route path="/erp/hr/timesheets/detail" element={<P><TimesheetDetail /></P>} />
                 <Route path="/erp/hr/pto" element={<P><PTOManagement /></P>} />
+                <Route path="/erp/hr/onboarding" element={<P><OnboardingDashboard /></P>} />
+                <Route path="/erp/hr/reviews" element={<P><PerformanceReviews /></P>} />
                 <Route path="/erp/hr/payroll" element={<P><PayrollExport /></P>} />
+                <Route path="/erp/hr/payroll/runs" element={<P><PayRuns /></P>} />
+                <Route path="/erp/hr/directory" element={<P><StaffDirectory /></P>} />
+                <Route path="/erp/hr/analytics" element={<P><HRAnalytics /></P>} />
 
                 {/* Assets */}
                 <Route path="/assets" element={<P><AssetsDashboard /></P>} />
