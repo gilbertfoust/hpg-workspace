@@ -70,34 +70,55 @@ export type Database = {
       }
       accounts: {
         Row: {
+          account_description: string | null
+          balance_sheet_section: string | null
+          cash_flow_section: string | null
           code: string
           created_at: string
+          financial_statement_type: string | null
           id: string
+          income_statement_section: string | null
           is_active: boolean
+          is_contra_account: boolean | null
           name: string
           ngo_id: string | null
+          normal_balance: string | null
           parent_account_id: string | null
           type: string
           updated_at: string
         }
         Insert: {
+          account_description?: string | null
+          balance_sheet_section?: string | null
+          cash_flow_section?: string | null
           code: string
           created_at?: string
+          financial_statement_type?: string | null
           id?: string
+          income_statement_section?: string | null
           is_active?: boolean
+          is_contra_account?: boolean | null
           name: string
           ngo_id?: string | null
+          normal_balance?: string | null
           parent_account_id?: string | null
           type: string
           updated_at?: string
         }
         Update: {
+          account_description?: string | null
+          balance_sheet_section?: string | null
+          cash_flow_section?: string | null
           code?: string
           created_at?: string
+          financial_statement_type?: string | null
           id?: string
+          income_statement_section?: string | null
           is_active?: boolean
+          is_contra_account?: boolean | null
           name?: string
           ngo_id?: string | null
+          normal_balance?: string | null
           parent_account_id?: string | null
           type?: string
           updated_at?: string
@@ -729,6 +750,115 @@ export type Database = {
         }
         Relationships: []
       }
+      bank_reconciliation_items: {
+        Row: {
+          amount: number
+          created_at: string
+          description: string
+          id: string
+          item_date: string
+          item_type: string
+          linked_transaction_id: string | null
+          reconciliation_id: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          description?: string
+          id?: string
+          item_date?: string
+          item_type?: string
+          linked_transaction_id?: string | null
+          reconciliation_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          description?: string
+          id?: string
+          item_date?: string
+          item_type?: string
+          linked_transaction_id?: string | null
+          reconciliation_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bank_reconciliation_items_linked_transaction_id_fkey"
+            columns: ["linked_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bank_reconciliation_items_reconciliation_id_fkey"
+            columns: ["reconciliation_id"]
+            isOneToOne: false
+            referencedRelation: "bank_reconciliations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bank_reconciliations: {
+        Row: {
+          adjusted_balance: number
+          bank_account_id: string
+          created_at: string
+          fiscal_period_id: string
+          id: string
+          ngo_id: string
+          notes: string | null
+          starting_balance: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          adjusted_balance?: number
+          bank_account_id: string
+          created_at?: string
+          fiscal_period_id: string
+          id?: string
+          ngo_id: string
+          notes?: string | null
+          starting_balance?: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          adjusted_balance?: number
+          bank_account_id?: string
+          created_at?: string
+          fiscal_period_id?: string
+          id?: string
+          ngo_id?: string
+          notes?: string | null
+          starting_balance?: number
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bank_reconciliations_bank_account_id_fkey"
+            columns: ["bank_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bank_reconciliations_fiscal_period_id_fkey"
+            columns: ["fiscal_period_id"]
+            isOneToOne: false
+            referencedRelation: "fiscal_periods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bank_reconciliations_ngo_id_fkey"
+            columns: ["ngo_id"]
+            isOneToOne: false
+            referencedRelation: "ngos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       budget_categories: {
         Row: {
           code: string
@@ -818,6 +948,85 @@ export type Database = {
           },
           {
             foreignKeyName: "budgets_ngo_id_fkey"
+            columns: ["ngo_id"]
+            isOneToOne: false
+            referencedRelation: "ngos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cash_flow_forecast_lines: {
+        Row: {
+          amount: number
+          category_label: string
+          created_at: string
+          forecast_id: string
+          id: string
+          line_type: string
+          month_index: number
+        }
+        Insert: {
+          amount?: number
+          category_label?: string
+          created_at?: string
+          forecast_id: string
+          id?: string
+          line_type?: string
+          month_index?: number
+        }
+        Update: {
+          amount?: number
+          category_label?: string
+          created_at?: string
+          forecast_id?: string
+          id?: string
+          line_type?: string
+          month_index?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cash_flow_forecast_lines_forecast_id_fkey"
+            columns: ["forecast_id"]
+            isOneToOne: false
+            referencedRelation: "cash_flow_forecasts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cash_flow_forecasts: {
+        Row: {
+          created_at: string
+          id: string
+          month_count: number
+          name: string
+          ngo_id: string
+          start_month: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          month_count?: number
+          name: string
+          ngo_id: string
+          start_month: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          month_count?: number
+          name?: string
+          ngo_id?: string
+          start_month?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cash_flow_forecasts_ngo_id_fkey"
             columns: ["ngo_id"]
             isOneToOne: false
             referencedRelation: "ngos"
@@ -2886,6 +3095,55 @@ export type Database = {
           },
         ]
       }
+      opening_balances: {
+        Row: {
+          account_id: string
+          amount: number
+          created_at: string
+          fiscal_period_id: string
+          id: string
+          ngo_id: string
+        }
+        Insert: {
+          account_id: string
+          amount?: number
+          created_at?: string
+          fiscal_period_id: string
+          id?: string
+          ngo_id: string
+        }
+        Update: {
+          account_id?: string
+          amount?: number
+          created_at?: string
+          fiscal_period_id?: string
+          id?: string
+          ngo_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "opening_balances_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "opening_balances_fiscal_period_id_fkey"
+            columns: ["fiscal_period_id"]
+            isOneToOne: false
+            referencedRelation: "fiscal_periods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "opening_balances_ngo_id_fkey"
+            columns: ["ngo_id"]
+            isOneToOne: false
+            referencedRelation: "ngos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       org_units: {
         Row: {
           created_at: string
@@ -3001,6 +3259,55 @@ export type Database = {
             columns: ["partner_id"]
             isOneToOne: false
             referencedRelation: "partners"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      period_comparisons: {
+        Row: {
+          comparison_type: string
+          created_at: string
+          current_fiscal_period_id: string
+          id: string
+          ngo_id: string
+          previous_fiscal_period_id: string
+        }
+        Insert: {
+          comparison_type?: string
+          created_at?: string
+          current_fiscal_period_id: string
+          id?: string
+          ngo_id: string
+          previous_fiscal_period_id: string
+        }
+        Update: {
+          comparison_type?: string
+          created_at?: string
+          current_fiscal_period_id?: string
+          id?: string
+          ngo_id?: string
+          previous_fiscal_period_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "period_comparisons_current_fiscal_period_id_fkey"
+            columns: ["current_fiscal_period_id"]
+            isOneToOne: false
+            referencedRelation: "fiscal_periods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "period_comparisons_ngo_id_fkey"
+            columns: ["ngo_id"]
+            isOneToOne: false
+            referencedRelation: "ngos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "period_comparisons_previous_fiscal_period_id_fkey"
+            columns: ["previous_fiscal_period_id"]
+            isOneToOne: false
+            referencedRelation: "fiscal_periods"
             referencedColumns: ["id"]
           },
         ]
