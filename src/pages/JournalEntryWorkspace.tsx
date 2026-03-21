@@ -141,7 +141,7 @@ export default function JournalEntryWorkspace() {
                   <SelectTrigger><SelectValue placeholder="Select NGO" /></SelectTrigger>
                   <SelectContent>
                     {ngos?.map((n) => (
-                      <SelectItem key={n.id} value={n.id}>{n.name}</SelectItem>
+                      <SelectItem key={n.id} value={n.id}>{n.legal_name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
