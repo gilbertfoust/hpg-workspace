@@ -93,7 +93,7 @@ Deno.serve(async (req) => {
 });
 
 async function processInboundWebhook(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   automation: Record<string, unknown>,
   payload: Record<string, unknown>
 ): Promise<Record<string, unknown>> {
