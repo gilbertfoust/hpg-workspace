@@ -109,9 +109,16 @@ import GrantProfile from "./modules/grants/pages/GrantProfile";
 
 import HRModuleDashboard from "./modules/hr/pages/HRModuleDashboard";
 import StaffProfiles from "./modules/hr/pages/StaffProfiles";
+import StaffProfileDetail from "./modules/hr/pages/StaffProfileDetail";
 import Timesheets from "./modules/hr/pages/Timesheets";
+import TimesheetDetail from "./modules/hr/pages/TimesheetDetail";
 import PTOManagement from "./modules/hr/pages/PTOManagement";
 import PayrollExport from "./modules/hr/pages/PayrollExport";
+import PayRuns from "./modules/hr/pages/PayRuns";
+import OnboardingDashboard from "./modules/hr/pages/OnboardingDashboard";
+import PerformanceReviews from "./modules/hr/pages/PerformanceReviews";
+import StaffDirectory from "./modules/hr/pages/StaffDirectory";
+import HRAnalytics from "./modules/hr/pages/HRAnalytics";
 
 import AssetsDashboard from "./modules/assets/pages/AssetsDashboard";
 import AssetRegistry from "./modules/assets/pages/AssetRegistry";
