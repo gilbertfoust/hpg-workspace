@@ -281,6 +281,7 @@ export function AppSidebar() {
                   <NavItem to="/financial-hub/accounts" icon={<Layers className="w-3.5 h-3.5" />} label="Chart of Accounts" />
                   <NavItem to="/financial-hub/transactions" icon={<ClipboardList className="w-3.5 h-3.5" />} label="Transactions" />
                   <NavItem to="/financial-hub/trial-balance-worksheet" icon={<BarChart3 className="w-3.5 h-3.5" />} label="Trial Balance" />
+                  <NavItem to="/financial-hub/opening-balances" icon={<Layers className="w-3.5 h-3.5" />} label="Opening Balances" />
                   <NavItem to="/financial-hub/reports/profit-and-loss" icon={<TrendingUp className="w-3.5 h-3.5" />} label="Profit & Loss" />
                   <NavItem to="/financial-hub/reports/balance-sheet" icon={<Layers className="w-3.5 h-3.5" />} label="Balance Sheet" />
                   <NavItem to="/financial-hub/reports/cash-flow-statement" icon={<Activity className="w-3.5 h-3.5" />} label="Cash Flow Statement" />

@@ -235,6 +235,7 @@ const App = () => {
                 <Route path="/financial-hub/reports/aged-payables" element={<P><AgedPayablesPage /></P>} />
                 <Route path="/financial-hub/recurring-transactions" element={<P><RecurringTransactionsPage /></P>} />
                 <Route path="/financial-hub/reports/tax-liability" element={<P><TaxLiabilityPage /></P>} />
+                <Route path="/financial-hub/opening-balances" element={<P><OpeningBalancesPage /></P>} />
 
                 {/* Department Forms */}
                 <Route path="/department-forms" element={<P><DepartmentForms /></P>} />
