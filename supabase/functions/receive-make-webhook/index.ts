@@ -77,7 +77,7 @@ Deno.serve(async (req) => {
       .eq("id", automationId);
 
     // Process based on trigger_event — extensible handlers
-    const result = await processInboundWebhook(supabase, automation, payload);
+    const result = await processInboundWebhook(supabase as any, automation, payload);
 
     return new Response(
       JSON.stringify({ success: true, processed: result }),

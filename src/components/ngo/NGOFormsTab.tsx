@@ -71,10 +71,6 @@ export function NGOFormsTab({ ngoId, launchMonthlyCheckIn, onMonthlyCheckInHandl
     }
   };
 
-  const handleSubmissionSuccess = () => {
-    setSheetOpen(false);
-    setSelectedTemplate(null);
-    setSelectedSubmission(null);
   const handleMonthlyCheckIn = useCallback(async () => {
     const template = await ensureTemplate.mutateAsync(monthlyCheckInTemplate);
     const today = new Date();
