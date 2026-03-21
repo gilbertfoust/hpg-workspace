@@ -25,6 +25,7 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 export default function Timesheets() {
+  const navigate = useNavigate();
   const { data: timesheets, isLoading, create, updateStatus, updateHours } = useTimesheets();
   const { data: staff } = useStaffProfiles({ status: "active" });
   const { data: ngos } = useNGOs();
