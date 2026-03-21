@@ -4,13 +4,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { Printer } from "lucide-react";
 import { useNGOs } from "@/hooks/useNGOs";
 import { useFiscalPeriods } from "@/hooks/useFiscalPeriods";
 import { useExtendedAccounts, defaultNormalBalance } from "@/hooks/useExtendedAccounts";
 import { useOpeningBalances } from "@/hooks/useOpeningBalances";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
+import { printElement } from "@/utils/financialPdfExport";
 
 function fmt(n: number) { return n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
 
