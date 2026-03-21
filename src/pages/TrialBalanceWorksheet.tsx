@@ -6,7 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { CheckCircle, AlertCircle, Download } from "lucide-react";
+import { CheckCircle, AlertCircle, Download, Printer } from "lucide-react";
 import { useNGOs } from "@/hooks/useNGOs";
 import { useFiscalPeriods } from "@/hooks/useFiscalPeriods";
 import { useExtendedAccounts, defaultNormalBalance } from "@/hooks/useExtendedAccounts";
