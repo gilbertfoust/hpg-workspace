@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Trash2, CheckCircle } from "lucide-react";
+import { Plus, Trash2, CheckCircle, Upload } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useNGOs } from "@/hooks/useNGOs";
 import { useFiscalPeriods } from "@/hooks/useFiscalPeriods";
