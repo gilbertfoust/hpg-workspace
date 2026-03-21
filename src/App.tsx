@@ -65,6 +65,7 @@ import BillsPage from "./pages/BillsPage";
 import AgedPayablesPage from "./pages/AgedPayablesPage";
 import RecurringTransactionsPage from "./pages/RecurringTransactionsPage";
 import TaxLiabilityPage from "./pages/TaxLiabilityPage";
+import OpeningBalancesPage from "./pages/OpeningBalancesPage";
 import MyQueue from "./pages/MyQueue";
 import DeptQueue from "./pages/DeptQueue";
 import HRDashboard from "./pages/HRDashboard";
