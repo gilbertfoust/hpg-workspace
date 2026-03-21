@@ -4,13 +4,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { Printer } from "lucide-react";
 import { useNGOs } from "@/hooks/useNGOs";
 import { useFiscalPeriods } from "@/hooks/useFiscalPeriods";
 import { useExtendedAccounts, defaultNormalBalance } from "@/hooks/useExtendedAccounts";
 import { useOpeningBalances } from "@/hooks/useOpeningBalances";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
+import { printElement } from "@/utils/financialPdfExport";
 
 function fmt(n: number) { return n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
 
@@ -153,9 +156,14 @@ export default function ProfitAndLoss() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Profit & Loss Statement</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle>Profit & Loss Statement</CardTitle>
+              <Button variant="outline" size="sm" className="no-print" onClick={() => printElement("pnl-report", "Profit & Loss Statement")}>
+                <Printer className="w-4 h-4 mr-1" /> Print / PDF
+              </Button>
+            </div>
           </CardHeader>
-          <CardContent>
+          <CardContent id="pnl-report">
             <div className="grid grid-cols-5 gap-4 py-2 px-4 text-xs font-semibold uppercase text-muted-foreground border-b">
               <div>Category</div>
               <div className="text-right">Current</div>

@@ -6,13 +6,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { CheckCircle, AlertCircle, Download } from "lucide-react";
+import { CheckCircle, AlertCircle, Download, Printer } from "lucide-react";
 import { useNGOs } from "@/hooks/useNGOs";
 import { useFiscalPeriods } from "@/hooks/useFiscalPeriods";
 import { useExtendedAccounts, defaultNormalBalance } from "@/hooks/useExtendedAccounts";
 import { useOpeningBalances } from "@/hooks/useOpeningBalances";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
+import { printElement } from "@/utils/financialPdfExport";
 
 interface TrialBalanceWorksheetRow {
   account_id: string;
@@ -148,6 +149,9 @@ export default function TrialBalanceWorksheet() {
                 <Button variant="outline" size="sm" onClick={handleExport} disabled={rows.length === 0}>
                   <Download className="w-4 h-4 mr-1" /> Export CSV
                 </Button>
+                <Button variant="outline" size="sm" onClick={() => printElement("tb-report", "Trial Balance Worksheet")} disabled={rows.length === 0}>
+                  <Printer className="w-4 h-4 mr-1" /> Print / PDF
+                </Button>
               </div>
             </div>
           </CardContent>
@@ -155,7 +159,7 @@ export default function TrialBalanceWorksheet() {
 
         <Card>
           <CardContent className="p-0">
-            <div className="rounded-md border-0 overflow-auto">
+            <div id="tb-report" className="rounded-md border-0 overflow-auto">
               <Table>
                 <TableHeader>
                   <TableRow>

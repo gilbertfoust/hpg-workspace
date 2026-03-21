@@ -3,12 +3,15 @@ import { MainLayout } from "@/components/layout/MainLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { Printer } from "lucide-react";
 import { useNGOs } from "@/hooks/useNGOs";
 import { useFiscalPeriods } from "@/hooks/useFiscalPeriods";
 import { useExtendedAccounts, defaultNormalBalance } from "@/hooks/useExtendedAccounts";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
+import { printElement } from "@/utils/financialPdfExport";
 
 function fmt(n: number) { return n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
 
@@ -114,7 +117,12 @@ export default function BalanceSheetPage() {
           </CardContent>
         </Card>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="flex justify-end no-print">
+          <Button variant="outline" size="sm" onClick={() => printElement("bs-report", "Balance Sheet")}>
+            <Printer className="w-4 h-4 mr-1" /> Print / PDF
+          </Button>
+        </div>
+        <div id="bs-report" className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Assets */}
           <Card>
             <CardHeader><CardTitle className="text-lg">Assets</CardTitle></CardHeader>

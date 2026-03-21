@@ -8,13 +8,14 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Trash2, CheckCircle } from "lucide-react";
+import { Plus, Trash2, CheckCircle, Upload } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useNGOs } from "@/hooks/useNGOs";
 import { useFiscalPeriods } from "@/hooks/useFiscalPeriods";
 import { useExtendedAccounts } from "@/hooks/useExtendedAccounts";
 import { useBankReconciliations, useBankReconciliationItems } from "@/hooks/useBankReconciliations";
 import { format } from "date-fns";
+import Papa from "papaparse";
 
 function fmt(n: number) { return n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
 
@@ -246,7 +247,49 @@ export default function BankReconciliationPage() {
                 <ItemSection title="Adjustments" items={adjustments} />
 
                 {currentRecon?.status !== "reconciled" && (
-                  <div className="border-t pt-4">
+                  <div className="border-t pt-4 space-y-4">
+                    {/* CSV Import */}
+                    <div>
+                      <p className="text-sm font-semibold mb-2">Import from CSV</p>
+                      <p className="text-xs text-muted-foreground mb-2">CSV should have columns: date, description, amount. Negative amounts become outstanding checks; positive become deposits.</p>
+                      <Input
+                        type="file"
+                        accept=".csv"
+                        className="w-64"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (!file || !selectedReconciliationId) return;
+                          Papa.parse(file, {
+                            header: true,
+                            skipEmptyLines: true,
+                            complete: async (results) => {
+                              let imported = 0;
+                              for (const row of results.data as any[]) {
+                                const amount = Number(row.amount || row.Amount || 0);
+                                const desc = row.description || row.Description || row.memo || row.Memo || "Imported";
+                                const dateStr = row.date || row.Date || format(new Date(), "yyyy-MM-dd");
+                                if (!amount) continue;
+                                try {
+                                  await createItem.mutateAsync({
+                                    reconciliation_id: selectedReconciliationId,
+                                    item_type: amount < 0 ? "outstanding_check" : "deposit_in_transit",
+                                    item_date: dateStr,
+                                    description: desc,
+                                    amount: Math.abs(amount),
+                                    linked_transaction_id: null,
+                                  });
+                                  imported++;
+                                } catch {}
+                              }
+                              toast({ title: `Imported ${imported} items from CSV` });
+                              e.target.value = "";
+                            },
+                          });
+                        }}
+                      />
+                    </div>
+
+                    {/* Manual Add */}
                     <p className="text-sm font-semibold mb-3">Add Item</p>
                     <div className="grid grid-cols-1 md:grid-cols-5 gap-3 items-end">
                       <Select value={newItemType} onValueChange={setNewItemType}>

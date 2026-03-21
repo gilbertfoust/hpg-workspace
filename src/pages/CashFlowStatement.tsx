@@ -3,12 +3,15 @@ import { MainLayout } from "@/components/layout/MainLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { Printer } from "lucide-react";
 import { useNGOs } from "@/hooks/useNGOs";
 import { useFiscalPeriods } from "@/hooks/useFiscalPeriods";
 import { useExtendedAccounts, defaultNormalBalance } from "@/hooks/useExtendedAccounts";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
+import { printElement } from "@/utils/financialPdfExport";
 
 function fmt(n: number) { return n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
 
@@ -87,8 +90,15 @@ export default function CashFlowStatement() {
         </Card>
 
         <Card>
-          <CardHeader><CardTitle>Cash Flow Statement (Indirect Method)</CardTitle></CardHeader>
-          <CardContent className="space-y-1">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle>Cash Flow Statement (Indirect Method)</CardTitle>
+              <Button variant="outline" size="sm" className="no-print" onClick={() => printElement("cf-report", "Cash Flow Statement")}>
+                <Printer className="w-4 h-4 mr-1" /> Print / PDF
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent id="cf-report" className="space-y-1">
             <p className="text-sm font-semibold text-muted-foreground px-4 pt-2">Operating Activities</p>
             <SectionRow label="Net Cash from Operations" amount={operating} />
             <Separator />
