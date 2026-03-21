@@ -127,7 +127,8 @@ serve(async (req) => {
       );
     }
 
-    const { SmtpClient } = await import("https://deno.land/x/denomailer@1.6.0/mod.ts");
+    const denomailer = await import("https://deno.land/x/denomailer@1.6.0/mod.ts");
+    const SmtpClient = (denomailer as any).SmtpClient;
 
     const client = new SmtpClient();
     await client.connectTLS({
