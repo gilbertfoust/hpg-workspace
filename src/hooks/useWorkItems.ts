@@ -54,6 +54,8 @@ export interface WorkItem {
   dependencies?: string[] | null;
 }
 
+export type CreateWorkItemInput = Partial<WorkItem> & { module: ModuleType };
+
 export type ListFilters = {
   ngoId?: string | null;
   ngo_id?: string | null;
