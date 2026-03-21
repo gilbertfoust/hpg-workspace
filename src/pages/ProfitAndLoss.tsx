@@ -156,7 +156,12 @@ export default function ProfitAndLoss() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Profit & Loss Statement</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle>Profit & Loss Statement</CardTitle>
+              <Button variant="outline" size="sm" className="no-print" onClick={() => printElement("pnl-report", "Profit & Loss Statement")}>
+                <Printer className="w-4 h-4 mr-1" /> Print / PDF
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-5 gap-4 py-2 px-4 text-xs font-semibold uppercase text-muted-foreground border-b">
