@@ -135,7 +135,16 @@ const erpModules = [
   { to: "/crm", icon: <Contact className="w-4 h-4" />, label: "CRM" },
   { to: "/procurement", icon: <ShoppingCart className="w-4 h-4" />, label: "Procurement" },
   { to: "/grants", icon: <Award className="w-4 h-4" />, label: "Grants" },
-  { to: "/erp/hr", icon: <Users className="w-4 h-4" />, label: "HR & Workforce" },
+  { to: "/erp/hr", icon: <Users className="w-4 h-4" />, label: "HR & Workforce", subItems: [
+    { to: "/erp/hr/staff", label: "Staff Profiles" },
+    { to: "/erp/hr/timesheets", label: "Timesheets" },
+    { to: "/erp/hr/pto", label: "PTO" },
+    { to: "/erp/hr/onboarding", label: "Onboarding" },
+    { to: "/erp/hr/reviews", label: "Reviews" },
+    { to: "/erp/hr/payroll/runs", label: "Pay Runs" },
+    { to: "/erp/hr/directory", label: "Directory" },
+    { to: "/erp/hr/analytics", label: "Analytics" },
+  ]},
   { to: "/assets", icon: <Package className="w-4 h-4" />, label: "Assets" },
   { to: "/inventory", icon: <Warehouse className="w-4 h-4" />, label: "Inventory" },
   { to: "/revenue", icon: <TrendingUp className="w-4 h-4" />, label: "Revenue" },
@@ -360,7 +369,16 @@ export function AppSidebar() {
                   {(expandedERP || isOnERPRoute) && (
                     <div className="mt-2 space-y-1 animate-fade-in">
                       {erpModules.map((item) => (
-                        <NavItem key={item.to} {...item} />
+                        <div key={item.to}>
+                          <NavItem to={item.to} icon={item.icon} label={item.label} />
+                          {(item as any).subItems && location.pathname.startsWith(item.to) && (
+                            <div className="ml-6 space-y-0.5">
+                              {(item as any).subItems.map((sub: { to: string; label: string }) => (
+                                <NavItem key={sub.to} to={sub.to} icon={<ChevronRight className="w-3 h-3" />} label={sub.label} />
+                              ))}
+                            </div>
+                          )}
+                        </div>
                       ))}
                     </div>
                   )}

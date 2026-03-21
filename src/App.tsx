@@ -109,9 +109,16 @@ import GrantProfile from "./modules/grants/pages/GrantProfile";
 
 import HRModuleDashboard from "./modules/hr/pages/HRModuleDashboard";
 import StaffProfiles from "./modules/hr/pages/StaffProfiles";
+import StaffProfileDetail from "./modules/hr/pages/StaffProfileDetail";
 import Timesheets from "./modules/hr/pages/Timesheets";
+import TimesheetDetail from "./modules/hr/pages/TimesheetDetail";
 import PTOManagement from "./modules/hr/pages/PTOManagement";
 import PayrollExport from "./modules/hr/pages/PayrollExport";
+import PayRuns from "./modules/hr/pages/PayRuns";
+import OnboardingDashboard from "./modules/hr/pages/OnboardingDashboard";
+import PerformanceReviews from "./modules/hr/pages/PerformanceReviews";
+import StaffDirectory from "./modules/hr/pages/StaffDirectory";
+import HRAnalytics from "./modules/hr/pages/HRAnalytics";
 
 import AssetsDashboard from "./modules/assets/pages/AssetsDashboard";
 import AssetRegistry from "./modules/assets/pages/AssetRegistry";
@@ -283,9 +290,16 @@ const App = () => {
                 {/* HR & Workforce (ERP) */}
                 <Route path="/erp/hr" element={<P><HRModuleDashboard /></P>} />
                 <Route path="/erp/hr/staff" element={<P><StaffProfiles /></P>} />
+                <Route path="/erp/hr/staff/:staffId" element={<P><StaffProfileDetail /></P>} />
                 <Route path="/erp/hr/timesheets" element={<P><Timesheets /></P>} />
+                <Route path="/erp/hr/timesheets/detail" element={<P><TimesheetDetail /></P>} />
                 <Route path="/erp/hr/pto" element={<P><PTOManagement /></P>} />
+                <Route path="/erp/hr/onboarding" element={<P><OnboardingDashboard /></P>} />
+                <Route path="/erp/hr/reviews" element={<P><PerformanceReviews /></P>} />
                 <Route path="/erp/hr/payroll" element={<P><PayrollExport /></P>} />
+                <Route path="/erp/hr/payroll/runs" element={<P><PayRuns /></P>} />
+                <Route path="/erp/hr/directory" element={<P><StaffDirectory /></P>} />
+                <Route path="/erp/hr/analytics" element={<P><HRAnalytics /></P>} />
 
                 {/* Assets */}
                 <Route path="/assets" element={<P><AssetsDashboard /></P>} />

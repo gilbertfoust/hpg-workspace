@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -24,6 +25,7 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 export default function Timesheets() {
+  const navigate = useNavigate();
   const { data: timesheets, isLoading, create, updateStatus, updateHours } = useTimesheets();
   const { data: staff } = useStaffProfiles({ status: "active" });
   const { data: ngos } = useNGOs();
@@ -107,13 +109,16 @@ export default function Timesheets() {
                     </TableCell>
                     <TableCell><Badge className={STATUS_COLORS[ts.status] ?? ""}>{ts.status}</Badge></TableCell>
                     <TableCell>
-                      {ts.status === "draft" && <Button size="sm" variant="outline" onClick={() => updateStatus.mutate({ id: ts.id, status: "submitted" })}>Submit</Button>}
-                      {ts.status === "submitted" && (
-                        <div className="flex gap-1">
-                          <Button size="sm" variant="default" onClick={() => updateStatus.mutate({ id: ts.id, status: "approved", approved_by_user_id: user?.id })}>Approve</Button>
-                          <Button size="sm" variant="destructive" onClick={() => updateStatus.mutate({ id: ts.id, status: "rejected" })}>Reject</Button>
-                        </div>
-                      )}
+                      <div className="flex gap-1">
+                        <Button size="sm" variant="ghost" onClick={() => navigate(`/erp/hr/timesheets/detail?id=${ts.id}`)}>Entries</Button>
+                        {ts.status === "draft" && <Button size="sm" variant="outline" onClick={() => updateStatus.mutate({ id: ts.id, status: "submitted" })}>Submit</Button>}
+                        {ts.status === "submitted" && (
+                          <>
+                            <Button size="sm" variant="default" onClick={() => updateStatus.mutate({ id: ts.id, status: "approved", approved_by_user_id: user?.id })}>Approve</Button>
+                            <Button size="sm" variant="destructive" onClick={() => updateStatus.mutate({ id: ts.id, status: "rejected" })}>Reject</Button>
+                          </>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
