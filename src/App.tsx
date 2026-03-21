@@ -228,6 +228,12 @@ const App = () => {
                 <Route path="/financial-hub/cash-flow-forecast/:forecastId" element={<P><CashFlowForecastPage /></P>} />
                 <Route path="/financial-hub/reconciliation" element={<P><BankReconciliationPage /></P>} />
                 <Route path="/financial-hub/reports/period-comparison" element={<P><PeriodComparisonPage /></P>} />
+                <Route path="/financial-hub/invoices" element={<P><InvoicesPage /></P>} />
+                <Route path="/financial-hub/reports/aged-receivables" element={<P><AgedReceivablesPage /></P>} />
+                <Route path="/financial-hub/bills" element={<P><BillsPage /></P>} />
+                <Route path="/financial-hub/reports/aged-payables" element={<P><AgedPayablesPage /></P>} />
+                <Route path="/financial-hub/recurring-transactions" element={<P><RecurringTransactionsPage /></P>} />
+                <Route path="/financial-hub/reports/tax-liability" element={<P><TaxLiabilityPage /></P>} />
 
                 {/* Department Forms */}
                 <Route path="/department-forms" element={<P><DepartmentForms /></P>} />
