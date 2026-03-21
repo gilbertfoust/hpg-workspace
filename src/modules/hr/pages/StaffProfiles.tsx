@@ -22,6 +22,7 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 export default function StaffProfiles() {
+  const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const { data: staff, isLoading, create, update } = useStaffProfiles();
   const { data: ngos } = useNGOs();
