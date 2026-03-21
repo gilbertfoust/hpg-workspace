@@ -100,8 +100,13 @@ const Auth = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted p-4">
-      <Card className="w-full max-w-md">
+    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
+      <div
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+        style={{ backgroundImage: "url('/images/hpg-command-center-1.png')" }}
+      />
+      <div className="absolute inset-0 bg-background/60 backdrop-blur-sm" />
+      <Card className="w-full max-w-md relative z-10">
         <CardHeader className="text-center space-y-2">
           <div className="flex justify-center mb-2">
             <div className="h-14 w-14 rounded-xl border bg-background/60 flex items-center justify-center overflow-hidden">
