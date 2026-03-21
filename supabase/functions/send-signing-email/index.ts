@@ -127,7 +127,8 @@ serve(async (req) => {
       );
     }
 
-    const { SmtpClient } = await import("https://deno.land/x/denomailer@1.6.0/mod.ts");
+    const denomailer = await import("https://deno.land/x/denomailer@1.6.0/mod.ts");
+    const SmtpClient = (denomailer as any).SmtpClient;
 
     const client = new SmtpClient();
     await client.connectTLS({
@@ -153,7 +154,7 @@ serve(async (req) => {
   } catch (error) {
     console.error("Error sending signing email:", error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: (error as Error).message }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
