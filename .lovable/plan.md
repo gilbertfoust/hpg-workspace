@@ -1,87 +1,178 @@
 
 
-# Assessment: Financial Hub Readiness
+# HR Hub — Gap Analysis & Build Plan
 
-## Current State — What's Real vs. Placeholder
+## Current State
 
-The Financial Hub pages are **genuinely functional**, not placeholders. Here's what works today:
+The HR module has **6 working pages** and a **functional ATS pipeline**:
 
-### Fully Operational (data entry + live queries)
-- **Journal Entry Workspace** — real batch entry form with account selector, debit/credit balancing, period-lock enforcement, posts to `transactions` + `journal_entries`
-- **Invoices (AR)** — create invoices, mark sent, record payment (auto-generates balanced journal entries: DR Cash / CR AR)
-- **Bills (AP)** — enter vendor bills (auto-posts DR Expense / CR AP), record payments
-- **Trial Balance Worksheet** — aggregates journal entries by account with beginning/ending balances, CSV export
-- **Profit & Loss** — reads real journal data, groups by income_statement_section, supports period comparison
-- **Balance Sheet** — reads real ledger balances, calculates 5 financial ratios
-- **Cash Flow Statement** — maps accounts by cash_flow_section
-- **Bank Reconciliation** — create reconciliations, add line items (deposits in transit, outstanding checks, etc.)
-- **Chart of Accounts** — create/edit accounts with code, name, type
-- **Aging Reports** — AR and AP aging buckets with CSV export
+| Feature | Status | Depth |
+|---------|--------|-------|
+| HR Dashboard (KPIs) | Built | Summary cards only, no charts or trends |
+| Staff Profiles | Built | List + create dialog. No detail page, no edit form, no documents |
+| Timesheets | Built | Create/submit/approve flow. Only total hours — no daily line items |
+| PTO Management | Built | Request/approve. No calendar view, no balance auto-deduction |
+| Payroll Export | Built | CSV export. No pay period management or pay run history |
+| Job Requisitions (ATS) | Built | Full CRUD with audit logging |
+| Applicant Pipeline | Built | Stage-grouped table, detail drawer with document upload + interviews |
+| Interview Scorecards | Built | Log interviews with rubric scores and recommendations |
 
-### What's Missing to Make It Production-Ready
-
-1. **No PDF export** — reports only render in-browser. No PDF generation for P&L, Balance Sheet, Trial Balance, invoices, or journal entries. The only "print" capability is the SavedLedgersSection `window.print()` hack.
-
-2. **No "Save to Documents" flow** — financial reports can't be saved as documents into the NGO document system. The `SavedLedgerDocument` system exists for transaction snapshots, but statements (P&L, Balance Sheet, etc.) have no save/export-to-documents button.
-
-3. **Chart of Accounts editor lacks the extended fields** — the `AccountsTable` create/edit form only sets `code`, `name`, `type`. It doesn't expose `normal_balance`, `balance_sheet_section`, `income_statement_section`, `cash_flow_section`, `is_contra_account` — the fields that drive the P&L and Balance Sheet groupings. Without setting these, statements show $0 everywhere.
-
-4. **No CSV/bank import** on the Reconciliation page.
-
-5. **No Opening Balances entry UI** — the hook exists but there's no page to enter opening balances.
-
-6. **Recurring Transactions** — the page exists but there's no auto-execution logic; it's just a list.
+**Compare to the Financial Hub**: The Financial Hub has 20+ deeply functional pages (Journal, Ledger, Trial Balance, P&L, Balance Sheet, Cash Flow, Forecasts, Reconciliation, Invoices, Bills, Aging Reports, Tax Liability, Recurring Transactions, Period Comparison). The HR Hub has 6 pages that are functional but shallow.
 
 ---
 
-## Plan: Make Accounting Truly Usable End-to-End
+## What Needs to Be Built
 
-### Step 1: Fix the Chart of Accounts Editor
-Extend `AccountsTable` create/edit dialog to include:
-- `normal_balance` (debit/credit)
-- `financial_statement_type` (balance_sheet / income_statement / cash_flow_support)
-- `balance_sheet_section`, `income_statement_section`, `cash_flow_section`
-- `is_contra_account`
+### 1. Staff Profile Detail Page
+A dedicated `/erp/hr/staff/:staffId` page with:
+- Personal info editor (name, email, phone, emergency contact)
+- Employment details (title, type, department, NGO, salary/rate, start/end dates)
+- Documents tab (contracts, ID copies, tax forms — stored in existing `ngo-documents` bucket)
+- Timesheets tab (filtered to this employee)
+- PTO history tab
+- Notes/activity log
+- Status change with termination date support
 
-This is the **critical blocker** — without these fields, P&L and Balance Sheet always show zeros.
+### 2. Timesheet Line Items
+New table `timesheet_entries` to support daily/task-level time tracking:
+- staff_id, timesheet_id, entry_date, hours, project/task description, cost_center_id
+- The existing Timesheets page becomes a summary; a detail view shows the daily grid
+- Auto-sum line items into the timesheet total_hours
 
-### Step 2: Opening Balances Entry UI
-Add an Opening Balances tab or page where users can set per-account beginning balances for a fiscal period. Use the existing `useOpeningBalances` hook.
+### 3. PTO Calendar & Balance Auto-Tracking
+- Calendar view showing who's out when (visual grid by week/month)
+- Auto-deduct PTO balance when a request is approved
+- Auto-restore balance when canceled
+- Accrual rules (optional future: monthly accrual rate on staff_profiles)
 
-### Step 3: PDF Export for Financial Reports
-Add a "Download PDF" button to:
-- P&L, Balance Sheet, Cash Flow Statement, Trial Balance
-- Individual journal entries / transaction detail
-- Invoices and Bills
+### 4. Employee Documents Hub
+New table `staff_documents`:
+- staff_id (FK → staff_profiles), document_type (contract, id_copy, tax_form, certification, other), file_name, storage_path, uploaded_at, expiry_date (nullable)
+- Dedicated tab on the Staff Detail page
+- Upload and download from `ngo-documents` bucket under `hr/staff/{staffId}/` path
 
-Use client-side HTML-to-print with `window.print()` styled for PDF (no external library needed — browser print-to-PDF is reliable and avoids adding dependencies).
+### 5. Onboarding & Offboarding Checklists
+New table `hr_checklists`:
+- id, ngo_id, checklist_type (onboarding | offboarding), name, items (JSONB array of checklist steps)
 
-### Step 4: Save Report Snapshots to Documents
-Add "Save to Documents" button on each financial statement page that:
-- Renders the current report as HTML
-- Saves it to `saved_ledger_documents` (already exists)
-- Optionally uploads a PDF blob to `ngo-documents` storage bucket
+New table `hr_checklist_assignments`:
+- id, staff_id, checklist_id, status (pending | in_progress | completed), assigned_at, completed_at, item_statuses (JSONB — tracks each item's completion)
 
-### Step 5: Bank CSV Import
-Add CSV upload on the Reconciliation page that parses date/description/amount columns and creates reconciliation items or unmatched transactions.
+- Onboarding page at `/erp/hr/onboarding` showing active onboarding assignments
+- When an applicant is marked "Hired", auto-assign the default onboarding checklist
+- Offboarding triggered when staff status → terminated
 
-### Technical Details
+### 6. Performance Reviews
+New table `performance_reviews`:
+- id, staff_id, ngo_id, reviewer_user_id, review_period_start, review_period_end, status (draft | submitted | acknowledged), overall_rating (1-5), goals_met (JSONB), strengths, areas_for_improvement, reviewer_comments, staff_comments, created_at, updated_at
 
-**Files to create:**
-- `src/pages/OpeningBalancesPage.tsx` — opening balance entry grid
-- `src/utils/financialPdfExport.ts` — shared print/PDF utility
+- Page at `/erp/hr/reviews` — list all reviews, create new review cycles
+- Detail view per review with rating scales and narrative fields
 
-**Files to modify:**
-- `src/components/finance/AccountsTable.tsx` — extend create/edit form with classification fields
-- `src/hooks/useAccounts.ts` — ensure create/update mutations pass extended fields
-- `src/pages/ProfitAndLoss.tsx` — add Print/Save buttons
-- `src/pages/BalanceSheetPage.tsx` — add Print/Save buttons
-- `src/pages/TrialBalanceWorksheet.tsx` — add Print button
-- `src/pages/CashFlowStatement.tsx` — add Print/Save buttons
-- `src/pages/InvoicesPage.tsx` — add Print invoice button
-- `src/pages/BankReconciliationPage.tsx` — add CSV import
-- `src/App.tsx` — add Opening Balances route
-- `src/components/layout/AppSidebar.tsx` — add Opening Balances nav item
+### 7. Training & Certifications Tracker
+New table `staff_certifications`:
+- id, staff_id, certification_name, issuing_body, issue_date, expiry_date, status (active | expired | pending_renewal), document_path, notes
 
-**No database changes needed** — all tables and columns already exist.
+- Section on Staff Detail page
+- Dashboard card showing expiring certifications (next 30/60/90 days)
+
+### 8. HR Analytics Dashboard
+Upgrade the existing HRModuleDashboard with:
+- Headcount over time (line chart)
+- Turnover rate (terminated in period / average headcount)
+- Headcount by department, by NGO, by employment type (bar/pie charts)
+- Average tenure
+- PTO utilization rate
+- Open requisitions → time-to-fill metrics
+- Cost summary (total payroll by NGO/department)
+
+### 9. Pay Run Management
+New table `pay_runs`:
+- id, ngo_id, pay_period_start, pay_period_end, status (draft | processing | completed), total_gross, total_net, run_date, notes, created_at
+
+New table `pay_run_items`:
+- id, pay_run_id, staff_id, regular_hours, overtime_hours, gross_pay, deductions (JSONB), net_pay
+
+- Page at `/erp/hr/payroll/runs` — create pay runs from approved timesheets
+- Auto-pull approved timesheet hours for the period
+- Calculate gross from salary/hourly rate
+- CSV export per pay run (replaces the current flat export)
+
+### 10. Company Directory & Org Chart
+- `/erp/hr/directory` — searchable card grid of all active staff with photo placeholder, title, department, contact info
+- Simple org chart visualization using department hierarchy from org_units
+
+---
+
+## Navigation Updates
+
+Under **HR & Workforce** in the ERP sidebar, expand to:
+- Dashboard (existing)
+- Staff Profiles (existing)
+- Staff Detail (route only, no sidebar link — accessed from profiles)
+- Timesheets (existing, enhanced)
+- PTO (existing, enhanced with calendar)
+- Onboarding
+- Reviews
+- Payroll Runs (replaces current Payroll Export)
+- Directory
+- Analytics
+
+---
+
+## Database Changes (1 migration)
+
+**New tables (7):**
+1. `timesheet_entries` — daily time line items
+2. `staff_documents` — per-employee document storage
+3. `hr_checklists` — onboarding/offboarding templates
+4. `hr_checklist_assignments` — assigned checklists per staff
+5. `performance_reviews` — review cycles
+6. `staff_certifications` — training/cert tracking
+7. `pay_runs` + `pay_run_items` — payroll processing
+
+All tables get RLS policies matching the existing `authenticated` user pattern.
+
+---
+
+## Files Summary
+
+**New pages (~10):**
+- `StaffProfileDetail.tsx` — full employee profile
+- `TimesheetDetail.tsx` — daily entry grid
+- `PTOCalendar.tsx` — visual calendar view
+- `OnboardingDashboard.tsx` — active onboarding assignments
+- `PerformanceReviews.tsx` — review cycles
+- `PayRuns.tsx` — pay run management
+- `StaffDirectory.tsx` — card grid + simple org chart
+- `HRAnalytics.tsx` — charts and workforce metrics
+
+**New hooks (~7):**
+- `useTimesheetEntries.ts`
+- `useStaffDocuments.ts`
+- `useHRChecklists.ts`
+- `usePerformanceReviews.ts`
+- `useStaffCertifications.ts`
+- `usePayRuns.ts`
+
+**Modified files (~4):**
+- `AppSidebar.tsx` — expanded HR nav
+- `App.tsx` — new routes
+- `PTOManagement.tsx` — add calendar view tab
+- `Timesheets.tsx` — link to detail entries
+
+---
+
+## Priority Order
+
+1. Staff Profile Detail page (unlocks everything else)
+2. Timesheet line items + daily grid
+3. PTO calendar + auto-balance
+4. Employee documents
+5. HR Analytics dashboard
+6. Pay run management
+7. Onboarding/offboarding checklists
+8. Performance reviews
+9. Training/certifications
+10. Directory/org chart
 
