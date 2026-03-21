@@ -90,8 +90,15 @@ export default function CashFlowStatement() {
         </Card>
 
         <Card>
-          <CardHeader><CardTitle>Cash Flow Statement (Indirect Method)</CardTitle></CardHeader>
-          <CardContent className="space-y-1">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle>Cash Flow Statement (Indirect Method)</CardTitle>
+              <Button variant="outline" size="sm" className="no-print" onClick={() => printElement("cf-report", "Cash Flow Statement")}>
+                <Printer className="w-4 h-4 mr-1" /> Print / PDF
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent id="cf-report" className="space-y-1">
             <p className="text-sm font-semibold text-muted-foreground px-4 pt-2">Operating Activities</p>
             <SectionRow label="Net Cash from Operations" amount={operating} />
             <Separator />

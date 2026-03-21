@@ -163,7 +163,7 @@ export default function ProfitAndLoss() {
               </Button>
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent id="pnl-report">
             <div className="grid grid-cols-5 gap-4 py-2 px-4 text-xs font-semibold uppercase text-muted-foreground border-b">
               <div>Category</div>
               <div className="text-right">Current</div>

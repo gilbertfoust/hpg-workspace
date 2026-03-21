@@ -159,7 +159,7 @@ export default function TrialBalanceWorksheet() {
 
         <Card>
           <CardContent className="p-0">
-            <div className="rounded-md border-0 overflow-auto">
+            <div id="tb-report" className="rounded-md border-0 overflow-auto">
               <Table>
                 <TableHeader>
                   <TableRow>

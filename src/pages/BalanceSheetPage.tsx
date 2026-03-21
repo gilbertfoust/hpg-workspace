@@ -117,7 +117,12 @@ export default function BalanceSheetPage() {
           </CardContent>
         </Card>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="flex justify-end no-print">
+          <Button variant="outline" size="sm" onClick={() => printElement("bs-report", "Balance Sheet")}>
+            <Printer className="w-4 h-4 mr-1" /> Print / PDF
+          </Button>
+        </div>
+        <div id="bs-report" className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Assets */}
           <Card>
             <CardHeader><CardTitle className="text-lg">Assets</CardTitle></CardHeader>
