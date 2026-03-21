@@ -47,6 +47,11 @@ export function MainLayout({ children, title, subtitle, actions }: MainLayoutPro
 
   return (
     <div className="flex min-h-screen w-full bg-background relative overflow-hidden">
+      <div
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-[0.07]"
+        style={{ backgroundImage: "url('/images/hpg-command-center-2.png')" }}
+        aria-hidden="true"
+      />
       <AppSidebar />
       
       <div className="flex-1 flex flex-col min-w-0 relative z-10">
