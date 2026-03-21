@@ -49,8 +49,16 @@ import ChargebacksPage from "./pages/ChargebacksPage";
 import UsageReportsPage from "./pages/UsageReportsPage";
 import DepartmentForms from "./pages/DepartmentForms";
 import AutomationsDashboard from "./pages/AutomationsDashboard";
-
-// Feature pages
+import JournalEntryWorkspace from "./pages/JournalEntryWorkspace";
+import GeneralLedgerOverview from "./pages/GeneralLedgerOverview";
+import AccountLedgerDetail from "./pages/AccountLedgerDetail";
+import TrialBalanceWorksheet from "./pages/TrialBalanceWorksheet";
+import ProfitAndLoss from "./pages/ProfitAndLoss";
+import BalanceSheetPage from "./pages/BalanceSheetPage";
+import CashFlowStatement from "./pages/CashFlowStatement";
+import CashFlowForecastPage from "./pages/CashFlowForecastPage";
+import BankReconciliationPage from "./pages/BankReconciliationPage";
+import PeriodComparisonPage from "./pages/PeriodComparisonPage";
 import MyQueue from "./pages/MyQueue";
 import DeptQueue from "./pages/DeptQueue";
 import HRDashboard from "./pages/HRDashboard";
@@ -203,6 +211,17 @@ const App = () => {
                 <Route path="/financial-hub/allocations" element={<P><AllocationsPage /></P>} />
                 <Route path="/financial-hub/chargebacks" element={<P><ChargebacksPage /></P>} />
                 <Route path="/financial-hub/usage/reports" element={<P><UsageReportsPage /></P>} />
+                <Route path="/financial-hub/journal" element={<P><JournalEntryWorkspace /></P>} />
+                <Route path="/financial-hub/general-ledger" element={<P><GeneralLedgerOverview /></P>} />
+                <Route path="/financial-hub/general-ledger/account/:accountId" element={<P><AccountLedgerDetail /></P>} />
+                <Route path="/financial-hub/trial-balance-worksheet" element={<P><TrialBalanceWorksheet /></P>} />
+                <Route path="/financial-hub/reports/profit-and-loss" element={<P><ProfitAndLoss /></P>} />
+                <Route path="/financial-hub/reports/balance-sheet" element={<P><BalanceSheetPage /></P>} />
+                <Route path="/financial-hub/reports/cash-flow-statement" element={<P><CashFlowStatement /></P>} />
+                <Route path="/financial-hub/cash-flow-forecast" element={<P><CashFlowForecastPage /></P>} />
+                <Route path="/financial-hub/cash-flow-forecast/:forecastId" element={<P><CashFlowForecastPage /></P>} />
+                <Route path="/financial-hub/reconciliation" element={<P><BankReconciliationPage /></P>} />
+                <Route path="/financial-hub/reports/period-comparison" element={<P><PeriodComparisonPage /></P>} />
 
                 {/* Department Forms */}
                 <Route path="/department-forms" element={<P><DepartmentForms /></P>} />

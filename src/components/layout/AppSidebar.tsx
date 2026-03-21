@@ -276,17 +276,23 @@ export function AppSidebar() {
               <NavItem to="/financial-hub" icon={<DollarSign className="w-4 h-4" />} label={isCollapsed ? "" : "Financial Hub"} />
               {!isCollapsed && location.pathname.startsWith("/financial-hub") && (
                 <div className="ml-6 space-y-0.5">
-                  <NavItem to="/financial-hub/accounts" icon={<Layers className="w-3.5 h-3.5" />} label="Accounts" />
+                  <NavItem to="/financial-hub/journal" icon={<ClipboardList className="w-3.5 h-3.5" />} label="Journal" />
+                  <NavItem to="/financial-hub/general-ledger" icon={<FileText className="w-3.5 h-3.5" />} label="General Ledger" />
+                  <NavItem to="/financial-hub/accounts" icon={<Layers className="w-3.5 h-3.5" />} label="Chart of Accounts" />
                   <NavItem to="/financial-hub/transactions" icon={<ClipboardList className="w-3.5 h-3.5" />} label="Transactions" />
-                  <NavItem to="/financial-hub/ledger" icon={<FileText className="w-3.5 h-3.5" />} label="General Ledger" />
-                  <NavItem to="/financial-hub/trial-balance" icon={<BarChart3 className="w-3.5 h-3.5" />} label="Trial Balance" />
+                  <NavItem to="/financial-hub/trial-balance-worksheet" icon={<BarChart3 className="w-3.5 h-3.5" />} label="Trial Balance" />
+                  <NavItem to="/financial-hub/reports/profit-and-loss" icon={<TrendingUp className="w-3.5 h-3.5" />} label="Profit & Loss" />
+                  <NavItem to="/financial-hub/reports/balance-sheet" icon={<Layers className="w-3.5 h-3.5" />} label="Balance Sheet" />
+                  <NavItem to="/financial-hub/reports/cash-flow-statement" icon={<Activity className="w-3.5 h-3.5" />} label="Cash Flow Statement" />
+                  <NavItem to="/financial-hub/cash-flow-forecast" icon={<PieChart className="w-3.5 h-3.5" />} label="Cash Flow Forecast" />
+                  <NavItem to="/financial-hub/reconciliation" icon={<ShieldCheck className="w-3.5 h-3.5" />} label="Reconciliation" />
+                  <NavItem to="/financial-hub/reports/period-comparison" icon={<ArrowLeftRight className="w-3.5 h-3.5" />} label="Period Comparison" />
                   <NavItem to="/financial-hub/intake" icon={<FileText className="w-3.5 h-3.5" />} label="Intake" />
                   <NavItem to="/financial-hub/compliance" icon={<ShieldCheck className="w-3.5 h-3.5" />} label="Compliance" />
                   <NavItem to="/financial-hub/cost-centers" icon={<Combine className="w-3.5 h-3.5" />} label="Cost Centers" />
                   <NavItem to="/financial-hub/usage" icon={<Activity className="w-3.5 h-3.5" />} label="Usage Tracking" />
                   <NavItem to="/financial-hub/allocations" icon={<PieChart className="w-3.5 h-3.5" />} label="Allocations" />
                   <NavItem to="/financial-hub/chargebacks" icon={<ArrowLeftRight className="w-3.5 h-3.5" />} label="Chargebacks" />
-                  <NavItem to="/financial-hub/usage/reports" icon={<BarChart3 className="w-3.5 h-3.5" />} label="Usage Reports" />
                 </div>
               )}
 
