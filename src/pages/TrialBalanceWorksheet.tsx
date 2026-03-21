@@ -149,6 +149,9 @@ export default function TrialBalanceWorksheet() {
                 <Button variant="outline" size="sm" onClick={handleExport} disabled={rows.length === 0}>
                   <Download className="w-4 h-4 mr-1" /> Export CSV
                 </Button>
+                <Button variant="outline" size="sm" onClick={() => printElement("tb-report", "Trial Balance Worksheet")} disabled={rows.length === 0}>
+                  <Printer className="w-4 h-4 mr-1" /> Print / PDF
+                </Button>
               </div>
             </div>
           </CardContent>
