@@ -49,7 +49,7 @@ export function MainLayout({ children, title, subtitle, actions }: MainLayoutPro
     <div className="flex min-h-screen w-full bg-background relative overflow-hidden">
       <div
         className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-[0.07]"
-        style={{ backgroundImage: "url('/images/hpg-command-center-2.png')" }}
+        style={{ backgroundImage: `url('${import.meta.env.BASE_URL}images/hpg-command-center-2.png')` }}
         aria-hidden="true"
       />
       <AppSidebar />
