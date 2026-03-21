@@ -166,7 +166,7 @@ export function FormSubmissionSheet({
         savedSubmission = await createMutation.mutateAsync(createInput);
       }
 
-      onSubmitSuccess?.(savedSubmission);
+      onSubmitSuccess?.(savedSubmission, values, submit);
       onOpenChange(false);
     } catch (error) {
       let errorMessage = error instanceof Error ? error.message : "Failed to save form submission";
