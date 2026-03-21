@@ -97,15 +97,6 @@ export type FormSubmission = Database['public']['Tables']['form_submissions']['R
   };
 };
 
-export interface CreateFormSubmissionInput {
-  form_template_id: string;
-  ngo_id?: string;
-  work_item_id?: string;
-  submitted_by_user_id?: string;
-  payload_json?: Json;
-  submission_status?: string;
-  submitted_at?: string | null;
-}
 export type CreateFormSubmissionInput = Database['public']['Tables']['form_submissions']['Insert'];
 
 const ensureSupabase = () => {
