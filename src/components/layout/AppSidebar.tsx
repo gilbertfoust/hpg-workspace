@@ -369,7 +369,16 @@ export function AppSidebar() {
                   {(expandedERP || isOnERPRoute) && (
                     <div className="mt-2 space-y-1 animate-fade-in">
                       {erpModules.map((item) => (
-                        <NavItem key={item.to} {...item} />
+                        <div key={item.to}>
+                          <NavItem to={item.to} icon={item.icon} label={item.label} />
+                          {(item as any).subItems && location.pathname.startsWith(item.to) && (
+                            <div className="ml-6 space-y-0.5">
+                              {(item as any).subItems.map((sub: { to: string; label: string }) => (
+                                <NavItem key={sub.to} to={sub.to} icon={<ChevronRight className="w-3 h-3" />} label={sub.label} />
+                              ))}
+                            </div>
+                          )}
+                        </div>
                       ))}
                     </div>
                   )}

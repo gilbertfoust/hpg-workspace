@@ -112,7 +112,7 @@ export default function StaffProfiles() {
                 ) : !filtered?.length ? (
                   <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">No staff found</TableCell></TableRow>
                 ) : filtered.map(s => (
-                  <TableRow key={s.id}>
+                  <TableRow key={s.id} className="cursor-pointer" onClick={() => navigate(`/erp/hr/staff/${s.id}`)}>
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <User className="h-4 w-4 text-muted-foreground" />
@@ -127,7 +127,7 @@ export default function StaffProfiles() {
                     <TableCell><Badge variant="outline">{s.employment_type.replace(/_/g, " ")}</Badge></TableCell>
                     <TableCell className="text-sm">{s.pto_balance_hours}h</TableCell>
                     <TableCell><Badge className={STATUS_COLORS[s.status] ?? ""}>{s.status.replace(/_/g, " ")}</Badge></TableCell>
-                    <TableCell>
+                    <TableCell onClick={e => e.stopPropagation()}>
                       <Select value={s.status} onValueChange={v => update.mutate({ id: s.id, status: v })}>
                         <SelectTrigger className="w-[120px] h-8 text-xs"><SelectValue /></SelectTrigger>
                         <SelectContent>{STAFF_STATUSES.map(st => <SelectItem key={st} value={st}>{st.replace(/_/g, " ")}</SelectItem>)}</SelectContent>
