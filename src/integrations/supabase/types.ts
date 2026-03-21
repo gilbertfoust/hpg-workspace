@@ -2643,6 +2643,89 @@ export type Database = {
         }
         Relationships: []
       }
+      hr_checklist_assignments: {
+        Row: {
+          assigned_at: string
+          checklist_id: string
+          completed_at: string | null
+          id: string
+          item_statuses: Json
+          staff_id: string
+          status: string
+        }
+        Insert: {
+          assigned_at?: string
+          checklist_id: string
+          completed_at?: string | null
+          id?: string
+          item_statuses?: Json
+          staff_id: string
+          status?: string
+        }
+        Update: {
+          assigned_at?: string
+          checklist_id?: string
+          completed_at?: string | null
+          id?: string
+          item_statuses?: Json
+          staff_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hr_checklist_assignments_checklist_id_fkey"
+            columns: ["checklist_id"]
+            isOneToOne: false
+            referencedRelation: "hr_checklists"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_checklist_assignments_staff_id_fkey"
+            columns: ["staff_id"]
+            isOneToOne: false
+            referencedRelation: "staff_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hr_checklists: {
+        Row: {
+          checklist_type: string
+          created_at: string
+          id: string
+          items: Json
+          name: string
+          ngo_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          checklist_type?: string
+          created_at?: string
+          id?: string
+          items?: Json
+          name: string
+          ngo_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          checklist_type?: string
+          created_at?: string
+          id?: string
+          items?: Json
+          name?: string
+          ngo_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hr_checklists_ngo_id_fkey"
+            columns: ["ngo_id"]
+            isOneToOne: false
+            referencedRelation: "ngos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       inter_ngo_transfers: {
         Row: {
           amount: number
@@ -3576,6 +3659,190 @@ export type Database = {
             columns: ["partner_id"]
             isOneToOne: false
             referencedRelation: "partners"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pay_run_items: {
+        Row: {
+          created_at: string
+          deductions: Json
+          gross_pay: number
+          id: string
+          net_pay: number
+          overtime_hours: number
+          pay_run_id: string
+          regular_hours: number
+          staff_id: string
+        }
+        Insert: {
+          created_at?: string
+          deductions?: Json
+          gross_pay?: number
+          id?: string
+          net_pay?: number
+          overtime_hours?: number
+          pay_run_id: string
+          regular_hours?: number
+          staff_id: string
+        }
+        Update: {
+          created_at?: string
+          deductions?: Json
+          gross_pay?: number
+          id?: string
+          net_pay?: number
+          overtime_hours?: number
+          pay_run_id?: string
+          regular_hours?: number
+          staff_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pay_run_items_pay_run_id_fkey"
+            columns: ["pay_run_id"]
+            isOneToOne: false
+            referencedRelation: "pay_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pay_run_items_staff_id_fkey"
+            columns: ["staff_id"]
+            isOneToOne: false
+            referencedRelation: "staff_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pay_runs: {
+        Row: {
+          created_at: string
+          created_by_user_id: string | null
+          id: string
+          ngo_id: string
+          notes: string | null
+          pay_period_end: string
+          pay_period_start: string
+          run_date: string | null
+          status: string
+          total_gross: number
+          total_net: number
+        }
+        Insert: {
+          created_at?: string
+          created_by_user_id?: string | null
+          id?: string
+          ngo_id: string
+          notes?: string | null
+          pay_period_end: string
+          pay_period_start: string
+          run_date?: string | null
+          status?: string
+          total_gross?: number
+          total_net?: number
+        }
+        Update: {
+          created_at?: string
+          created_by_user_id?: string | null
+          id?: string
+          ngo_id?: string
+          notes?: string | null
+          pay_period_end?: string
+          pay_period_start?: string
+          run_date?: string | null
+          status?: string
+          total_gross?: number
+          total_net?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pay_runs_created_by_user_id_fkey"
+            columns: ["created_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pay_runs_ngo_id_fkey"
+            columns: ["ngo_id"]
+            isOneToOne: false
+            referencedRelation: "ngos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      performance_reviews: {
+        Row: {
+          areas_for_improvement: string | null
+          created_at: string
+          goals_met: Json | null
+          id: string
+          ngo_id: string | null
+          overall_rating: number | null
+          review_period_end: string
+          review_period_start: string
+          reviewer_comments: string | null
+          reviewer_user_id: string | null
+          staff_comments: string | null
+          staff_id: string
+          status: string
+          strengths: string | null
+          updated_at: string
+        }
+        Insert: {
+          areas_for_improvement?: string | null
+          created_at?: string
+          goals_met?: Json | null
+          id?: string
+          ngo_id?: string | null
+          overall_rating?: number | null
+          review_period_end: string
+          review_period_start: string
+          reviewer_comments?: string | null
+          reviewer_user_id?: string | null
+          staff_comments?: string | null
+          staff_id: string
+          status?: string
+          strengths?: string | null
+          updated_at?: string
+        }
+        Update: {
+          areas_for_improvement?: string | null
+          created_at?: string
+          goals_met?: Json | null
+          id?: string
+          ngo_id?: string | null
+          overall_rating?: number | null
+          review_period_end?: string
+          review_period_start?: string
+          reviewer_comments?: string | null
+          reviewer_user_id?: string | null
+          staff_comments?: string | null
+          staff_id?: string
+          status?: string
+          strengths?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "performance_reviews_ngo_id_fkey"
+            columns: ["ngo_id"]
+            isOneToOne: false
+            referencedRelation: "ngos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "performance_reviews_reviewer_user_id_fkey"
+            columns: ["reviewer_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "performance_reviews_staff_id_fkey"
+            columns: ["staff_id"]
+            isOneToOne: false
+            referencedRelation: "staff_profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -4599,6 +4866,101 @@ export type Database = {
           },
         ]
       }
+      staff_certifications: {
+        Row: {
+          certification_name: string
+          created_at: string
+          document_path: string | null
+          expiry_date: string | null
+          id: string
+          issue_date: string | null
+          issuing_body: string | null
+          notes: string | null
+          staff_id: string
+          status: string
+        }
+        Insert: {
+          certification_name: string
+          created_at?: string
+          document_path?: string | null
+          expiry_date?: string | null
+          id?: string
+          issue_date?: string | null
+          issuing_body?: string | null
+          notes?: string | null
+          staff_id: string
+          status?: string
+        }
+        Update: {
+          certification_name?: string
+          created_at?: string
+          document_path?: string | null
+          expiry_date?: string | null
+          id?: string
+          issue_date?: string | null
+          issuing_body?: string | null
+          notes?: string | null
+          staff_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staff_certifications_staff_id_fkey"
+            columns: ["staff_id"]
+            isOneToOne: false
+            referencedRelation: "staff_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      staff_documents: {
+        Row: {
+          document_type: string
+          expiry_date: string | null
+          file_name: string
+          id: string
+          staff_id: string
+          storage_path: string
+          uploaded_at: string
+          uploaded_by_user_id: string | null
+        }
+        Insert: {
+          document_type?: string
+          expiry_date?: string | null
+          file_name: string
+          id?: string
+          staff_id: string
+          storage_path: string
+          uploaded_at?: string
+          uploaded_by_user_id?: string | null
+        }
+        Update: {
+          document_type?: string
+          expiry_date?: string | null
+          file_name?: string
+          id?: string
+          staff_id?: string
+          storage_path?: string
+          uploaded_at?: string
+          uploaded_by_user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staff_documents_staff_id_fkey"
+            columns: ["staff_id"]
+            isOneToOne: false
+            referencedRelation: "staff_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "staff_documents_uploaded_by_user_id_fkey"
+            columns: ["uploaded_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       staff_profiles: {
         Row: {
           annual_salary: number | null
@@ -5004,6 +5366,61 @@ export type Database = {
             columns: ["work_item_id"]
             isOneToOne: false
             referencedRelation: "work_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      timesheet_entries: {
+        Row: {
+          cost_center_id: string | null
+          created_at: string
+          description: string | null
+          entry_date: string
+          hours: number
+          id: string
+          staff_id: string
+          timesheet_id: string
+        }
+        Insert: {
+          cost_center_id?: string | null
+          created_at?: string
+          description?: string | null
+          entry_date: string
+          hours?: number
+          id?: string
+          staff_id: string
+          timesheet_id: string
+        }
+        Update: {
+          cost_center_id?: string | null
+          created_at?: string
+          description?: string | null
+          entry_date?: string
+          hours?: number
+          id?: string
+          staff_id?: string
+          timesheet_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "timesheet_entries_cost_center_id_fkey"
+            columns: ["cost_center_id"]
+            isOneToOne: false
+            referencedRelation: "cost_centers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "timesheet_entries_staff_id_fkey"
+            columns: ["staff_id"]
+            isOneToOne: false
+            referencedRelation: "staff_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "timesheet_entries_timesheet_id_fkey"
+            columns: ["timesheet_id"]
+            isOneToOne: false
+            referencedRelation: "timesheets"
             referencedColumns: ["id"]
           },
         ]
