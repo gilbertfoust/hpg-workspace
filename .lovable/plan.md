@@ -1,64 +1,87 @@
 
 
-# Fill QuickBooks Feature Gaps in Financial Hub
+# Assessment: Financial Hub Readiness
 
-## What's Missing (prioritized by impact)
+## Current State — What's Real vs. Placeholder
 
-### 1. Invoicing & Accounts Receivable
-- **New tables**: `invoices` (invoice_number, customer_name, due_date, status: draft/sent/paid/overdue, total, ngo_id, fiscal_period_id), `invoice_line_items` (invoice_id, description, quantity, unit_price, account_id, amount)
-- **New page**: `/financial-hub/invoices` — list, create, mark paid
-- **New page**: `/financial-hub/reports/aged-receivables` — 0-30, 31-60, 61-90, 90+ day buckets
-- Posting an invoice auto-creates a journal entry (DR Accounts Receivable, CR Revenue)
-- Recording payment auto-creates journal entry (DR Cash, CR Accounts Receivable)
+The Financial Hub pages are **genuinely functional**, not placeholders. Here's what works today:
 
-### 2. Bills & Accounts Payable
-- **New tables**: `bills` (vendor_name, bill_number, due_date, status: pending/paid/overdue, total, ngo_id), `bill_line_items` (bill_id, description, amount, account_id)
-- **New page**: `/financial-hub/bills` — enter bills, record payments
-- **New page**: `/financial-hub/reports/aged-payables` — aging buckets
-- Entering a bill: DR Expense/Asset, CR Accounts Payable
-- Paying a bill: DR Accounts Payable, CR Cash
+### Fully Operational (data entry + live queries)
+- **Journal Entry Workspace** — real batch entry form with account selector, debit/credit balancing, period-lock enforcement, posts to `transactions` + `journal_entries`
+- **Invoices (AR)** — create invoices, mark sent, record payment (auto-generates balanced journal entries: DR Cash / CR AR)
+- **Bills (AP)** — enter vendor bills (auto-posts DR Expense / CR AP), record payments
+- **Trial Balance Worksheet** — aggregates journal entries by account with beginning/ending balances, CSV export
+- **Profit & Loss** — reads real journal data, groups by income_statement_section, supports period comparison
+- **Balance Sheet** — reads real ledger balances, calculates 5 financial ratios
+- **Cash Flow Statement** — maps accounts by cash_flow_section
+- **Bank Reconciliation** — create reconciliations, add line items (deposits in transit, outstanding checks, etc.)
+- **Chart of Accounts** — create/edit accounts with code, name, type
+- **Aging Reports** — AR and AP aging buckets with CSV export
 
-### 3. Recurring Transactions
-- **New table**: `recurring_transactions` (ngo_id, template_name, frequency: weekly/monthly/quarterly, next_run_date, transaction_template JSONB, is_active)
-- UI to define and manage recurring entries on the Journal page
-- Edge function or client-side logic to auto-post when due
+### What's Missing to Make It Production-Ready
 
-### 4. Bank Transaction Import
-- CSV upload component on the Reconciliation page
-- Parse and match imported rows against existing transactions
-- Create unmatched items as new journal entries or reconciliation items
+1. **No PDF export** — reports only render in-browser. No PDF generation for P&L, Balance Sheet, Trial Balance, invoices, or journal entries. The only "print" capability is the SavedLedgersSection `window.print()` hack.
 
-### 5. Receipt/Document Attachment on Transactions
-- **New table**: `transaction_attachments` (transaction_id FK, document_id FK → documents)
-- Upload button on journal entry and transaction views
-- Links to existing document storage system
+2. **No "Save to Documents" flow** — financial reports can't be saved as documents into the NGO document system. The `SavedLedgerDocument` system exists for transaction snapshots, but statements (P&L, Balance Sheet, etc.) have no save/export-to-documents button.
 
-### 6. Financial Report Export
-- Add PDF/CSV export buttons to P&L, Balance Sheet, Cash Flow, Trial Balance, and aging reports
-- Use client-side generation (jsPDF + autoTable for PDF, native CSV)
+3. **Chart of Accounts editor lacks the extended fields** — the `AccountsTable` create/edit form only sets `code`, `name`, `type`. It doesn't expose `normal_balance`, `balance_sheet_section`, `income_statement_section`, `cash_flow_section`, `is_contra_account` — the fields that drive the P&L and Balance Sheet groupings. Without setting these, statements show $0 everywhere.
 
-### 7. Sales Tax Tracking
-- **New table**: `tax_rates` (name, rate, is_default, ngo_id)
-- Apply tax on invoice line items
-- **New page**: `/financial-hub/reports/tax-liability` — summarize collected vs owed
+4. **No CSV/bank import** on the Reconciliation page.
 
-### 8. Navigation Updates
-Add to Financial Hub sidebar group:
-- Invoices, Bills, Recurring Transactions
-- Under Reports sub-group: Aged Receivables, Aged Payables, Tax Liability
+5. **No Opening Balances entry UI** — the hook exists but there's no page to enter opening balances.
 
-## Technical approach
-- All new tables get RLS policies matching existing pattern (authenticated users)
-- Invoice/bill posting reuses existing `transactions` + `journal_entries` tables — no duplicate ledger
-- New hooks: `useInvoices`, `useBills`, `useRecurringTransactions`, `useTaxRates`
-- ~12 new files (pages + hooks), 1 migration, sidebar update
+6. **Recurring Transactions** — the page exists but there's no auto-execution logic; it's just a list.
 
-## Priority order for implementation
-1. Invoices + AR + Aged Receivables (highest user value)
-2. Bills + AP + Aged Payables
-3. Report export (PDF/CSV)
-4. Recurring transactions
-5. Receipt attachments
-6. Bank import
-7. Sales tax
+---
+
+## Plan: Make Accounting Truly Usable End-to-End
+
+### Step 1: Fix the Chart of Accounts Editor
+Extend `AccountsTable` create/edit dialog to include:
+- `normal_balance` (debit/credit)
+- `financial_statement_type` (balance_sheet / income_statement / cash_flow_support)
+- `balance_sheet_section`, `income_statement_section`, `cash_flow_section`
+- `is_contra_account`
+
+This is the **critical blocker** — without these fields, P&L and Balance Sheet always show zeros.
+
+### Step 2: Opening Balances Entry UI
+Add an Opening Balances tab or page where users can set per-account beginning balances for a fiscal period. Use the existing `useOpeningBalances` hook.
+
+### Step 3: PDF Export for Financial Reports
+Add a "Download PDF" button to:
+- P&L, Balance Sheet, Cash Flow Statement, Trial Balance
+- Individual journal entries / transaction detail
+- Invoices and Bills
+
+Use client-side HTML-to-print with `window.print()` styled for PDF (no external library needed — browser print-to-PDF is reliable and avoids adding dependencies).
+
+### Step 4: Save Report Snapshots to Documents
+Add "Save to Documents" button on each financial statement page that:
+- Renders the current report as HTML
+- Saves it to `saved_ledger_documents` (already exists)
+- Optionally uploads a PDF blob to `ngo-documents` storage bucket
+
+### Step 5: Bank CSV Import
+Add CSV upload on the Reconciliation page that parses date/description/amount columns and creates reconciliation items or unmatched transactions.
+
+### Technical Details
+
+**Files to create:**
+- `src/pages/OpeningBalancesPage.tsx` — opening balance entry grid
+- `src/utils/financialPdfExport.ts` — shared print/PDF utility
+
+**Files to modify:**
+- `src/components/finance/AccountsTable.tsx` — extend create/edit form with classification fields
+- `src/hooks/useAccounts.ts` — ensure create/update mutations pass extended fields
+- `src/pages/ProfitAndLoss.tsx` — add Print/Save buttons
+- `src/pages/BalanceSheetPage.tsx` — add Print/Save buttons
+- `src/pages/TrialBalanceWorksheet.tsx` — add Print button
+- `src/pages/CashFlowStatement.tsx` — add Print/Save buttons
+- `src/pages/InvoicesPage.tsx` — add Print invoice button
+- `src/pages/BankReconciliationPage.tsx` — add CSV import
+- `src/App.tsx` — add Opening Balances route
+- `src/components/layout/AppSidebar.tsx` — add Opening Balances nav item
+
+**No database changes needed** — all tables and columns already exist.
 
