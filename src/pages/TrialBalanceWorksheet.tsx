@@ -13,6 +13,7 @@ import { useExtendedAccounts, defaultNormalBalance } from "@/hooks/useExtendedAc
 import { useOpeningBalances } from "@/hooks/useOpeningBalances";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
+import { printElement } from "@/utils/financialPdfExport";
 
 interface TrialBalanceWorksheetRow {
   account_id: string;
