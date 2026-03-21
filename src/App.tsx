@@ -49,8 +49,16 @@ import ChargebacksPage from "./pages/ChargebacksPage";
 import UsageReportsPage from "./pages/UsageReportsPage";
 import DepartmentForms from "./pages/DepartmentForms";
 import AutomationsDashboard from "./pages/AutomationsDashboard";
-
-// Feature pages
+import JournalEntryWorkspace from "./pages/JournalEntryWorkspace";
+import GeneralLedgerOverview from "./pages/GeneralLedgerOverview";
+import AccountLedgerDetail from "./pages/AccountLedgerDetail";
+import TrialBalanceWorksheet from "./pages/TrialBalanceWorksheet";
+import ProfitAndLoss from "./pages/ProfitAndLoss";
+import BalanceSheetPage from "./pages/BalanceSheetPage";
+import CashFlowStatement from "./pages/CashFlowStatement";
+import CashFlowForecastPage from "./pages/CashFlowForecastPage";
+import BankReconciliationPage from "./pages/BankReconciliationPage";
+import PeriodComparisonPage from "./pages/PeriodComparisonPage";
 import MyQueue from "./pages/MyQueue";
 import DeptQueue from "./pages/DeptQueue";
 import HRDashboard from "./pages/HRDashboard";
