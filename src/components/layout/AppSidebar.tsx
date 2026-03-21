@@ -287,6 +287,12 @@ export function AppSidebar() {
                   <NavItem to="/financial-hub/cash-flow-forecast" icon={<PieChart className="w-3.5 h-3.5" />} label="Cash Flow Forecast" />
                   <NavItem to="/financial-hub/reconciliation" icon={<ShieldCheck className="w-3.5 h-3.5" />} label="Reconciliation" />
                   <NavItem to="/financial-hub/reports/period-comparison" icon={<ArrowLeftRight className="w-3.5 h-3.5" />} label="Period Comparison" />
+                  <NavItem to="/financial-hub/invoices" icon={<FileText className="w-3.5 h-3.5" />} label="Invoices (AR)" />
+                  <NavItem to="/financial-hub/bills" icon={<ClipboardList className="w-3.5 h-3.5" />} label="Bills (AP)" />
+                  <NavItem to="/financial-hub/recurring-transactions" icon={<Zap className="w-3.5 h-3.5" />} label="Recurring" />
+                  <NavItem to="/financial-hub/reports/aged-receivables" icon={<BarChart3 className="w-3.5 h-3.5" />} label="Aged Receivables" />
+                  <NavItem to="/financial-hub/reports/aged-payables" icon={<BarChart3 className="w-3.5 h-3.5" />} label="Aged Payables" />
+                  <NavItem to="/financial-hub/reports/tax-liability" icon={<DollarSign className="w-3.5 h-3.5" />} label="Tax Liability" />
                   <NavItem to="/financial-hub/intake" icon={<FileText className="w-3.5 h-3.5" />} label="Intake" />
                   <NavItem to="/financial-hub/compliance" icon={<ShieldCheck className="w-3.5 h-3.5" />} label="Compliance" />
                   <NavItem to="/financial-hub/cost-centers" icon={<Combine className="w-3.5 h-3.5" />} label="Cost Centers" />

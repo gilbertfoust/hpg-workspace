@@ -59,6 +59,12 @@ import CashFlowStatement from "./pages/CashFlowStatement";
 import CashFlowForecastPage from "./pages/CashFlowForecastPage";
 import BankReconciliationPage from "./pages/BankReconciliationPage";
 import PeriodComparisonPage from "./pages/PeriodComparisonPage";
+import InvoicesPage from "./pages/InvoicesPage";
+import AgedReceivablesPage from "./pages/AgedReceivablesPage";
+import BillsPage from "./pages/BillsPage";
+import AgedPayablesPage from "./pages/AgedPayablesPage";
+import RecurringTransactionsPage from "./pages/RecurringTransactionsPage";
+import TaxLiabilityPage from "./pages/TaxLiabilityPage";
 import MyQueue from "./pages/MyQueue";
 import DeptQueue from "./pages/DeptQueue";
 import HRDashboard from "./pages/HRDashboard";
@@ -222,6 +228,12 @@ const App = () => {
                 <Route path="/financial-hub/cash-flow-forecast/:forecastId" element={<P><CashFlowForecastPage /></P>} />
                 <Route path="/financial-hub/reconciliation" element={<P><BankReconciliationPage /></P>} />
                 <Route path="/financial-hub/reports/period-comparison" element={<P><PeriodComparisonPage /></P>} />
+                <Route path="/financial-hub/invoices" element={<P><InvoicesPage /></P>} />
+                <Route path="/financial-hub/reports/aged-receivables" element={<P><AgedReceivablesPage /></P>} />
+                <Route path="/financial-hub/bills" element={<P><BillsPage /></P>} />
+                <Route path="/financial-hub/reports/aged-payables" element={<P><AgedPayablesPage /></P>} />
+                <Route path="/financial-hub/recurring-transactions" element={<P><RecurringTransactionsPage /></P>} />
+                <Route path="/financial-hub/reports/tax-liability" element={<P><TaxLiabilityPage /></P>} />
 
                 {/* Department Forms */}
                 <Route path="/department-forms" element={<P><DepartmentForms /></P>} />

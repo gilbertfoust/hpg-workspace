@@ -859,6 +859,163 @@ export type Database = {
           },
         ]
       }
+      bill_line_items: {
+        Row: {
+          account_id: string | null
+          amount: number
+          bill_id: string
+          created_at: string
+          description: string
+          id: string
+          quantity: number
+          unit_price: number
+        }
+        Insert: {
+          account_id?: string | null
+          amount?: number
+          bill_id: string
+          created_at?: string
+          description?: string
+          id?: string
+          quantity?: number
+          unit_price?: number
+        }
+        Update: {
+          account_id?: string | null
+          amount?: number
+          bill_id?: string
+          created_at?: string
+          description?: string
+          id?: string
+          quantity?: number
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bill_line_items_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bill_line_items_bill_id_fkey"
+            columns: ["bill_id"]
+            isOneToOne: false
+            referencedRelation: "bills"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bills: {
+        Row: {
+          ap_account_id: string | null
+          bill_date: string
+          bill_number: string
+          created_at: string
+          due_date: string
+          fiscal_period_id: string | null
+          id: string
+          ngo_id: string
+          notes: string | null
+          paid_date: string | null
+          payment_transaction_id: string | null
+          status: string
+          subtotal: number
+          tax_amount: number
+          total: number
+          transaction_id: string | null
+          updated_at: string
+          vendor_name: string
+          vendor_org_id: string | null
+        }
+        Insert: {
+          ap_account_id?: string | null
+          bill_date?: string
+          bill_number: string
+          created_at?: string
+          due_date: string
+          fiscal_period_id?: string | null
+          id?: string
+          ngo_id: string
+          notes?: string | null
+          paid_date?: string | null
+          payment_transaction_id?: string | null
+          status?: string
+          subtotal?: number
+          tax_amount?: number
+          total?: number
+          transaction_id?: string | null
+          updated_at?: string
+          vendor_name: string
+          vendor_org_id?: string | null
+        }
+        Update: {
+          ap_account_id?: string | null
+          bill_date?: string
+          bill_number?: string
+          created_at?: string
+          due_date?: string
+          fiscal_period_id?: string | null
+          id?: string
+          ngo_id?: string
+          notes?: string | null
+          paid_date?: string | null
+          payment_transaction_id?: string | null
+          status?: string
+          subtotal?: number
+          tax_amount?: number
+          total?: number
+          transaction_id?: string | null
+          updated_at?: string
+          vendor_name?: string
+          vendor_org_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bills_ap_account_id_fkey"
+            columns: ["ap_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bills_fiscal_period_id_fkey"
+            columns: ["fiscal_period_id"]
+            isOneToOne: false
+            referencedRelation: "fiscal_periods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bills_ngo_id_fkey"
+            columns: ["ngo_id"]
+            isOneToOne: false
+            referencedRelation: "ngos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bills_payment_transaction_id_fkey"
+            columns: ["payment_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bills_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bills_vendor_org_id_fkey"
+            columns: ["vendor_org_id"]
+            isOneToOne: false
+            referencedRelation: "crm_organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       budget_categories: {
         Row: {
           code: string
@@ -2741,6 +2898,166 @@ export type Database = {
           },
         ]
       }
+      invoice_line_items: {
+        Row: {
+          account_id: string | null
+          amount: number
+          created_at: string
+          description: string
+          id: string
+          invoice_id: string
+          quantity: number
+          tax_rate_id: string | null
+          unit_price: number
+        }
+        Insert: {
+          account_id?: string | null
+          amount?: number
+          created_at?: string
+          description?: string
+          id?: string
+          invoice_id: string
+          quantity?: number
+          tax_rate_id?: string | null
+          unit_price?: number
+        }
+        Update: {
+          account_id?: string | null
+          amount?: number
+          created_at?: string
+          description?: string
+          id?: string
+          invoice_id?: string
+          quantity?: number
+          tax_rate_id?: string | null
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_line_items_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoice_line_items_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoice_line_items_tax_rate_id_fkey"
+            columns: ["tax_rate_id"]
+            isOneToOne: false
+            referencedRelation: "tax_rates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoices: {
+        Row: {
+          ar_account_id: string | null
+          created_at: string
+          customer_email: string | null
+          customer_name: string
+          due_date: string
+          fiscal_period_id: string | null
+          id: string
+          invoice_number: string
+          issue_date: string
+          ngo_id: string
+          notes: string | null
+          paid_date: string | null
+          payment_transaction_id: string | null
+          status: string
+          subtotal: number
+          tax_amount: number
+          total: number
+          transaction_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          ar_account_id?: string | null
+          created_at?: string
+          customer_email?: string | null
+          customer_name: string
+          due_date: string
+          fiscal_period_id?: string | null
+          id?: string
+          invoice_number: string
+          issue_date?: string
+          ngo_id: string
+          notes?: string | null
+          paid_date?: string | null
+          payment_transaction_id?: string | null
+          status?: string
+          subtotal?: number
+          tax_amount?: number
+          total?: number
+          transaction_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ar_account_id?: string | null
+          created_at?: string
+          customer_email?: string | null
+          customer_name?: string
+          due_date?: string
+          fiscal_period_id?: string | null
+          id?: string
+          invoice_number?: string
+          issue_date?: string
+          ngo_id?: string
+          notes?: string | null
+          paid_date?: string | null
+          payment_transaction_id?: string | null
+          status?: string
+          subtotal?: number
+          tax_amount?: number
+          total?: number
+          transaction_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoices_ar_account_id_fkey"
+            columns: ["ar_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_fiscal_period_id_fkey"
+            columns: ["fiscal_period_id"]
+            isOneToOne: false
+            referencedRelation: "fiscal_periods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_ngo_id_fkey"
+            columns: ["ngo_id"]
+            isOneToOne: false
+            referencedRelation: "ngos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_payment_transaction_id_fkey"
+            columns: ["payment_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       job_requisitions: {
         Row: {
           created_at: string
@@ -3903,6 +4220,56 @@ export type Database = {
           },
         ]
       }
+      recurring_transactions: {
+        Row: {
+          created_at: string
+          end_date: string | null
+          frequency: string
+          id: string
+          is_active: boolean
+          last_posted_at: string | null
+          next_run_date: string
+          ngo_id: string
+          template_name: string
+          transaction_template: Json
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          end_date?: string | null
+          frequency?: string
+          id?: string
+          is_active?: boolean
+          last_posted_at?: string | null
+          next_run_date: string
+          ngo_id: string
+          template_name: string
+          transaction_template?: Json
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          end_date?: string | null
+          frequency?: string
+          id?: string
+          is_active?: boolean
+          last_posted_at?: string | null
+          next_run_date?: string
+          ngo_id?: string
+          template_name?: string
+          transaction_template?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recurring_transactions_ngo_id_fkey"
+            columns: ["ngo_id"]
+            isOneToOne: false
+            referencedRelation: "ngos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       reminders: {
         Row: {
           channel: string | null
@@ -4496,6 +4863,47 @@ export type Database = {
           },
         ]
       }
+      tax_rates: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          is_default: boolean
+          name: string
+          ngo_id: string
+          rate: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          name: string
+          ngo_id: string
+          rate?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          name?: string
+          ngo_id?: string
+          rate?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tax_rates_ngo_id_fkey"
+            columns: ["ngo_id"]
+            isOneToOne: false
+            referencedRelation: "ngos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       template_groups: {
         Row: {
           category: string | null
@@ -4666,6 +5074,51 @@ export type Database = {
             columns: ["staff_id"]
             isOneToOne: false
             referencedRelation: "staff_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      transaction_attachments: {
+        Row: {
+          created_at: string
+          file_name: string
+          id: string
+          mime_type: string | null
+          storage_path: string
+          transaction_id: string
+          uploaded_by_user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          file_name: string
+          id?: string
+          mime_type?: string | null
+          storage_path: string
+          transaction_id: string
+          uploaded_by_user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          file_name?: string
+          id?: string
+          mime_type?: string | null
+          storage_path?: string
+          transaction_id?: string
+          uploaded_by_user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transaction_attachments_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transaction_attachments_uploaded_by_user_id_fkey"
+            columns: ["uploaded_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
