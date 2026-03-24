@@ -389,6 +389,6 @@ const Dashboard = () => {
       <AtRiskAndEvidencePanel />
     </div>
     </MainLayout>
-};
+  );
 
 export default Dashboard;
