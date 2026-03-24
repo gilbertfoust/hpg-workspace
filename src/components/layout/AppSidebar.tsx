@@ -195,8 +195,7 @@ export function AppSidebar() {
         title: "Signed out",
         description: "You have been successfully signed out.",
       });
-      const base = import.meta.env.BASE_URL || "/";
-      navigate(`${base}auth`, { replace: true });
+      navigate("/auth", { replace: true });
     }
   };
 
