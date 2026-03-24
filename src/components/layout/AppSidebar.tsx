@@ -144,6 +144,7 @@ const erpModules = [
     { to: "/erp/hr/payroll/runs", label: "Pay Runs" },
     { to: "/erp/hr/directory", label: "Directory" },
     { to: "/erp/hr/analytics", label: "Analytics" },
+    { to: "/erp/hr/recruiting", label: "Recruiting (ATS)" },
   ]},
   { to: "/assets", icon: <Package className="w-4 h-4" />, label: "Assets" },
   { to: "/inventory", icon: <Warehouse className="w-4 h-4" />, label: "Inventory" },
@@ -281,7 +282,7 @@ export function AppSidebar() {
               <NavItem to="/department-forms" icon={<FolderKanban className="w-4 h-4" />} label={isCollapsed ? "" : "Department Forms"} />
               <NavItem to="/documents" icon={<FolderOpen className="w-4 h-4" />} label={isCollapsed ? "" : "Documents"} />
               <NavItem to="/calendar" icon={<Calendar className="w-4 h-4" />} label={isCollapsed ? "" : "Calendar"} />
-              <NavItem to="/hr" icon={<UserPlus className="w-4 h-4" />} label={isCollapsed ? "" : "HR"} />
+              
               <NavItem to="/financial-hub" icon={<DollarSign className="w-4 h-4" />} label={isCollapsed ? "" : "Financial Hub"} />
               {!isCollapsed && location.pathname.startsWith("/financial-hub") && (
                 <div className="ml-6 space-y-0.5">

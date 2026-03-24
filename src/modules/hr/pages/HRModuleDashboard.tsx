@@ -3,7 +3,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useStaffProfiles } from "@/hooks/useStaffProfiles";
 import { useTimesheets } from "@/hooks/useTimesheets";
 import { usePTORequests } from "@/hooks/usePTORequests";
-import { Users, Clock, CalendarDays, AlertCircle } from "lucide-react";
+import { useHRRequisitions } from "@/hooks/useHRRequisitions";
+import { useHRApplicants } from "@/hooks/useHRApplicants";
+import { Users, Clock, CalendarDays, AlertCircle, UserPlus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 
@@ -12,21 +14,25 @@ export default function HRModuleDashboard() {
   const { data: staff } = useStaffProfiles();
   const { data: timesheets } = useTimesheets();
   const { data: ptoRequests } = usePTORequests();
+  const { data: requisitions } = useHRRequisitions();
+  const { data: applicants } = useHRApplicants();
 
   const activeStaff = staff?.filter(s => s.status === "active").length ?? 0;
   const pendingTimesheets = timesheets?.filter(t => t.status === "submitted").length ?? 0;
   const pendingPTO = ptoRequests?.filter(p => p.status === "pending").length ?? 0;
   const onLeave = staff?.filter(s => s.status === "on_leave").length ?? 0;
+  const openReqs = requisitions?.filter(r => r.status === "Open").length ?? 0;
+  const activeApplicants = applicants?.filter(a => a.stage !== "Rejected" && a.stage !== "Hired").length ?? 0;
 
   return (
     <MainLayout>
       <div className="space-y-6">
         <div>
           <h1 className="text-2xl font-bold">HR & Workforce</h1>
-          <p className="text-muted-foreground">Staff management, timesheets, and PTO tracking</p>
+          <p className="text-muted-foreground">Staff management, timesheets, PTO, and recruiting</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
           <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate("/erp/hr/staff")}>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">Active Staff</CardTitle>
@@ -54,6 +60,20 @@ export default function HRModuleDashboard() {
               <AlertCircle className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent><p className="text-2xl font-bold">{onLeave}</p></CardContent>
+          </Card>
+          <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate("/erp/hr/recruiting")}>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium">Open Requisitions</CardTitle>
+              <UserPlus className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent><p className="text-2xl font-bold">{openReqs}</p></CardContent>
+          </Card>
+          <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate("/erp/hr/recruiting")}>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium">Active Applicants</CardTitle>
+              <Users className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent><p className="text-2xl font-bold">{activeApplicants}</p></CardContent>
           </Card>
         </div>
 
