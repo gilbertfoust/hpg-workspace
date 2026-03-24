@@ -164,8 +164,7 @@ const hubsSections: HubConfig[] = [
 export function AppSidebar() {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const location = useLocation();
-  const [expandedModules, setExpandedModules] = useState(false);
-  const [expandedERP, setExpandedERP] = useState(false);
+  const [expandedHubs, setExpandedHubs] = useState<Record<string, boolean>>({});
   const { user, signOut } = useAuth();
   const { data: userRole } = useUserRole();
   const { toast } = useToast();
@@ -201,8 +200,13 @@ export function AppSidebar() {
     }
   };
 
-  // Auto-expand ERP section if on an ERP route
-  const isOnERPRoute = erpModules.some(m => location.pathname.startsWith(m.to));
+  const toggleHub = (title: string) => {
+    setExpandedHubs(prev => ({ ...prev, [title]: !prev[title] }));
+  };
+
+  const isHubActive = (hub: HubConfig) =>
+    hub.basePaths.some(p => location.pathname.startsWith(p));
+
 
   return (
     <>
