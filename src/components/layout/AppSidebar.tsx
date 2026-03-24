@@ -293,36 +293,6 @@ export function AppSidebar() {
               <NavItem to="/department-forms" icon={<FolderKanban className="w-4 h-4" />} label={isCollapsed ? "" : "Department Forms"} />
               <NavItem to="/documents" icon={<FolderOpen className="w-4 h-4" />} label={isCollapsed ? "" : "Documents"} />
               <NavItem to="/calendar" icon={<Calendar className="w-4 h-4" />} label={isCollapsed ? "" : "Calendar"} />
-              
-              <NavItem to="/financial-hub" icon={<DollarSign className="w-4 h-4" />} label={isCollapsed ? "" : "Financial Hub"} />
-              {!isCollapsed && location.pathname.startsWith("/financial-hub") && (
-                <div className="ml-6 space-y-0.5">
-                  <NavItem to="/financial-hub/journal" icon={<ClipboardList className="w-3.5 h-3.5" />} label="Journal" />
-                  <NavItem to="/financial-hub/general-ledger" icon={<FileText className="w-3.5 h-3.5" />} label="General Ledger" />
-                  <NavItem to="/financial-hub/accounts" icon={<Layers className="w-3.5 h-3.5" />} label="Chart of Accounts" />
-                  <NavItem to="/financial-hub/transactions" icon={<ClipboardList className="w-3.5 h-3.5" />} label="Transactions" />
-                  <NavItem to="/financial-hub/trial-balance-worksheet" icon={<BarChart3 className="w-3.5 h-3.5" />} label="Trial Balance" />
-                  <NavItem to="/financial-hub/opening-balances" icon={<Layers className="w-3.5 h-3.5" />} label="Opening Balances" />
-                  <NavItem to="/financial-hub/reports/profit-and-loss" icon={<TrendingUp className="w-3.5 h-3.5" />} label="Profit & Loss" />
-                  <NavItem to="/financial-hub/reports/balance-sheet" icon={<Layers className="w-3.5 h-3.5" />} label="Balance Sheet" />
-                  <NavItem to="/financial-hub/reports/cash-flow-statement" icon={<Activity className="w-3.5 h-3.5" />} label="Cash Flow Statement" />
-                  <NavItem to="/financial-hub/cash-flow-forecast" icon={<PieChart className="w-3.5 h-3.5" />} label="Cash Flow Forecast" />
-                  <NavItem to="/financial-hub/reconciliation" icon={<ShieldCheck className="w-3.5 h-3.5" />} label="Reconciliation" />
-                  <NavItem to="/financial-hub/reports/period-comparison" icon={<ArrowLeftRight className="w-3.5 h-3.5" />} label="Period Comparison" />
-                  <NavItem to="/financial-hub/invoices" icon={<FileText className="w-3.5 h-3.5" />} label="Invoices (AR)" />
-                  <NavItem to="/financial-hub/bills" icon={<ClipboardList className="w-3.5 h-3.5" />} label="Bills (AP)" />
-                  <NavItem to="/financial-hub/recurring-transactions" icon={<Zap className="w-3.5 h-3.5" />} label="Recurring" />
-                  <NavItem to="/financial-hub/reports/aged-receivables" icon={<BarChart3 className="w-3.5 h-3.5" />} label="Aged Receivables" />
-                  <NavItem to="/financial-hub/reports/aged-payables" icon={<BarChart3 className="w-3.5 h-3.5" />} label="Aged Payables" />
-                  <NavItem to="/financial-hub/reports/tax-liability" icon={<DollarSign className="w-3.5 h-3.5" />} label="Tax Liability" />
-                  <NavItem to="/financial-hub/intake" icon={<FileText className="w-3.5 h-3.5" />} label="Intake" />
-                  <NavItem to="/financial-hub/compliance" icon={<ShieldCheck className="w-3.5 h-3.5" />} label="Compliance" />
-                  <NavItem to="/financial-hub/cost-centers" icon={<Combine className="w-3.5 h-3.5" />} label="Cost Centers" />
-                  <NavItem to="/financial-hub/usage" icon={<Activity className="w-3.5 h-3.5" />} label="Usage Tracking" />
-                  <NavItem to="/financial-hub/allocations" icon={<PieChart className="w-3.5 h-3.5" />} label="Allocations" />
-                  <NavItem to="/financial-hub/chargebacks" icon={<ArrowLeftRight className="w-3.5 h-3.5" />} label="Chargebacks" />
-                </div>
-              )}
 
               {!isCollapsed && (
                 <div className="pt-4">
@@ -333,67 +303,76 @@ export function AppSidebar() {
                 </div>
               )}
 
-              {/* Modules Section */}
+              {/* Hubs Section */}
               {!isCollapsed && (
                 <div className="pt-4">
-                  <button
-                    onClick={() => setExpandedModules(!expandedModules)}
-                    className="flex items-center justify-between w-full px-3 py-2 text-xs font-semibold uppercase tracking-wider text-white/70 hover:text-white"
-                  >
-                    <span className="flex items-center gap-2">
-                      <Layers className="w-4 h-4" />
-                      Modules
-                    </span>
-                    <ChevronDown className={cn("w-4 h-4 transition-transform", expandedModules && "rotate-180")} />
-                  </button>
-
-                  {expandedModules && (
-                    <div className="mt-2 space-y-4 animate-fade-in">
-                      {modulesSections.map((section) => (
-                        <div key={section.title}>
-                          <p className="nav-section-title">{section.title}</p>
-                          <div className="space-y-1">
-                            {section.items.map((item) => (
-                              <NavItem key={item.to} {...item} />
-                            ))}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* ERP Modules Section */}
-              {!isCollapsed && (
-                <div className="pt-4">
-                  <button
-                    onClick={() => setExpandedERP(!expandedERP)}
-                    className="flex items-center justify-between w-full px-3 py-2 text-xs font-semibold uppercase tracking-wider text-white/70 hover:text-white"
-                  >
-                    <span className="flex items-center gap-2">
-                      <Building className="w-4 h-4" />
-                      ERP Modules
-                    </span>
-                    <ChevronDown className={cn("w-4 h-4 transition-transform", (expandedERP || isOnERPRoute) && "rotate-180")} />
-                  </button>
-
-                  {(expandedERP || isOnERPRoute) && (
-                    <div className="mt-2 space-y-1 animate-fade-in">
-                      {erpModules.map((item) => (
-                        <div key={item.to}>
-                          <NavItem to={item.to} icon={item.icon} label={item.label} />
-                          {(item as any).subItems && location.pathname.startsWith(item.to) && (
-                            <div className="ml-6 space-y-0.5">
-                              {(item as any).subItems.map((sub: { to: string; label: string }) => (
-                                <NavItem key={sub.to} to={sub.to} icon={<ChevronRight className="w-3 h-3" />} label={sub.label} />
+                  <p className="nav-section-title">Hubs</p>
+                  <div className="space-y-1">
+                    {hubsSections.map((hub) => {
+                      const isOpen = expandedHubs[hub.title] || isHubActive(hub);
+                      return (
+                        <div key={hub.title}>
+                          <button
+                            onClick={() => toggleHub(hub.title)}
+                            className={cn(
+                              "nav-item group w-full flex items-center justify-between",
+                              isHubActive(hub) && "active"
+                            )}
+                          >
+                            <span className="flex items-center gap-2">
+                              {hub.icon}
+                              <span>{hub.title}</span>
+                            </span>
+                            <ChevronDown className={cn("w-3.5 h-3.5 transition-transform", isOpen && "rotate-180")} />
+                          </button>
+                          {isOpen && (
+                            <div className="ml-4 space-y-0.5 animate-fade-in">
+                              {hub.items.map((item) => (
+                                <div key={item.to}>
+                                  <NavItem to={item.to} icon={item.icon} label={item.label} />
+                                  {item.subItems && location.pathname.startsWith(item.to) && (
+                                    <div className="ml-5 space-y-0.5">
+                                      {item.subItems.map((sub) => (
+                                        <NavItem key={sub.to} to={sub.to} icon={<ChevronRight className="w-3 h-3" />} label={sub.label} />
+                                      ))}
+                                    </div>
+                                  )}
+                                  {/* Financial Hub sub-pages */}
+                                  {item.to === "/financial-hub" && location.pathname.startsWith("/financial-hub") && (
+                                    <div className="ml-5 space-y-0.5">
+                                      <NavItem to="/financial-hub/journal" icon={<ClipboardList className="w-3.5 h-3.5" />} label="Journal" />
+                                      <NavItem to="/financial-hub/general-ledger" icon={<FileText className="w-3.5 h-3.5" />} label="General Ledger" />
+                                      <NavItem to="/financial-hub/accounts" icon={<Layers className="w-3.5 h-3.5" />} label="Chart of Accounts" />
+                                      <NavItem to="/financial-hub/transactions" icon={<ClipboardList className="w-3.5 h-3.5" />} label="Transactions" />
+                                      <NavItem to="/financial-hub/trial-balance-worksheet" icon={<BarChart3 className="w-3.5 h-3.5" />} label="Trial Balance" />
+                                      <NavItem to="/financial-hub/opening-balances" icon={<Layers className="w-3.5 h-3.5" />} label="Opening Balances" />
+                                      <NavItem to="/financial-hub/reports/profit-and-loss" icon={<TrendingUp className="w-3.5 h-3.5" />} label="Profit & Loss" />
+                                      <NavItem to="/financial-hub/reports/balance-sheet" icon={<Layers className="w-3.5 h-3.5" />} label="Balance Sheet" />
+                                      <NavItem to="/financial-hub/reports/cash-flow-statement" icon={<Activity className="w-3.5 h-3.5" />} label="Cash Flow Statement" />
+                                      <NavItem to="/financial-hub/cash-flow-forecast" icon={<PieChart className="w-3.5 h-3.5" />} label="Cash Flow Forecast" />
+                                      <NavItem to="/financial-hub/reconciliation" icon={<ShieldCheck className="w-3.5 h-3.5" />} label="Reconciliation" />
+                                      <NavItem to="/financial-hub/reports/period-comparison" icon={<ArrowLeftRight className="w-3.5 h-3.5" />} label="Period Comparison" />
+                                      <NavItem to="/financial-hub/invoices" icon={<FileText className="w-3.5 h-3.5" />} label="Invoices (AR)" />
+                                      <NavItem to="/financial-hub/bills" icon={<ClipboardList className="w-3.5 h-3.5" />} label="Bills (AP)" />
+                                      <NavItem to="/financial-hub/recurring-transactions" icon={<Zap className="w-3.5 h-3.5" />} label="Recurring" />
+                                      <NavItem to="/financial-hub/reports/aged-receivables" icon={<BarChart3 className="w-3.5 h-3.5" />} label="Aged Receivables" />
+                                      <NavItem to="/financial-hub/reports/aged-payables" icon={<BarChart3 className="w-3.5 h-3.5" />} label="Aged Payables" />
+                                      <NavItem to="/financial-hub/reports/tax-liability" icon={<DollarSign className="w-3.5 h-3.5" />} label="Tax Liability" />
+                                      <NavItem to="/financial-hub/intake" icon={<FileText className="w-3.5 h-3.5" />} label="Intake" />
+                                      <NavItem to="/financial-hub/cost-centers" icon={<Combine className="w-3.5 h-3.5" />} label="Cost Centers" />
+                                      <NavItem to="/financial-hub/usage" icon={<Activity className="w-3.5 h-3.5" />} label="Usage Tracking" />
+                                      <NavItem to="/financial-hub/allocations" icon={<PieChart className="w-3.5 h-3.5" />} label="Allocations" />
+                                      <NavItem to="/financial-hub/chargebacks" icon={<ArrowLeftRight className="w-3.5 h-3.5" />} label="Chargebacks" />
+                                    </div>
+                                  )}
+                                </div>
                               ))}
                             </div>
                           )}
                         </div>
-                      ))}
-                    </div>
-                  )}
+                      );
+                    })}
+                  </div>
                 </div>
               )}
 
