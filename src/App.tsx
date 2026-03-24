@@ -188,6 +188,7 @@ const App = () => {
                 {/* Records */}
                 <Route path="/ngos" element={<P><NGOs /></P>} />
                 <Route path="/ngos/:id" element={<P><NGODetail /></P>} />
+                <Route path="/ngo-missing-items" element={<P><NGOMissingItems /></P>} />
                 <Route path="/work-items" element={<P><WorkItems /></P>} />
                 <Route path="/forms" element={<P><Forms /></P>} />
                 <Route path="/documents" element={<P><Documents /></P>} />
