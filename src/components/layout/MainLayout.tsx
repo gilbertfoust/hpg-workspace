@@ -39,16 +39,14 @@ export function MainLayout({ children, title, subtitle, actions }: MainLayoutPro
         title: "Signed out",
         description: "You have been successfully signed out.",
       });
-      // Navigate to auth page
-      const base = import.meta.env.BASE_URL || "/";
-      navigate(`${base}auth`, { replace: true });
+      navigate("/auth", { replace: true });
     }
   };
 
   return (
     <div className="flex min-h-screen w-full bg-background relative overflow-hidden">
       <div
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-[0.07]"
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-[0.14]"
         style={{ backgroundImage: `url('${import.meta.env.BASE_URL}images/hpg-command-center-2.png')` }}
         aria-hidden="true"
       />

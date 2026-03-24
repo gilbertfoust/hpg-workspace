@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { MainLayout } from "@/components/layout/MainLayout";
 import {
   LayoutDashboard,
   Building2,
@@ -333,6 +334,7 @@ const Dashboard = () => {
   const [logoFailed, setLogoFailed] = useState(false);
 
   return (
+    <MainLayout>
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -386,6 +388,7 @@ const Dashboard = () => {
       {/* At-Risk & Evidence */}
       <AtRiskAndEvidencePanel />
     </div>
+    </MainLayout>
   );
 };
 
