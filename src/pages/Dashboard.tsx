@@ -390,5 +390,6 @@ const Dashboard = () => {
     </div>
     </MainLayout>
   );
+};
 
 export default Dashboard;
