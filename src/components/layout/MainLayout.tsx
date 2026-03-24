@@ -39,9 +39,7 @@ export function MainLayout({ children, title, subtitle, actions }: MainLayoutPro
         title: "Signed out",
         description: "You have been successfully signed out.",
       });
-      // Navigate to auth page
-      const base = import.meta.env.BASE_URL || "/";
-      navigate(`${base}auth`, { replace: true });
+      navigate("/auth", { replace: true });
     }
   };
 
