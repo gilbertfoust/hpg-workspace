@@ -90,68 +90,75 @@ const NavItem = ({ to, icon, label, badge }: NavItemProps) => {
   );
 };
 
-interface ModuleSection {
+interface HubConfig {
   title: string;
-  items: { to: string; icon: React.ReactNode; label: string }[];
+  icon: React.ReactNode;
+  basePaths: string[];
+  items: { to: string; icon: React.ReactNode; label: string; subItems?: { to: string; label: string }[] }[];
 }
 
-const modulesSections: ModuleSection[] = [
+const hubsSections: HubConfig[] = [
   {
-    title: "Core Operations",
+    title: "Financial Hub",
+    icon: <DollarSign className="w-4 h-4" />,
+    basePaths: ["/financial-hub", "/procurement", "/assets", "/inventory", "/revenue", "/controller", "/governance"],
     items: [
-      { to: "/ngo-coordination", icon: <Users className="w-4 h-4" />, label: "NGO Coordination" },
-      { to: "/modules/administration", icon: <Briefcase className="w-4 h-4" />, label: "Administration" },
-      { to: "/modules/operations", icon: <Wrench className="w-4 h-4" />, label: "Operations" },
+      { to: "/financial-hub", icon: <DollarSign className="w-4 h-4" />, label: "Finance Dashboard" },
+      { to: "/procurement", icon: <ShoppingCart className="w-4 h-4" />, label: "Procurement" },
+      { to: "/assets", icon: <Package className="w-4 h-4" />, label: "Assets" },
+      { to: "/inventory", icon: <Warehouse className="w-4 h-4" />, label: "Inventory" },
+      { to: "/revenue", icon: <TrendingUp className="w-4 h-4" />, label: "Revenue" },
+      { to: "/controller", icon: <Building className="w-4 h-4" />, label: "Controller Hub" },
+      { to: "/governance", icon: <Globe className="w-4 h-4" />, label: "Governance" },
     ],
   },
   {
-    title: "Programs",
+    title: "HR Hub",
+    icon: <Users className="w-4 h-4" />,
+    basePaths: ["/erp/hr"],
+    items: [
+      { to: "/erp/hr", icon: <Users className="w-4 h-4" />, label: "HR Dashboard", subItems: [
+        { to: "/erp/hr/staff", label: "Staff Profiles" },
+        { to: "/erp/hr/timesheets", label: "Timesheets" },
+        { to: "/erp/hr/pto", label: "PTO" },
+        { to: "/erp/hr/onboarding", label: "Onboarding" },
+        { to: "/erp/hr/reviews", label: "Reviews" },
+        { to: "/erp/hr/payroll/runs", label: "Pay Runs" },
+        { to: "/erp/hr/directory", label: "Directory" },
+        { to: "/erp/hr/analytics", label: "Analytics" },
+        { to: "/erp/hr/recruiting", label: "Recruiting (ATS)" },
+      ]},
+    ],
+  },
+  {
+    title: "Development Hub",
+    icon: <Megaphone className="w-4 h-4" />,
+    basePaths: ["/development", "/partnerships", "/crm", "/grants"],
+    items: [
+      { to: "/development", icon: <DollarSign className="w-4 h-4" />, label: "Development" },
+      { to: "/partnerships", icon: <Handshake className="w-4 h-4" />, label: "Partnerships" },
+      { to: "/crm", icon: <Contact className="w-4 h-4" />, label: "CRM" },
+      { to: "/grants", icon: <Award className="w-4 h-4" />, label: "Grants" },
+    ],
+  },
+  {
+    title: "Program Hub",
+    icon: <GraduationCap className="w-4 h-4" />,
+    basePaths: ["/program", "/curriculum"],
     items: [
       { to: "/program", icon: <GraduationCap className="w-4 h-4" />, label: "Program" },
       { to: "/curriculum", icon: <FileText className="w-4 h-4" />, label: "Curriculum" },
     ],
   },
   {
-    title: "Development",
+    title: "Compliance Hub",
+    icon: <ShieldCheck className="w-4 h-4" />,
+    basePaths: ["/audit", "/financial-hub/compliance"],
     items: [
-      { to: "/development", icon: <DollarSign className="w-4 h-4" />, label: "Development" },
-      { to: "/partnerships", icon: <Handshake className="w-4 h-4" />, label: "Partnerships" },
-      { to: "/modules/marketing", icon: <Megaphone className="w-4 h-4" />, label: "Marketing" },
-      { to: "/modules/communications", icon: <MessageSquare className="w-4 h-4" />, label: "Communications" },
+      { to: "/audit", icon: <Eye className="w-4 h-4" />, label: "Audit" },
+      { to: "/financial-hub/compliance", icon: <ShieldCheck className="w-4 h-4" />, label: "Compliance" },
     ],
   },
-  {
-    title: "Support",
-    items: [
-      { to: "/modules/hr", icon: <UserPlus className="w-4 h-4" />, label: "HR" },
-      { to: "/it", icon: <Monitor className="w-4 h-4" />, label: "IT" },
-      { to: "/modules/finance", icon: <DollarSign className="w-4 h-4" />, label: "Finance" },
-      { to: "/modules/legal", icon: <Scale className="w-4 h-4" />, label: "Legal" },
-    ],
-  },
-];
-
-const erpModules = [
-  { to: "/crm", icon: <Contact className="w-4 h-4" />, label: "CRM" },
-  { to: "/procurement", icon: <ShoppingCart className="w-4 h-4" />, label: "Procurement" },
-  { to: "/grants", icon: <Award className="w-4 h-4" />, label: "Grants" },
-  { to: "/erp/hr", icon: <Users className="w-4 h-4" />, label: "HR & Workforce", subItems: [
-    { to: "/erp/hr/staff", label: "Staff Profiles" },
-    { to: "/erp/hr/timesheets", label: "Timesheets" },
-    { to: "/erp/hr/pto", label: "PTO" },
-    { to: "/erp/hr/onboarding", label: "Onboarding" },
-    { to: "/erp/hr/reviews", label: "Reviews" },
-    { to: "/erp/hr/payroll/runs", label: "Pay Runs" },
-    { to: "/erp/hr/directory", label: "Directory" },
-    { to: "/erp/hr/analytics", label: "Analytics" },
-    { to: "/erp/hr/recruiting", label: "Recruiting (ATS)" },
-  ]},
-  { to: "/assets", icon: <Package className="w-4 h-4" />, label: "Assets" },
-  { to: "/inventory", icon: <Warehouse className="w-4 h-4" />, label: "Inventory" },
-  { to: "/revenue", icon: <TrendingUp className="w-4 h-4" />, label: "Revenue" },
-  { to: "/governance", icon: <Globe className="w-4 h-4" />, label: "Governance" },
-  { to: "/audit", icon: <Eye className="w-4 h-4" />, label: "Audit" },
-  { to: "/controller", icon: <Building className="w-4 h-4" />, label: "Controller Hub" },
 ];
 
 export function AppSidebar() {
