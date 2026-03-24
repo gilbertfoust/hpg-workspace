@@ -144,6 +144,7 @@ const erpModules = [
     { to: "/erp/hr/payroll/runs", label: "Pay Runs" },
     { to: "/erp/hr/directory", label: "Directory" },
     { to: "/erp/hr/analytics", label: "Analytics" },
+    { to: "/erp/hr/recruiting", label: "Recruiting (ATS)" },
   ]},
   { to: "/assets", icon: <Package className="w-4 h-4" />, label: "Assets" },
   { to: "/inventory", icon: <Warehouse className="w-4 h-4" />, label: "Inventory" },

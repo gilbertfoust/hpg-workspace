@@ -300,6 +300,7 @@ const App = () => {
                 <Route path="/erp/hr/payroll/runs" element={<P><PayRuns /></P>} />
                 <Route path="/erp/hr/directory" element={<P><StaffDirectory /></P>} />
                 <Route path="/erp/hr/analytics" element={<P><HRAnalytics /></P>} />
+                <Route path="/erp/hr/recruiting" element={<P><HRDashboard /></P>} />
 
                 {/* Assets */}
                 <Route path="/assets" element={<P><AssetsDashboard /></P>} />
