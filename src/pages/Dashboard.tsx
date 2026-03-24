@@ -388,7 +388,7 @@ const Dashboard = () => {
       {/* At-Risk & Evidence */}
       <AtRiskAndEvidencePanel />
     </div>
-  );
+    </MainLayout>
 };
 
 export default Dashboard;
