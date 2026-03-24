@@ -21,8 +21,8 @@ export default function HRModuleDashboard() {
   const pendingTimesheets = timesheets?.filter(t => t.status === "submitted").length ?? 0;
   const pendingPTO = ptoRequests?.filter(p => p.status === "pending").length ?? 0;
   const onLeave = staff?.filter(s => s.status === "on_leave").length ?? 0;
-  const openReqs = requisitions?.filter(r => r.status === "open").length ?? 0;
-  const activeApplicants = applicants?.filter(a => a.stage !== "rejected" && a.stage !== "hired").length ?? 0;
+  const openReqs = requisitions?.filter(r => r.status === "Open").length ?? 0;
+  const activeApplicants = applicants?.filter(a => a.stage !== "Rejected" && a.stage !== "Hired").length ?? 0;
 
   return (
     <MainLayout>
