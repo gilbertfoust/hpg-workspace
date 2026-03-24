@@ -175,8 +175,10 @@ const App = () => {
                 {/* Public signing page (no auth required) */}
                 <Route path="/sign/:token" element={<SignDocument />} />
 
-                {/* Root redirect */}
+                {/* Root redirects */}
                 <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                <Route path="/index" element={<Navigate to="/dashboard" replace />} />
+                <Route path="/index.html" element={<Navigate to="/dashboard" replace />} />
 
                 {/* Core */}
                 <Route path="/dashboard" element={<P><Dashboard /></P>} />
