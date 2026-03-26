@@ -14,10 +14,13 @@ const HPG_LOGO_URL =
   "https://img1.wsimg.com/isteam/ip/8d5502d6-d937-4d80-bd56-8074053e4d77/Humanity%20Pathways%20Global.jpg/:/rs=h:175,m";
 
 const Auth = () => {
-  const { user, loading, signIn, signUp, signInWithGitHub } = useAuth();
+  const { user, loading, signIn, signUp } = useAuth();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isGitHubLoading, setIsGitHubLoading] = useState(false);
+  const [logoFailed, setLogoFailed] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [isSendingReset, setIsSendingReset] = useState(false);
   const [logoFailed, setLogoFailed] = useState(false);
 
   // Login form state
