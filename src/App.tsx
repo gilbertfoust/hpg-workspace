@@ -172,6 +172,7 @@ const App = () => {
                 {/* Auth */}
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/auth/callback" element={<AuthCallback />} />
+                <Route path="/reset-password" element={<ResetPassword />} />
 
                 {/* Public signing page (no auth required) */}
                 <Route path="/sign/:token" element={<SignDocument />} />
