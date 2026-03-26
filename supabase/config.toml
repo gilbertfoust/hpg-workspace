@@ -20,3 +20,12 @@ verify_jwt = false
 
 [functions.receive-make-webhook]
 verify_jwt = false
+
+[functions.admin-create-user]
+verify_jwt = true
+
+[functions.admin-update-role]
+verify_jwt = true
+
+[functions.admin-reset-password]
+verify_jwt = true
