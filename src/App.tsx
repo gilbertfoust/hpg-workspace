@@ -9,6 +9,7 @@ import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 
 // Pages
 import Auth from "./pages/Auth";
+import ResetPassword from "./pages/ResetPassword";
 import AuthCallback from "./pages/AuthCallback";
 import Dashboard from "./pages/Dashboard";
 import NGOs from "./pages/NGOs";
@@ -171,6 +172,7 @@ const App = () => {
                 {/* Auth */}
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/auth/callback" element={<AuthCallback />} />
+                <Route path="/reset-password" element={<ResetPassword />} />
 
                 {/* Public signing page (no auth required) */}
                 <Route path="/sign/:token" element={<SignDocument />} />
