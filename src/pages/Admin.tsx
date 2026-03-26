@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ConfigCheckPanel from "@/components/admin/ConfigCheckPanel";
+import CreateUserDialog from "@/components/admin/CreateUserDialog";
+import ResetPasswordDialog from "@/components/admin/ResetPasswordDialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,8 +21,16 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Users,
   Building,
@@ -35,10 +45,25 @@ import {
   Check,
   Trash2,
   Loader2,
+  KeyRound,
+  UserCog,
 } from "lucide-react";
 import { useAdminUsers, useDeleteAdminUser } from "@/hooks/useAdminUsers";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { useQueryClient } from "@tanstack/react-query";
+
+const ALL_ROLES = [
+  { value: "super_admin", label: "Super Admin" },
+  { value: "admin_pm", label: "Admin PM" },
+  { value: "executive_secretariat", label: "Executive Secretariat" },
+  { value: "ngo_coordinator", label: "NGO Coordinator" },
+  { value: "department_lead", label: "Department Lead" },
+  { value: "staff_member", label: "Staff Member" },
+  { value: "external_ngo", label: "External NGO Portal" },
+];
 
 const mockDepartments = [
   { id: "1", name: "Administration", subDepts: ["Executive Secretariat"], lead: "Jane Smith", items: 12 },
@@ -54,11 +79,13 @@ const mockDepartments = [
 
 const roleColors: Record<string, string> = {
   super_admin: "bg-destructive/10 text-destructive",
-  admin_pm: "bg-info/10 text-info",
-  ngo_coordinator: "bg-success/10 text-success",
-  department_lead: "bg-warning/10 text-warning",
+  admin_pm: "bg-blue-500/10 text-blue-600",
+  ngo_coordinator: "bg-green-500/10 text-green-600",
+  department_lead: "bg-amber-500/10 text-amber-600",
+  staff_member: "bg-muted text-muted-foreground",
   staff: "bg-muted text-muted-foreground",
-  executive_secretariat: "bg-purple/10 text-purple",
+  executive_secretariat: "bg-purple-500/10 text-purple-600",
+  external_ngo: "bg-cyan-500/10 text-cyan-600",
 };
 
 const formatRoleName = (role: string) => {
@@ -73,7 +100,13 @@ export default function Admin() {
   const { user: currentUser } = useAuth();
   const { data: currentUserRole } = useUserRole();
   const deleteUserMutation = useDeleteAdminUser();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
   const [userToDelete, setUserToDelete] = useState<{ id: string; name: string | null; email: string | null } | null>(null);
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [resetPasswordUser, setResetPasswordUser] = useState<{ id: string; name: string | null } | null>(null);
+  const [changingRoleUserId, setChangingRoleUserId] = useState<string | null>(null);
 
   const isSuperAdmin = currentUserRole?.role === "super_admin" || currentUserRole?.role === "admin_pm";
 
@@ -91,10 +124,30 @@ export default function Admin() {
   const handleDeleteCancel = () => {
     setUserToDelete(null);
   };
+
+  const handleRoleChange = async (userId: string, newRole: string) => {
+    setChangingRoleUserId(userId);
+    try {
+      const { data, error } = await supabase!.functions.invoke("admin-update-role", {
+        body: { target_user_id: userId, new_role: newRole },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      toast({ title: "Role updated", description: `Role changed to ${formatRoleName(newRole)}.` });
+      queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
+      queryClient.invalidateQueries({ queryKey: ["user-roles"] });
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "Failed to update role", description: err.message });
+    } finally {
+      setChangingRoleUserId(null);
+    }
+  };
+
   return (
     <MainLayout
-      title="Admin Settings"
-      subtitle="Manage users, departments, templates, and system configuration"
+      title="Admin Console"
+      subtitle="Manage users, roles, departments, and system configuration"
     >
       <Tabs defaultValue="users" className="space-y-6">
         <TabsList>
@@ -126,13 +179,18 @@ export default function Admin() {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle>User Management</CardTitle>
-                  <CardDescription>Manage staff accounts and role assignments</CardDescription>
+                  <CardTitle className="flex items-center gap-2">
+                    <UserCog className="w-5 h-5" />
+                    User Management
+                  </CardTitle>
+                  <CardDescription>Create accounts, assign roles, and manage access — like Google Workspace Admin</CardDescription>
                 </div>
-                <Button>
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add User
-                </Button>
+                {isSuperAdmin && (
+                  <Button onClick={() => setCreateDialogOpen(true)}>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add User
+                  </Button>
+                )}
               </div>
             </CardHeader>
             <CardContent>
@@ -155,24 +213,51 @@ export default function Admin() {
                         <th>Name</th>
                         <th>Email</th>
                         <th>Role</th>
+                        <th>Department</th>
                         <th>Status</th>
-                        {isSuperAdmin && <th className="w-10"></th>}
+                        {isSuperAdmin && <th className="w-10">Actions</th>}
                       </tr>
                     </thead>
                     <tbody>
                       {users && users.length > 0 ? (
                         users.map((user) => {
-                          const primaryRole = user.roles[0] || "staff";
+                          const primaryRole = user.roles[0] || "staff_member";
                           const isCurrentUser = user.id === currentUser?.id;
+                          const isChangingRole = changingRoleUserId === user.id;
                           return (
                             <tr key={user.id}>
                               <td className="font-medium">{user.full_name || "N/A"}</td>
-                              <td className="text-muted-foreground">{user.email || "N/A"}</td>
+                              <td className="text-muted-foreground text-sm">{user.email || "N/A"}</td>
                               <td>
-                                <Badge className={roleColors[primaryRole] || roleColors.staff}>
-                                  {formatRoleName(primaryRole)}
-                                </Badge>
+                                {isSuperAdmin && !isCurrentUser ? (
+                                  <Select
+                                    value={primaryRole}
+                                    onValueChange={(val) => handleRoleChange(user.id, val)}
+                                    disabled={isChangingRole}
+                                  >
+                                    <SelectTrigger className="w-[180px] h-8">
+                                      {isChangingRole ? (
+                                        <Loader2 className="w-3 h-3 animate-spin" />
+                                      ) : (
+                                        <SelectValue />
+                                      )}
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {ALL_ROLES.map((r) => (
+                                        <SelectItem key={r.value} value={r.value}>
+                                          {r.label}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                ) : (
+                                  <Badge className={roleColors[primaryRole] || roleColors.staff_member}>
+                                    {formatRoleName(primaryRole)}
+                                    {isCurrentUser && " (You)"}
+                                  </Badge>
+                                )}
                               </td>
+                              <td className="text-sm text-muted-foreground">—</td>
                               <td>
                                 <Badge variant="outline" className="gap-1">
                                   <Check className="w-3 h-3" />
@@ -188,21 +273,27 @@ export default function Admin() {
                                       </Button>
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="end">
+                                      <DropdownMenuItem
+                                        onClick={() =>
+                                          setResetPasswordUser({ id: user.id, name: user.full_name })
+                                        }
+                                      >
+                                        <KeyRound className="w-4 h-4 mr-2" />
+                                        Reset Password
+                                      </DropdownMenuItem>
                                       {!isCurrentUser && (
-                                        <DropdownMenuItem
-                                          className="text-destructive focus:text-destructive"
-                                          onClick={() =>
-                                            handleDeleteClick(user.id, user.full_name, user.email)
-                                          }
-                                        >
-                                          <Trash2 className="w-4 h-4 mr-2" />
-                                          Delete User
-                                        </DropdownMenuItem>
-                                      )}
-                                      {isCurrentUser && (
-                                        <DropdownMenuItem disabled>
-                                          <span className="text-muted-foreground">Cannot delete yourself</span>
-                                        </DropdownMenuItem>
+                                        <>
+                                          <DropdownMenuSeparator />
+                                          <DropdownMenuItem
+                                            className="text-destructive focus:text-destructive"
+                                            onClick={() =>
+                                              handleDeleteClick(user.id, user.full_name, user.email)
+                                            }
+                                          >
+                                            <Trash2 className="w-4 h-4 mr-2" />
+                                            Delete User
+                                          </DropdownMenuItem>
+                                        </>
                                       )}
                                     </DropdownMenuContent>
                                   </DropdownMenu>
@@ -213,8 +304,8 @@ export default function Admin() {
                         })
                       ) : (
                         <tr>
-                          <td colSpan={isSuperAdmin ? 5 : 4} className="text-center py-8 text-muted-foreground">
-                            No users found
+                          <td colSpan={isSuperAdmin ? 6 : 5} className="text-center py-8 text-muted-foreground">
+                            No users found. Click "Add User" to create the first account.
                           </td>
                         </tr>
                       )}
@@ -327,7 +418,7 @@ export default function Admin() {
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <span className="text-sm">Status</span>
-                    <Badge className="bg-success/10 text-success">Connected</Badge>
+                    <Badge className="bg-green-500/10 text-green-600">Connected</Badge>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-sm">Last synced</span>
@@ -350,7 +441,7 @@ export default function Admin() {
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <span className="text-sm">Status</span>
-                    <Badge className="bg-success/10 text-success">Enabled</Badge>
+                    <Badge className="bg-green-500/10 text-green-600">Enabled</Badge>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-sm">Reminders sent today</span>
@@ -366,9 +457,7 @@ export default function Admin() {
         {/* Settings Tab */}
         <TabsContent value="settings">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Config Check Panel */}
             <ConfigCheckPanel />
-
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -425,6 +514,19 @@ export default function Admin() {
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* Create User Dialog */}
+      <CreateUserDialog open={createDialogOpen} onOpenChange={setCreateDialogOpen} />
+
+      {/* Reset Password Dialog */}
+      {resetPasswordUser && (
+        <ResetPasswordDialog
+          open={!!resetPasswordUser}
+          onOpenChange={(open) => !open && setResetPasswordUser(null)}
+          userId={resetPasswordUser.id}
+          userName={resetPasswordUser.name}
+        />
+      )}
 
       {/* Delete User Confirmation Dialog */}
       <AlertDialog open={!!userToDelete} onOpenChange={handleDeleteCancel}>
