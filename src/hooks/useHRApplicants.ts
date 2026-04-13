@@ -51,6 +51,10 @@ export interface CreateApplicantInput {
   role_applied_for?: string | null;
   stage?: ApplicantStage;
   notes?: string | null;
+  department?: string | null;
+  hours_committing?: string | null;
+  location_timezone?: string | null;
+  personal_email?: string | null;
 }
 
 export interface UpdateApplicantInput {
