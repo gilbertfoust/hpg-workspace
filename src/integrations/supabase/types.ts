@@ -403,34 +403,70 @@ export type Database = {
       }
       applicants: {
         Row: {
+          availability_schedule: string | null
+          best_interview_times: string | null
           created_at: string
+          department: string | null
+          departmental_assessment: string | null
           email: string | null
           full_name: string
+          hours_committing: string | null
           id: string
+          is_otp: boolean | null
+          location_timezone: string | null
+          manager: string | null
           notes: string | null
+          personal_email: string | null
           phone: string | null
+          potential_start_date: string | null
           role_applied_for: string | null
           stage: string
+          time_commitment: string | null
+          title_considered: string | null
         }
         Insert: {
+          availability_schedule?: string | null
+          best_interview_times?: string | null
           created_at?: string
+          department?: string | null
+          departmental_assessment?: string | null
           email?: string | null
           full_name: string
+          hours_committing?: string | null
           id?: string
+          is_otp?: boolean | null
+          location_timezone?: string | null
+          manager?: string | null
           notes?: string | null
+          personal_email?: string | null
           phone?: string | null
+          potential_start_date?: string | null
           role_applied_for?: string | null
           stage?: string
+          time_commitment?: string | null
+          title_considered?: string | null
         }
         Update: {
+          availability_schedule?: string | null
+          best_interview_times?: string | null
           created_at?: string
+          department?: string | null
+          departmental_assessment?: string | null
           email?: string | null
           full_name?: string
+          hours_committing?: string | null
           id?: string
+          is_otp?: boolean | null
+          location_timezone?: string | null
+          manager?: string | null
           notes?: string | null
+          personal_email?: string | null
           phone?: string | null
+          potential_start_date?: string | null
           role_applied_for?: string | null
           stage?: string
+          time_commitment?: string | null
+          title_considered?: string | null
         }
         Relationships: []
       }
@@ -5952,6 +5988,7 @@ export type Database = {
           approval_policy: Json | null
           approval_required: boolean | null
           approver_user_id: string | null
+          checklist_json: Json | null
           completed_at: string | null
           created_at: string
           created_by_user_id: string | null
@@ -5979,6 +6016,7 @@ export type Database = {
           approval_policy?: Json | null
           approval_required?: boolean | null
           approver_user_id?: string | null
+          checklist_json?: Json | null
           completed_at?: string | null
           created_at?: string
           created_by_user_id?: string | null
@@ -6008,6 +6046,7 @@ export type Database = {
           approval_policy?: Json | null
           approval_required?: boolean | null
           approver_user_id?: string | null
+          checklist_json?: Json | null
           completed_at?: string | null
           created_at?: string
           created_by_user_id?: string | null
