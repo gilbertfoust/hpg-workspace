@@ -152,6 +152,7 @@ import RiskScoring from "./modules/controller/pages/RiskScoring";
 import InterNGOTransfers from "./modules/controller/pages/InterNGOTransfers";
 import Treasury from "./modules/controller/pages/Treasury";
 import PolicyRegistryPage from "./pages/PolicyRegistryPage";
+import NGOOnboardingPipeline from "./pages/NGOOnboardingPipeline";
 
 const queryClient = new QueryClient();
 
@@ -210,6 +211,7 @@ const App = () => {
                 <Route path="/partnerships" element={<P><PartnershipsDashboard /></P>} />
                 <Route path="/it" element={<P><ITDashboard /></P>} />
                 <Route path="/ngo-coordination" element={<P><NGOCoordination /></P>} />
+                <Route path="/ngo-coordination/onboarding" element={<P><NGOOnboardingPipeline /></P>} />
 
                 {/* Financial Hub */}
                 <Route path="/financial-hub" element={<P><FinancialHub /></P>} />
