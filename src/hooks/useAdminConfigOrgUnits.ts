@@ -28,7 +28,7 @@ export const useAdminConfigOrgUnits = () => {
       ensureSupabase();
       const { data, error } = await supabase
         .from('org_units')
-        .select('*, lead:profiles(id, full_name, email)')
+        .select('*, lead:profiles!fk_org_units_lead(id, full_name, email)')
         .order('department_name', { ascending: true });
 
       if (error) throw error;
@@ -47,7 +47,7 @@ export const useCreateOrgUnit = () => {
       const { data, error } = await supabase
         .from('org_units')
         .insert(input)
-        .select('*, lead:profiles(id, full_name, email)')
+        .select('*, lead:profiles!fk_org_units_lead(id, full_name, email)')
         .single();
 
       if (error) throw error;
@@ -81,7 +81,7 @@ export const useUpdateOrgUnit = () => {
         .from('org_units')
         .update(input)
         .eq('id', id)
-        .select('*, lead:profiles(id, full_name, email)')
+        .select('*, lead:profiles!fk_org_units_lead(id, full_name, email)')
         .single();
 
       if (error) throw error;
