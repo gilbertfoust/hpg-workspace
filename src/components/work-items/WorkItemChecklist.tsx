@@ -11,13 +11,14 @@ interface ChecklistItem {
 
 interface WorkItemChecklistProps {
   workItemId: string;
-  checklist: ChecklistItem[];
+  checklist: unknown;
 }
 
 export function WorkItemChecklist({ workItemId, checklist }: WorkItemChecklistProps) {
   const updateWorkItem = useUpdateWorkItem();
   const { toast } = useToast();
-  const [items, setItems] = useState<ChecklistItem[]>(checklist);
+  const parsed = Array.isArray(checklist) ? (checklist as ChecklistItem[]) : [];
+  const [items, setItems] = useState<ChecklistItem[]>(parsed);
 
   const completedCount = items.filter((i) => i.checked).length;
   const totalCount = items.length;
