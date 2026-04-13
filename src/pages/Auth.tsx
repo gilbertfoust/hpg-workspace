@@ -138,7 +138,35 @@ const Auth = () => {
         </CardHeader>
 
         <CardContent>
-          {showForgotPassword ? (
+          {pendingApproval ? (
+            <div className="space-y-4 text-center py-4">
+              <div className="flex justify-center">
+                <div className="h-16 w-16 rounded-full bg-amber-100 flex items-center justify-center">
+                  <Clock className="h-8 w-8 text-amber-600" />
+                </div>
+              </div>
+              <h3 className="text-lg font-semibold">Account Pending Approval</h3>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Your account has been created and is awaiting administrator approval. 
+                You will receive an email once your account has been reviewed and activated.
+              </p>
+              <Alert className="text-left">
+                <ShieldCheck className="h-4 w-4" />
+                <AlertTitle>What happens next?</AlertTitle>
+                <AlertDescription>
+                  An administrator will review your request, assign your role, and approve your access. 
+                  This usually takes 1–2 business days.
+                </AlertDescription>
+              </Alert>
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => setPendingApproval(false)}
+              >
+                Back to Login
+              </Button>
+            </div>
+          ) : showForgotPassword ? (
             <div className="space-y-4">
               <p className="text-sm text-muted-foreground">
                 Enter your email address and we'll send you a link to reset your password.
