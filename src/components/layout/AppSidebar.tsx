@@ -44,6 +44,7 @@ import {
   PieChart,
   FolderKanban,
   Zap,
+  Rocket,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -157,6 +158,7 @@ const hubsSections: HubConfig[] = [
     items: [
       { to: "/audit", icon: <Eye className="w-4 h-4" />, label: "Audit" },
       { to: "/financial-hub/compliance", icon: <ShieldCheck className="w-4 h-4" />, label: "Compliance" },
+      { to: "/financial-hub/compliance/policies", icon: <ClipboardList className="w-4 h-4" />, label: "Policy Registry" },
     ],
   },
 ];
@@ -286,6 +288,7 @@ export function AppSidebar() {
               <NavItem to="/my-queue" icon={<ListChecks className="w-4 h-4" />} label={isCollapsed ? "" : "My Queue"} />
               <NavItem to="/dept-queue" icon={<Users className="w-4 h-4" />} label={isCollapsed ? "" : "Dept Queue"} />
               <NavItem to="/ngos" icon={<Building2 className="w-4 h-4" />} label={isCollapsed ? "" : "NGOs"} />
+              <NavItem to="/ngo-coordination/onboarding" icon={<Rocket className="w-4 h-4" />} label={isCollapsed ? "" : "NGO Onboarding"} />
               <NavItem to="/ngo-missing-items" icon={<AlertTriangle className="w-4 h-4" />} label={isCollapsed ? "" : "NGO Missing Items"} />
               <NavItem to="/work-items" icon={<ClipboardList className="w-4 h-4" />} label={isCollapsed ? "" : "Work Items"} badge={12} />
               <NavItem to="/forms" icon={<FileText className="w-4 h-4" />} label={isCollapsed ? "" : "Forms"} />

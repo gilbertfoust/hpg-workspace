@@ -151,6 +151,8 @@ import Consolidation from "./modules/controller/pages/Consolidation";
 import RiskScoring from "./modules/controller/pages/RiskScoring";
 import InterNGOTransfers from "./modules/controller/pages/InterNGOTransfers";
 import Treasury from "./modules/controller/pages/Treasury";
+import PolicyRegistryPage from "./pages/PolicyRegistryPage";
+import NGOOnboardingPipeline from "./pages/NGOOnboardingPipeline";
 
 const queryClient = new QueryClient();
 
@@ -209,6 +211,7 @@ const App = () => {
                 <Route path="/partnerships" element={<P><PartnershipsDashboard /></P>} />
                 <Route path="/it" element={<P><ITDashboard /></P>} />
                 <Route path="/ngo-coordination" element={<P><NGOCoordination /></P>} />
+                <Route path="/ngo-coordination/onboarding" element={<P><NGOOnboardingPipeline /></P>} />
 
                 {/* Financial Hub */}
                 <Route path="/financial-hub" element={<P><FinancialHub /></P>} />
@@ -225,6 +228,7 @@ const App = () => {
                 <Route path="/financial-hub/compliance/statements" element={<P><StatementsPage /></P>} />
                 <Route path="/financial-hub/compliance/packages" element={<P><PackagesPage /></P>} />
                 <Route path="/financial-hub/compliance/close-year" element={<P><CloseYearPage /></P>} />
+                <Route path="/financial-hub/compliance/policies" element={<P><PolicyRegistryPage /></P>} />
                 <Route path="/financial-hub/cost-centers" element={<P><CostCentersPage /></P>} />
                 <Route path="/financial-hub/usage" element={<P><UsageEntriesPage /></P>} />
                 <Route path="/financial-hub/allocations" element={<P><AllocationsPage /></P>} />
