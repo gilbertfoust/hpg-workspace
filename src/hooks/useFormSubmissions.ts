@@ -190,26 +190,6 @@ export const useCreateFormSubmission = () => {
 
       ensureSupabase();
 
-      fetch('http://127.0.0.1:7242/ingest/611bc9d1-427e-4c48-9b30-3ae32ef68254', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          location: 'useFormSubmissions.ts:125',
-          message: 'Raw input before sanitization',
-          data: {
-            input,
-            input_keys: Object.keys(input),
-            payload_json_type: typeof input.payload_json,
-            payload_json_keys:
-              input.payload_json && typeof input.payload_json === 'object'
-                ? Object.keys(input.payload_json)
-                : null,
-          },
-          timestamp: Date.now(),
-          sessionId: 'debug-session',
-          hypothesisId: 'A,B,D',
-        }),
-      }).catch(() => {});
 
       const sanitizedInput: Record<string, unknown> = {};
       if (input.form_template_id) sanitizedInput.form_template_id = input.form_template_id;
