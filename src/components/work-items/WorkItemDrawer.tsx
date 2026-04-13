@@ -367,7 +367,7 @@ export const WorkItemDrawer: React.FC<WorkItemDrawerProps> = ({
               <Separator />
               <WorkItemChecklist
                 workItemId={workItem.id}
-                checklist={workItem.checklist_json as any}
+                checklist={workItem.checklist_json}
               />
             </>
           )}
