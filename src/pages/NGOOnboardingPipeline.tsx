@@ -105,8 +105,8 @@ export default function NGOOnboardingPipeline() {
         module: item.module,
         ngo_id: launchNgo.id,
         type: "NGO Onboarding",
-        status: "not_started",
-        priority: "medium",
+        status: "not_started" as const,
+        priority: "medium" as const,
         owner_user_id: user.id,
       }));
 
