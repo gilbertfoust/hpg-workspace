@@ -52,7 +52,7 @@ export interface WorkItem {
   created_at?: string;
   updated_at?: string;
   dependencies?: string[] | null;
-  checklist_json?: Array<{ label: string; checked: boolean }> | null;
+  checklist_json?: unknown;
 }
 
 export type CreateWorkItemInput = Partial<WorkItem> & { module: ModuleType };
