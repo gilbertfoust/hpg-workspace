@@ -63,7 +63,8 @@ export default function AdminConfigHome() {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="users">
+          <TabsContent value="users" className="space-y-6">
+            <PendingApprovalsPanel />
             <UsersManager />
           </TabsContent>
           <TabsContent value="org-units">
