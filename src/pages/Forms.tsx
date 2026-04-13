@@ -9,12 +9,13 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import {
   FileText, Users, Briefcase, DollarSign, Scale, Megaphone, MessageSquare,
   GraduationCap, Wrench, Monitor, Handshake, UserPlus, ArrowRight, Clock,
-  Building2, TrendingUp, Inbox,
+  Building2, TrendingUp, Inbox, BarChart3,
 } from "lucide-react";
 import { useFormTemplates, FormTemplate } from "@/hooks/useFormTemplates";
 import { ModuleType } from "@/hooks/useWorkItems";
 import { FormRunnerSheet } from "@/components/forms/FormRunnerSheet";
 import { FormSubmissionsTab } from "@/components/forms/FormSubmissionsTab";
+import { FormAnalyticsTab } from "@/components/forms/FormAnalyticsTab";
 import { isSupabaseNotConfiguredError } from "@/integrations/supabase/client";
 import { SupabaseNotConfiguredNotice } from "@/components/common/SupabaseNotConfiguredNotice";
 
@@ -51,7 +52,7 @@ const moduleIcons: Record<ModuleType, React.ReactNode> = {
   legal: <Scale className="w-5 h-5" />,
 };
 
-type ViewMode = "templates" | "submissions";
+type ViewMode = "templates" | "submissions" | "analytics";
 
 export default function Forms() {
   const { data: templates, isLoading, error } = useFormTemplates();
@@ -127,10 +128,20 @@ export default function Forms() {
               <Inbox className="w-4 h-4 mr-2" />
               Submissions
             </Button>
+            <Button
+              variant={viewMode === "analytics" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setViewMode("analytics")}
+            >
+              <BarChart3 className="w-4 h-4 mr-2" />
+              Analytics
+            </Button>
           </div>
         }
       >
-        {viewMode === "submissions" ? (
+        {viewMode === "analytics" ? (
+          <FormAnalyticsTab />
+        ) : viewMode === "submissions" ? (
           <FormSubmissionsTab />
         ) : (
           <Tabs defaultValue="All Forms" className="space-y-6">
