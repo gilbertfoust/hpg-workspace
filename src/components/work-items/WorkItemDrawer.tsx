@@ -27,6 +27,7 @@ import { useFormTemplate } from "@/hooks/useFormTemplates";
 import { FormSubmissionSheet } from "@/components/ngo/FormSubmissionSheet";
 import { format } from "date-fns";
 import { Loader2, ExternalLink, Trash2, FileText, Edit } from "lucide-react";
+import { WorkItemChecklist } from "@/components/work-items/WorkItemChecklist";
 import { useToast } from "@/hooks/use-toast";
 import {
   AlertDialog,
@@ -359,6 +360,17 @@ export const WorkItemDrawer: React.FC<WorkItemDrawerProps> = ({
               )}
             </div>
           </div>
+
+          {/* Checklist */}
+          {workItem.checklist_json && Array.isArray(workItem.checklist_json) && (workItem.checklist_json as any[]).length > 0 && (
+            <>
+              <Separator />
+              <WorkItemChecklist
+                workItemId={workItem.id}
+                checklist={workItem.checklist_json}
+              />
+            </>
+          )}
 
           <Separator />
 
