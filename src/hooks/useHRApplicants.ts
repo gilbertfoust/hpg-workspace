@@ -35,6 +35,18 @@ export interface UpdateApplicantInput {
   role_applied_for?: string | null;
   stage?: ApplicantStage;
   notes?: string | null;
+  title_considered?: string | null;
+  department?: string | null;
+  manager?: string | null;
+  is_otp?: boolean;
+  hours_committing?: string | null;
+  time_commitment?: string | null;
+  availability_schedule?: string | null;
+  best_interview_times?: string | null;
+  potential_start_date?: string | null;
+  personal_email?: string | null;
+  location_timezone?: string | null;
+  departmental_assessment?: string | null;
 }
 
 const applicantsTable = "applicants";
@@ -186,7 +198,7 @@ export const useUpdateHRApplicant = () => {
       });
 
       const d = data as any;
-      if (b.stage !== "Hired" && d.stage === "Hired") {
+      if (b.stage !== "Hired" && d.stage === "Hired" || b.stage !== "Sent to IT" && d.stage === "Sent to IT") {
         const workItems = onboardingWorkItems(d as Applicant).map((item) => ({
           ...item,
           status: "not_started" as WorkItemStatus,
