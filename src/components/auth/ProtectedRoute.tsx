@@ -1,6 +1,8 @@
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserRole } from '@/hooks/useUserRole';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import { Loader2 } from 'lucide-react';
 import { GlobalAtmosphereBackground } from "@/components/background/GlobalAtmosphereBackground";
 
@@ -9,11 +11,25 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
-  const { user, loading } = useAuth();
+  const { user, loading, signOut } = useAuth();
   const { data: role, isLoading: roleLoading } = useUserRole();
   const location = useLocation();
 
-  if (loading || roleLoading) {
+  const { data: approvalStatus, isLoading: approvalLoading } = useQuery({
+    queryKey: ['approval-status', user?.id],
+    queryFn: async () => {
+      if (!supabase || !user) return { is_approved: true };
+      const { data } = await supabase
+        .from('profiles')
+        .select('is_approved, approval_status')
+        .eq('id', user.id)
+        .maybeSingle();
+      return data || { is_approved: true };
+    },
+    enabled: !!user && !!supabase,
+  });
+
+  if (loading || roleLoading || approvalLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -23,6 +39,12 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
 
   if (!user) {
     return <Navigate to="/auth" state={{ from: location }} replace />;
+  }
+
+  // If user is not approved, sign them out and redirect to auth
+  if (approvalStatus && !approvalStatus.is_approved) {
+    signOut();
+    return <Navigate to="/auth" replace />;
   }
 
   const isExternalNgo = role?.role === 'external_ngo';
