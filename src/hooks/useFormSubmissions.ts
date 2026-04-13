@@ -491,6 +491,22 @@ export const useUpdateFormSubmission = () => {
         }
       }
 
+      // Create a document record when transitioning to submitted
+      if (isTransitioningToSubmitted && user?.id && currentSubmission?.form_template_id) {
+        try {
+          await createDocumentFromSubmission(
+            submission as FormSubmission,
+            currentSubmission.form_template_id,
+            currentSubmission.ngo_id || null,
+            user.id,
+            input.payload_json ?? currentSubmission.payload_json,
+          );
+          console.log('[useUpdateFormSubmission] Document created for submission');
+        } catch (docError) {
+          console.error('[useUpdateFormSubmission] Failed to create document (non-fatal):', docError);
+        }
+      }
+
       return submission as FormSubmission;
     },
     onSuccess: (_data, variables) => {
