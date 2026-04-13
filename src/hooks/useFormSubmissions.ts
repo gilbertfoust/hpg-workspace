@@ -299,7 +299,25 @@ export const useCreateFormSubmission = () => {
           throw error;
         }
 
-        return (updatedSubmission || submission) as FormSubmission;
+        const finalWithWorkItem = (updatedSubmission || submission) as FormSubmission;
+
+        // Also create a document record for the submission
+        if (user?.id) {
+          try {
+            await createDocumentFromSubmission(
+              finalWithWorkItem,
+              input.form_template_id,
+              input.ngo_id || null,
+              user.id,
+              input.payload_json,
+            );
+            console.log('[useCreateFormSubmission] Document created for submission with work item');
+          } catch (docError) {
+            console.error('[useCreateFormSubmission] Failed to create document (non-fatal):', docError);
+          }
+        }
+
+        return finalWithWorkItem;
       }
 
       const finalSubmission = submission as FormSubmission;
@@ -470,6 +488,22 @@ export const useUpdateFormSubmission = () => {
           const error = new Error(`Work item created but failed to link to form submission: ${linkError.message}`);
           (error as any).supabaseError = linkError;
           throw error;
+        }
+      }
+
+      // Create a document record when transitioning to submitted
+      if (isTransitioningToSubmitted && user?.id && currentSubmission?.form_template_id) {
+        try {
+          await createDocumentFromSubmission(
+            submission as FormSubmission,
+            currentSubmission.form_template_id,
+            currentSubmission.ngo_id || null,
+            user.id,
+            input.payload_json ?? currentSubmission.payload_json,
+          );
+          console.log('[useUpdateFormSubmission] Document created for submission');
+        } catch (docError) {
+          console.error('[useUpdateFormSubmission] Failed to create document (non-fatal):', docError);
         }
       }
 
