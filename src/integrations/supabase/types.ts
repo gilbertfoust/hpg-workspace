@@ -3994,30 +3994,36 @@ export type Database = {
       }
       profiles: {
         Row: {
+          approval_status: string
           avatar_url: string | null
           created_at: string
           department_id: string | null
           email: string | null
           full_name: string | null
           id: string
+          is_approved: boolean
           updated_at: string
         }
         Insert: {
+          approval_status?: string
           avatar_url?: string | null
           created_at?: string
           department_id?: string | null
           email?: string | null
           full_name?: string | null
           id: string
+          is_approved?: boolean
           updated_at?: string
         }
         Update: {
+          approval_status?: string
           avatar_url?: string | null
           created_at?: string
           department_id?: string | null
           email?: string | null
           full_name?: string | null
           id?: string
+          is_approved?: boolean
           updated_at?: string
         }
         Relationships: [
