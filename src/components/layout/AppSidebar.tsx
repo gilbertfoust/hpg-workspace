@@ -157,6 +157,7 @@ const hubsSections: HubConfig[] = [
     items: [
       { to: "/audit", icon: <Eye className="w-4 h-4" />, label: "Audit" },
       { to: "/financial-hub/compliance", icon: <ShieldCheck className="w-4 h-4" />, label: "Compliance" },
+      { to: "/financial-hub/compliance/policies", icon: <ClipboardList className="w-4 h-4" />, label: "Policy Registry" },
     ],
   },
 ];
