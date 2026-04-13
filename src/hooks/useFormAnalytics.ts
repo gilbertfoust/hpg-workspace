@@ -29,7 +29,7 @@ export const useFormAnalytics = () => {
     queryFn: async () => {
       const { data, error } = await supabase!
         .from('form_submissions')
-        .select('id, status, created_at, submitted_at, form_template_id, form_templates(id, name, module)');
+        .select('id, submission_status, created_at, submitted_at, form_template_id, form_templates(id, name, module)');
 
       if (error) throw error;
 
@@ -48,7 +48,7 @@ export const useFormAnalytics = () => {
         }
         const entry = byTemplate.get(key)!;
         entry.total++;
-        const s = row.status as string;
+        const s = (row.submission_status || 'submitted') as string;
         if (s === 'draft') entry.draft++;
         else if (s === 'submitted') entry.submitted++;
         else if (s === 'accepted') entry.accepted++;
