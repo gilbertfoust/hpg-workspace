@@ -140,7 +140,7 @@ export default function NGOOnboardingPipeline() {
   const handleDrop = async (ngoId: string, targetStage: string) => {
     const newStatus = STAGE_STATUS_MAP[targetStage as FsaStage] || "onboarding";
     try {
-      await supabase!.from("ngos").update({ status: newStatus }).eq("id", ngoId);
+      await supabase!.from("ngos").update({ status: newStatus as any }).eq("id", ngoId);
       qc.invalidateQueries({ queryKey: ["ngos"] });
       toast({ title: "NGO moved", description: `Moved to ${targetStage}` });
     } catch (e: any) {
