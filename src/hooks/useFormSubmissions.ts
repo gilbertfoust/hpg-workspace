@@ -299,7 +299,25 @@ export const useCreateFormSubmission = () => {
           throw error;
         }
 
-        return (updatedSubmission || submission) as FormSubmission;
+        const finalWithWorkItem = (updatedSubmission || submission) as FormSubmission;
+
+        // Also create a document record for the submission
+        if (user?.id) {
+          try {
+            await createDocumentFromSubmission(
+              finalWithWorkItem,
+              input.form_template_id,
+              input.ngo_id || null,
+              user.id,
+              input.payload_json,
+            );
+            console.log('[useCreateFormSubmission] Document created for submission with work item');
+          } catch (docError) {
+            console.error('[useCreateFormSubmission] Failed to create document (non-fatal):', docError);
+          }
+        }
+
+        return finalWithWorkItem;
       }
 
       const finalSubmission = submission as FormSubmission;
