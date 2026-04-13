@@ -302,6 +302,19 @@ export const useCreateFormSubmission = () => {
 
         const finalWithWorkItem = (updatedSubmission || submission) as FormSubmission;
 
+        // Auto-create grant application if this is a grant suggestion form
+        try {
+          await createGrantFromFormSubmission({
+            formTemplateName: template.name,
+            ngoId: input.ngo_id || null,
+            payloadJson: input.payload_json && typeof input.payload_json === 'object' && !Array.isArray(input.payload_json)
+              ? input.payload_json as Record<string, unknown>
+              : null,
+          });
+        } catch (e) {
+          console.warn('[useFormSubmissions] Grant auto-creation failed (non-blocking):', e);
+        }
+
         // Also create a document record for the submission
         if (user?.id) {
           try {
