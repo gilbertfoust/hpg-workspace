@@ -7,29 +7,16 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
-  FileText,
-  Users,
-  Briefcase,
-  DollarSign,
-  Scale,
-  Megaphone,
-  MessageSquare,
-  GraduationCap,
-  Wrench,
-  Monitor,
-  Handshake,
-  UserPlus,
-  ArrowRight,
-  ClipboardList,
-  Building2,
-  TrendingUp,
+  FileText, Users, Briefcase, DollarSign, Scale, Megaphone, MessageSquare,
+  GraduationCap, Wrench, Monitor, Handshake, UserPlus, ArrowRight, Clock,
+  Building2, TrendingUp, Inbox,
 } from "lucide-react";
 import { useFormTemplates, FormTemplate } from "@/hooks/useFormTemplates";
 import { ModuleType } from "@/hooks/useWorkItems";
 import { FormRunnerSheet } from "@/components/forms/FormRunnerSheet";
+import { FormSubmissionsTab } from "@/components/forms/FormSubmissionsTab";
 import { isSupabaseNotConfiguredError } from "@/integrations/supabase/client";
 import { SupabaseNotConfiguredNotice } from "@/components/common/SupabaseNotConfiguredNotice";
-import FormSubmissionsTab from "@/components/forms/FormSubmissionsTab";
 
 const moduleDisplayNames: Record<ModuleType | "All Forms", string> = {
   "All Forms": "All Forms",
@@ -64,20 +51,22 @@ const moduleIcons: Record<ModuleType, React.ReactNode> = {
   legal: <Scale className="w-5 h-5" />,
 };
 
+type ViewMode = "templates" | "submissions";
+
 export default function Forms() {
   const { data: templates, isLoading, error } = useFormTemplates();
   const [sheetOpen, setSheetOpen] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<FormTemplate | null>(null);
-  const [activeView, setActiveView] = useState<"templates" | "submissions">("templates");
-  const [activeModule, setActiveModule] = useState<string>("All Forms");
+  const [viewMode, setViewMode] = useState<ViewMode>("templates");
 
   const modules = useMemo(() => {
     if (!templates) return [{ name: "All Forms" as const, count: 0 }];
     const activeTemplates = templates.filter((t) => t.is_active);
+
     const moduleCounts = new Map<ModuleType | "All Forms", number>();
     moduleCounts.set("All Forms", activeTemplates.length);
-    activeTemplates.forEach((t) => {
-      moduleCounts.set(t.module, (moduleCounts.get(t.module) || 0) + 1);
+    activeTemplates.forEach((template) => {
+      moduleCounts.set(template.module, (moduleCounts.get(template.module) || 0) + 1);
     });
 
     const moduleOrder: ModuleType[] = [
@@ -88,10 +77,14 @@ export default function Forms() {
     const moduleList: Array<{ name: ModuleType | "All Forms"; count: number }> = [
       { name: "All Forms", count: activeTemplates.length },
     ];
-    moduleOrder.forEach((m) => {
-      const c = moduleCounts.get(m);
-      if (c && c > 0) moduleList.push({ name: m, count: c });
+
+    moduleOrder.forEach((module) => {
+      const count = moduleCounts.get(module);
+      if (count && count > 0) {
+        moduleList.push({ name: module, count });
+      }
     });
+
     return moduleList;
   }, [templates]);
 
@@ -111,139 +104,148 @@ export default function Forms() {
 
   const activeTemplates = templates?.filter((t) => t.is_active) || [];
 
-  const filteredTemplates =
-    activeModule === "All Forms"
-      ? activeTemplates
-      : activeTemplates.filter((f) => f.module === activeModule);
-
   return (
     <TooltipProvider>
       <MainLayout
         title="Forms"
-        subtitle="Launch forms and review submissions"
-      >
-        {/* Top-level view switcher */}
-        <Tabs value={activeView} onValueChange={(v) => setActiveView(v as any)} className="space-y-6">
-          <TabsList>
-            <TabsTrigger value="templates" className="gap-2">
-              <FileText className="w-4 h-4" />
-              Form Templates
-            </TabsTrigger>
-            <TabsTrigger value="submissions" className="gap-2">
-              <ClipboardList className="w-4 h-4" />
+        subtitle="Launch forms to create work items and submit data"
+        actions={
+          <div className="flex gap-2">
+            <Button
+              variant={viewMode === "templates" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setViewMode("templates")}
+            >
+              <FileText className="w-4 h-4 mr-2" />
+              Templates
+            </Button>
+            <Button
+              variant={viewMode === "submissions" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setViewMode("submissions")}
+            >
+              <Inbox className="w-4 h-4 mr-2" />
               Submissions
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="templates">
-            {/* Module filter tabs */}
-            <div className="flex flex-wrap gap-1 mb-6">
+            </Button>
+          </div>
+        }
+      >
+        {viewMode === "submissions" ? (
+          <FormSubmissionsTab />
+        ) : (
+          <Tabs defaultValue="All Forms" className="space-y-6">
+            <TabsList className="flex flex-wrap h-auto gap-1 bg-transparent p-0">
               {modules.map((module) => (
-                <Button
+                <TabsTrigger
                   key={module.name}
-                  variant={activeModule === module.name ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setActiveModule(module.name)}
+                  value={module.name}
+                  className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
                 >
                   {moduleDisplayNames[module.name]}
                   <Badge variant="secondary" className="ml-2 text-xs">
                     {module.count}
                   </Badge>
-                </Button>
+                </TabsTrigger>
               ))}
-            </div>
+            </TabsList>
 
-            {isLoading ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {[1, 2, 3, 4, 5, 6].map((i) => (
-                  <Card key={i}>
-                    <CardHeader>
-                      <Skeleton className="h-5 w-3/4" />
-                      <Skeleton className="h-4 w-full mt-2" />
-                    </CardHeader>
-                    <CardContent>
-                      <Skeleton className="h-9 w-full" />
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            ) : filteredTemplates.length === 0 ? (
-              <Card>
-                <CardContent className="py-8 text-center">
-                  <FileText className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
-                  <p className="text-muted-foreground">No forms available for this module</p>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {filteredTemplates.map((form) => {
-                  const requiresNGO = form.module === "ngo_coordination";
-                  const moduleIcon = moduleIcons[form.module] || <FileText className="w-5 h-5" />;
-                  const moduleDisplayName =
-                    moduleDisplayNames[form.module] ||
-                    form.module.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
+            {modules.map((module) => {
+              const filteredTemplates =
+                module.name === "All Forms"
+                  ? activeTemplates
+                  : activeTemplates.filter((form) => form.module === module.name);
 
-                  return (
-                    <Card key={form.id} className="module-card group">
-                      <CardHeader className="pb-3">
-                        <div className="flex items-start justify-between">
-                          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
-                            {moduleIcon}
-                          </div>
-                        </div>
-                        <CardTitle className="text-base mt-3 group-hover:text-primary transition-colors">
-                          {form.name}
-                        </CardTitle>
-                        <CardDescription className="text-sm">
-                          {form.description || "No description available"}
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent className="pt-0">
-                        <div className="flex items-center justify-between">
-                          <Badge variant="outline" className="text-xs font-normal">
-                            {moduleDisplayName}
-                          </Badge>
-                        </div>
-                        {requiresNGO ? (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button className="w-full mt-4" variant="outline" disabled>
-                                Launch Form
-                                <ArrowRight className="w-4 h-4 ml-2" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>This form requires an NGO context. Launch from an NGO detail page.</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        ) : (
-                          <Button
-                            className="w-full mt-4"
-                            variant="outline"
-                            onClick={() => handleLaunchForm(form)}
-                          >
-                            Launch Form
-                            <ArrowRight className="w-4 h-4 ml-2" />
-                          </Button>
-                        )}
+              return (
+                <TabsContent key={module.name} value={module.name}>
+                  {isLoading ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {[1, 2, 3, 4, 5, 6].map((i) => (
+                        <Card key={i}>
+                          <CardHeader>
+                            <Skeleton className="h-5 w-3/4" />
+                            <Skeleton className="h-4 w-full mt-2" />
+                          </CardHeader>
+                          <CardContent>
+                            <Skeleton className="h-9 w-full" />
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  ) : filteredTemplates.length === 0 ? (
+                    <Card>
+                      <CardContent className="py-8 text-center">
+                        <FileText className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
+                        <p className="text-muted-foreground">No forms available for this module</p>
                       </CardContent>
                     </Card>
-                  );
-                })}
-              </div>
-            )}
-          </TabsContent>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {filteredTemplates.map((form) => {
+                        const requiresNGO = form.module === "ngo_coordination";
+                        const moduleIcon = moduleIcons[form.module] || <FileText className="w-5 h-5" />;
+                        const moduleDisplayName =
+                          moduleDisplayNames[form.module] ||
+                          form.module.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
 
-          <TabsContent value="submissions">
-            <FormSubmissionsTab />
-          </TabsContent>
-        </Tabs>
+                        return (
+                          <Card key={form.id} className="module-card group">
+                            <CardHeader className="pb-3">
+                              <div className="flex items-start justify-between">
+                                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+                                  {moduleIcon}
+                                </div>
+                              </div>
+                              <CardTitle className="text-base mt-3 group-hover:text-primary transition-colors">
+                                {form.name}
+                              </CardTitle>
+                              <CardDescription className="text-sm">
+                                {form.description || "No description available"}
+                              </CardDescription>
+                            </CardHeader>
+                            <CardContent className="pt-0">
+                              <div className="flex items-center justify-between">
+                                <Badge variant="outline" className="text-xs font-normal">
+                                  {moduleDisplayName}
+                                </Badge>
+                              </div>
+                              {requiresNGO ? (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button className="w-full mt-4" variant="outline" disabled>
+                                      Launch Form
+                                      <ArrowRight className="w-4 h-4 ml-2" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>This form requires an NGO context. Launch from an NGO detail page.</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              ) : (
+                                <Button
+                                  className="w-full mt-4"
+                                  variant="outline"
+                                  onClick={() => handleLaunchForm(form)}
+                                >
+                                  Launch Form
+                                  <ArrowRight className="w-4 h-4 ml-2" />
+                                </Button>
+                              )}
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
+                    </div>
+                  )}
+                </TabsContent>
+              );
+            })}
+          </Tabs>
+        )}
 
         <FormRunnerSheet
           open={sheetOpen}
           onOpenChange={setSheetOpen}
           template={selectedTemplate}
-          initialNgoId={undefined}
         />
       </MainLayout>
     </TooltipProvider>

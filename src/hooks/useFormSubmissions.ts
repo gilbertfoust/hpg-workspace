@@ -190,6 +190,7 @@ export const useCreateFormSubmission = () => {
 
       ensureSupabase();
 
+
       const sanitizedInput: Record<string, unknown> = {};
       if (input.form_template_id) sanitizedInput.form_template_id = input.form_template_id;
       if ('ngo_id' in input) sanitizedInput.ngo_id = input.ngo_id || null;
