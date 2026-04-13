@@ -22,7 +22,7 @@ export function DnDKanbanBoard<T>({
   getItemId,
   onDrop,
   renderCard,
-  columnWidth = 200,
+  columnWidth = 220,
 }: DnDKanbanBoardProps<T>) {
   const [draggedItemId, setDraggedItemId] = useState<string | null>(null);
   const [dragOverColumn, setDragOverColumn] = useState<string | null>(null);
@@ -114,7 +114,7 @@ export function DnDKanbanBoard<T>({
               })}
               {col.items.length === 0 && (
                 <p className="text-xs text-muted-foreground text-center py-6">
-                  Empty
+                  Drop here
                 </p>
               )}
             </div>
