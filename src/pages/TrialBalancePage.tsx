@@ -7,6 +7,9 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Printer } from "lucide-react";
+import { printElement } from "@/utils/financialPdfExport";
 
 const TrialBalancePage = () => {
   const [ngoId, setNgoId] = useState("");
@@ -56,8 +59,18 @@ const TrialBalancePage = () => {
           </div>
         </div>
 
+        {activeNgoId && (
+          <div className="flex justify-end no-print">
+            <Button variant="outline" size="sm" onClick={() => printElement("tb-report", "Trial Balance")}>
+              <Printer className="w-4 h-4 mr-1" /> Print / PDF
+            </Button>
+          </div>
+        )}
+
         {activeNgoId ? (
-          <TrialBalanceTable rows={rows || []} isLoading={isLoading} />
+          <div id="tb-report">
+            <TrialBalanceTable rows={rows || []} isLoading={isLoading} />
+          </div>
         ) : (
           <div className="text-center text-muted-foreground py-8">Select an NGO to view the trial balance.</div>
         )}

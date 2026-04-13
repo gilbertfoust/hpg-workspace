@@ -384,14 +384,7 @@ export function AppSidebar() {
                   <NavItem to="/reports" icon={<BarChart3 className="w-4 h-4" />} label="" />
                 )}
                 <NavItem to="/automations" icon={<Zap className="w-4 h-4" />} label={isCollapsed ? "" : "Automations"} />
-                <NavItem to="/admin" icon={<Settings className="w-4 h-4" />} label={isCollapsed ? "" : "Admin"} />
-                {canAccessAdminConfig && (
-                  <NavItem
-                    to="/admin/config"
-                    icon={<Settings className="w-4 h-4" />}
-                    label={isCollapsed ? "" : "Admin / Config"}
-                  />
-                )}
+                <NavItem to={canAccessAdminConfig ? "/admin/config" : "/admin"} icon={<Settings className="w-4 h-4" />} label={isCollapsed ? "" : "Admin"} />
               </div>
             </nav>
           </ScrollArea>

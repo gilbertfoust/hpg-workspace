@@ -1,13 +1,14 @@
 import { MainLayout } from '@/components/layout/MainLayout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Settings, Shield, Users } from 'lucide-react';
+import { Settings, Shield, Users, Wrench } from 'lucide-react';
 import { useUserRole } from '@/hooks/useUserRole';
 import { isSupabaseNotConfiguredError, supabase } from '@/integrations/supabase/client';
 import OrgUnitsManager from '@/components/admin-config/OrgUnitsManager';
 import BundlesManager from '@/components/admin-config/BundlesManager';
 import TemplatesManager from '@/components/admin-config/TemplatesManager';
 import UsersManager from '@/components/admin-config/UsersManager';
+import ConfigCheckPanel from '@/components/admin/ConfigCheckPanel';
 
 export default function AdminConfigHome() {
   const { data: role, isLoading, error } = useUserRole();
@@ -17,14 +18,14 @@ export default function AdminConfigHome() {
   return (
     <MainLayout
       title="Admin / Config"
-      subtitle="Manage users, departments, bundles, and templates"
+      subtitle="Manage users, departments, bundles, templates, and system settings"
     >
       {supabaseUnavailable ? (
         <Alert>
           <Shield className="h-4 w-4" />
           <AlertTitle>Admin / Config unavailable</AlertTitle>
           <AlertDescription>
-            Admin / Config center is unavailable because Supabase is not configured in this
+            Admin / Config center is unavailable because the backend is not configured in this
             environment.
           </AlertDescription>
         </Alert>
@@ -55,6 +56,10 @@ export default function AdminConfigHome() {
               <Settings className="h-4 w-4" />
               Templates
             </TabsTrigger>
+            <TabsTrigger value="system" className="gap-2">
+              <Wrench className="h-4 w-4" />
+              System
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="users">
@@ -68,6 +73,11 @@ export default function AdminConfigHome() {
           </TabsContent>
           <TabsContent value="templates">
             <TemplatesManager />
+          </TabsContent>
+          <TabsContent value="system">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <ConfigCheckPanel />
+            </div>
           </TabsContent>
         </Tabs>
       )}

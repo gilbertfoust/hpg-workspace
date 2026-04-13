@@ -127,7 +127,24 @@ export const useCreateWorkItem = () => {
     mutationFn: async (input: Partial<WorkItem> & { module: ModuleType }) => {
       const { data, error } = await supabase.from("work_items").insert(input as any).select().single();
       if (error) throw error;
-      return data as WorkItem;
+      const created = data as WorkItem;
+
+      // Auto-schedule reminder if due_date is set
+      if (created.due_date) {
+        try {
+          const { scheduleDefaultReminderForWorkItem } = await import("@/lib/reminders");
+          await scheduleDefaultReminderForWorkItem({
+            id: created.id,
+            due_date: created.due_date,
+            owner_user_id: created.owner_user_id || null,
+            created_by_user_id: null,
+          });
+        } catch (e) {
+          console.warn("Failed to schedule reminder for new work item:", e);
+        }
+      }
+
+      return created;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["work-items"] });
@@ -145,7 +162,24 @@ export const useUpdateWorkItem = () => {
       const { id, ...rest } = input;
       const { data, error } = await supabase.from("work_items").update(rest as any).eq("id", id).select().single();
       if (error) throw error;
-      return data as WorkItem;
+      const updated = data as WorkItem;
+
+      // Auto-schedule reminder if due_date changed
+      if (input.due_date && updated.due_date) {
+        try {
+          const { scheduleDefaultReminderForWorkItem } = await import("@/lib/reminders");
+          await scheduleDefaultReminderForWorkItem({
+            id: updated.id,
+            due_date: updated.due_date,
+            owner_user_id: updated.owner_user_id || null,
+            created_by_user_id: null,
+          });
+        } catch (e) {
+          console.warn("Failed to schedule reminder for updated work item:", e);
+        }
+      }
+
+      return updated;
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["work-items"] });
