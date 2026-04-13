@@ -151,6 +151,7 @@ import Consolidation from "./modules/controller/pages/Consolidation";
 import RiskScoring from "./modules/controller/pages/RiskScoring";
 import InterNGOTransfers from "./modules/controller/pages/InterNGOTransfers";
 import Treasury from "./modules/controller/pages/Treasury";
+import PolicyRegistryPage from "./pages/PolicyRegistryPage";
 
 const queryClient = new QueryClient();
 
@@ -225,6 +226,7 @@ const App = () => {
                 <Route path="/financial-hub/compliance/statements" element={<P><StatementsPage /></P>} />
                 <Route path="/financial-hub/compliance/packages" element={<P><PackagesPage /></P>} />
                 <Route path="/financial-hub/compliance/close-year" element={<P><CloseYearPage /></P>} />
+                <Route path="/financial-hub/compliance/policies" element={<P><PolicyRegistryPage /></P>} />
                 <Route path="/financial-hub/cost-centers" element={<P><CostCentersPage /></P>} />
                 <Route path="/financial-hub/usage" element={<P><UsageEntriesPage /></P>} />
                 <Route path="/financial-hub/allocations" element={<P><AllocationsPage /></P>} />
