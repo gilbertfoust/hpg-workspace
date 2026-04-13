@@ -1,12 +1,13 @@
 import { MainLayout } from '@/components/layout/MainLayout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Settings, Shield } from 'lucide-react';
+import { Settings, Shield, Users } from 'lucide-react';
 import { useUserRole } from '@/hooks/useUserRole';
 import { isSupabaseNotConfiguredError, supabase } from '@/integrations/supabase/client';
 import OrgUnitsManager from '@/components/admin-config/OrgUnitsManager';
 import BundlesManager from '@/components/admin-config/BundlesManager';
 import TemplatesManager from '@/components/admin-config/TemplatesManager';
+import UsersManager from '@/components/admin-config/UsersManager';
 
 export default function AdminConfigHome() {
   const { data: role, isLoading, error } = useUserRole();
@@ -16,7 +17,7 @@ export default function AdminConfigHome() {
   return (
     <MainLayout
       title="Admin / Config"
-      subtitle="Manage departments, bundles, and templates"
+      subtitle="Manage users, departments, bundles, and templates"
     >
       {supabaseUnavailable ? (
         <Alert>
@@ -36,8 +37,12 @@ export default function AdminConfigHome() {
           <AlertDescription>Access denied.</AlertDescription>
         </Alert>
       ) : (
-        <Tabs defaultValue="org-units" className="space-y-6">
+        <Tabs defaultValue="users" className="space-y-6">
           <TabsList>
+            <TabsTrigger value="users" className="gap-2">
+              <Users className="h-4 w-4" />
+              Users
+            </TabsTrigger>
             <TabsTrigger value="org-units" className="gap-2">
               <Settings className="h-4 w-4" />
               Departments & Sub-Departments
@@ -52,6 +57,9 @@ export default function AdminConfigHome() {
             </TabsTrigger>
           </TabsList>
 
+          <TabsContent value="users">
+            <UsersManager />
+          </TabsContent>
           <TabsContent value="org-units">
             <OrgUnitsManager />
           </TabsContent>
