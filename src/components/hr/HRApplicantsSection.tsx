@@ -19,12 +19,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import {
   Applicant,
   ApplicantStage,
+  ATS_STAGES,
+  ATS_STAGES_WITH_REJECTED,
   CreateApplicantInput,
   useCreateHRApplicant,
   useHRApplicants,
@@ -32,21 +35,29 @@ import {
 import { useHRRequisitions } from "@/hooks/useHRRequisitions";
 import { ApplicantDrawer } from "@/components/hr/ApplicantDrawer";
 
-const stages: ApplicantStage[] = [
-  "Applied",
-  "Screening",
-  "Interviewing",
-  "Offer",
-  "Hired",
-  "Rejected",
-];
+const STAGE_COLORS: Record<string, string> = {
+  "Newly Received": "border-l-blue-400",
+  "HR Screening": "border-l-indigo-400",
+  "Dept Head Approval": "border-l-violet-400",
+  "Rejected by Dept": "border-l-red-400",
+  "Send Interview Request": "border-l-purple-400",
+  "Interview Request Sent": "border-l-fuchsia-400",
+  "Interview Times Received": "border-l-pink-400",
+  "Interview Confirmation": "border-l-rose-400",
+  "Interview Scheduled": "border-l-amber-400",
+  "Interview Completed": "border-l-orange-400",
+  "Dept Decision Made": "border-l-yellow-400",
+  "Onboarding Email Sent": "border-l-lime-400",
+  "Materials Received": "border-l-emerald-400",
+  "Sent to IT": "border-l-green-500",
+};
 
 const emptyApplicant: CreateApplicantInput = {
   full_name: "",
   email: "",
   phone: "",
   role_applied_for: null,
-  stage: "Applied",
+  stage: "Newly Received",
   notes: "",
 };
 
@@ -66,13 +77,15 @@ export function HRApplicantsSection() {
 
   const groupedApplicants = useMemo(() => {
     const groups = new Map<ApplicantStage, Applicant[]>();
-    stages.forEach((stage) => groups.set(stage, []));
+    ATS_STAGES_WITH_REJECTED.forEach((stage) => groups.set(stage, []));
     applicants.forEach((applicant) => {
-      const stage = applicant.stage ?? "Applied";
+      const stage = applicant.stage ?? "Newly Received";
       if (!groups.has(stage)) {
-        groups.set(stage, []);
+        // Legacy stage — put in first column
+        groups.get("Newly Received")?.push(applicant);
+      } else {
+        groups.get(stage)?.push(applicant);
       }
-      groups.get(stage)?.push(applicant);
     });
     return groups;
   }, [applicants]);
@@ -93,8 +106,8 @@ export function HRApplicantsSection() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-lg font-semibold text-foreground">Applicants Pipeline</h2>
-          <p className="text-sm text-muted-foreground">Manage candidates by stage and keep notes centralized.</p>
+          <h2 className="text-lg font-semibold text-foreground">Recruitment Pipeline</h2>
+          <p className="text-sm text-muted-foreground">14-stage ATS Kanban — drag-free, click to manage.</p>
         </div>
         <Button onClick={() => setIsDialogOpen(true)} className="gap-2">
           <Plus className="h-4 w-4" />
@@ -104,66 +117,55 @@ export function HRApplicantsSection() {
 
       {isLoading && <p className="text-sm text-muted-foreground">Loading applicants...</p>}
 
-      <div className="space-y-6">
-        {stages.map((stage) => {
-          const stageApplicants = groupedApplicants.get(stage) ?? [];
-          return (
-            <div key={stage} className="rounded-lg border bg-card p-4 space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <h3 className="text-sm font-semibold text-foreground">{stage}</h3>
-                  <Badge variant="outline">{stageApplicants.length}</Badge>
+      <ScrollArea className="w-full">
+        <div className="flex gap-3 pb-4" style={{ minWidth: `${ATS_STAGES_WITH_REJECTED.length * 210}px` }}>
+          {ATS_STAGES_WITH_REJECTED.map((stage) => {
+            const stageApplicants = groupedApplicants.get(stage) ?? [];
+            return (
+              <div key={stage} className="w-[200px] flex-shrink-0">
+                <div className="flex items-center gap-2 mb-3">
+                  <h3 className="text-xs font-semibold uppercase tracking-wide truncate">{stage}</h3>
+                  <Badge variant="secondary" className="text-xs flex-shrink-0">{stageApplicants.length}</Badge>
+                </div>
+                <div className="space-y-2 min-h-[100px]">
+                  {stageApplicants.map((applicant) => (
+                    <Card
+                      key={applicant.id}
+                      className={`border-l-4 ${STAGE_COLORS[stage] || "border-l-muted"} cursor-pointer hover:bg-accent/50 transition-colors`}
+                      onClick={() => handleOpenDrawer(applicant)}
+                    >
+                      <CardContent className="p-3">
+                        <p className="text-sm font-medium truncate">{applicant.full_name}</p>
+                        <p className="text-xs text-muted-foreground mt-1 truncate">
+                          {applicant.role_applied_for
+                            ? requisitionMap.get(applicant.role_applied_for) ?? "Unknown role"
+                            : "No role specified"}
+                        </p>
+                        {applicant.department && (
+                          <p className="text-xs text-muted-foreground truncate">{applicant.department}</p>
+                        )}
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {format(new Date(applicant.created_at), "MMM d")}
+                        </p>
+                      </CardContent>
+                    </Card>
+                  ))}
+                  {stageApplicants.length === 0 && (
+                    <p className="text-xs text-muted-foreground text-center py-6">Empty</p>
+                  )}
                 </div>
               </div>
-              {stageApplicants.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No applicants in this stage yet.</p>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Role</TableHead>
-                      <TableHead>Contact</TableHead>
-                      <TableHead>Applied</TableHead>
-                      <TableHead className="text-right">Action</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {stageApplicants.map((applicant) => (
-                      <TableRow key={applicant.id}>
-                        <TableCell className="font-medium text-foreground">{applicant.full_name}</TableCell>
-                        <TableCell>{
-                          applicant.role_applied_for
-                            ? requisitionMap.get(applicant.role_applied_for) ?? "—"
-                            : "—"
-                        }</TableCell>
-                        <TableCell>
-                          <div className="text-sm text-muted-foreground">
-                            <p>{applicant.email ?? "—"}</p>
-                            <p>{applicant.phone ?? "—"}</p>
-                          </div>
-                        </TableCell>
-                        <TableCell>{format(new Date(applicant.created_at), "MMM d, yyyy")}</TableCell>
-                        <TableCell className="text-right">
-                          <Button variant="outline" size="sm" onClick={() => handleOpenDrawer(applicant)}>
-                            View details
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+        <ScrollBar orientation="horizontal" />
+      </ScrollArea>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="sm:max-w-[520px]">
           <DialogHeader>
             <DialogTitle>New applicant</DialogTitle>
-            <DialogDescription>Add an applicant to the pipeline.</DialogDescription>
+            <DialogDescription>Add an applicant to the recruitment pipeline.</DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-2">
             <div className="grid gap-2">
@@ -175,59 +177,71 @@ export function HRApplicantsSection() {
                 placeholder="Jane Doe"
               />
             </div>
-            <div className="grid gap-2">
-              <Label htmlFor="applicant-email">Email</Label>
-              <Input
-                id="applicant-email"
-                value={formState.email ?? ""}
-                onChange={(event) => setFormState((prev) => ({ ...prev, email: event.target.value }))}
-                placeholder="jane@example.org"
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="applicant-email">Email</Label>
+                <Input
+                  id="applicant-email"
+                  value={formState.email ?? ""}
+                  onChange={(event) => setFormState((prev) => ({ ...prev, email: event.target.value }))}
+                  placeholder="jane@example.org"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="applicant-phone">Phone</Label>
+                <Input
+                  id="applicant-phone"
+                  value={formState.phone ?? ""}
+                  onChange={(event) => setFormState((prev) => ({ ...prev, phone: event.target.value }))}
+                  placeholder="+254 700 000 000"
+                />
+              </div>
             </div>
-            <div className="grid gap-2">
-              <Label htmlFor="applicant-phone">Phone</Label>
-              <Input
-                id="applicant-phone"
-                value={formState.phone ?? ""}
-                onChange={(event) => setFormState((prev) => ({ ...prev, phone: event.target.value }))}
-                placeholder="+254 700 000 000"
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label>Role applied for</Label>
+                <Select
+                  value={formState.role_applied_for ?? ""}
+                  onValueChange={(value) => setFormState((prev) => ({ ...prev, role_applied_for: value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select requisition" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {requisitions.map((req) => (
+                      <SelectItem key={req.id} value={req.id}>
+                        {req.title}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-2">
+                <Label>Department</Label>
+                <Input
+                  value={formState.department ?? ""}
+                  onChange={(event) => setFormState((prev) => ({ ...prev, department: event.target.value }))}
+                  placeholder="e.g. Program"
+                />
+              </div>
             </div>
-            <div className="grid gap-2">
-              <Label>Role applied for</Label>
-              <Select
-                value={formState.role_applied_for ?? ""}
-                onValueChange={(value) => setFormState((prev) => ({ ...prev, role_applied_for: value }))}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select requisition" />
-                </SelectTrigger>
-                <SelectContent>
-                  {requisitions.map((req) => (
-                    <SelectItem key={req.id} value={req.id}>
-                      {req.title}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid gap-2">
-              <Label>Stage</Label>
-              <Select
-                value={formState.stage ?? "Applied"}
-                onValueChange={(value: ApplicantStage) => setFormState((prev) => ({ ...prev, stage: value }))}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select stage" />
-                </SelectTrigger>
-                <SelectContent>
-                  {stages.map((stage) => (
-                    <SelectItem key={stage} value={stage}>
-                      {stage}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label>Hours committing</Label>
+                <Input
+                  value={formState.hours_committing ?? ""}
+                  onChange={(event) => setFormState((prev) => ({ ...prev, hours_committing: event.target.value }))}
+                  placeholder="e.g. 10-15 hrs/week"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label>Location / Timezone</Label>
+                <Input
+                  value={formState.location_timezone ?? ""}
+                  onChange={(event) => setFormState((prev) => ({ ...prev, location_timezone: event.target.value }))}
+                  placeholder="e.g. EST (New York)"
+                />
+              </div>
             </div>
             <div className="grid gap-2">
               <Label htmlFor="applicant-notes">Notes</Label>
@@ -235,7 +249,7 @@ export function HRApplicantsSection() {
                 id="applicant-notes"
                 value={formState.notes ?? ""}
                 onChange={(event) => setFormState((prev) => ({ ...prev, notes: event.target.value }))}
-                rows={4}
+                rows={3}
               />
             </div>
           </div>
@@ -256,9 +270,7 @@ export function HRApplicantsSection() {
         open={drawerOpen}
         onOpenChange={(openValue) => {
           setDrawerOpen(openValue);
-          if (!openValue) {
-            setSelectedApplicant(null);
-          }
+          if (!openValue) setSelectedApplicant(null);
         }}
       />
     </div>
