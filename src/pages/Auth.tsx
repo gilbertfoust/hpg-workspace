@@ -34,6 +34,7 @@ const Auth = () => {
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [forgotEmail, setForgotEmail] = useState("");
   const [isSendingReset, setIsSendingReset] = useState(false);
+  const [pendingApproval, setPendingApproval] = useState(false);
 
   if (loading) {
     return (
