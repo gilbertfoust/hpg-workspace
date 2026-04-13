@@ -3947,6 +3947,51 @@ export type Database = {
           },
         ]
       }
+      policy_registry: {
+        Row: {
+          category: string
+          created_at: string
+          description: string | null
+          document_path: string | null
+          id: string
+          last_review_date: string | null
+          next_review_date: string | null
+          notes: string | null
+          owner_name: string | null
+          policy_name: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          document_path?: string | null
+          id?: string
+          last_review_date?: string | null
+          next_review_date?: string | null
+          notes?: string | null
+          owner_name?: string | null
+          policy_name: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          document_path?: string | null
+          id?: string
+          last_review_date?: string | null
+          next_review_date?: string | null
+          notes?: string | null
+          owner_name?: string | null
+          policy_name?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
