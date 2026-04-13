@@ -47,15 +47,34 @@ const Auth = () => {
     return <Navigate to="/" replace />;
   }
 
+  const [pendingApproval, setPendingApproval] = useState(false);
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     const { error } = await signIn(loginEmail, loginPassword);
     if (error) {
       toast({ variant: "destructive", title: "Login failed", description: error.message });
-    } else {
-      toast({ title: "Welcome back!", description: "You have successfully logged in." });
+      setIsSubmitting(false);
+      return;
     }
+    // Check if user is approved
+    if (supabase) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("is_approved, approval_status")
+        .eq("id", (await supabase.auth.getUser()).data.user?.id ?? "")
+        .maybeSingle();
+
+      if (profile && !profile.is_approved) {
+        // Sign them back out - they're not approved yet
+        await supabase.auth.signOut();
+        setPendingApproval(true);
+        setIsSubmitting(false);
+        return;
+      }
+    }
+    toast({ title: "Welcome back!", description: "You have successfully logged in." });
     setIsSubmitting(false);
   };
 
@@ -66,7 +85,7 @@ const Auth = () => {
     if (error) {
       toast({ variant: "destructive", title: "Signup failed", description: error.message });
     } else {
-      toast({ title: "Account created!", description: "You can now log in with your credentials." });
+      setPendingApproval(true);
     }
     setIsSubmitting(false);
   };
