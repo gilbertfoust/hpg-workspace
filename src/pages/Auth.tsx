@@ -9,8 +9,9 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Building2 } from "lucide-react";
+import { Loader2, Building2, Clock, ShieldCheck } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const HPG_LOGO_URL =
   "https://img1.wsimg.com/isteam/ip/8d5502d6-d937-4d80-bd56-8074053e4d77/Humanity%20Pathways%20Global.jpg/:/rs=h:175,m";
@@ -34,6 +35,7 @@ const Auth = () => {
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [forgotEmail, setForgotEmail] = useState("");
   const [isSendingReset, setIsSendingReset] = useState(false);
+  const [pendingApproval, setPendingApproval] = useState(false);
 
   if (loading) {
     return (
@@ -47,15 +49,33 @@ const Auth = () => {
     return <Navigate to="/" replace />;
   }
 
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     const { error } = await signIn(loginEmail, loginPassword);
     if (error) {
       toast({ variant: "destructive", title: "Login failed", description: error.message });
-    } else {
-      toast({ title: "Welcome back!", description: "You have successfully logged in." });
+      setIsSubmitting(false);
+      return;
     }
+    // Check if user is approved
+    if (supabase) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("is_approved, approval_status")
+        .eq("id", (await supabase.auth.getUser()).data.user?.id ?? "")
+        .maybeSingle();
+
+      if (profile && !profile.is_approved) {
+        // Sign them back out - they're not approved yet
+        await supabase.auth.signOut();
+        setPendingApproval(true);
+        setIsSubmitting(false);
+        return;
+      }
+    }
+    toast({ title: "Welcome back!", description: "You have successfully logged in." });
     setIsSubmitting(false);
   };
 
@@ -66,7 +86,7 @@ const Auth = () => {
     if (error) {
       toast({ variant: "destructive", title: "Signup failed", description: error.message });
     } else {
-      toast({ title: "Account created!", description: "You can now log in with your credentials." });
+      setPendingApproval(true);
     }
     setIsSubmitting(false);
   };
@@ -118,7 +138,35 @@ const Auth = () => {
         </CardHeader>
 
         <CardContent>
-          {showForgotPassword ? (
+          {pendingApproval ? (
+            <div className="space-y-4 text-center py-4">
+              <div className="flex justify-center">
+                <div className="h-16 w-16 rounded-full bg-amber-100 flex items-center justify-center">
+                  <Clock className="h-8 w-8 text-amber-600" />
+                </div>
+              </div>
+              <h3 className="text-lg font-semibold">Account Pending Approval</h3>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Your account has been created and is awaiting administrator approval. 
+                You will receive an email once your account has been reviewed and activated.
+              </p>
+              <Alert className="text-left">
+                <ShieldCheck className="h-4 w-4" />
+                <AlertTitle>What happens next?</AlertTitle>
+                <AlertDescription>
+                  An administrator will review your request, assign your role, and approve your access. 
+                  This usually takes 1–2 business days.
+                </AlertDescription>
+              </Alert>
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => setPendingApproval(false)}
+              >
+                Back to Login
+              </Button>
+            </div>
+          ) : showForgotPassword ? (
             <div className="space-y-4">
               <p className="text-sm text-muted-foreground">
                 Enter your email address and we'll send you a link to reset your password.

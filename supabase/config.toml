@@ -29,3 +29,6 @@ verify_jwt = true
 
 [functions.admin-reset-password]
 verify_jwt = true
+
+[functions.admin-approve-user]
+verify_jwt = true
