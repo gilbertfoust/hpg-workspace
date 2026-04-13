@@ -5,7 +5,21 @@ import { useAuth } from "@/contexts/AuthContext";
 import type { Json } from "@/integrations/supabase/types";
 import type { ModuleType, Priority, WorkItemStatus } from "@/hooks/useWorkItems";
 
-export type ApplicantStage = "Applied" | "Screening" | "Interviewing" | "Offer" | "Hired" | "Rejected";
+export type ApplicantStage =
+  | "Applied" | "Screening" | "Interviewing" | "Offer" | "Hired" | "Rejected"
+  | "Newly Received" | "HR Screening" | "Dept Head Approval" | "Rejected by Dept"
+  | "Send Interview Request" | "Interview Request Sent" | "Interview Times Received"
+  | "Interview Confirmation" | "Interview Scheduled" | "Interview Completed"
+  | "Dept Decision Made" | "Onboarding Email Sent" | "Materials Received" | "Sent to IT";
+
+export const ATS_STAGES: ApplicantStage[] = [
+  "Newly Received", "HR Screening", "Dept Head Approval",
+  "Send Interview Request", "Interview Request Sent", "Interview Times Received",
+  "Interview Confirmation", "Interview Scheduled", "Interview Completed",
+  "Dept Decision Made", "Onboarding Email Sent", "Materials Received", "Sent to IT",
+];
+
+export const ATS_STAGES_WITH_REJECTED: ApplicantStage[] = [...ATS_STAGES, "Rejected by Dept"];
 
 export interface Applicant {
   id: string;
@@ -16,6 +30,18 @@ export interface Applicant {
   stage: ApplicantStage;
   notes: string | null;
   created_at: string;
+  title_considered?: string | null;
+  department?: string | null;
+  manager?: string | null;
+  is_otp?: boolean;
+  hours_committing?: string | null;
+  time_commitment?: string | null;
+  availability_schedule?: string | null;
+  best_interview_times?: string | null;
+  potential_start_date?: string | null;
+  personal_email?: string | null;
+  location_timezone?: string | null;
+  departmental_assessment?: string | null;
 }
 
 export interface CreateApplicantInput {
