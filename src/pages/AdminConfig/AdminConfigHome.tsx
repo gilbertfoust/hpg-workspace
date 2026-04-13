@@ -8,6 +8,7 @@ import OrgUnitsManager from '@/components/admin-config/OrgUnitsManager';
 import BundlesManager from '@/components/admin-config/BundlesManager';
 import TemplatesManager from '@/components/admin-config/TemplatesManager';
 import UsersManager from '@/components/admin-config/UsersManager';
+import PendingApprovalsPanel from '@/components/admin-config/PendingApprovalsPanel';
 import ConfigCheckPanel from '@/components/admin/ConfigCheckPanel';
 
 export default function AdminConfigHome() {
