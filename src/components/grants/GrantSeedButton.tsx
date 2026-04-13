@@ -85,17 +85,14 @@ export function GrantSeedButton({ ngos, existingCount }: Props) {
               .includes(grant.ngoMatch.toLowerCase())
         );
 
-        const payload: Record<string, unknown> = {
+        if (!ngo) continue; // Skip grants with no matching NGO
+
+        const { error } = await supabase.from("grant_applications").insert({
           title: grant.title,
+          ngo_id: ngo.id,
           stage: grant.stage,
-          notes: grant.focus ? `Focus: ${grant.focus}` : null,
-        };
-
-        if (ngo) {
-          payload.ngo_id = ngo.id;
-        }
-
-        const { error } = await supabase.from("grant_applications").insert(payload);
+          notes: grant.focus ? `Focus: ${grant.focus}` : undefined,
+        });
         if (!error) seeded++;
       }
 
