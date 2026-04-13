@@ -48,7 +48,6 @@ const Auth = () => {
     return <Navigate to="/" replace />;
   }
 
-  const [pendingApproval, setPendingApproval] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
