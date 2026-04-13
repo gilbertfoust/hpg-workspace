@@ -5,6 +5,7 @@ import type { Database, Json } from '@/integrations/supabase/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { ModuleType } from '@/hooks/useWorkItems';
 import { createWorkItemForSubmission } from '@/lib/createWorkItemForSubmission';
+import { createGrantFromFormSubmission } from '@/lib/createGrantFromFormSubmission';
 
 const MODULE_TO_DOC_CATEGORY: Record<string, string> = {
   ngo_coordination: 'other',
