@@ -1,166 +1,33 @@
 
 
-# Confluence-to-Workstation Cross-Reference Analysis
+# Fix: Bundles Error and Missing Users Tab on Admin Config Page
 
-## What Was Found in Confluence
+## Problems Found
 
-Your Confluence workspace contains SOPs, workflows, forms, and frameworks across 10+ departmental spaces. Here is a summary of the key documents analyzed and how they map to the HPG Workstation.
+1. **Bundles tab shows error**: The OrgUnitsManager query `select('*, lead:profiles(id, full_name, email)')` fails because there are **two foreign key relationships** between `org_units` and `profiles` (one via `org_units.lead_user_id → profiles.id`, another via `profiles.department_id → org_units.id`). PostgREST cannot auto-resolve the join. This error breaks the Departments tab and may cascade visually.
 
----
+2. **Users tab missing**: You are on `/admin/config` (AdminConfigHome), which only has Departments, Bundles, and Templates tabs. The Users tab lives on `/admin` (the Admin Console page). These are two separate pages.
 
-## Gap Analysis: What Confluence Defines vs. What the Workstation Has
+## Plan
 
-### A. FORMS THAT SHOULD BE BUILT AS FORM TEMPLATES
+### 1. Fix the ambiguous FK relationship in OrgUnitsManager
+Update the Supabase query in `useAdminConfigOrgUnits.ts` to use an explicit FK hint so PostgREST knows which relationship to follow:
 
-The Confluence pages define these forms that do not yet exist in the workstation's `form_templates` system:
+```
+.select('*, lead:profiles!fk_org_units_lead(id, full_name, email)')
+```
 
-| Form | Source Page | Target Module |
-|------|------------|---------------|
-| Comprehensive NGO Onboarding & Development Form (11 sections: org profile, governance, HR, curriculum, development, comms, finance, IT, legal, operations, goals) | Program Management Hub | `ngo_coordination` |
-| Conflict of Interest Disclosure Form | IRS Compliance Index / Operational Framework | `compliance` or `administration` |
-| Gift Acceptance Form | Operational Framework Blueprint | `finance` |
-| Restricted Fund Approval Form | Operational Framework Blueprint | `finance` |
-| Grant Application Approval Form | Operational Framework Blueprint | `development` |
-| Branding Approval Request | Operational Framework Blueprint | `communications` |
-| Incident Report Form | Operational Framework Blueprint | `operations` |
-| Corrective Action Plan Template | Operational Framework Blueprint | `hr` |
-| Termination Checklist | Operational Framework Blueprint | `hr` |
-| Data Access Request Form | Operational Framework Blueprint | `it` |
-| Country Risk Memo Template | Operational Framework Blueprint | `compliance` |
-| Annual Board Disclosure Form | IRS Compliance Index | `compliance` |
-| Expense Reimbursement Request | IRS Compliance Index / NGO Orientation | `finance` |
-| Volunteer Application / Acknowledgment Form | HR Space | `hr` |
-| NGO Orientation Acknowledgment Form | NGO Orientation Training | `ngo_coordination` |
-| Whistleblower Report Form | Operational Framework | `compliance` |
-| Related-Party Transaction Disclosure | Operational Framework | `finance` |
+Same fix in the `useCreateOrgUnit` and `useUpdateOrgUnit` mutations that use the same select pattern.
 
-**Current state**: The workstation has only 2 form templates (`Monthly NGO Check-in` and `Document Request`). This is the largest gap.
+### 2. Add Users tab to AdminConfigHome
+Merge the Users management UI into the `/admin/config` page so it's accessible from the same place. Add a "Users" tab as the first tab, either by:
+- Importing and rendering the user management table/logic from Admin.tsx directly, or
+- Adding a simpler "Users" tab that links to `/admin`
 
----
-
-### B. WORKFLOWS / AUTOMATIONS THAT SHOULD BE BUILT
-
-#### 1. NGO Onboarding Pipeline (19-step workflow from Confluence)
-The "Type C Fiscal Sponsorship Onboarding" page defines a 19-step cross-departmental workflow:
-- Step 1: Initial Inquiry (Development)
-- Step 2: Application Submission (auto-create work items)
-- Step 3-4: Program Review + Research
-- Step 5: Legal Review
-- Step 6-7: Internal Approval + Board Notification
-- Step 8: Agreement Signing (e-sign integration)
-- Step 9: Interdepartmental Launch Notification (auto-notify all departments)
-- Steps 10-18: Department-specific onboarding (Tech, Finance, HR, Marketing, Development, Program, Operations, Monitoring, Reporting)
-- Step 19: Archiving
-
-**What exists**: The workstation has NGO creation but no structured onboarding pipeline. Work items exist but there's no workflow engine tying them into a sequenced pipeline.
-
-**What to build**: An "NGO Onboarding Wizard" that auto-generates a set of work items per department when a new NGO is onboarded, with status tracking and a visual pipeline board.
-
-#### 2. Volunteer Applicant Email SOP (6-stage automated flow)
-The HR SOP defines triggers and email templates for:
-1. Application received → send resume request
-2. Info request → send clarification
-3. 7-day no response → final follow-up
-4. Resume received → schedule interview
-5. Interview no-show → follow-up + reschedule
-6. Offboarding / decline → closure email
-
-**What exists**: The ATS pipeline exists with stages, but no automated email sending.
-
-**What to build**: Make.com automation triggers (the infrastructure exists) tied to applicant stage changes that send templated emails.
-
-#### 3. Document Lifecycle Workflow (Admin SOP)
-- Document created → ES Admin formats/uploads
-- Routing notification → Office Management
-- Signature via e-sign → track outstanding
-- Archive final copy → notify stakeholders
-- Deadline monitoring → escalation
-
-**What exists**: E-sign and document modules exist. Missing: automated routing and deadline escalation.
-
-#### 4. Annual Compliance Calendar
-The IRS Compliance Template Index and Operational Framework both reference a compliance calendar with filing deadlines, policy reviews, and reporting cycles.
-
-**What to build**: A compliance calendar view within the Compliance module showing filing deadlines, IRS 990 prep dates, state registration renewals, and audit schedules.
-
----
-
-### C. CONTENT / REFERENCE DATA TO PRE-LOAD
-
-#### 1. IRS Compliance Templates (32 templates)
-The IRS Compliance Template Index lists 32 specific templates that should be created as form templates or document templates in the workstation, organized by category:
-- Governance & Oversight (8 templates)
-- Financial & Programmatic (8 templates)
-- Operational Controls (7 templates)
-- Policy & Staff Resources (6 templates)
-- Advanced Tools (3 templates)
-
-#### 2. Onboarding Checklists
-The existing `hr_checklists` table supports this. Pre-load:
-- Staff/Volunteer onboarding checklist (from Training Hub: Day 1-5 items, 30-day checklist)
-- NGO onboarding checklist (from Type C workflow: 19 steps mapped to checklist items)
-- Staff offboarding/termination checklist
-
-#### 3. Policy Index
-The Operational Framework Blueprint defines 44 policy sections. These should be loadable as a Policy Registry within the Compliance or General Counsel module — a reference table of policy names, statuses, review dates, and owners.
-
----
-
-### D. NEW MODULE ENHANCEMENTS
-
-#### 1. NGO Onboarding Pipeline Board
-A Kanban-style board (similar to the Development/Partnerships pipeline boards that already exist) showing each NGO moving through onboarding stages: Inquiry → Application → Program Review → Legal Review → Approval → Agreement → Department Onboarding → Active.
-
-#### 2. Compliance Policy Registry
-A new page or section in the Compliance module listing all organizational policies with:
-- Policy name, category, owner, last review date, next review date, status
-- Links to stored documents
-- Automated reminders for review deadlines
-
-#### 3. Filing Responsibility Tracker
-From the NGO Orientation training, a per-NGO tracker showing:
-- Which filings HPG handles vs. which the NGO handles
-- Filing type, jurisdiction, deadline, status
-- Auto-reminders for upcoming deadlines
-
-#### 4. Donor & Partner Portal Enhancements
-The IT "Donor & Partner Microsite" SOP defines features the existing Portal could gain:
-- Donation tracking dashboard (donor view)
-- Impact report viewer
-- Partner proposal submission form
-
----
-
-## Implementation Plan
-
-### Phase 1: Forms Library (highest impact, most referenced)
-Build 15-17 new form templates covering the forms referenced across all Confluence SOPs. These use the existing `form_templates` infrastructure — just new `schema_json` entries.
-
-### Phase 2: NGO Onboarding Pipeline
-Add an onboarding pipeline board to the NGO Coordination module. When an NGO is created or a sponsorship application is submitted, auto-generate a checklist of work items across departments based on the 19-step workflow.
-
-### Phase 3: Compliance Enhancements
-- Policy Registry table + page
-- Filing Responsibility Tracker per NGO
-- Compliance Calendar view with filing deadlines
-
-### Phase 4: HR Automations
-- Pre-load onboarding/offboarding checklists from Confluence content
-- Wire volunteer applicant email SOP into Make.com automation triggers
-
-### Phase 5: Portal & Reporting
-- Enhanced portal with impact dashboards
-- Annual report package submission form for NGOs
-
----
+The cleanest approach: extract the user management card from `Admin.tsx` into a reusable component, then render it in both pages. This avoids the confusion of having two separate admin pages.
 
 ### Technical Details
-
-**Forms (Phase 1)**: Each form is a row in `form_templates` with `schema_json` containing field definitions. No database migrations needed — the table and rendering infrastructure exist.
-
-**NGO Pipeline (Phase 2)**: New page component using the existing `WorkItemsTable` + pipeline board pattern. A helper function auto-creates work items per department when onboarding is triggered.
-
-**Compliance Registry (Phase 3)**: New `policy_registry` table (name, category, owner, review_date, status, document_path). New page at `/erp/compliance/policies`.
-
-**Automations (Phase 4)**: Leverage existing `make_automations` table to define trigger events for applicant stage changes. Email templates stored as part of the automation config.
+- **File changes**: `src/hooks/useAdminConfigOrgUnits.ts` (FK hint fix), `src/pages/AdminConfig/AdminConfigHome.tsx` (add Users tab)
+- **No database migration needed** — the FK constraint `fk_org_units_lead` already exists
+- The bundles error in the console is a React ref warning on `Select` (cosmetic, not blocking) — the real data error is from the org_units query failing due to the ambiguous relationship
 
