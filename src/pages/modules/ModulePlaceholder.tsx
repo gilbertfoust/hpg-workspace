@@ -1,9 +1,9 @@
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Construction, ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import HPGAssistant from "@/pages/HPGAssistant";
 
 interface ModulePlaceholderProps {
   title: string;
@@ -40,9 +40,7 @@ export function ModulePlaceholder({ title, description, features = [], links = [
             </CardHeader>
             <CardContent>
               <div className="flex flex-wrap gap-2 justify-center">
-                {features.map((f) => (
-                  <Badge key={f} variant="secondary">{f}</Badge>
-                ))}
+                {features.map((f) => <Badge key={f} variant="secondary">{f}</Badge>)}
               </div>
             </CardContent>
           </Card>
@@ -52,196 +50,54 @@ export function ModulePlaceholder({ title, description, features = [], links = [
   );
 }
 
-// Module hub pages that link to real sub-modules where available
 export function NGOCoordinationModule() {
-  return (
-    <ModulePlaceholder
-      title="NGO Coordination"
-      description="Manage NGO partnerships and liaison activities"
-      links={[
-        { label: "NGO Registry", path: "/ngos" },
-        { label: "NGO Coordination Dashboard", path: "/ngo-coordination" },
-        { label: "Work Items", path: "/work-items" },
-      ]}
-      features={["Monthly Check-ins", "Relationship Notes"]}
-    />
-  );
+  return <HPGAssistant />;
 }
 
 export function AdministrationModule() {
-  return (
-    <ModulePlaceholder
-      title="Administration"
-      description="Executive secretariat and cross-department coordination"
-      links={[
-        { label: "Admin Panel", path: "/admin" },
-        { label: "Admin Config", path: "/admin/config" },
-        { label: "Calendar", path: "/calendar" },
-        { label: "Forms", path: "/forms" },
-      ]}
-      features={["Meeting Minutes", "Policy Acknowledgments", "Cabinet Packs"]}
-    />
-  );
+  return <ModulePlaceholder title="Administration" description="Executive secretariat and cross-department coordination" links={[{ label: "Admin Panel", path: "/admin" }, { label: "Admin Config", path: "/admin/config" }, { label: "Calendar", path: "/calendar" }, { label: "Forms", path: "/forms" }]} features={["Meeting Minutes", "Policy Acknowledgments", "Cabinet Packs"]} />;
 }
 
 export function OperationsModule() {
-  return (
-    <ModulePlaceholder
-      title="Operations"
-      description="Internal project delivery and implementation"
-      links={[
-        { label: "Work Items", path: "/work-items" },
-        { label: "My Queue", path: "/my-queue" },
-        { label: "Dept Queue", path: "/dept-queue" },
-        { label: "Automations", path: "/automations" },
-      ]}
-      features={["Project Kickoffs", "Risk Tracking", "Milestones"]}
-    />
-  );
+  return <ModulePlaceholder title="Operations" description="Internal project delivery and implementation" links={[{ label: "Work Items", path: "/work-items" }, { label: "My Queue", path: "/my-queue" }, { label: "Dept Queue", path: "/dept-queue" }, { label: "Automations", path: "/automations" }]} features={["Project Kickoffs", "Risk Tracking", "Milestones"]} />;
 }
 
 export function ProgramModule() {
-  return (
-    <ModulePlaceholder
-      title="Program"
-      description="Program activities and delivery tracking"
-      links={[
-        { label: "Program Dashboard", path: "/program" },
-      ]}
-      features={["Activity Reports", "Incident Reports", "Evidence Tracking", "Event Management"]}
-    />
-  );
+  return <ModulePlaceholder title="Program" description="Program activities and delivery tracking" links={[{ label: "Program Dashboard", path: "/program" }]} features={["Activity Reports", "Incident Reports", "Evidence Tracking", "Event Management"]} />;
 }
 
 export function CurriculumModule() {
-  return (
-    <ModulePlaceholder
-      title="Curriculum"
-      description="Educational content development and management"
-      links={[
-        { label: "Curriculum Dashboard", path: "/curriculum" },
-      ]}
-      features={["Asset Library", "Change Requests", "Version Control", "Publishing Workflow"]}
-    />
-  );
+  return <ModulePlaceholder title="Curriculum" description="Educational content development and management" links={[{ label: "Curriculum Dashboard", path: "/curriculum" }]} features={["Asset Library", "Change Requests", "Version Control", "Publishing Workflow"]} />;
 }
 
 export function DevelopmentModule() {
-  return (
-    <ModulePlaceholder
-      title="Development"
-      description="Grants, fundraising, and donor relations"
-      links={[
-        { label: "Development Dashboard", path: "/development" },
-        { label: "Grants Hub", path: "/grants" },
-        { label: "Grant Search", path: "/grants/search" },
-        { label: "Grant Pipeline", path: "/grants/pipeline" },
-      ]}
-      features={["Post-Award Reporting"]}
-    />
-  );
+  return <ModulePlaceholder title="Development" description="Grants, fundraising, and donor relations" links={[{ label: "Development Dashboard", path: "/development" }, { label: "Grants Hub", path: "/grants" }, { label: "Grant Search", path: "/grants/search" }, { label: "Grant Pipeline", path: "/grants/pipeline" }]} features={["Post-Award Reporting"]} />;
 }
 
 export function PartnershipsModule() {
-  return (
-    <ModulePlaceholder
-      title="Partnership Development"
-      description="Strategic partnership management"
-      links={[
-        { label: "Partnerships Dashboard", path: "/partnerships" },
-        { label: "CRM", path: "/crm" },
-      ]}
-      features={["MOU Tracking", "Activation Checklists"]}
-    />
-  );
+  return <ModulePlaceholder title="Partnership Development" description="Strategic partnership management" links={[{ label: "Partnerships Dashboard", path: "/partnerships" }, { label: "CRM", path: "/crm" }]} features={["MOU Tracking", "Activation Checklists"]} />;
 }
 
 export function MarketingModule() {
-  return (
-    <ModulePlaceholder
-      title="Marketing"
-      description="Marketing campaigns and asset management"
-      links={[
-        { label: "Department Forms", path: "/department-forms" },
-        { label: "Documents", path: "/documents" },
-      ]}
-      features={["Request Intake", "Campaign Tracking", "Monthly Reports"]}
-    />
-  );
+  return <ModulePlaceholder title="Marketing" description="Marketing campaigns and asset management" links={[{ label: "Department Forms", path: "/department-forms" }, { label: "Documents", path: "/documents" }]} features={["Request Intake", "Campaign Tracking", "Monthly Reports"]} />;
 }
 
 export function CommunicationsModule() {
-  return (
-    <ModulePlaceholder
-      title="Communications"
-      description="Internal and external messaging"
-      links={[
-        { label: "Department Forms", path: "/department-forms" },
-        { label: "Documents", path: "/documents" },
-      ]}
-      features={["Press Releases", "Newsletter Builder", "Internal Memos"]}
-    />
-  );
+  return <ModulePlaceholder title="Communications" description="Internal and external messaging" links={[{ label: "Department Forms", path: "/department-forms" }, { label: "Documents", path: "/documents" }]} features={["Press Releases", "Newsletter Builder", "Internal Memos"]} />;
 }
 
 export function HRModule() {
-  return (
-    <ModulePlaceholder
-      title="HR"
-      description="Recruiting, hiring, and staff management"
-      links={[
-        { label: "HR Dashboard", path: "/hr" },
-        { label: "HR & Workforce (ERP)", path: "/erp/hr" },
-        { label: "Staff Profiles", path: "/erp/hr/staff" },
-        { label: "Timesheets", path: "/erp/hr/timesheets" },
-        { label: "PTO Management", path: "/erp/hr/pto" },
-        { label: "Payroll Export", path: "/erp/hr/payroll" },
-      ]}
-    />
-  );
+  return <ModulePlaceholder title="HR" description="Recruiting, hiring, and staff management" links={[{ label: "HR Dashboard", path: "/hr" }, { label: "HR & Workforce (ERP)", path: "/erp/hr" }, { label: "Staff Profiles", path: "/erp/hr/staff" }, { label: "Timesheets", path: "/erp/hr/timesheets" }, { label: "PTO Management", path: "/erp/hr/pto" }, { label: "Payroll Export", path: "/erp/hr/payroll" }]} />;
 }
 
 export function ITModule() {
-  return (
-    <ModulePlaceholder
-      title="IT"
-      description="Technology access and support"
-      links={[
-        { label: "IT Dashboard", path: "/it" },
-      ]}
-      features={["SLA Tracking"]}
-    />
-  );
+  return <ModulePlaceholder title="IT" description="Technology access and support" links={[{ label: "IT Dashboard", path: "/it" }]} features={["SLA Tracking"]} />;
 }
 
 export function FinanceModule() {
-  return (
-    <ModulePlaceholder
-      title="Finance"
-      description="Expense management and financial operations"
-      links={[
-        { label: "Financial Hub", path: "/financial-hub" },
-        { label: "Accounts", path: "/financial-hub/accounts" },
-        { label: "Transactions", path: "/financial-hub/transactions" },
-        { label: "General Ledger", path: "/financial-hub/ledger" },
-        { label: "Trial Balance", path: "/financial-hub/trial-balance" },
-        { label: "Compliance", path: "/financial-hub/compliance" },
-      ]}
-    />
-  );
+  return <ModulePlaceholder title="Finance" description="Expense management and financial operations" links={[{ label: "Financial Hub", path: "/financial-hub" }, { label: "Accounts", path: "/financial-hub/accounts" }, { label: "Transactions", path: "/financial-hub/transactions" }, { label: "General Ledger", path: "/financial-hub/ledger" }, { label: "Trial Balance", path: "/financial-hub/trial-balance" }, { label: "Compliance", path: "/financial-hub/compliance" }]} />;
 }
 
 export function LegalModule() {
-  return (
-    <ModulePlaceholder
-      title="Legal"
-      description="Contracts, compliance, and legal operations"
-      links={[
-        { label: "Governance", path: "/governance" },
-        { label: "Country Compliance", path: "/governance/compliance" },
-        { label: "Documents", path: "/documents" },
-      ]}
-      features={["Contract Review", "At-Risk Engine", "Renewal Tracking"]}
-    />
-  );
+  return <ModulePlaceholder title="Legal" description="Contracts, compliance, and legal operations" links={[{ label: "Governance", path: "/governance" }, { label: "Country Compliance", path: "/governance/compliance" }, { label: "Documents", path: "/documents" }]} features={["Contract Review", "At-Risk Engine", "Renewal Tracking"]} />;
 }
