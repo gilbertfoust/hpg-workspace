@@ -11,6 +11,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { SupabaseNotConfiguredNotice } from "@/components/common/SupabaseNotConfiguredNotice";
 import { isSupabaseNotConfiguredError } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 import { useNGOs, type NGO } from "@/hooks/useNGOs";
 import { useCreateWorkItem, useWorkItems } from "@/hooks/useWorkItems";
 import { buildAllAssistantPackets, buildAssistantPacket, type AssistantPacket } from "@/lib/hpgAssistant";
@@ -39,6 +40,12 @@ function readinessVariant(packet: AssistantPacket): "default" | "secondary" | "d
   return "outline";
 }
 
+function toDatabasePriority(priority: AssistantPacket["departmentChecklist"][number]["priority"]) {
+  if (priority === "low") return "Low";
+  if (priority === "medium") return "Med";
+  return "High";
+}
+
 function packetMarkdown(packet: AssistantPacket) {
   const missing = packet.documentsMissing.length
     ? packet.documentsMissing.map((gap) => `- ${gap.label} (${gap.ownerModule}): ${gap.reason}`).join("\n")
@@ -54,6 +61,7 @@ function packetMarkdown(packet: AssistantPacket) {
 
 export default function HPGAssistantPhase2() {
   const { toast } = useToast();
+  const { user } = useAuth();
   const { data: ngos, isLoading: ngosLoading, error: ngosError } = useNGOs();
   const { data: workItems, isLoading: workItemsLoading, error: workItemsError } = useWorkItems();
   const [selectedNgoId, setSelectedNgoId] = useState<string>("");
@@ -104,6 +112,11 @@ export default function HPGAssistantPhase2() {
 
   const handleCreateDraftWorkItems = async () => {
     if (!selectedPacket) return;
+    if (!user?.id) {
+      toast({ variant: "destructive", title: "Sign in required", description: "The workspace needs your user ID before it can create draft work items." });
+      return;
+    }
+
     try {
       for (const task of selectedPacket.departmentChecklist) {
         await createWorkItem.mutateAsync({
@@ -112,11 +125,12 @@ export default function HPGAssistantPhase2() {
           module: task.module,
           ngo_id: selectedPacket.ngoId,
           type: "Assistant Recommendation",
-          status: "draft",
-          priority: task.priority,
+          status: "Draft",
+          priority: toDatabasePriority(task.priority),
+          created_by_user_id: user.id,
           evidence_required: false,
           external_visible: false,
-        });
+        } as any);
       }
       toast({ title: "Draft work items created", description: `${selectedPacket.departmentChecklist.length} department draft tasks were created for review.` });
     } catch (error: any) {
