@@ -2,7 +2,7 @@
 
 ## Goal
 
-Verify that the private MCP server can safely read HPG Workspace data and generate draft-only NGO Coordination packets.
+Verify that the private MCP server can safely read HPG Workspace data, generate draft-only NGO Coordination packets, and retrieve saved packet history without changing production records.
 
 ## Tools Under Test
 
@@ -42,6 +42,37 @@ Suggested test prompt:
 Generate an onboarding packet for NGO ID <uuid>.
 ```
 
+### `get_saved_packets`
+
+Expected behavior:
+
+- Accepts an `ngo_id`.
+- Optionally filters by status: `draft`, `reviewed`, `approved`, or `archived`.
+- Returns saved Assistant packet metadata, summaries, email draft text, and Cabinet summary text.
+- Does not create, update, approve, or archive packets.
+
+Suggested test prompts:
+
+```text
+Get saved Assistant packets for NGO ID <uuid>.
+Get approved Assistant packets for NGO ID <uuid>.
+```
+
+### `get_packet_history`
+
+Expected behavior:
+
+- Accepts an `ngo_id`.
+- Returns packet event timeline records.
+- Does not write new events.
+- Does not modify approval status.
+
+Suggested test prompt:
+
+```text
+Get the Assistant packet history for NGO ID <uuid>.
+```
+
 ## Safety Verification
 
 Confirm the MCP server cannot:
@@ -74,6 +105,8 @@ The MCP server passes the MVP readiness test when:
 
 - `search_ngos` returns relevant NGO records.
 - `generate_onboarding_packet` returns a coherent packet.
+- `get_saved_packets` returns saved packet records without changing counts.
+- `get_packet_history` returns event records without changing counts.
 - no database write counts change.
 - no external communication is sent.
 - no service-role key is exposed to the frontend or repository.
