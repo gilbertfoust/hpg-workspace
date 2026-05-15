@@ -23,6 +23,17 @@ export interface SavedAssistantPacket {
   updated_at: string;
 }
 
+export interface AssistantPacketEvent {
+  id: string;
+  packet_id: string;
+  ngo_id: string;
+  event_type: "created" | "reviewed" | "approval" | "archived" | "work_item_draft_created" | "note";
+  note: string | null;
+  actor_user_id: string | null;
+  event_json: Record<string, unknown> | null;
+  created_at: string;
+}
+
 const ensureSupabase = () => {
   if (!supabase) throw getSupabaseNotConfiguredError();
   return supabase;
@@ -42,6 +53,24 @@ export const useAssistantPackets = (ngoId?: string | null) => {
 
       if (error) throw error;
       return (data || []) as unknown as SavedAssistantPacket[];
+    },
+  });
+};
+
+export const useAssistantPacketEvents = (ngoId?: string | null) => {
+  return useQuery<AssistantPacketEvent[]>({
+    queryKey: ["assistant-packet-events", ngoId],
+    enabled: !!ngoId && !!supabase,
+    queryFn: async () => {
+      const client = ensureSupabase();
+      const { data, error } = await client
+        .from("assistant_packet_events" as never)
+        .select("*" as never)
+        .eq("ngo_id" as never, ngoId as never)
+        .order("created_at" as never, { ascending: false });
+
+      if (error) throw error;
+      return (data || []) as unknown as AssistantPacketEvent[];
     },
   });
 };
@@ -71,10 +100,20 @@ export const useSaveAssistantPacket = () => {
         .single();
 
       if (error) throw error;
+
+      await client.from("assistant_packet_events" as never).insert({
+        packet_id: (data as any).id,
+        ngo_id: packet.ngoId,
+        event_type: "created",
+        note: "Assistant packet saved as draft.",
+        actor_user_id: user?.id || null,
+      } as never);
+
       return data as unknown as SavedAssistantPacket;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["assistant-packets", data.ngo_id] });
+      queryClient.invalidateQueries({ queryKey: ["assistant-packet-events", data.ngo_id] });
     },
   });
 };
@@ -111,6 +150,7 @@ export const useApproveAssistantPacket = () => {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["assistant-packets", data.ngo_id] });
+      queryClient.invalidateQueries({ queryKey: ["assistant-packet-events", data.ngo_id] });
     },
   });
 };
