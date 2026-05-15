@@ -1,7 +1,8 @@
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Construction, ArrowRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Construction, ArrowRight, History } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import HPGAssistant from "@/pages/HPGAssistant";
 
@@ -51,7 +52,18 @@ export function ModulePlaceholder({ title, description, features = [], links = [
 }
 
 export function NGOCoordinationModule() {
-  return <HPGAssistant />;
+  const navigate = useNavigate();
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap justify-end gap-2 px-4 pt-4 lg:px-6">
+        <Button variant="outline" size="sm" onClick={() => navigate("/hpg-assistant")}>Assistant Workspace</Button>
+        <Button variant="outline" size="sm" onClick={() => navigate("/hpg-assistant/history")}>
+          <History className="mr-2 h-4 w-4" /> Packet History
+        </Button>
+      </div>
+      <HPGAssistant />
+    </div>
+  );
 }
 
 export function AdministrationModule() {
