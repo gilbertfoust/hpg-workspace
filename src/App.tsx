@@ -186,6 +186,7 @@ const App = () => {
 
                 {/* Core */}
                 <Route path="/dashboard" element={<P><Dashboard /></P>} />
+                <Route path="/hpg-assistant" element={<P><NGOCoordinationModule /></P>} />
 
                 {/* Queues */}
                 <Route path="/my-queue" element={<P><MyQueue /></P>} />
