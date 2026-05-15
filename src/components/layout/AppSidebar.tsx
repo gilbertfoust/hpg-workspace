@@ -45,6 +45,7 @@ import {
   FolderKanban,
   Zap,
   Rocket,
+  Bot,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -285,6 +286,7 @@ export function AppSidebar() {
             <nav className="px-2 space-y-1">
               {/* Main Navigation */}
               <NavItem to="/dashboard" icon={<LayoutDashboard className="w-4 h-4" />} label={isCollapsed ? "" : "Dashboard"} />
+              <NavItem to="/modules/ngo-coordination" icon={<Bot className="w-4 h-4" />} label={isCollapsed ? "" : "HPG Assistant"} />
               <NavItem to="/my-queue" icon={<ListChecks className="w-4 h-4" />} label={isCollapsed ? "" : "My Queue"} />
               <NavItem to="/dept-queue" icon={<Users className="w-4 h-4" />} label={isCollapsed ? "" : "Dept Queue"} />
               <NavItem to="/ngos" icon={<Building2 className="w-4 h-4" />} label={isCollapsed ? "" : "NGOs"} />
