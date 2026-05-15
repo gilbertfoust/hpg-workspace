@@ -103,12 +103,7 @@ server.tool(
     if (error) throw error;
 
     return {
-      content: [
-        {
-          type: "text",
-          text: JSON.stringify({ ngos: data || [] }, null, 2),
-        },
-      ],
+      content: [{ type: "text", text: JSON.stringify({ ngos: data || [] }, null, 2) }],
     };
   }
 );
@@ -168,12 +163,57 @@ server.tool(
     };
 
     return {
-      content: [
-        {
-          type: "text",
-          text: JSON.stringify(packet, null, 2),
-        },
-      ],
+      content: [{ type: "text", text: JSON.stringify(packet, null, 2) }],
+    };
+  }
+);
+
+server.tool(
+  "get_saved_packets",
+  "Get saved HPG Assistant packets for an NGO. Read-only.",
+  {
+    ngo_id: z.string().uuid(),
+    status: z.enum(["draft", "reviewed", "approved", "archived"]).optional(),
+    limit: z.number().min(1).max(25).optional(),
+  },
+  async ({ ngo_id, status, limit = 10 }) => {
+    let query = supabase
+      .from("assistant_packets")
+      .select("id, ngo_id, packet_type, status, title, summary, email_subject, email_body, cabinet_summary, created_at, updated_at, approved_at")
+      .eq("ngo_id", ngo_id)
+      .order("created_at", { ascending: false })
+      .limit(limit);
+
+    if (status) query = query.eq("status", status);
+
+    const { data, error } = await query;
+    if (error) throw error;
+
+    return {
+      content: [{ type: "text", text: JSON.stringify({ packets: data || [] }, null, 2) }],
+    };
+  }
+);
+
+server.tool(
+  "get_packet_history",
+  "Get saved HPG Assistant packet event history for an NGO. Read-only.",
+  {
+    ngo_id: z.string().uuid(),
+    limit: z.number().min(1).max(50).optional(),
+  },
+  async ({ ngo_id, limit = 25 }) => {
+    const { data, error } = await supabase
+      .from("assistant_packet_events")
+      .select("id, packet_id, ngo_id, event_type, note, event_json, created_at")
+      .eq("ngo_id", ngo_id)
+      .order("created_at", { ascending: false })
+      .limit(limit);
+
+    if (error) throw error;
+
+    return {
+      content: [{ type: "text", text: JSON.stringify({ events: data || [] }, null, 2) }],
     };
   }
 );
