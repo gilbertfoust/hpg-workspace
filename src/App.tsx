@@ -72,6 +72,7 @@ import DeptQueue from "./pages/DeptQueue";
 import HRDashboard from "./pages/HRDashboard";
 import DevelopmentDashboard from "./pages/DevelopmentDashboard";
 import PartnershipsDashboard from "./pages/PartnershipsDashboard";
+import HPGAssistantHistory from "./pages/HPGAssistantHistory";
 
 // Module pages (placeholders you can flesh out later)
 import {
@@ -187,6 +188,7 @@ const App = () => {
                 {/* Core */}
                 <Route path="/dashboard" element={<P><Dashboard /></P>} />
                 <Route path="/hpg-assistant" element={<P><NGOCoordinationModule /></P>} />
+                <Route path="/hpg-assistant/history" element={<P><HPGAssistantHistory /></P>} />
 
                 {/* Queues */}
                 <Route path="/my-queue" element={<P><MyQueue /></P>} />
