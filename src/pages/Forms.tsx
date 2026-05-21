@@ -9,7 +9,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import {
   FileText, Users, Briefcase, DollarSign, Scale, Megaphone, MessageSquare,
   GraduationCap, Wrench, Monitor, Handshake, UserPlus, ArrowRight, Bell,
-  Building2, TrendingUp, Inbox, BarChart3,
+  Building2, TrendingUp, Inbox, BarChart3, Settings2,
 } from "lucide-react";
 import { useFormTemplates, FormTemplate } from "@/hooks/useFormTemplates";
 import { ModuleType } from "@/hooks/useWorkItems";
@@ -17,6 +17,7 @@ import { FormRunnerSheet } from "@/components/forms/FormRunnerSheet";
 import { FormSubmissionsTab } from "@/components/forms/FormSubmissionsTab";
 import { FormAnalyticsTab } from "@/components/forms/FormAnalyticsTab";
 import { FormWorkflowEventsTab } from "@/components/forms/FormWorkflowEventsTab";
+import { FormWorkflowRoutesTab } from "@/components/forms/FormWorkflowRoutesTab";
 import { isSupabaseNotConfiguredError } from "@/integrations/supabase/client";
 import { SupabaseNotConfiguredNotice } from "@/components/common/SupabaseNotConfiguredNotice";
 
@@ -53,7 +54,7 @@ const moduleIcons: Record<ModuleType, React.ReactNode> = {
   legal: <Scale className="w-5 h-5" />,
 };
 
-type ViewMode = "templates" | "submissions" | "analytics" | "workflow_events";
+type ViewMode = "templates" | "submissions" | "analytics" | "workflow_events" | "workflow_routes";
 
 export default function Forms() {
   const { data: templates, isLoading, error } = useFormTemplates();
@@ -138,6 +139,14 @@ export default function Forms() {
               Workflow Events
             </Button>
             <Button
+              variant={viewMode === "workflow_routes" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setViewMode("workflow_routes")}
+            >
+              <Settings2 className="w-4 h-4 mr-2" />
+              Routes
+            </Button>
+            <Button
               variant={viewMode === "analytics" ? "default" : "outline"}
               size="sm"
               onClick={() => setViewMode("analytics")}
@@ -150,6 +159,8 @@ export default function Forms() {
       >
         {viewMode === "analytics" ? (
           <FormAnalyticsTab />
+        ) : viewMode === "workflow_routes" ? (
+          <FormWorkflowRoutesTab />
         ) : viewMode === "workflow_events" ? (
           <FormWorkflowEventsTab />
         ) : viewMode === "submissions" ? (
