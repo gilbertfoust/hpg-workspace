@@ -8,7 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   FileText, Users, Briefcase, DollarSign, Scale, Megaphone, MessageSquare,
-  GraduationCap, Wrench, Monitor, Handshake, UserPlus, ArrowRight, Clock,
+  GraduationCap, Wrench, Monitor, Handshake, UserPlus, ArrowRight, Bell,
   Building2, TrendingUp, Inbox, BarChart3,
 } from "lucide-react";
 import { useFormTemplates, FormTemplate } from "@/hooks/useFormTemplates";
@@ -16,6 +16,7 @@ import { ModuleType } from "@/hooks/useWorkItems";
 import { FormRunnerSheet } from "@/components/forms/FormRunnerSheet";
 import { FormSubmissionsTab } from "@/components/forms/FormSubmissionsTab";
 import { FormAnalyticsTab } from "@/components/forms/FormAnalyticsTab";
+import { FormWorkflowEventsTab } from "@/components/forms/FormWorkflowEventsTab";
 import { isSupabaseNotConfiguredError } from "@/integrations/supabase/client";
 import { SupabaseNotConfiguredNotice } from "@/components/common/SupabaseNotConfiguredNotice";
 
@@ -52,7 +53,7 @@ const moduleIcons: Record<ModuleType, React.ReactNode> = {
   legal: <Scale className="w-5 h-5" />,
 };
 
-type ViewMode = "templates" | "submissions" | "analytics";
+type ViewMode = "templates" | "submissions" | "analytics" | "workflow_events";
 
 export default function Forms() {
   const { data: templates, isLoading, error } = useFormTemplates();
@@ -111,7 +112,7 @@ export default function Forms() {
         title="Forms"
         subtitle="Launch forms to create work items and submit data"
         actions={
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             <Button
               variant={viewMode === "templates" ? "default" : "outline"}
               size="sm"
@@ -129,6 +130,14 @@ export default function Forms() {
               Submissions
             </Button>
             <Button
+              variant={viewMode === "workflow_events" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setViewMode("workflow_events")}
+            >
+              <Bell className="w-4 h-4 mr-2" />
+              Workflow Events
+            </Button>
+            <Button
               variant={viewMode === "analytics" ? "default" : "outline"}
               size="sm"
               onClick={() => setViewMode("analytics")}
@@ -141,6 +150,8 @@ export default function Forms() {
       >
         {viewMode === "analytics" ? (
           <FormAnalyticsTab />
+        ) : viewMode === "workflow_events" ? (
+          <FormWorkflowEventsTab />
         ) : viewMode === "submissions" ? (
           <FormSubmissionsTab />
         ) : (
