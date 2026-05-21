@@ -1,8 +1,9 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Bell, CheckCircle2, Clock, FileWarning, Inbox, XCircle } from "lucide-react";
+import { Bell, CheckCircle2, Clock, FileWarning, Inbox, PlayCircle, XCircle } from "lucide-react";
 import { useFormWorkflowEvents } from "@/hooks/useFormWorkflowEvents";
 import { isSupabaseNotConfiguredError } from "@/integrations/supabase/client";
 import { SupabaseNotConfiguredNotice } from "@/components/common/SupabaseNotConfiguredNotice";
@@ -30,7 +31,7 @@ function statusIcon(status: string) {
 }
 
 export function FormWorkflowEventsTab() {
-  const { data: events = [], isLoading, error } = useFormWorkflowEvents();
+  const { data: events = [], isLoading, error, refetch } = useFormWorkflowEvents();
 
   if (isSupabaseNotConfiguredError(error)) {
     return <SupabaseNotConfiguredNotice />;
@@ -61,6 +62,18 @@ export function FormWorkflowEventsTab() {
           This view shows internal workflow events created after forms are submitted. External delivery can be connected after destinations and server-side credentials are configured.
         </AlertDescription>
       </Alert>
+
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-card p-4">
+        <div>
+          <p className="font-medium">Processor status</p>
+          <p className="text-sm text-muted-foreground">
+            The server-side processor is deployed. Direct in-app processing will be enabled after the invocation hook clears review.
+          </p>
+        </div>
+        <Button variant="outline" onClick={() => refetch()}>
+          <PlayCircle className="mr-2 h-4 w-4" /> Refresh Events
+        </Button>
+      </div>
 
       <div className="grid gap-4 md:grid-cols-4">
         <Card>
