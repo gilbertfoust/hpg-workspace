@@ -5,6 +5,15 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+const internalRoles = new Set([
+  "staff",
+  "super_admin",
+  "admin_pm",
+  "ngo_coordinator",
+  "department_lead",
+  "executive_secretariat",
+]);
+
 type WorkflowEvent = {
   id: string;
   notification_type: "slack" | "email";
@@ -32,6 +41,33 @@ function jsonResponse(payload: Record<string, unknown>, status = 200) {
 function textValue(metadata: Record<string, unknown> | null, key: string, fallback: string) {
   const value = metadata?.[key];
   return typeof value === "string" && value.trim() ? value : fallback;
+}
+
+async function requireInternalCaller(req: Request, supabase: ReturnType<typeof createClient>) {
+  const authorization = req.headers.get("Authorization") || "";
+  const token = authorization.replace(/^Bearer\s+/i, "").trim();
+
+  if (!token) {
+    return { allowed: false, status: 401, reason: "Authentication required." };
+  }
+
+  const { data: userData, error: userError } = await supabase.auth.getUser(token);
+  if (userError || !userData.user) {
+    return { allowed: false, status: 401, reason: "Authentication could not be verified." };
+  }
+
+  const { data: profile, error: profileError } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", userData.user.id)
+    .maybeSingle();
+
+  if (profileError) throw profileError;
+  if (!profile || !internalRoles.has(profile.role)) {
+    return { allowed: false, status: 403, reason: "Internal staff access is required." };
+  }
+
+  return { allowed: true, status: 200, reason: "Authorized." };
 }
 
 async function markEvent(
@@ -148,6 +184,11 @@ Deno.serve(async (req) => {
       auth: { persistSession: false },
     });
 
+    const caller = await requireInternalCaller(req, supabase);
+    if (!caller.allowed) {
+      return jsonResponse({ error: caller.reason }, caller.status);
+    }
+
     const body = await req.json().catch(() => ({}));
     const limit = typeof body.limit === "number" ? Math.min(Math.max(body.limit, 1), 25) : 10;
 
@@ -184,7 +225,7 @@ Deno.serve(async (req) => {
           : await sendEmailEvent(event, route as DepartmentRoute);
 
         await markEvent(supabase, event.id, outcome.status, "reason" in outcome ? outcome.reason : undefined);
-        processed.push({ id: event.id, status: outcome.status, ...( "reason" in outcome ? { reason: outcome.reason } : {} ) });
+        processed.push({ id: event.id, status: outcome.status, ...("reason" in outcome ? { reason: outcome.reason } : {}) });
       } catch (deliveryError) {
         const reason = deliveryError instanceof Error ? deliveryError.message : "Delivery failed.";
         await markEvent(supabase, event.id, "failed", reason);
