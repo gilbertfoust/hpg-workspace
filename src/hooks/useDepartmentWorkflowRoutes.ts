@@ -42,11 +42,13 @@ export const useUpdateDepartmentWorkflowRoute = () => {
     mutationFn: async ({
       id,
       slack_channel,
+      slack_webhook_secret_name,
       email_recipients,
       is_active,
     }: {
       id: string;
       slack_channel?: string | null;
+      slack_webhook_secret_name?: string | null;
       email_recipients?: string[];
       is_active?: boolean;
     }) => {
@@ -54,6 +56,7 @@ export const useUpdateDepartmentWorkflowRoute = () => {
       const updates: Record<string, unknown> = {};
 
       if (slack_channel !== undefined) updates.slack_channel = slack_channel || null;
+      if (slack_webhook_secret_name !== undefined) updates.slack_webhook_secret_name = slack_webhook_secret_name || null;
       if (email_recipients !== undefined) updates.email_recipients = email_recipients;
       if (is_active !== undefined) updates.is_active = is_active;
 

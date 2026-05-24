@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { BellRing, Save, Settings2 } from "lucide-react";
+import { BellRing, Save, Settings2, ShieldAlert } from "lucide-react";
 import { useDepartmentWorkflowRoutes, useUpdateDepartmentWorkflowRoute, type DepartmentWorkflowRoute } from "@/hooks/useDepartmentWorkflowRoutes";
 import { isSupabaseNotConfiguredError } from "@/integrations/supabase/client";
 import { SupabaseNotConfiguredNotice } from "@/components/common/SupabaseNotConfiguredNotice";
@@ -24,6 +24,7 @@ function RouteEditorCard({ route }: { route: DepartmentWorkflowRoute }) {
   const { toast } = useToast();
   const updateRoute = useUpdateDepartmentWorkflowRoute();
   const [channelLabel, setChannelLabel] = useState(route.slack_channel || "");
+  const [slackSecretReference, setSlackSecretReference] = useState(route.slack_webhook_secret_name || "");
   const [recipients, setRecipients] = useState((route.email_recipients || []).join(", "));
   const [isActive, setIsActive] = useState(route.is_active);
 
@@ -32,6 +33,7 @@ function RouteEditorCard({ route }: { route: DepartmentWorkflowRoute }) {
       await updateRoute.mutateAsync({
         id: route.id,
         slack_channel: channelLabel.trim() || null,
+        slack_webhook_secret_name: slackSecretReference.trim() || null,
         email_recipients: parseRecipients(recipients),
         is_active: isActive,
       });
@@ -58,8 +60,20 @@ function RouteEditorCard({ route }: { route: DepartmentWorkflowRoute }) {
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-2">
-          <Label>Internal channel label</Label>
+          <Label>Slack channel label</Label>
           <Input value={channelLabel} onChange={(event) => setChannelLabel(event.target.value)} placeholder="#department-channel" />
+        </div>
+        <div className="space-y-2">
+          <Label>Slack server secret reference</Label>
+          <Input
+            value={slackSecretReference}
+            onChange={(event) => setSlackSecretReference(event.target.value)}
+            placeholder="SLACK_WEBHOOK_NGO_COORDINATION"
+          />
+          <p className="flex items-start gap-1 text-xs text-muted-foreground">
+            <ShieldAlert className="mt-0.5 h-3 w-3 shrink-0" />
+            Enter only the Supabase secret name. Never paste a webhook URL here.
+          </p>
         </div>
         <div className="space-y-2">
           <Label>Email recipients</Label>
@@ -91,7 +105,7 @@ export function FormWorkflowRoutesTab() {
   if (isLoading) {
     return (
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {[1, 2, 3, 4, 5, 6].map((item) => <Skeleton key={item} className="h-72" />)}
+        {[1, 2, 3, 4, 5, 6].map((item) => <Skeleton key={item} className="h-80" />)}
       </div>
     );
   }
@@ -102,7 +116,7 @@ export function FormWorkflowRoutesTab() {
         <Settings2 className="h-4 w-4" />
         <AlertTitle>Department workflow routes</AlertTitle>
         <AlertDescription>
-          Configure where each department's submitted form workflow events should be routed. These settings prepare internal records; external delivery still requires server-side provider setup.
+          Configure where each department's submitted form workflow events should be routed. Real delivery occurs only when server-side provider settings are installed.
         </AlertDescription>
       </Alert>
 
