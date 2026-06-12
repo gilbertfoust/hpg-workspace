@@ -1,5 +1,5 @@
 // src/components/work-items/WorkItemDrawer.tsx
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
@@ -19,14 +19,22 @@ import { PriorityBadge } from "@/components/common/PriorityBadge";
 import { useAuth } from "@/contexts/AuthContext";
 import { useDocuments } from "@/hooks/useDocuments";
 import { useComments, useCreateComment } from "@/hooks/useComments";
-import { useWorkItem, useUpdateWorkItem, type WorkItem, type WorkItemStatus, type Priority } from "@/hooks/useWorkItems";
+import {
+  useArchiveWorkItem,
+  useExportWorkItemToDrive,
+  useWorkItem,
+  useUpdateWorkItem,
+  type WorkItemStatus,
+  type Priority,
+} from "@/hooks/useWorkItems";
+import { useDepartments } from "@/hooks/useDepartments";
 import { useNGO } from "@/hooks/useNGOs";
 import { useProfile } from "@/hooks/useProfiles";
 import { useFormSubmissions, useDeleteFormSubmission, useFormSubmission } from "@/hooks/useFormSubmissions";
 import { useFormTemplate } from "@/hooks/useFormTemplates";
 import { FormSubmissionSheet } from "@/components/ngo/FormSubmissionSheet";
 import { format } from "date-fns";
-import { Loader2, ExternalLink, Trash2, FileText, Edit } from "lucide-react";
+import { Loader2, ExternalLink, Trash2, FileText, Edit, Archive, FolderUp } from "lucide-react";
 import { WorkItemChecklist } from "@/components/work-items/WorkItemChecklist";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -46,7 +54,6 @@ export type WorkItemDrawerProps = {
   workItemId?: string | null;
 };
 
-// Map WorkItemStatus to StatusChip status format
 const mapStatusToChip = (status: WorkItemStatus): Parameters<typeof StatusChip>[0]["status"] => {
   const statusMap: Record<WorkItemStatus, Parameters<typeof StatusChip>[0]["status"]> = {
     draft: "draft",
@@ -64,7 +71,6 @@ const mapStatusToChip = (status: WorkItemStatus): Parameters<typeof StatusChip>[
   return statusMap[status] || "draft";
 };
 
-// Map Priority to PriorityBadge format
 const mapPriorityToBadge = (priority: Priority | null | undefined): "Low" | "Med" | "High" => {
   if (!priority) return "Med";
   const priorityMap: Record<Priority, "Low" | "Med" | "High"> = {
@@ -105,6 +111,7 @@ export const WorkItemDrawer: React.FC<WorkItemDrawerProps> = ({
   const { user } = useAuth();
   const { toast } = useToast();
   const { data: workItem, isLoading: workItemLoading } = useWorkItem(workItemId);
+  const { data: departments = [] } = useDepartments();
   const { data: ngo } = useNGO(workItem?.ngo_id || undefined);
   const { data: ownerProfile } = useProfile(workItem?.owner_user_id || "");
   const { data: approverProfile } = useProfile(workItem?.approver_user_id || "");
@@ -113,31 +120,37 @@ export const WorkItemDrawer: React.FC<WorkItemDrawerProps> = ({
   const { data: formSubmissions } = useFormSubmissions({ work_item_id: workItemId || undefined });
   const deleteFormSubmission = useDeleteFormSubmission();
   const updateWorkItem = useUpdateWorkItem();
+  const archiveWorkItem = useArchiveWorkItem();
+  const exportToDrive = useExportWorkItemToDrive();
   const createComment = useCreateComment();
 
   const [status, setStatus] = useState<WorkItemStatus>("draft");
   const [priority, setPriority] = useState<Priority>("medium");
   const [assignee, setAssignee] = useState<string>("");
+  const [departmentId, setDepartmentId] = useState<string>("");
   const [commentText, setCommentText] = useState("");
   const [formSubmissionToDelete, setFormSubmissionToDelete] = useState<string | null>(null);
+  const [workItemArchiveOpen, setWorkItemArchiveOpen] = useState(false);
   const [editingFormSubmissionId, setEditingFormSubmissionId] = useState<string | null>(null);
-  
-  // Fetch the form submission when editing (includes template with schema)
+
   const { data: editingSubmissionWithSchema } = useFormSubmission(editingFormSubmissionId || "");
-  // Fetch the full template for editing
   const { data: editingTemplate } = useFormTemplate(editingSubmissionWithSchema?.form_template_id || "");
+
+  const currentDepartment = useMemo(
+    () => departments.find((department) => department.id === workItem?.department_id || department.module === workItem?.module),
+    [departments, workItem?.department_id, workItem?.module],
+  );
 
   useEffect(() => {
     if (workItem) {
       setStatus(workItem.status);
       setPriority(workItem.priority || "medium");
       setAssignee(workItem.owner_user_id || "");
+      setDepartmentId(workItem.department_id || currentDepartment?.id || "");
     }
-  }, [workItem]);
+  }, [workItem, currentDepartment?.id]);
 
-  if (!workItemId) {
-    return null;
-  }
+  if (!workItemId) return null;
 
   if (workItemLoading) {
     return (
@@ -157,9 +170,7 @@ export const WorkItemDrawer: React.FC<WorkItemDrawerProps> = ({
         <SheetContent className="sm:max-w-xl">
           <div className="space-y-2">
             <h2 className="text-lg font-semibold">Work Item Not Found</h2>
-            <p className="text-sm text-muted-foreground">
-              The requested work item could not be found.
-            </p>
+            <p className="text-sm text-muted-foreground">The requested work item could not be found.</p>
           </div>
         </SheetContent>
       </Sheet>
@@ -168,124 +179,90 @@ export const WorkItemDrawer: React.FC<WorkItemDrawerProps> = ({
 
   const handleStatusUpdate = async () => {
     try {
-      await updateWorkItem.mutateAsync({
-        id: workItem.id,
-        status,
-      });
-      toast({
-        title: "Status updated",
-        description: "Work item status has been updated.",
-      });
+      await updateWorkItem.mutateAsync({ id: workItem.id, status });
+      toast({ title: "Status updated", description: "Work item status has been updated." });
     } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Error updating status",
-        description: error instanceof Error ? error.message : "Failed to update status",
-      });
+      toast({ variant: "destructive", title: "Error updating status", description: error instanceof Error ? error.message : "Failed to update status" });
     }
   };
 
   const handlePriorityUpdate = async () => {
     try {
-      await updateWorkItem.mutateAsync({
-        id: workItem.id,
-        priority,
-      });
-      toast({
-        title: "Priority updated",
-        description: "Work item priority has been updated.",
-      });
+      await updateWorkItem.mutateAsync({ id: workItem.id, priority });
+      toast({ title: "Priority updated", description: "Work item priority has been updated." });
     } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Error updating priority",
-        description: error instanceof Error ? error.message : "Failed to update priority",
-      });
+      toast({ variant: "destructive", title: "Error updating priority", description: error instanceof Error ? error.message : "Failed to update priority" });
     }
   };
 
   const handleAssigneeUpdate = async () => {
     try {
-      await updateWorkItem.mutateAsync({
-        id: workItem.id,
-        owner_user_id: assignee || null,
-      });
-      toast({
-        title: "Assignee updated",
-        description: "Work item assignee has been updated.",
-      });
+      await updateWorkItem.mutateAsync({ id: workItem.id, owner_user_id: assignee || null });
+      toast({ title: "Assignee updated", description: "Work item assignee has been updated." });
     } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Error updating assignee",
-        description: error instanceof Error ? error.message : "Failed to update assignee",
-      });
+      toast({ variant: "destructive", title: "Error updating assignee", description: error instanceof Error ? error.message : "Failed to update assignee" });
+    }
+  };
+
+  const handleDepartmentUpdate = async () => {
+    const selected = departments.find((department) => department.id === departmentId);
+    if (!selected) return;
+
+    try {
+      await updateWorkItem.mutateAsync({ id: workItem.id, department_id: selected.id, module: selected.module });
+      toast({ title: "Department updated", description: `Work item moved to ${selected.name}.` });
+    } catch (error) {
+      toast({ variant: "destructive", title: "Error updating department", description: error instanceof Error ? error.message : "Failed to update department" });
     }
   };
 
   const handleAddComment = async () => {
     if (!commentText.trim() || !workItem.id || !user?.id) return;
-
-    try {
-      await createComment.mutateAsync({
-        work_item_id: workItem.id,
-        author_user_id: user.id,
-        comment_text: commentText,
-      });
-      setCommentText("");
-    } catch (error) {
-      // Error is handled by the mutation
-    }
+    await createComment.mutateAsync({ work_item_id: workItem.id, author_user_id: user.id, comment_text: commentText });
+    setCommentText("");
   };
 
   const handleApprove = async () => {
-    try {
-      await updateWorkItem.mutateAsync({
-        id: workItem.id,
-        status: "approved",
-      });
-      toast({
-        title: "Work item approved",
-        description: "The work item has been approved.",
-      });
-    } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Error approving work item",
-        description: error instanceof Error ? error.message : "Failed to approve work item",
-      });
-    }
+    await updateWorkItem.mutateAsync({ id: workItem.id, status: "approved" });
+    toast({ title: "Work item approved", description: "The work item has been approved." });
   };
 
   const handleReject = async () => {
+    await updateWorkItem.mutateAsync({ id: workItem.id, status: "rejected" });
+    toast({ title: "Work item rejected", description: "The work item has been rejected." });
+  };
+
+  const handleArchiveWorkItem = async () => {
     try {
-      await updateWorkItem.mutateAsync({
-        id: workItem.id,
-        status: "rejected",
-      });
-      toast({
-        title: "Work item rejected",
-        description: "The work item has been rejected.",
-      });
+      await archiveWorkItem.mutateAsync({ id: workItem.id, reason: "Deleted/archived from work item drawer" });
+      setWorkItemArchiveOpen(false);
+      onOpenChange(false);
+      toast({ title: "Work item archived", description: "The work item has been removed from active queues." });
     } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Error rejecting work item",
-        description: error instanceof Error ? error.message : "Failed to reject work item",
-      });
+      toast({ variant: "destructive", title: "Unable to archive work item", description: error instanceof Error ? error.message : "Archive failed" });
+    }
+  };
+
+  const handleExportToDrive = async () => {
+    try {
+      const result = await exportToDrive.mutateAsync(workItem.id);
+      if (result.skipped) {
+        toast({ title: "Drive export not completed", description: result.reason || "Department Drive folder or credentials are missing." });
+      } else {
+        toast({ title: "Exported to Google Drive", description: "The completed work item was saved to the department Drive folder." });
+      }
+    } catch (error) {
+      toast({ variant: "destructive", title: "Drive export failed", description: error instanceof Error ? error.message : "Unable to export work item." });
     }
   };
 
   const handleDeleteFormSubmission = async () => {
     if (!formSubmissionToDelete) return;
-    
-    try {
-      await deleteFormSubmission.mutateAsync(formSubmissionToDelete);
-      setFormSubmissionToDelete(null);
-    } catch (error) {
-      // Error is handled by the mutation
-    }
+    await deleteFormSubmission.mutateAsync(formSubmissionToDelete);
+    setFormSubmissionToDelete(null);
   };
+
+  const canExport = workItem.status === "complete" || workItem.status === "approved";
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -293,181 +270,91 @@ export const WorkItemDrawer: React.FC<WorkItemDrawerProps> = ({
         <SheetHeader>
           <div className="flex items-center gap-2 mb-2">
             <StatusChip status={mapStatusToChip(workItem.status)} />
-            {workItem.priority && (
-              <PriorityBadge priority={mapPriorityToBadge(workItem.priority)} />
-            )}
+            {workItem.priority && <PriorityBadge priority={mapPriorityToBadge(workItem.priority)} />}
           </div>
           <SheetTitle>{workItem.title}</SheetTitle>
-          {workItem.description && (
-            <SheetDescription>{workItem.description}</SheetDescription>
-          )}
+          {workItem.description && <SheetDescription>{workItem.description}</SheetDescription>}
         </SheetHeader>
 
         <div className="mt-6 space-y-6">
-          {/* Basic Details */}
           <div>
             <h4 className="text-sm font-medium mb-3">Details</h4>
             <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Type:</span>
-                <span className="font-medium">{workItem.type || "—"}</span>
-              </div>
-              {workItem.module && (
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Module:</span>
-                  <Badge variant="outline">{workItem.module}</Badge>
-                </div>
-              )}
-              {workItem.due_date && (
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Due Date:</span>
-                  <span className="font-medium">
-                    {format(new Date(workItem.due_date), "MMM d, yyyy")}
-                  </span>
-                </div>
-              )}
-              {ownerProfile && (
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Assigned To:</span>
-                  <span className="font-medium">
-                    {ownerProfile.full_name || ownerProfile.email || workItem.owner_user_id}
-                  </span>
-                </div>
-              )}
-              {ngo && (
-                <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground">Related NGO:</span>
-                  <a
-                    href={`/ngos/${ngo.id}`}
-                    className="font-medium text-primary hover:underline flex items-center gap-1"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      window.location.href = `/ngos/${ngo.id}`;
-                    }}
-                  >
-                    {ngo.common_name || ngo.legal_name}
-                    <ExternalLink className="w-3 h-3" />
-                  </a>
-                </div>
-              )}
-              {workItem.evidence_required && (
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Evidence Status:</span>
-                  <Badge variant={workItem.evidence_status === "uploaded" ? "default" : "secondary"}>
-                    {workItem.evidence_status || "Not provided"}
-                  </Badge>
-                </div>
-              )}
+              <div className="flex justify-between"><span className="text-muted-foreground">Type:</span><span className="font-medium">{workItem.type || "—"}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">Department:</span><Badge variant="outline">{currentDepartment?.name || workItem.module || "Unassigned"}</Badge></div>
+              {workItem.module && <div className="flex justify-between"><span className="text-muted-foreground">Module:</span><Badge variant="outline">{workItem.module}</Badge></div>}
+              {workItem.due_date && <div className="flex justify-between"><span className="text-muted-foreground">Due Date:</span><span className="font-medium">{format(new Date(workItem.due_date), "MMM d, yyyy")}</span></div>}
+              {workItem.completed_at && <div className="flex justify-between"><span className="text-muted-foreground">Completed:</span><span className="font-medium">{format(new Date(workItem.completed_at), "MMM d, yyyy")}</span></div>}
+              {workItem.google_drive_file_url && <div className="flex justify-between gap-3"><span className="text-muted-foreground">Drive Archive:</span><a href={workItem.google_drive_file_url} target="_blank" rel="noreferrer" className="text-primary hover:underline">Open Drive File</a></div>}
+              {ownerProfile && <div className="flex justify-between"><span className="text-muted-foreground">Assigned To:</span><span className="font-medium">{ownerProfile.full_name || ownerProfile.email || workItem.owner_user_id}</span></div>}
+              {ngo && <div className="flex justify-between items-center"><span className="text-muted-foreground">Related NGO:</span><a href={`/ngos/${ngo.id}`} className="font-medium text-primary hover:underline flex items-center gap-1">{ngo.common_name || ngo.legal_name}<ExternalLink className="w-3 h-3" /></a></div>}
+              {workItem.evidence_required && <div className="flex justify-between"><span className="text-muted-foreground">Evidence Status:</span><Badge variant={workItem.evidence_status === "uploaded" ? "default" : "secondary"}>{workItem.evidence_status || "Not provided"}</Badge></div>}
             </div>
           </div>
 
-          {/* Checklist */}
           {workItem.checklist_json && Array.isArray(workItem.checklist_json) && (workItem.checklist_json as any[]).length > 0 && (
             <>
               <Separator />
-              <WorkItemChecklist
-                workItemId={workItem.id}
-                checklist={workItem.checklist_json}
-              />
+              <WorkItemChecklist workItemId={workItem.id} checklist={workItem.checklist_json} />
             </>
           )}
 
           <Separator />
 
-          {/* Status Update */}
+          <div className="grid gap-3">
+            <Label>Department</Label>
+            <div className="flex items-center gap-3">
+              <Select value={departmentId} onValueChange={setDepartmentId}>
+                <SelectTrigger className="w-64"><SelectValue placeholder="Select department" /></SelectTrigger>
+                <SelectContent>
+                  {departments.map((department) => <SelectItem key={department.id} value={department.id}>{department.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <Button variant="outline" onClick={handleDepartmentUpdate} disabled={updateWorkItem.isPending || !departmentId}>Update Department</Button>
+            </div>
+          </div>
+
           <div className="grid gap-3">
             <Label>Status</Label>
             <div className="flex items-center gap-3">
               <Select value={status} onValueChange={(value) => setStatus(value as WorkItemStatus)}>
-                <SelectTrigger className="w-48">
-                  <SelectValue placeholder="Select status" />
-                </SelectTrigger>
-                <SelectContent>
-                  {statusOptions.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
+                <SelectTrigger className="w-48"><SelectValue placeholder="Select status" /></SelectTrigger>
+                <SelectContent>{statusOptions.map((option) => <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>)}</SelectContent>
               </Select>
-              <Button variant="outline" onClick={handleStatusUpdate} disabled={updateWorkItem.isPending}>
-                Update Status
-              </Button>
+              <Button variant="outline" onClick={handleStatusUpdate} disabled={updateWorkItem.isPending}>Update Status</Button>
             </div>
             <p className="text-xs text-muted-foreground">Current: {statusOptions.find((s) => s.value === workItem.status)?.label || workItem.status}</p>
           </div>
 
-          {/* Priority Update */}
           <div className="grid gap-3">
             <Label>Priority</Label>
             <div className="flex items-center gap-3">
               <Select value={priority} onValueChange={(value) => setPriority(value as Priority)}>
-                <SelectTrigger className="w-48">
-                  <SelectValue placeholder="Select priority" />
-                </SelectTrigger>
-                <SelectContent>
-                  {priorityOptions.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
+                <SelectTrigger className="w-48"><SelectValue placeholder="Select priority" /></SelectTrigger>
+                <SelectContent>{priorityOptions.map((option) => <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>)}</SelectContent>
               </Select>
-              <Button variant="outline" onClick={handlePriorityUpdate} disabled={updateWorkItem.isPending}>
-                Update Priority
-              </Button>
+              <Button variant="outline" onClick={handlePriorityUpdate} disabled={updateWorkItem.isPending}>Update Priority</Button>
             </div>
           </div>
 
-          {/* Assignee Update */}
           <div className="grid gap-3">
             <Label>Assignee (User ID)</Label>
             <div className="flex items-center gap-3">
-              <Input
-                value={assignee}
-                onChange={(e) => setAssignee(e.target.value)}
-                placeholder="User ID"
-              />
-              <Button variant="outline" onClick={handleAssigneeUpdate} disabled={updateWorkItem.isPending}>
-                Update Assignee
-              </Button>
+              <Input value={assignee} onChange={(e) => setAssignee(e.target.value)} placeholder="User ID" />
+              <Button variant="outline" onClick={handleAssigneeUpdate} disabled={updateWorkItem.isPending}>Update Assignee</Button>
             </div>
-            {ownerProfile && (
-              <p className="text-xs text-muted-foreground">
-                Current: {ownerProfile.full_name || ownerProfile.email || workItem.owner_user_id}
-              </p>
-            )}
+            {ownerProfile && <p className="text-xs text-muted-foreground">Current: {ownerProfile.full_name || ownerProfile.email || workItem.owner_user_id}</p>}
           </div>
 
-          {/* Approval Workflow */}
           {workItem.approval_required && (
             <>
               <Separator />
               <div>
                 <h4 className="text-sm font-medium mb-3">Approval</h4>
                 <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Approval Required:</span>
-                    <Badge variant="outline">Yes</Badge>
-                  </div>
-                  {approverProfile && (
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Approver:</span>
-                      <span className="font-medium">
-                        {approverProfile.full_name || approverProfile.email || workItem.approver_user_id}
-                      </span>
-                    </div>
-                  )}
-                  {workItem.status === "under_review" && user?.id === workItem.approver_user_id && (
-                    <div className="flex gap-2 mt-3">
-                      <Button onClick={handleApprove} disabled={updateWorkItem.isPending}>
-                        Approve
-                      </Button>
-                      <Button variant="destructive" onClick={handleReject} disabled={updateWorkItem.isPending}>
-                        Reject
-                      </Button>
-                    </div>
-                  )}
+                  <div className="flex justify-between"><span className="text-muted-foreground">Approval Required:</span><Badge variant="outline">Yes</Badge></div>
+                  {approverProfile && <div className="flex justify-between"><span className="text-muted-foreground">Approver:</span><span className="font-medium">{approverProfile.full_name || approverProfile.email || workItem.approver_user_id}</span></div>}
+                  {workItem.status === "under_review" && user?.id === workItem.approver_user_id && <div className="flex gap-2 mt-3"><Button onClick={handleApprove} disabled={updateWorkItem.isPending}>Approve</Button><Button variant="destructive" onClick={handleReject} disabled={updateWorkItem.isPending}>Reject</Button></div>}
                 </div>
               </div>
             </>
@@ -475,177 +362,91 @@ export const WorkItemDrawer: React.FC<WorkItemDrawerProps> = ({
 
           <Separator />
 
-          {/* Evidence/Documents */}
           <div>
             <h4 className="text-sm font-medium mb-3">Evidence & Documents</h4>
             <div className="space-y-2">
-              {(documents || []).length === 0 ? (
-                <p className="text-sm text-muted-foreground">No documents uploaded yet.</p>
-              ) : (
-                documents?.map((doc) => (
-                  <div key={doc.id} className="flex items-center justify-between text-sm p-2 border rounded">
-                    <div>
-                      <p className="font-medium">{doc.file_name}</p>
-                      <p className="text-xs text-muted-foreground">{doc.file_path}</p>
-                    </div>
-                    <Badge variant="outline">{format(new Date(doc.uploaded_at), "MMM d, yyyy")}</Badge>
-                  </div>
-                ))
-              )}
+              {(documents || []).length === 0 ? <p className="text-sm text-muted-foreground">No documents uploaded yet.</p> : documents?.map((doc) => <div key={doc.id} className="flex items-center justify-between text-sm p-2 border rounded"><div><p className="font-medium">{doc.file_name}</p><p className="text-xs text-muted-foreground">{doc.file_path}</p></div><Badge variant="outline">{format(new Date(doc.uploaded_at), "MMM d, yyyy")}</Badge></div>)}
             </div>
           </div>
 
           <Separator />
 
-          {/* Comments */}
           <div>
             <h4 className="text-sm font-medium mb-2">Comments</h4>
             <div className="space-y-3">
-              {(comments || []).length === 0 ? (
-                <p className="text-sm text-muted-foreground">No comments yet.</p>
-              ) : (
-                comments?.map((comment) => (
-                  <div key={comment.id} className="rounded-lg border p-3 text-sm">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="font-medium">
-                        {comment.author?.full_name || comment.author?.email || comment.author_user_id}
-                      </span>
-                      <span className="text-xs text-muted-foreground">
-                        {format(new Date(comment.created_at), "MMM d, yyyy 'at' h:mm a")}
-                      </span>
-                    </div>
-                    <p className="text-muted-foreground">{comment.comment_text}</p>
-                  </div>
-                ))
-              )}
+              {(comments || []).length === 0 ? <p className="text-sm text-muted-foreground">No comments yet.</p> : comments?.map((comment) => <div key={comment.id} className="rounded-lg border p-3 text-sm"><div className="flex items-center justify-between mb-1"><span className="font-medium">{comment.author?.full_name || comment.author?.email || comment.author_user_id}</span><span className="text-xs text-muted-foreground">{format(new Date(comment.created_at), "MMM d, yyyy 'at' h:mm a")}</span></div><p className="text-muted-foreground">{comment.comment_text}</p></div>)}
             </div>
             <div className="mt-3 space-y-2">
-              <Textarea
-                placeholder="Add a comment"
-                value={commentText}
-                onChange={(e) => setCommentText(e.target.value)}
-                rows={3}
-              />
-              <Button onClick={handleAddComment} disabled={!commentText.trim() || createComment.isPending}>
-                {createComment.isPending ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Adding...
-                  </>
-                ) : (
-                  "Add Comment"
-                )}
-              </Button>
+              <Textarea placeholder="Add a comment" value={commentText} onChange={(e) => setCommentText(e.target.value)} rows={3} />
+              <Button onClick={handleAddComment} disabled={!commentText.trim() || createComment.isPending}>{createComment.isPending ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Adding...</> : "Add Comment"}</Button>
             </div>
           </div>
 
           <Separator />
 
-          {/* Form Submissions */}
           {formSubmissions && formSubmissions.length > 0 && (
             <div>
               <h4 className="text-sm font-medium mb-3">Form Submissions</h4>
               <div className="space-y-2">
-                {formSubmissions.map((submission) => (
-                  <div
-                    key={submission.id}
-                    className="flex items-center justify-between text-sm p-3 border rounded-lg hover:bg-muted/50 transition-colors"
-                  >
-                    <div className="flex items-center gap-3 flex-1">
-                      <FileText className="w-4 h-4 text-muted-foreground" />
-                      <div className="flex-1">
-                        <p className="font-medium">
-                          {submission.form_template?.name || "Unknown Form"}
-                        </p>
-                        <div className="flex items-center gap-2 mt-1">
-                          <Badge variant="outline" className="text-xs">
-                            {submission.submission_status || "pending"}
-                          </Badge>
-                          <span className="text-xs text-muted-foreground">
-                            {format(new Date(submission.created_at), "MMM d, yyyy")}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-primary hover:text-primary hover:bg-primary/10"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setEditingFormSubmissionId(submission.id);
-                        }}
-                        title="Edit form"
-                      >
-                        <Edit className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setFormSubmissionToDelete(submission.id);
-                        }}
-                        title="Delete form"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
+                {formSubmissions.map((submission) => <div key={submission.id} className="flex items-center justify-between text-sm p-3 border rounded-lg hover:bg-muted/50 transition-colors"><div className="flex items-center gap-3 flex-1"><FileText className="w-4 h-4 text-muted-foreground" /><div className="flex-1"><p className="font-medium">{submission.form_template?.name || "Unknown Form"}</p><div className="flex items-center gap-2 mt-1"><Badge variant="outline" className="text-xs">{submission.submission_status || "pending"}</Badge><span className="text-xs text-muted-foreground">{format(new Date(submission.created_at), "MMM d, yyyy")}</span></div></div></div><div className="flex items-center gap-1"><Button variant="ghost" size="icon" className="h-8 w-8 text-primary hover:text-primary hover:bg-primary/10" onClick={(e) => { e.stopPropagation(); setEditingFormSubmissionId(submission.id); }} title="Edit form"><Edit className="w-4 h-4" /></Button><Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={(e) => { e.stopPropagation(); setFormSubmissionToDelete(submission.id); }} title="Delete form"><Trash2 className="w-4 h-4" /></Button></div></div>)}
               </div>
             </div>
           )}
+
+          <Separator />
+
+          <div className="rounded-lg border p-4 space-y-3">
+            <div>
+              <h4 className="text-sm font-medium">Archive & Drive</h4>
+              <p className="text-xs text-muted-foreground">Archive removes the item from active queues. Drive export saves a completed/approved item to that department's configured folder.</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" onClick={handleExportToDrive} disabled={!canExport || exportToDrive.isPending}>
+                {exportToDrive.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FolderUp className="mr-2 h-4 w-4" />} Save to Department Drive
+              </Button>
+              <Button variant="destructive" onClick={() => setWorkItemArchiveOpen(true)} disabled={archiveWorkItem.isPending}>
+                <Archive className="mr-2 h-4 w-4" /> Archive/Delete Work Item
+              </Button>
+            </div>
+            {!canExport && <p className="text-xs text-muted-foreground">Set the status to Complete or Approved before exporting to Drive.</p>}
+          </div>
         </div>
 
-        {/* Delete Form Submission Confirmation Dialog */}
-        <AlertDialog open={!!formSubmissionToDelete} onOpenChange={(open) => !open && setFormSubmissionToDelete(null)}>
+        <AlertDialog open={workItemArchiveOpen} onOpenChange={setWorkItemArchiveOpen}>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Delete Form Submission</AlertDialogTitle>
-              <AlertDialogDescription>
-                Are you sure you want to delete this form submission? This action cannot be undone.
-                {formSubmissionToDelete && formSubmissions?.find(s => s.id === formSubmissionToDelete) && (
-                  <span className="block mt-2 font-medium">
-                    Form: {formSubmissions.find(s => s.id === formSubmissionToDelete)?.form_template?.name || "Unknown"}
-                  </span>
-                )}
-              </AlertDialogDescription>
+              <AlertDialogTitle>Archive this work item?</AlertDialogTitle>
+              <AlertDialogDescription>This will remove the work item from active queues by marking it archived/canceled. Its history remains available in the database.</AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel onClick={() => setFormSubmissionToDelete(null)}>Cancel</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={handleDeleteFormSubmission}
-                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                disabled={deleteFormSubmission.isPending}
-              >
-                {deleteFormSubmission.isPending ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Deleting...
-                  </>
-                ) : (
-                  "Delete"
-                )}
-              </AlertDialogAction>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={handleArchiveWorkItem} className="bg-destructive text-destructive-foreground hover:bg-destructive/90" disabled={archiveWorkItem.isPending}>{archiveWorkItem.isPending ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Archiving...</> : "Archive"}</AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
 
-        {/* Form Submission Edit Sheet */}
+        <AlertDialog open={!!formSubmissionToDelete} onOpenChange={(open) => !open && setFormSubmissionToDelete(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Form Submission</AlertDialogTitle>
+              <AlertDialogDescription>Are you sure you want to delete this form submission? This action cannot be undone.</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => setFormSubmissionToDelete(null)}>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDeleteFormSubmission} className="bg-destructive text-destructive-foreground hover:bg-destructive/90" disabled={deleteFormSubmission.isPending}>{deleteFormSubmission.isPending ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Deleting...</> : "Delete"}</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
         {editingFormSubmissionId && editingSubmissionWithSchema && editingTemplate && (
           <FormSubmissionSheet
             open={!!editingFormSubmissionId}
-            onOpenChange={(open) => {
-              if (!open) {
-                setEditingFormSubmissionId(null);
-              }
+            onOpenChange={(isOpen) => {
+              if (!isOpen) setEditingFormSubmissionId(null);
             }}
             template={editingTemplate}
             submission={editingSubmissionWithSchema}
-            ngoId={editingSubmissionWithSchema.ngo_id || undefined}
+            ngoId={editingSubmissionWithSchema.ngo_id || ""}
           />
         )}
       </SheetContent>
