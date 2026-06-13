@@ -2,9 +2,6 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
-/**
- * Basic role type. You can refine this union later if you want stricter typing.
- */
 export type AppRole = string;
 
 export interface UserRole {
@@ -23,9 +20,20 @@ const ensureSupabase = () => {
   }
 };
 
-/**
- * Returns the current user's single role (or null if none).
- */
+export const NGO_PORTAL_ROLES: AppRole[] = ["ngo_user", "external_ngo"];
+
+export const STAFF_WORKSPACE_ROLES: AppRole[] = [
+  "staff",
+  "super_admin",
+  "admin_pm",
+  "ngo_coordinator",
+  "department_lead",
+  "executive_secretariat",
+];
+
+export const isNgoPortalRole = (role?: string | null) => !!role && NGO_PORTAL_ROLES.includes(role);
+export const isStaffWorkspaceRole = (role?: string | null) => !!role && STAFF_WORKSPACE_ROLES.includes(role);
+
 export const useUserRole = () => {
   const { user } = useAuth();
 
@@ -35,6 +43,17 @@ export const useUserRole = () => {
     queryFn: async () => {
       ensureSupabase();
       if (!user?.id) return null;
+
+      const { data: profileRole, error: profileError } = await supabase
+        .from("profiles")
+        .select("id, role")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      if (profileError) throw profileError;
+      if (profileRole?.role) {
+        return { user_id: user.id, role: profileRole.role } as UserRole;
+      }
 
       const { data, error } = await supabase
         .from("user_roles")
@@ -49,9 +68,6 @@ export const useUserRole = () => {
   });
 };
 
-/**
- * Returns all user_roles rows (for admin screens).
- */
 export const useUserRoles = () => {
   return useQuery({
     queryKey: ["user-roles"],
@@ -69,10 +85,6 @@ export const useUserRoles = () => {
   });
 };
 
-/**
- * Mutation to upsert a role for a given user.
- * Note: onConflict uses the (user_id, role) unique constraint as per your migration.
- */
 export const useUpdateUserRole = () => {
   const queryClient = useQueryClient();
 
@@ -98,6 +110,12 @@ export const useUpdateUserRole = () => {
         .maybeSingle();
 
       if (error) throw error;
+
+      await supabase
+        .from("profiles")
+        .update({ role } as never)
+        .eq("id" as never, userId as never);
+
       return data as UserRole | null;
     },
     onSuccess: () => {
@@ -107,13 +125,8 @@ export const useUpdateUserRole = () => {
   });
 };
 
-/**
- * Convenience hook: true iff the current user is an admin.
- * Right now we align it with the RLS comment from Codex and only treat super_admin as full admin.
- */
 export const useIsAdminUser = () => {
   const { data: userRole } = useUserRole();
-
   const adminRoles: AppRole[] = ["super_admin"];
   return !!userRole && adminRoles.includes(userRole.role);
 };
