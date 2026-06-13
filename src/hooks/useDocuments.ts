@@ -15,6 +15,13 @@ const ensureSupabase = () => {
   }
 };
 
+const invalidateDocumentQueries = (queryClient: ReturnType<typeof useQueryClient>) => {
+  queryClient.invalidateQueries({ queryKey: ['documents'] });
+  queryClient.invalidateQueries({ queryKey: ['portal-documents'] });
+  queryClient.invalidateQueries({ queryKey: ['work-items'] });
+  queryClient.invalidateQueries({ queryKey: ['portal-work-items'] });
+};
+
 export const useDocuments = (filters?: { ngo_id?: string; work_item_id?: string; category?: DocumentCategory }) => {
   return useQuery({
     queryKey: ['documents', filters],
@@ -76,7 +83,7 @@ export const useCreateDocument = () => {
       return data as Document;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['documents'] });
+      invalidateDocumentQueries(queryClient);
       toast({
         title: 'Document uploaded',
         description: 'The document has been successfully uploaded.',
@@ -110,7 +117,7 @@ export const useUpdateDocument = () => {
       return data as Document;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['documents'] });
+      invalidateDocumentQueries(queryClient);
       toast({
         title: 'Document updated',
         description: 'The document has been successfully updated.',
@@ -162,6 +169,7 @@ export const useUploadDocument = () => {
         .upload(filePath, file, {
           cacheControl: '3600',
           upsert: false,
+          contentType: file.type || 'application/octet-stream',
         });
 
       if (uploadError) throw uploadError;
@@ -172,7 +180,7 @@ export const useUploadDocument = () => {
         .insert({
           file_name: file.name,
           file_path: filePath,
-          file_type: file.type,
+          file_type: file.type || 'application/octet-stream',
           file_size: file.size,
           category,
           ngo_id: ngoId,
@@ -192,7 +200,7 @@ export const useUploadDocument = () => {
       return data as Document;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['documents'] });
+      invalidateDocumentQueries(queryClient);
       toast({
         title: 'Document uploaded',
         description: 'The document has been successfully uploaded.',
@@ -280,7 +288,7 @@ export const useDeleteDocument = () => {
       if (dbError) throw dbError;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['documents'] });
+      invalidateDocumentQueries(queryClient);
       toast({
         title: 'Document deleted',
         description: 'The document has been successfully deleted.',
