@@ -1,24 +1,27 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
-import { Download, Eye, Loader2, Upload, FileText, Clock, FolderOpen } from "lucide-react";
+import { AlertCircle, CheckCircle2, Download, Eye, FileText, FolderOpen, Loader2, Upload } from "lucide-react";
 import { PortalLayout } from "@/components/layout/PortalLayout";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Progress } from "@/components/ui/progress";
 import { useAuth } from "@/contexts/AuthContext";
 import { getSupabaseNotConfiguredError, supabase } from "@/integrations/supabase/client";
 import { useDocumentUrl, useUploadDocument } from "@/hooks/useDocuments";
-import { WorkItem } from "@/hooks/useWorkItems";
 
 interface PortalContactRow {
   ngo_id: string | null;
   ngos: { id: string; legal_name: string; common_name: string | null } | null;
 }
 
-interface NgoSummary { id: string; name: string; }
+interface NgoSummary {
+  id: string;
+  name: string;
+}
 
 interface PortalDocumentRow {
   id: string;
@@ -33,16 +36,43 @@ interface PortalDocumentRow {
   created_at: string | null;
 }
 
-const statusLabels: Record<string, string> = {
-  draft: "Draft", not_started: "Not started", in_progress: "In progress",
-  waiting_on_ngo: "Waiting on NGO", waiting_on_hpg: "Waiting on HPG",
-  submitted: "Submitted", under_review: "Under review", approved: "Approved",
-  rejected: "Rejected", complete: "Complete", canceled: "Canceled",
+interface CompliancePeriodRow {
+  id: string;
+  ngo_id: string;
+  period_type: "quarterly" | "annual";
+  period_label: string;
+  period_start: string | null;
+  period_end: string | null;
+  due_date: string | null;
+  status: string;
+  submitted_at: string | null;
+  reviewed_at: string | null;
+  notes: string | null;
+}
+
+const ensureSupabase = () => {
+  if (!supabase) throw getSupabaseNotConfiguredError();
 };
 
-const ensureSupabase = () => { if (!supabase) throw getSupabaseNotConfiguredError(); };
-const formatDate = (v: string | null) => v ? format(new Date(v), "MMM d, yyyy") : "—";
-const formatStatus = (s: string | null) => s ? (statusLabels[s] || s.replace(/_/g, " ")) : "—";
+const statusLabels: Record<string, string> = {
+  not_started: "Not Started",
+  in_progress: "In Progress",
+  submitted: "Submitted",
+  under_review: "Under Review",
+  approved: "Approved",
+  needs_revision: "Needs Revision",
+  overdue: "Overdue",
+};
+
+const statusVariant = (status: string) => {
+  if (status === "approved") return "default";
+  if (status === "overdue" || status === "needs_revision") return "destructive";
+  if (status === "submitted" || status === "under_review") return "secondary";
+  return "outline";
+};
+
+const formatDate = (value: string | null) => value ? format(new Date(value), "MMM d, yyyy") : "—";
+
 const formatFileSize = (bytes: number | null) => {
   if (!bytes) return "—";
   if (bytes < 1024) return `${bytes} B`;
@@ -54,59 +84,55 @@ export default function Portal() {
   const { user } = useAuth();
   const uploadDocument = useUploadDocument();
   const { downloadDocument, previewDocument } = useDocumentUrl();
+  const [selectedUploadNgoId, setSelectedUploadNgoId] = useState("");
   const [uploadingId, setUploadingId] = useState<string | null>(null);
-  const [selectedUploadNgoId, setSelectedUploadNgoId] = useState<string>("");
 
   const { data: ngoContacts, isLoading: ngoLoading } = useQuery({
     queryKey: ["portal-ngos", user?.id],
     enabled: !!user?.id,
     queryFn: async () => {
       ensureSupabase();
-      const { data, error } = await supabase.from("contacts").select("ngo_id, ngos(id, legal_name, common_name)").eq("user_id", user?.id ?? "");
+      const { data, error } = await supabase
+        .from("contacts")
+        .select("ngo_id, ngos(id, legal_name, common_name)")
+        .eq("user_id", user?.id ?? "");
       if (error) throw error;
       return data as PortalContactRow[];
     },
   });
 
-  const ngos = useMemo<NgoSummary[]>(() => {
+  const ngos = useMemo<NgoSummary[]>((() => {
     const unique = new Map<string, NgoSummary>();
-    (ngoContacts || []).forEach((c) => {
-      if (c.ngo_id && c.ngos) unique.set(c.ngo_id, { id: c.ngo_id, name: c.ngos.common_name || c.ngos.legal_name });
+    (ngoContacts || []).forEach((contact) => {
+      if (contact.ngo_id && contact.ngos) {
+        unique.set(contact.ngo_id, {
+          id: contact.ngo_id,
+          name: contact.ngos.common_name || contact.ngos.legal_name,
+        });
+      }
     });
     return Array.from(unique.values());
-  }, [ngoContacts]);
+  }), [ngoContacts]);
 
-  const ngoIds = useMemo(() => ngos.map(n => n.id), [ngos]);
-  const ngoNameLookup = useMemo(() => new Map(ngos.map(n => [n.id, n.name])), [ngos]);
+  const ngoIds = useMemo(() => ngos.map((ngo) => ngo.id), [ngos]);
+  const ngoNameLookup = useMemo(() => new Map(ngos.map((ngo) => [ngo.id, ngo.name])), [ngos]);
 
   useEffect(() => {
     if (!selectedUploadNgoId && ngos.length > 0) setSelectedUploadNgoId(ngos[0].id);
   }, [ngos, selectedUploadNgoId]);
 
-  const { data: workItems, isLoading: workItemsLoading } = useQuery({
-    queryKey: ["portal-work-items", ngoIds],
-    enabled: ngoIds.length > 0,
-    queryFn: async () => {
-      ensureSupabase();
-      const { data, error } = await supabase.from("work_items").select("*").in("ngo_id", ngoIds).eq("external_visible", true).order("due_date", { ascending: true, nullsFirst: false });
-      if (error) throw error;
-      return data as WorkItem[];
-    },
-  });
-
-  const { data: formSubmissions, isLoading: formsLoading } = useQuery({
-    queryKey: ["portal-form-submissions", ngoIds],
+  const { data: compliancePeriods, isLoading: complianceLoading } = useQuery({
+    queryKey: ["portal-compliance-periods", ngoIds],
     enabled: ngoIds.length > 0,
     queryFn: async () => {
       ensureSupabase();
       const { data, error } = await supabase
-        .from("form_submissions")
-        .select("id, form_template_id, ngo_id, submission_status, submitted_at, created_at, form_templates(name)")
-        .in("ngo_id", ngoIds)
-        .order("created_at", { ascending: false })
-        .limit(50);
+        .from("ngo_compliance_periods" as never)
+        .select("id, ngo_id, period_type, period_label, period_start, period_end, due_date, status, submitted_at, reviewed_at, notes" as never)
+        .in("ngo_id" as never, ngoIds as never)
+        .order("due_date" as never, { ascending: true, nullsFirst: false });
       if (error) throw error;
-      return data as any[];
+      return (data || []) as unknown as CompliancePeriodRow[];
     },
   });
 
@@ -120,120 +146,154 @@ export default function Portal() {
         .select("id, file_name, file_path, file_type, file_size, category, review_status, ngo_id, uploaded_at, created_at")
         .in("ngo_id", ngoIds)
         .order("uploaded_at", { ascending: false })
-        .limit(50);
+        .limit(100);
       if (error) throw error;
       return data as PortalDocumentRow[];
     },
   });
 
-  const uploadPortalDocument = async ({ file, ngoId, workItemId, uploadKey }: { file: File; ngoId: string; workItemId?: string; uploadKey: string }) => {
+  const handleGeneralDocumentUpload = async (files: FileList | null) => {
+    const file = files?.[0];
+    if (!file || !selectedUploadNgoId) return;
+
     try {
-      setUploadingId(uploadKey);
-      await uploadDocument.mutateAsync({ file, ngoId, category: "other", workItemId, reviewStatus: "Pending" });
+      setUploadingId("general-document-upload");
+      await uploadDocument.mutateAsync({
+        file,
+        ngoId: selectedUploadNgoId,
+        category: "compliance",
+        reviewStatus: "Pending Review",
+      });
     } finally {
       setUploadingId(null);
     }
   };
 
-  const handleFileUpload = async (workItem: WorkItem, files: FileList | null) => {
-    const file = files?.[0];
-    if (!file || !workItem.ngo_id) return;
-    await uploadPortalDocument({ file, ngoId: workItem.ngo_id, workItemId: workItem.id, uploadKey: workItem.id });
-  };
-
-  const handleGeneralDocumentUpload = async (files: FileList | null) => {
-    const file = files?.[0];
-    if (!file || !selectedUploadNgoId) return;
-    await uploadPortalDocument({ file, ngoId: selectedUploadNgoId, uploadKey: "general-document-upload" });
-  };
-
-  const isLoading = ngoLoading || workItemsLoading;
-  const activeWorkItems = workItems?.filter(wi => !["complete", "canceled", "approved"].includes(wi.status)) ?? [];
-  const completedWorkItems = workItems?.filter(wi => ["complete", "approved"].includes(wi.status)) ?? [];
+  const totalCompliance = compliancePeriods?.length ?? 0;
+  const approvedCompliance = compliancePeriods?.filter((period) => period.status === "approved").length ?? 0;
+  const pendingCompliance = compliancePeriods?.filter((period) => ["not_started", "in_progress", "needs_revision", "overdue"].includes(period.status)).length ?? 0;
+  const complianceProgress = totalCompliance > 0 ? Math.round((approvedCompliance / totalCompliance) * 100) : 0;
 
   return (
-    <PortalLayout title="NGO Portal" subtitle="View tasks, submissions, and documents for your organization.">
+    <PortalLayout
+      title="NGO Compliance Portal"
+      subtitle="Upload compliance documents and track your quarterly and annual review status."
+    >
       <div className="flex flex-col gap-6">
         <div className="grid gap-4 md:grid-cols-4">
-          <Card><CardContent className="p-5 text-center"><p className="text-2xl font-bold">{ngos.length}</p><p className="text-xs text-muted-foreground mt-1">Your NGOs</p></CardContent></Card>
-          <Card><CardContent className="p-5 text-center"><p className="text-2xl font-bold text-orange-500">{activeWorkItems.length}</p><p className="text-xs text-muted-foreground mt-1">Active Tasks</p></CardContent></Card>
-          <Card><CardContent className="p-5 text-center"><p className="text-2xl font-bold text-primary">{completedWorkItems.length}</p><p className="text-xs text-muted-foreground mt-1">Completed</p></CardContent></Card>
-          <Card><CardContent className="p-5 text-center"><p className="text-2xl font-bold">{documents?.length ?? 0}</p><p className="text-xs text-muted-foreground mt-1">Documents</p></CardContent></Card>
+          <Card>
+            <CardContent className="p-5 text-center">
+              <p className="text-2xl font-bold">{ngos.length}</p>
+              <p className="text-xs text-muted-foreground mt-1">Linked NGOs</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-5 text-center">
+              <p className="text-2xl font-bold text-primary">{complianceProgress}%</p>
+              <p className="text-xs text-muted-foreground mt-1">Compliance Complete</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-5 text-center">
+              <p className="text-2xl font-bold text-orange-500">{pendingCompliance}</p>
+              <p className="text-xs text-muted-foreground mt-1">Pending Items</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-5 text-center">
+              <p className="text-2xl font-bold">{documents?.length ?? 0}</p>
+              <p className="text-xs text-muted-foreground mt-1">Uploaded Documents</p>
+            </CardContent>
+          </Card>
         </div>
 
-        {ngos.length > 0 && (
+        {ngos.length > 0 ? (
           <div className="flex flex-wrap gap-2">
-            {ngos.map(ngo => <Badge key={ngo.id} variant="secondary" className="px-3 py-1 text-sm">{ngo.name}</Badge>)}
+            {ngos.map((ngo) => (
+              <Badge key={ngo.id} variant="secondary" className="px-3 py-1 text-sm">
+                {ngo.name}
+              </Badge>
+            ))}
           </div>
-        )}
+        ) : null}
 
-        <Tabs defaultValue="tasks">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <CheckCircle2 className="h-5 w-5 text-primary" />
+              Compliance Progress
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <Progress value={complianceProgress} />
+            <p className="text-sm text-muted-foreground">
+              {approvedCompliance} of {totalCompliance} quarterly/annual compliance periods approved.
+            </p>
+          </CardContent>
+        </Card>
+
+        <Tabs defaultValue="compliance">
           <TabsList>
-            <TabsTrigger value="tasks"><Clock className="w-4 h-4 mr-1" />Tasks</TabsTrigger>
-            <TabsTrigger value="forms"><FileText className="w-4 h-4 mr-1" />Form Submissions</TabsTrigger>
-            <TabsTrigger value="documents"><FolderOpen className="w-4 h-4 mr-1" />Documents</TabsTrigger>
+            <TabsTrigger value="compliance">
+              <FileText className="w-4 h-4 mr-1" />
+              Compliance Status
+            </TabsTrigger>
+            <TabsTrigger value="documents">
+              <FolderOpen className="w-4 h-4 mr-1" />
+              Documents
+            </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="tasks">
+          <TabsContent value="compliance">
             <Card>
               <CardContent className="p-0">
                 <div className="border-b px-5 py-4">
-                  <h2 className="text-lg font-semibold">External-visible work items</h2>
-                  <p className="text-sm text-muted-foreground">Tasks shared with your organization.</p>
+                  <h2 className="text-lg font-semibold">Quarterly & Annual Compliance</h2>
+                  <p className="text-sm text-muted-foreground">
+                    Track review status for your required HPG compliance periods. HPG staff updates approvals and revision requests.
+                  </p>
                 </div>
-                {isLoading ? (
-                  <div className="flex items-center justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
-                ) : workItems && workItems.length > 0 ? (
+                {ngoLoading || complianceLoading ? (
+                  <div className="flex items-center justify-center py-16">
+                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                  </div>
+                ) : compliancePeriods && compliancePeriods.length > 0 ? (
                   <Table>
-                    <TableHeader><TableRow><TableHead>NGO</TableHead><TableHead>Status</TableHead><TableHead>Type</TableHead><TableHead>Due</TableHead><TableHead>Description</TableHead><TableHead className="text-right">Evidence</TableHead></TableRow></TableHeader>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>NGO</TableHead>
+                        <TableHead>Period</TableHead>
+                        <TableHead>Type</TableHead>
+                        <TableHead>Due Date</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Notes</TableHead>
+                      </TableRow>
+                    </TableHeader>
                     <TableBody>
-                      {workItems.map((item) => (
-                        <TableRow key={item.id}>
-                          <TableCell className="font-medium">{item.ngo_id ? ngoNameLookup.get(item.ngo_id) || "—" : "—"}</TableCell>
-                          <TableCell><Badge variant="outline">{formatStatus(item.status)}</Badge></TableCell>
-                          <TableCell>{item.type || "—"}</TableCell>
-                          <TableCell>{formatDate(item.due_date)}</TableCell>
-                          <TableCell className="max-w-[320px] text-sm text-muted-foreground">{item.description || "—"}</TableCell>
-                          <TableCell className="text-right">
-                            {item.evidence_required ? (
-                              <label className="inline-flex items-center gap-2">
-                                <input type="file" className="hidden" onChange={(e) => handleFileUpload(item, e.target.files)} disabled={uploadingId === item.id} />
-                                <Button variant="secondary" size="sm" asChild disabled={uploadingId === item.id}>
-                                  <span>{uploadingId === item.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}Upload</span>
-                                </Button>
-                              </label>
-                            ) : <span className="text-sm text-muted-foreground">Not required</span>}
+                      {compliancePeriods.map((period) => (
+                        <TableRow key={period.id}>
+                          <TableCell className="font-medium">{ngoNameLookup.get(period.ngo_id) || "—"}</TableCell>
+                          <TableCell>{period.period_label}</TableCell>
+                          <TableCell className="capitalize">{period.period_type}</TableCell>
+                          <TableCell>{formatDate(period.due_date)}</TableCell>
+                          <TableCell>
+                            <Badge variant={statusVariant(period.status)}>
+                              {statusLabels[period.status] || period.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="max-w-[320px] text-sm text-muted-foreground">
+                            {period.notes || "—"}
                           </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
                   </Table>
-                ) : <div className="px-5 py-10 text-sm text-muted-foreground">No external-visible work items.</div>}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="forms">
-            <Card>
-              <CardContent className="p-0">
-                <div className="border-b px-5 py-4"><h2 className="text-lg font-semibold">Form Submissions</h2><p className="text-sm text-muted-foreground">Submissions filed for your NGO.</p></div>
-                {formsLoading ? (
-                  <div className="flex items-center justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
-                ) : formSubmissions && formSubmissions.length > 0 ? (
-                  <Table>
-                    <TableHeader><TableRow><TableHead>Form</TableHead><TableHead>NGO</TableHead><TableHead>Status</TableHead><TableHead>Submitted</TableHead></TableRow></TableHeader>
-                    <TableBody>
-                      {formSubmissions.map(s => (
-                        <TableRow key={s.id}>
-                          <TableCell className="font-medium">{s.form_templates?.name ?? "Unknown form"}</TableCell>
-                          <TableCell>{s.ngo_id ? ngoNameLookup.get(s.ngo_id) || "—" : "—"}</TableCell>
-                          <TableCell><Badge variant={s.submission_status === "submitted" ? "default" : "outline"}>{formatStatus(s.submission_status)}</Badge></TableCell>
-                          <TableCell>{s.submitted_at ? formatDate(s.submitted_at) : formatDate(s.created_at)}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                ) : <div className="px-5 py-10 text-sm text-muted-foreground">No form submissions found.</div>}
+                ) : (
+                  <div className="px-5 py-10 text-sm text-muted-foreground flex items-start gap-2">
+                    <AlertCircle className="h-4 w-4 mt-0.5" />
+                    <span>No compliance periods have been assigned yet.</span>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
@@ -242,46 +302,92 @@ export default function Portal() {
             <Card>
               <CardContent className="p-0">
                 <div className="border-b px-5 py-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                  <div><h2 className="text-lg font-semibold">Documents</h2><p className="text-sm text-muted-foreground">Upload, view, and download files associated with your NGO.</p></div>
+                  <div>
+                    <h2 className="text-lg font-semibold">Compliance Documents</h2>
+                    <p className="text-sm text-muted-foreground">
+                      Upload documents for your NGO compliance review. You can view or download files after upload.
+                    </p>
+                  </div>
                   <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                     {ngos.length > 1 && (
-                      <select className="h-9 rounded-md border bg-background px-3 text-sm" value={selectedUploadNgoId} onChange={(e) => setSelectedUploadNgoId(e.target.value)}>
-                        {ngos.map(ngo => <option key={ngo.id} value={ngo.id}>{ngo.name}</option>)}
+                      <select
+                        className="h-9 rounded-md border bg-background px-3 text-sm"
+                        value={selectedUploadNgoId}
+                        onChange={(event) => setSelectedUploadNgoId(event.target.value)}
+                      >
+                        {ngos.map((ngo) => (
+                          <option key={ngo.id} value={ngo.id}>{ngo.name}</option>
+                        ))}
                       </select>
                     )}
                     <label className="inline-flex">
-                      <input type="file" className="hidden" onChange={(e) => handleGeneralDocumentUpload(e.target.files)} disabled={!selectedUploadNgoId || uploadingId === "general-document-upload"} />
+                      <input
+                        type="file"
+                        className="hidden"
+                        onChange={(event) => handleGeneralDocumentUpload(event.target.files)}
+                        disabled={!selectedUploadNgoId || uploadingId === "general-document-upload"}
+                      />
                       <Button asChild disabled={!selectedUploadNgoId || uploadingId === "general-document-upload"}>
-                        <span>{uploadingId === "general-document-upload" ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}Upload Document</span>
+                        <span>
+                          {uploadingId === "general-document-upload" ? (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          ) : (
+                            <Upload className="mr-2 h-4 w-4" />
+                          )}
+                          Upload Compliance Document
+                        </span>
                       </Button>
                     </label>
                   </div>
                 </div>
+
                 {docsLoading ? (
-                  <div className="flex items-center justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
+                  <div className="flex items-center justify-center py-16">
+                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                  </div>
                 ) : documents && documents.length > 0 ? (
                   <Table>
-                    <TableHeader><TableRow><TableHead>File Name</TableHead><TableHead>NGO</TableHead><TableHead>Category</TableHead><TableHead>Size</TableHead><TableHead>Review Status</TableHead><TableHead>Uploaded</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>File Name</TableHead>
+                        <TableHead>NGO</TableHead>
+                        <TableHead>Category</TableHead>
+                        <TableHead>Size</TableHead>
+                        <TableHead>Review Status</TableHead>
+                        <TableHead>Uploaded</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
                     <TableBody>
-                      {documents.map(d => (
-                        <TableRow key={d.id}>
-                          <TableCell className="font-medium">{d.file_name}</TableCell>
-                          <TableCell>{d.ngo_id ? ngoNameLookup.get(d.ngo_id) || "—" : "—"}</TableCell>
-                          <TableCell><Badge variant="outline">{d.category}</Badge></TableCell>
-                          <TableCell>{formatFileSize(d.file_size)}</TableCell>
-                          <TableCell><Badge variant={d.review_status === "Approved" ? "default" : d.review_status === "Rejected" ? "destructive" : "secondary"}>{d.review_status || "Pending"}</Badge></TableCell>
-                          <TableCell>{formatDate(d.uploaded_at || d.created_at)}</TableCell>
+                      {documents.map((document) => (
+                        <TableRow key={document.id}>
+                          <TableCell className="font-medium">{document.file_name}</TableCell>
+                          <TableCell>{document.ngo_id ? ngoNameLookup.get(document.ngo_id) || "—" : "—"}</TableCell>
+                          <TableCell><Badge variant="outline">{document.category}</Badge></TableCell>
+                          <TableCell>{formatFileSize(document.file_size)}</TableCell>
+                          <TableCell><Badge variant="secondary">{document.review_status || "Pending Review"}</Badge></TableCell>
+                          <TableCell>{formatDate(document.uploaded_at || document.created_at)}</TableCell>
                           <TableCell className="text-right">
                             <div className="inline-flex gap-2">
-                              <Button variant="outline" size="sm" onClick={() => previewDocument(d.file_path)}><Eye className="mr-2 h-4 w-4" />View</Button>
-                              <Button variant="outline" size="sm" onClick={() => downloadDocument(d.file_path, d.file_name)}><Download className="mr-2 h-4 w-4" />Download</Button>
+                              <Button variant="outline" size="sm" onClick={() => previewDocument(document.file_path)}>
+                                <Eye className="mr-2 h-4 w-4" />
+                                View
+                              </Button>
+                              <Button variant="outline" size="sm" onClick={() => downloadDocument(document.file_path, document.file_name)}>
+                                <Download className="mr-2 h-4 w-4" />
+                                Download
+                              </Button>
                             </div>
                           </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
                   </Table>
-                ) : <div className="px-5 py-10 text-sm text-muted-foreground">No documents found. Use Upload Document to add your first file.</div>}
+                ) : (
+                  <div className="px-5 py-10 text-sm text-muted-foreground">
+                    No documents found. Use Upload Compliance Document to add your first file.
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
