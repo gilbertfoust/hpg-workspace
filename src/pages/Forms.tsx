@@ -9,7 +9,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import {
   FileText, Users, Briefcase, DollarSign, Scale, Megaphone, MessageSquare,
   GraduationCap, Wrench, Monitor, Handshake, UserPlus, ArrowRight, Bell,
-  Building2, TrendingUp, Inbox, BarChart3, Settings2,
+  Building2, TrendingUp, Inbox, BarChart3, Settings2, Upload,
 } from "lucide-react";
 import { useFormTemplates, FormTemplate } from "@/hooks/useFormTemplates";
 import { ModuleType } from "@/hooks/useWorkItems";
@@ -18,6 +18,7 @@ import { FormSubmissionsTab } from "@/components/forms/FormSubmissionsTab";
 import { FormAnalyticsTab } from "@/components/forms/FormAnalyticsTab";
 import { FormWorkflowEventsTab } from "@/components/forms/FormWorkflowEventsTab";
 import { FormWorkflowRoutesTab } from "@/components/forms/FormWorkflowRoutesTab";
+import { FormTemplateDocumentUploadDialog } from "@/components/forms/FormTemplateDocumentUploadDialog";
 import { isSupabaseNotConfiguredError } from "@/integrations/supabase/client";
 import { SupabaseNotConfiguredNotice } from "@/components/common/SupabaseNotConfiguredNotice";
 
@@ -60,6 +61,7 @@ export default function Forms() {
   const { data: templates, isLoading, error } = useFormTemplates();
   const [sheetOpen, setSheetOpen] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<FormTemplate | null>(null);
+  const [uploadTemplate, setUploadTemplate] = useState<FormTemplate | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>("templates");
 
   const modules = useMemo(() => {
@@ -227,6 +229,15 @@ export default function Forms() {
                                 <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
                                   {moduleIcon}
                                 </div>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => setUploadTemplate(form)}
+                                  className="opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity"
+                                >
+                                  <Upload className="w-4 h-4 mr-2" />
+                                  Upload
+                                </Button>
                               </div>
                               <CardTitle className="text-base mt-3 group-hover:text-primary transition-colors">
                                 {form.name}
@@ -241,28 +252,38 @@ export default function Forms() {
                                   {moduleDisplayName}
                                 </Badge>
                               </div>
-                              {requiresNGO ? (
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button className="w-full mt-4" variant="outline" disabled>
-                                      Launch Form
-                                      <ArrowRight className="w-4 h-4 ml-2" />
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p>This form requires an NGO context. Launch from an NGO detail page.</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              ) : (
+                              <div className="mt-4 grid gap-2">
+                                {requiresNGO ? (
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button className="w-full" variant="outline" disabled>
+                                        Launch Form
+                                        <ArrowRight className="w-4 h-4 ml-2" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>This form requires an NGO context. Launch from an NGO detail page.</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                ) : (
+                                  <Button
+                                    className="w-full"
+                                    variant="outline"
+                                    onClick={() => handleLaunchForm(form)}
+                                  >
+                                    Launch Form
+                                    <ArrowRight className="w-4 h-4 ml-2" />
+                                  </Button>
+                                )}
                                 <Button
-                                  className="w-full mt-4"
-                                  variant="outline"
-                                  onClick={() => handleLaunchForm(form)}
+                                  className="w-full"
+                                  variant="secondary"
+                                  onClick={() => setUploadTemplate(form)}
                                 >
-                                  Launch Form
-                                  <ArrowRight className="w-4 h-4 ml-2" />
+                                  <Upload className="w-4 h-4 mr-2" />
+                                  Upload Document
                                 </Button>
-                              )}
+                              </div>
                             </CardContent>
                           </Card>
                         );
@@ -279,6 +300,14 @@ export default function Forms() {
           open={sheetOpen}
           onOpenChange={setSheetOpen}
           template={selectedTemplate}
+        />
+        <FormTemplateDocumentUploadDialog
+          open={!!uploadTemplate}
+          onOpenChange={(open) => {
+            if (!open) setUploadTemplate(null);
+          }}
+          template={uploadTemplate}
+          moduleLabel={uploadTemplate ? moduleDisplayNames[uploadTemplate.module] : undefined}
         />
       </MainLayout>
     </TooltipProvider>
