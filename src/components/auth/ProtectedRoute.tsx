@@ -1,6 +1,6 @@
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { useUserRole } from '@/hooks/useUserRole';
+import { isNgoPortalRole, isStaffWorkspaceRole, useUserRole } from '@/hooks/useUserRole';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2 } from 'lucide-react';
@@ -8,9 +8,10 @@ import { GlobalAtmosphereBackground } from "@/components/background/GlobalAtmosp
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
+  allowedAudience?: 'staff' | 'ngo' | 'any';
 }
 
-const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
+const ProtectedRoute = ({ children, allowedAudience = 'any' }: ProtectedRouteProps) => {
   const { user, loading, signOut } = useAuth();
   const { data: role, isLoading: roleLoading } = useUserRole();
   const location = useLocation();
@@ -41,20 +42,29 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     return <Navigate to="/auth" state={{ from: location }} replace />;
   }
 
-  // If user is not approved, sign them out and redirect to auth
   if (approvalStatus && !approvalStatus.is_approved) {
     signOut();
     return <Navigate to="/auth" replace />;
   }
 
-  const isExternalNgo = role?.role === 'external_ngo';
+  const userRole = role?.role || null;
+  const isNgoUser = isNgoPortalRole(userRole);
+  const isStaffUser = isStaffWorkspaceRole(userRole);
   const isPortalRoute = location.pathname.startsWith('/portal');
 
-  if (isExternalNgo && !isPortalRoute) {
+  if (isNgoUser && !isPortalRoute) {
     return <Navigate to="/portal" replace />;
   }
 
-  if (!isExternalNgo && isPortalRoute) {
+  if (allowedAudience === 'ngo' && !isNgoUser) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  if (allowedAudience === 'staff' && !isStaffUser) {
+    return <Navigate to={isNgoUser ? "/portal" : "/auth"} replace />;
+  }
+
+  if (!isNgoUser && isPortalRoute) {
     return <Navigate to="/dashboard" replace />;
   }
 
