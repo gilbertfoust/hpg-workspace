@@ -4,14 +4,14 @@ import path from "path";
 import { componentTagger } from "lovable-tagger";
 
 export default defineConfig(({ mode }) => {
-  // Use GITHUB_REPOSITORY env var if available (GitHub Actions), otherwise default to "/"
-  // GITHUB_REPOSITORY format: "owner/repo-name"
-  const repoName = process.env.GITHUB_REPOSITORY
-    ? `/${process.env.GITHUB_REPOSITORY.split("/")[1]}/`
-    : "/";
+  const isGitHubPagesBuild = process.env.DEPLOY_TARGET === "github-pages";
+  const repoName = process.env.GITHUB_REPOSITORY?.split("/")[1];
 
   return {
-    base: repoName,
+    // Lovable and normal Vite previews should use root-relative assets.
+    // GitHub Pages can opt into the repository subpath by setting
+    // DEPLOY_TARGET=github-pages in that workflow.
+    base: isGitHubPagesBuild && repoName ? `/${repoName}/` : "/",
 
     server: {
       host: "::",

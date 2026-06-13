@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
+import { getSupabaseConfigStatus, supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,6 +21,7 @@ const Auth = () => {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [logoFailed, setLogoFailed] = useState(false);
+  const supabaseConfig = getSupabaseConfigStatus();
 
   // Login form state
   const [loginEmail, setLoginEmail] = useState("");
@@ -49,23 +50,44 @@ const Auth = () => {
     return <Navigate to="/" replace />;
   }
 
-
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
+
     const { error } = await signIn(loginEmail, loginPassword);
     if (error) {
-      toast({ variant: "destructive", title: "Login failed", description: error.message });
+      const config = getSupabaseConfigStatus();
+      const configHint = !config.isConfigured
+        ? ` Missing Lovable env: ${config.missing.join(", ")}.`
+        : ` Project: ${config.projectRef || "unknown"}. Origin: ${config.origin || "unknown"}.`;
+
+      toast({
+        variant: "destructive",
+        title: "Login failed",
+        description: `${error.message}${configHint}`,
+      });
       setIsSubmitting(false);
       return;
     }
+
     // Check if user is approved
     if (supabase) {
-      const { data: profile } = await supabase
+      const currentUser = (await supabase.auth.getUser()).data.user;
+      const { data: profile, error: profileError } = await supabase
         .from("profiles")
         .select("is_approved, approval_status")
-        .eq("id", (await supabase.auth.getUser()).data.user?.id ?? "")
+        .eq("id", currentUser?.id ?? "")
         .maybeSingle();
+
+      if (profileError) {
+        toast({
+          variant: "destructive",
+          title: "Login profile check failed",
+          description: `${profileError.message}. Supabase project: ${getSupabaseConfigStatus().projectRef || "unknown"}.`,
+        });
+        setIsSubmitting(false);
+        return;
+      }
 
       if (profile && !profile.is_approved) {
         // Sign them back out - they're not approved yet
@@ -75,6 +97,7 @@ const Auth = () => {
         return;
       }
     }
+
     toast({ title: "Welcome back!", description: "You have successfully logged in." });
     setIsSubmitting(false);
   };
@@ -138,6 +161,16 @@ const Auth = () => {
         </CardHeader>
 
         <CardContent>
+          {!supabaseConfig.isConfigured && (
+            <Alert variant="destructive" className="mb-4 text-left">
+              <ShieldCheck className="h-4 w-4" />
+              <AlertTitle>Supabase is not configured in this preview</AlertTitle>
+              <AlertDescription>
+                Lovable is missing {supabaseConfig.missing.join(" and ")}. Add the Supabase Vite variables in Lovable project settings, then reload the preview.
+              </AlertDescription>
+            </Alert>
+          )}
+
           {pendingApproval ? (
             <div className="space-y-4 text-center py-4">
               <div className="flex justify-center">
@@ -227,7 +260,7 @@ const Auth = () => {
                       required
                     />
                   </div>
-                  <Button type="submit" className="w-full" disabled={isSubmitting}>
+                  <Button type="submit" className="w-full" disabled={isSubmitting || !supabaseConfig.isConfigured}>
                     {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Log In
                   </Button>
@@ -241,7 +274,7 @@ const Auth = () => {
                     type="button"
                     variant="outline"
                     className="w-full"
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || !supabaseConfig.isConfigured}
                     onClick={async () => {
                       setIsSubmitting(true);
                       try {
@@ -307,12 +340,11 @@ const Auth = () => {
                       value={signupPassword}
                       onChange={(e) => setSignupPassword(e.target.value)}
                       required
-                      minLength={6}
                     />
                   </div>
-                  <Button type="submit" className="w-full" disabled={isSubmitting}>
+                  <Button type="submit" className="w-full" disabled={isSubmitting || !supabaseConfig.isConfigured}>
                     {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Create Account
+                    Sign Up
                   </Button>
                 </form>
               </TabsContent>
