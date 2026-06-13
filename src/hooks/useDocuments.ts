@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getSupabaseNotConfiguredError, supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import type { Database } from '@/integrations/supabase/types';
+import type { ModuleType } from '@/hooks/useWorkItems';
 
 export type DocumentCategory = Database['public']['Enums']['document_category'];
 export type Document = Database['public']['Tables']['documents']['Row'];
@@ -18,11 +19,18 @@ const ensureSupabase = () => {
 const invalidateDocumentQueries = (queryClient: ReturnType<typeof useQueryClient>) => {
   queryClient.invalidateQueries({ queryKey: ['documents'] });
   queryClient.invalidateQueries({ queryKey: ['portal-documents'] });
+  queryClient.invalidateQueries({ queryKey: ['form-template-documents'] });
   queryClient.invalidateQueries({ queryKey: ['work-items'] });
   queryClient.invalidateQueries({ queryKey: ['portal-work-items'] });
 };
 
-export const useDocuments = (filters?: { ngo_id?: string; work_item_id?: string; category?: DocumentCategory }) => {
+export const useDocuments = (filters?: {
+  ngo_id?: string;
+  work_item_id?: string;
+  form_template_id?: string;
+  module?: ModuleType;
+  category?: DocumentCategory;
+}) => {
   return useQuery({
     queryKey: ['documents', filters],
     queryFn: async () => {
@@ -34,6 +42,12 @@ export const useDocuments = (filters?: { ngo_id?: string; work_item_id?: string;
       }
       if (filters?.work_item_id) {
         query = query.eq('work_item_id', filters.work_item_id);
+      }
+      if (filters?.form_template_id) {
+        query = query.eq('form_template_id' as never, filters.form_template_id as never);
+      }
+      if (filters?.module) {
+        query = query.eq('module' as never, filters.module as never);
       }
       if (filters?.category) {
         query = query.eq('category', filters.category);
@@ -133,7 +147,6 @@ export const useUpdateDocument = () => {
   });
 };
 
-// Upload a file to storage and create a document record
 export const useUploadDocument = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -154,16 +167,13 @@ export const useUploadDocument = () => {
     }) => {
       ensureSupabase();
       
-      // Get current user
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('You must be logged in to upload documents');
 
-      // Generate unique file path: ngo_id/timestamp_filename
       const timestamp = Date.now();
       const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
       const filePath = `${ngoId}/${timestamp}_${sanitizedFileName}`;
 
-      // Upload to storage
       const { error: uploadError } = await supabase.storage
         .from(BUCKET_NAME)
         .upload(filePath, file, {
@@ -174,7 +184,6 @@ export const useUploadDocument = () => {
 
       if (uploadError) throw uploadError;
 
-      // Create document record
       const { data, error: dbError } = await supabase
         .from('documents')
         .insert({
@@ -192,7 +201,6 @@ export const useUploadDocument = () => {
         .single();
 
       if (dbError) {
-        // Cleanup: delete uploaded file if database insert fails
         await supabase.storage.from(BUCKET_NAME).remove([filePath]);
         throw dbError;
       }
@@ -216,7 +224,94 @@ export const useUploadDocument = () => {
   });
 };
 
-// Get a signed URL for downloading/previewing a document
+export const useUploadFormTemplateDocument = () => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async ({
+      file,
+      formTemplateId,
+      module,
+      category,
+      reviewStatus,
+    }: {
+      file: File;
+      formTemplateId: string;
+      module: ModuleType;
+      category: DocumentCategory;
+      reviewStatus?: string;
+    }) => {
+      ensureSupabase();
+
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('You must be logged in to upload department form documents');
+
+      const { data: department } = await supabase
+        .from('departments' as never)
+        .select('id' as never)
+        .eq('module' as never, module as never)
+        .maybeSingle();
+
+      const timestamp = Date.now();
+      const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+      const filePath = `departments/${module}/forms/${formTemplateId}/${timestamp}_${sanitizedFileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from(BUCKET_NAME)
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false,
+          contentType: file.type || 'application/octet-stream',
+        });
+
+      if (uploadError) throw uploadError;
+
+      const insertPayload = {
+        file_name: file.name,
+        file_path: filePath,
+        file_type: file.type || 'application/octet-stream',
+        file_size: file.size,
+        category,
+        ngo_id: null,
+        work_item_id: null,
+        form_template_id: formTemplateId,
+        module,
+        department_id: (department as { id?: string } | null)?.id || null,
+        uploaded_by_user_id: user.id,
+        review_status: reviewStatus ?? 'Department Form Attachment',
+      };
+
+      const { data, error: dbError } = await supabase
+        .from('documents')
+        .insert(insertPayload as never)
+        .select()
+        .single();
+
+      if (dbError) {
+        await supabase.storage.from(BUCKET_NAME).remove([filePath]);
+        throw dbError;
+      }
+
+      return data as Document;
+    },
+    onSuccess: () => {
+      invalidateDocumentQueries(queryClient);
+      toast({
+        title: 'Department form document uploaded',
+        description: 'The file has been saved to this form and department.',
+      });
+    },
+    onError: (error) => {
+      toast({
+        variant: 'destructive',
+        title: 'Error uploading department form document',
+        description: error.message,
+      });
+    },
+  });
+};
+
 export const useDocumentUrl = () => {
   const { toast } = useToast();
 
@@ -225,7 +320,7 @@ export const useDocumentUrl = () => {
     
     const { data, error } = await supabase.storage
       .from(BUCKET_NAME)
-      .createSignedUrl(filePath, 3600); // 1 hour expiry
+      .createSignedUrl(filePath, 3600);
 
     if (error) {
       toast({
@@ -243,7 +338,6 @@ export const useDocumentUrl = () => {
     const url = await getSignedUrl(filePath);
     if (!url) return;
 
-    // Create a link and trigger download
     const link = document.createElement('a');
     link.href = url;
     link.download = fileName;
@@ -255,15 +349,12 @@ export const useDocumentUrl = () => {
   const previewDocument = async (filePath: string) => {
     const url = await getSignedUrl(filePath);
     if (!url) return;
-    
-    // Open in new tab
     window.open(url, '_blank');
   };
 
   return { getSignedUrl, downloadDocument, previewDocument };
 };
 
-// Delete a document from storage and database
 export const useDeleteDocument = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -272,14 +363,12 @@ export const useDeleteDocument = () => {
     mutationFn: async (document: Document) => {
       ensureSupabase();
 
-      // Delete from storage first
       const { error: storageError } = await supabase.storage
         .from(BUCKET_NAME)
         .remove([document.file_path]);
 
       if (storageError) throw storageError;
 
-      // Delete database record
       const { error: dbError } = await supabase
         .from('documents')
         .delete()
