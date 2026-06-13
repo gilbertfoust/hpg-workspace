@@ -1,6 +1,6 @@
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { useUserRole } from '@/hooks/useUserRole';
+import { isNgoPortalRole, useUserRole } from '@/hooks/useUserRole';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2 } from 'lucide-react';
@@ -41,20 +41,19 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     return <Navigate to="/auth" state={{ from: location }} replace />;
   }
 
-  // If user is not approved, sign them out and redirect to auth
   if (approvalStatus && !approvalStatus.is_approved) {
     signOut();
     return <Navigate to="/auth" replace />;
   }
 
-  const isExternalNgo = role?.role === 'external_ngo';
+  const isNgoUser = isNgoPortalRole(role?.role);
   const isPortalRoute = location.pathname.startsWith('/portal');
 
-  if (isExternalNgo && !isPortalRoute) {
+  if (isNgoUser && !isPortalRoute) {
     return <Navigate to="/portal" replace />;
   }
 
-  if (!isExternalNgo && isPortalRoute) {
+  if (!isNgoUser && isPortalRoute) {
     return <Navigate to="/dashboard" replace />;
   }
 
