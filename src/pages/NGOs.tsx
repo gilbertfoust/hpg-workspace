@@ -46,41 +46,39 @@ import {
   MoreHorizontal,
   ExternalLink,
   Loader2,
+  Upload,
 } from "lucide-react";
 
+import { DocumentUploadDialog } from "@/components/ngo/DocumentUploadDialog";
 import { useNGOs, useCreateNGO, NGOStatus, DbFiscalType } from "@/hooks/useNGOs";
 import { isSupabaseNotConfiguredError } from "@/integrations/supabase/client";
 
-// ✅ DB values we will send to Supabase (must match the enum exactly)
 const fiscalTypes = [
   { label: "Model A", value: "model_a" },
   { label: "Model C", value: "model_c" },
-  { label: "HPG Internal Project", value: "HPG Internal Project" }, // keep exact enum string
+  { label: "HPG Internal Project", value: "HPG Internal Project" },
   { label: "Other", value: "other" },
 ] as const;
 
 const bundles = ["All Bundles", "Detroit", "Chicago", "US", "Mexican", "African", "Asian"];
-const statuses = ["All Statuses", "Prospect", "Onboarding", "Active", "At-Risk", "Offboarding", "Closed"];
 
-const statusValueMap: Record<string, NGOStatus> = {
-  Prospect: "prospect",
-  Onboarding: "onboarding",
-  Active: "active",
-  "At-Risk": "at_risk",
-  Offboarding: "offboarding",
-  Closed: "closed",
-};
+const statuses: { label: string; value: "All Statuses" | NGOStatus }[] = [
+  { label: "All Statuses", value: "All Statuses" },
+  { label: "Prospect", value: "prospect" },
+  { label: "Onboarding", value: "onboarding" },
+  { label: "Active", value: "active" },
+  { label: "At-Risk", value: "at_risk" },
+  { label: "Offboarding", value: "offboarding" },
+  { label: "Closed", value: "closed" },
+];
 
-const statusMap: Record<
-  string,
-  "approved" | "in-progress" | "rejected" | "draft" | "waiting-ngo"
-> = {
-  Active: "approved",
-  Onboarding: "in-progress",
-  "At-Risk": "rejected",
-  Prospect: "draft",
-  Offboarding: "waiting-ngo",
-  Closed: "rejected",
+const statusMap: Record<NGOStatus, "approved" | "in-progress" | "rejected" | "draft" | "waiting-ngo"> = {
+  active: "approved",
+  onboarding: "in-progress",
+  at_risk: "rejected",
+  prospect: "draft",
+  offboarding: "waiting-ngo",
+  closed: "rejected",
 };
 
 function formatFiscalType(value: string | null | undefined): string {
@@ -88,11 +86,17 @@ function formatFiscalType(value: string | null | undefined): string {
   if (value === "model_a") return "Model A";
   if (value === "model_c") return "Model C";
   if (value === "other") return "Other";
-  return value; // includes "HPG Internal Project" or any legacy enum values
+  return value;
+}
+
+function formatStatusLabel(value: string | null | undefined): string {
+  if (!value) return "Unknown";
+  if (value === "at_risk") return "At-Risk";
+  return value.replace(/_/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
 function isValidUrl(url: string): boolean {
-  if (!url.trim()) return true; // Empty is valid (optional field)
+  if (!url.trim()) return true;
   try {
     const parsed = new URL(url);
     return parsed.protocol === "http:" || parsed.protocol === "https:";
@@ -117,10 +121,10 @@ export default function NGOs() {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedBundle, setSelectedBundle] = useState("All Bundles");
-  const [selectedStatus, setSelectedStatus] = useState("All Statuses");
+  const [selectedStatus, setSelectedStatus] = useState<"All Statuses" | NGOStatus>("All Statuses");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [uploadNgoId, setUploadNgoId] = useState<string | null>(null);
 
-  // New NGO form state
   const [newNGO, setNewNGO] = useState({
     legal_name: "",
     common_name: "",
@@ -129,7 +133,7 @@ export default function NGOs() {
     state_province: "",
     city: "",
     website: "",
-    fiscal_type: "model_c" as DbFiscalType, // DB value
+    fiscal_type: "model_c" as DbFiscalType,
     status: "prospect" as NGOStatus,
     confluence_url: "",
     notes: "",
@@ -143,16 +147,20 @@ export default function NGOs() {
       const matchesSearch =
         ngo.legal_name.toLowerCase().includes(q) ||
         (ngo.common_name?.toLowerCase().includes(q) ?? false) ||
-        (ngo.city?.toLowerCase().includes(q) ?? false);
+        (ngo.city?.toLowerCase().includes(q) ?? false) ||
+        (ngo.country?.toLowerCase().includes(q) ?? false);
 
       const matchesBundle = selectedBundle === "All Bundles" || ngo.bundle === selectedBundle;
-
-      const matchesStatus =
-        selectedStatus === "All Statuses" || ngo.status === statusValueMap[selectedStatus];
+      const matchesStatus = selectedStatus === "All Statuses" || ngo.status === selectedStatus;
 
       return matchesSearch && matchesBundle && matchesStatus;
     });
   }, [ngos, searchQuery, selectedBundle, selectedStatus]);
+
+  const selectedUploadNgo = useMemo(
+    () => (ngos || []).find((ngo) => ngo.id === uploadNgoId) || null,
+    [ngos, uploadNgoId],
+  );
 
   const handleCreateNGO = async () => {
     if (!newNGO.legal_name.trim()) return;
@@ -160,18 +168,12 @@ export default function NGOs() {
     const confluence = newNGO.confluence_url.trim();
     const baseNotes = newNGO.notes.trim();
 
-    // Validate Confluence URL if provided
     if (confluence && !isValidUrl(confluence)) {
-      // URL validation failed, but don't block create - just warn
       console.warn("Invalid Confluence URL format:", confluence);
     }
 
-    // Prepare notes: append Confluence link if no dedicated column exists
-    // Try to use confluence_url column first, fallback to notes if column doesn't exist
     const notesParts = [baseNotes];
     if (confluence && isValidUrl(confluence)) {
-      // If confluence_url column exists, it will be set separately
-      // Otherwise, append to notes as fallback
       notesParts.push(`Confluence: ${confluence}`);
     }
     const combinedNotes = notesParts.filter(Boolean).join("\n") || undefined;
@@ -185,7 +187,7 @@ export default function NGOs() {
         state_province: newNGO.state_province.trim() || undefined,
         city: newNGO.city.trim() || undefined,
         website: newNGO.website.trim() || undefined,
-        fiscal_type: newNGO.fiscal_type, // Already DB-safe value
+        fiscal_type: newNGO.fiscal_type,
         status: newNGO.status,
         confluence_url: confluence && isValidUrl(confluence) ? confluence : undefined,
         notes: combinedNotes,
@@ -201,7 +203,7 @@ export default function NGOs() {
         city: "",
         website: "",
         fiscal_type: "model_c",
-        status: "prospect" as NGOStatus,
+        status: "prospect",
         confluence_url: "",
         notes: "",
       });
@@ -356,18 +358,16 @@ export default function NGOs() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Prospect">Prospect</SelectItem>
-                      <SelectItem value="Onboarding">Onboarding</SelectItem>
-                      <SelectItem value="Active">Active</SelectItem>
-                      <SelectItem value="At-Risk">At-Risk</SelectItem>
-                      <SelectItem value="Offboarding">Offboarding</SelectItem>
-                      <SelectItem value="Closed">Closed</SelectItem>
+                      {statuses.slice(1).map((status) => (
+                        <SelectItem key={status.value} value={status.value}>
+                          {status.label}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
               </div>
 
-              {/* NEW: Confluence link */}
               <div className="space-y-2">
                 <Label htmlFor="confluence_url">Confluence Link (URL)</Label>
                 <Input
@@ -409,13 +409,12 @@ export default function NGOs() {
         </Dialog>
       }
     >
-      {/* Filters */}
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div className="relative w-full md:max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
             className="pl-9"
-            placeholder="Search NGOs by name, common name, or city..."
+            placeholder="Search NGOs by name, common name, country, or city..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
@@ -440,14 +439,14 @@ export default function NGOs() {
             </SelectContent>
           </Select>
 
-          <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+          <Select value={selectedStatus} onValueChange={(value) => setSelectedStatus(value as "All Statuses" | NGOStatus)}>
             <SelectTrigger className="w-[170px]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {statuses.map((s) => (
-                <SelectItem key={s} value={s}>
-                  {s}
+              {statuses.map((status) => (
+                <SelectItem key={status.value} value={status.value}>
+                  {status.label}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -455,7 +454,6 @@ export default function NGOs() {
         </div>
       </div>
 
-      {/* List */}
       <div className="grid gap-4 mt-4 md:grid-cols-2 xl:grid-cols-3">
         {isLoading &&
           Array.from({ length: 6 }).map((_, i) => (
@@ -482,7 +480,7 @@ export default function NGOs() {
                 className="cursor-pointer hover:border-primary/60 transition-colors"
                 onClick={() => navigate(`/ngos/${ngo.id}`)}
               >
-                <CardContent className="p-5 space-y-3">
+                <CardContent className="p-5 space-y-4">
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
@@ -516,6 +514,15 @@ export default function NGOs() {
                             }}
                           >
                             Open NGO
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setUploadNgoId(ngo.id);
+                            }}
+                          >
+                            <Upload className="w-4 h-4 mr-2" />
+                            Upload Document
                           </DropdownMenuItem>
 
                           {ngo.website ? (
@@ -557,6 +564,7 @@ export default function NGOs() {
                       <span className="truncate">
                         {ngo.bundle ? `${ngo.bundle} bundle` : "No bundle set"}
                         {fiscalLabel ? ` · ${fiscalLabel}` : ""}
+                        {ngo.status ? ` · ${formatStatusLabel(ngo.status)}` : ""}
                       </span>
                     </div>
 
@@ -584,6 +592,32 @@ export default function NGOs() {
                       </a>
                     ) : null}
                   </div>
+
+                  <div className="flex gap-2 pt-1">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate(`/ngos/${ngo.id}`);
+                      }}
+                    >
+                      Open Profile
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      className="flex-1"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setUploadNgoId(ngo.id);
+                      }}
+                    >
+                      <Upload className="w-4 h-4 mr-2" />
+                      Upload
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             );
@@ -594,6 +628,17 @@ export default function NGOs() {
         <div className="mt-10 text-center text-muted-foreground">
           No NGOs match your current filters.
         </div>
+      ) : null}
+
+      <DocumentUploadDialog
+        open={!!uploadNgoId}
+        onOpenChange={(open) => {
+          if (!open) setUploadNgoId(null);
+        }}
+        ngoId={uploadNgoId || ""}
+      />
+      {selectedUploadNgo ? (
+        <p className="sr-only">Uploading document to {selectedUploadNgo.common_name || selectedUploadNgo.legal_name}</p>
       ) : null}
     </MainLayout>
   );
