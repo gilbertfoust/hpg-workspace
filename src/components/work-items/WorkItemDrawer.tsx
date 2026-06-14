@@ -21,6 +21,7 @@ import { useDocuments } from "@/hooks/useDocuments";
 import { useComments, useCreateComment } from "@/hooks/useComments";
 import {
   useArchiveWorkItem,
+  useCompleteWorkItemForAdminRecords,
   useExportWorkItemToDrive,
   useWorkItem,
   useUpdateWorkItem,
@@ -34,7 +35,7 @@ import { useFormSubmissions, useDeleteFormSubmission, useFormSubmission } from "
 import { useFormTemplate } from "@/hooks/useFormTemplates";
 import { FormSubmissionSheet } from "@/components/ngo/FormSubmissionSheet";
 import { format } from "date-fns";
-import { Loader2, ExternalLink, Trash2, FileText, Edit, Archive, FolderUp } from "lucide-react";
+import { Loader2, ExternalLink, Trash2, FileText, Edit, Archive, FolderUp, CheckCircle2 } from "lucide-react";
 import { WorkItemChecklist } from "@/components/work-items/WorkItemChecklist";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -103,11 +104,7 @@ const priorityOptions: { value: Priority; label: string }[] = [
   { value: "urgent", label: "Urgent" },
 ];
 
-export const WorkItemDrawer: React.FC<WorkItemDrawerProps> = ({
-  open,
-  onOpenChange,
-  workItemId,
-}) => {
+export const WorkItemDrawer: React.FC<WorkItemDrawerProps> = ({ open, onOpenChange, workItemId }) => {
   const { user } = useAuth();
   const { toast } = useToast();
   const { data: workItem, isLoading: workItemLoading } = useWorkItem(workItemId);
@@ -120,6 +117,7 @@ export const WorkItemDrawer: React.FC<WorkItemDrawerProps> = ({
   const { data: formSubmissions } = useFormSubmissions({ work_item_id: workItemId || undefined });
   const deleteFormSubmission = useDeleteFormSubmission();
   const updateWorkItem = useUpdateWorkItem();
+  const completeForAdminRecords = useCompleteWorkItemForAdminRecords();
   const archiveWorkItem = useArchiveWorkItem();
   const exportToDrive = useExportWorkItemToDrive();
   const createComment = useCreateComment();
@@ -131,6 +129,7 @@ export const WorkItemDrawer: React.FC<WorkItemDrawerProps> = ({
   const [commentText, setCommentText] = useState("");
   const [formSubmissionToDelete, setFormSubmissionToDelete] = useState<string | null>(null);
   const [workItemArchiveOpen, setWorkItemArchiveOpen] = useState(false);
+  const [workItemCompleteOpen, setWorkItemCompleteOpen] = useState(false);
   const [editingFormSubmissionId, setEditingFormSubmissionId] = useState<string | null>(null);
 
   const { data: editingSubmissionWithSchema } = useFormSubmission(editingFormSubmissionId || "");
@@ -178,11 +177,27 @@ export const WorkItemDrawer: React.FC<WorkItemDrawerProps> = ({
   }
 
   const handleStatusUpdate = async () => {
+    if (status === "complete") {
+      setWorkItemCompleteOpen(true);
+      return;
+    }
+
     try {
       await updateWorkItem.mutateAsync({ id: workItem.id, status });
       toast({ title: "Status updated", description: "Work item status has been updated." });
     } catch (error) {
       toast({ variant: "destructive", title: "Error updating status", description: error instanceof Error ? error.message : "Failed to update status" });
+    }
+  };
+
+  const handleCompleteWorkItem = async () => {
+    try {
+      await completeForAdminRecords.mutateAsync({ id: workItem.id, notes: "Completed and sent to admin records" });
+      setWorkItemCompleteOpen(false);
+      onOpenChange(false);
+      toast({ title: "Work item completed", description: "The item was sent to Admin Records and removed from active work lists." });
+    } catch (error) {
+      toast({ variant: "destructive", title: "Unable to complete work item", description: error instanceof Error ? error.message : "Completion failed" });
     }
   };
 
@@ -285,6 +300,7 @@ export const WorkItemDrawer: React.FC<WorkItemDrawerProps> = ({
               {workItem.module && <div className="flex justify-between"><span className="text-muted-foreground">Module:</span><Badge variant="outline">{workItem.module}</Badge></div>}
               {workItem.due_date && <div className="flex justify-between"><span className="text-muted-foreground">Due Date:</span><span className="font-medium">{format(new Date(workItem.due_date), "MMM d, yyyy")}</span></div>}
               {workItem.completed_at && <div className="flex justify-between"><span className="text-muted-foreground">Completed:</span><span className="font-medium">{format(new Date(workItem.completed_at), "MMM d, yyyy")}</span></div>}
+              {workItem.archived_at && <div className="flex justify-between"><span className="text-muted-foreground">Admin Record:</span><Badge variant="secondary">Sent for filing</Badge></div>}
               {workItem.google_drive_file_url && <div className="flex justify-between gap-3"><span className="text-muted-foreground">Drive Archive:</span><a href={workItem.google_drive_file_url} target="_blank" rel="noreferrer" className="text-primary hover:underline">Open Drive File</a></div>}
               {ownerProfile && <div className="flex justify-between"><span className="text-muted-foreground">Assigned To:</span><span className="font-medium">{ownerProfile.full_name || ownerProfile.email || workItem.owner_user_id}</span></div>}
               {ngo && <div className="flex justify-between items-center"><span className="text-muted-foreground">Related NGO:</span><a href={`/ngos/${ngo.id}`} className="font-medium text-primary hover:underline flex items-center gap-1">{ngo.common_name || ngo.legal_name}<ExternalLink className="w-3 h-3" /></a></div>}
@@ -306,9 +322,7 @@ export const WorkItemDrawer: React.FC<WorkItemDrawerProps> = ({
             <div className="flex items-center gap-3">
               <Select value={departmentId} onValueChange={setDepartmentId}>
                 <SelectTrigger className="w-64"><SelectValue placeholder="Select department" /></SelectTrigger>
-                <SelectContent>
-                  {departments.map((department) => <SelectItem key={department.id} value={department.id}>{department.name}</SelectItem>)}
-                </SelectContent>
+                <SelectContent>{departments.map((department) => <SelectItem key={department.id} value={department.id}>{department.name}</SelectItem>)}</SelectContent>
               </Select>
               <Button variant="outline" onClick={handleDepartmentUpdate} disabled={updateWorkItem.isPending || !departmentId}>Update Department</Button>
             </div>
@@ -321,7 +335,7 @@ export const WorkItemDrawer: React.FC<WorkItemDrawerProps> = ({
                 <SelectTrigger className="w-48"><SelectValue placeholder="Select status" /></SelectTrigger>
                 <SelectContent>{statusOptions.map((option) => <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>)}</SelectContent>
               </Select>
-              <Button variant="outline" onClick={handleStatusUpdate} disabled={updateWorkItem.isPending}>Update Status</Button>
+              <Button variant="outline" onClick={handleStatusUpdate} disabled={updateWorkItem.isPending || completeForAdminRecords.isPending}>{status === "complete" ? "Complete & Send to Admin" : "Update Status"}</Button>
             </div>
             <p className="text-xs text-muted-foreground">Current: {statusOptions.find((s) => s.value === workItem.status)?.label || workItem.status}</p>
           </div>
@@ -397,10 +411,13 @@ export const WorkItemDrawer: React.FC<WorkItemDrawerProps> = ({
 
           <div className="rounded-lg border p-4 space-y-3">
             <div>
-              <h4 className="text-sm font-medium">Archive & Drive</h4>
-              <p className="text-xs text-muted-foreground">Archive removes the item from active queues. Drive export saves a completed/approved item to that department's configured folder.</p>
+              <h4 className="text-sm font-medium">Completion, Archive & Drive</h4>
+              <p className="text-xs text-muted-foreground">Complete sends the item to Admin Records and removes it from active queues. Drive export saves a completed/approved item to that department's configured folder.</p>
             </div>
             <div className="flex flex-wrap gap-2">
+              <Button onClick={() => setWorkItemCompleteOpen(true)} disabled={completeForAdminRecords.isPending || workItem.status === "complete"}>
+                {completeForAdminRecords.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-2 h-4 w-4" />} Complete & Send to Admin
+              </Button>
               <Button variant="outline" onClick={handleExportToDrive} disabled={!canExport || exportToDrive.isPending}>
                 {exportToDrive.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FolderUp className="mr-2 h-4 w-4" />} Save to Department Drive
               </Button>
@@ -411,6 +428,19 @@ export const WorkItemDrawer: React.FC<WorkItemDrawerProps> = ({
             {!canExport && <p className="text-xs text-muted-foreground">Set the status to Complete or Approved before exporting to Drive.</p>}
           </div>
         </div>
+
+        <AlertDialog open={workItemCompleteOpen} onOpenChange={setWorkItemCompleteOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Complete this work item?</AlertDialogTitle>
+              <AlertDialogDescription>This will mark the work item complete, send it to Admin Records for filing, and remove it from active work item lists. The record stays available for audit and reporting.</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={handleCompleteWorkItem} disabled={completeForAdminRecords.isPending}>{completeForAdminRecords.isPending ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Completing...</> : "Complete & Send"}</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         <AlertDialog open={workItemArchiveOpen} onOpenChange={setWorkItemArchiveOpen}>
           <AlertDialogContent>
