@@ -109,13 +109,27 @@ alter table public.grant_applications enable row level security;
 alter table public.grant_alignment_scores enable row level security;
 alter table public.grant_documents enable row level security;
 
-create policy if not exists "Internal users can read grant sources" on public.grant_sources for select to authenticated using (public.is_internal_user());
-create policy if not exists "Internal users can manage grant sources" on public.grant_sources for all to authenticated using (public.is_internal_user()) with check (public.is_internal_user());
-create policy if not exists "Internal users can read grant opportunities" on public.grant_opportunities for select to authenticated using (public.is_internal_user());
-create policy if not exists "Internal users can manage grant opportunities" on public.grant_opportunities for all to authenticated using (public.is_internal_user()) with check (public.is_internal_user());
-create policy if not exists "Internal users can read grant applications" on public.grant_applications for select to authenticated using (public.is_internal_user());
-create policy if not exists "Internal users can manage grant applications" on public.grant_applications for all to authenticated using (public.is_internal_user()) with check (public.is_internal_user());
-create policy if not exists "Internal users can read grant alignment scores" on public.grant_alignment_scores for select to authenticated using (public.is_internal_user());
-create policy if not exists "Internal users can manage grant alignment scores" on public.grant_alignment_scores for all to authenticated using (public.is_internal_user()) with check (public.is_internal_user());
-create policy if not exists "Internal users can read grant documents" on public.grant_documents for select to authenticated using (public.is_internal_user());
-create policy if not exists "Internal users can manage grant documents" on public.grant_documents for all to authenticated using (public.is_internal_user()) with check (public.is_internal_user());
+drop policy if exists "Internal users can read grant sources" on public.grant_sources;
+create policy "Internal users can read grant sources" on public.grant_sources for select to authenticated using (public.is_internal_user());
+drop policy if exists "Internal users can manage grant sources" on public.grant_sources;
+create policy "Internal users can manage grant sources" on public.grant_sources for all to authenticated using (public.is_internal_user()) with check (public.is_internal_user());
+
+drop policy if exists "Internal users can read grant opportunities" on public.grant_opportunities;
+create policy "Internal users can read grant opportunities" on public.grant_opportunities for select to authenticated using (public.is_internal_user());
+drop policy if exists "Internal users can manage grant opportunities" on public.grant_opportunities;
+create policy "Internal users can manage grant opportunities" on public.grant_opportunities for all to authenticated using (public.is_internal_user()) with check (public.is_internal_user());
+
+drop policy if exists "Internal users can read grant applications" on public.grant_applications;
+create policy "Internal users can read grant applications" on public.grant_applications for select to authenticated using (public.is_internal_user());
+drop policy if exists "Internal users can manage grant applications" on public.grant_applications;
+create policy "Internal users can manage grant applications" on public.grant_applications for all to authenticated using (public.is_internal_user()) with check (public.is_internal_user());
+
+drop policy if exists "Internal users can read grant alignment scores" on public.grant_alignment_scores;
+create policy "Internal users can read grant alignment scores" on public.grant_alignment_scores for select to authenticated using (public.is_internal_user());
+drop policy if exists "Internal users can manage grant alignment scores" on public.grant_alignment_scores;
+create policy "Internal users can manage grant alignment scores" on public.grant_alignment_scores for all to authenticated using (public.is_internal_user()) with check (public.is_internal_user());
+
+drop policy if exists "Internal users can read grant documents" on public.grant_documents;
+create policy "Internal users can read grant documents" on public.grant_documents for select to authenticated using (public.is_internal_user());
+drop policy if exists "Internal users can manage grant documents" on public.grant_documents;
+create policy "Internal users can manage grant documents" on public.grant_documents for all to authenticated using (public.is_internal_user()) with check (public.is_internal_user());
