@@ -24,6 +24,20 @@ Added:
 - filters for theme, region match, minimum score, and search text
 - generated markdown proposal drafts copied from the Grant-Writer proposal structure
 
+## Production schema consolidation
+
+The live database already had a stronger grant foundation than originally expected. The source of truth is:
+
+- `grant_sources`
+- `grant_opportunities`
+- `grant_applications`
+- `grant_alignments`
+- `grant_drafts`
+- `grant_documents`
+- `grant_saved_searches`
+
+The consolidation migration does not create redundant grant tables. It hardens the existing schema with compatibility columns, indexes, RLS policies, saved searches, and seed sources for future ingestion.
+
 ## Resulting workflow
 
 Development → Grants now supports:
@@ -32,7 +46,16 @@ Development → Grants now supports:
 2. Score NGO/grant alignment
 3. Track best matches
 4. Generate proposal draft text for grant writers
+5. Store opportunities, applications, alignments, drafts, and documents in Supabase
 
 ## Next enhancement
 
-A future PR should connect these demo objects to live Supabase grant opportunities and actual NGO profiles, then allow high-scoring matches to create grant-writing work items assigned to Development, Communications, and Finance.
+A future PR should connect the STW tracker to live NGO profiles and live Supabase grant opportunities, then allow high-scoring matches to create grant-writing work items assigned to Development, Communications, and Finance.
+
+Recommended next workflow:
+
+- Development fills demographics/statistics/research
+- Finance fills budget and financial section
+- Communications fills LOI, mission, vision, background, and narrative polish
+- NGO Coordination requests missing NGO documents or questionnaires
+- Admin/records keeps final submission packet and award history
