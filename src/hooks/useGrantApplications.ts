@@ -6,6 +6,7 @@ export interface GrantApplicationRecord {
   id: string;
   opportunity_id?: string | null;
   ngo_id?: string | null;
+  work_item_id?: string | null;
   title: string;
   stage: string;
   amount_requested?: number | null;
@@ -16,9 +17,11 @@ export interface GrantApplicationRecord {
   fit_notes?: string | null;
   notes?: string | null;
   due_date?: string | null;
+  deadline?: string | null;
   submitted_at?: string | null;
   awarded_at?: string | null;
   closed_at?: string | null;
+  draft_text?: string | null;
   grant_opportunities?: { id: string; title: string; deadline?: string | null; grant_sources?: { id: string; name: string } | null } | null;
   ngos?: { legal_name: string; common_name?: string | null } | null;
   profiles?: { full_name?: string | null } | null;
@@ -49,6 +52,7 @@ export function useGrantApplications(filters?: { stage?: string; ngo_id?: string
       title: string;
       ngo_id?: string;
       opportunity_id?: string;
+      work_item_id?: string;
       stage?: string;
       amount_requested?: number;
       assigned_user_id?: string;
@@ -56,10 +60,16 @@ export function useGrantApplications(filters?: { stage?: string; ngo_id?: string
       fit_notes?: string;
       notes?: string;
       due_date?: string;
+      deadline?: string;
+      draft_text?: string;
     }) => {
+      const payload = {
+        ...app,
+        deadline: app.deadline || app.due_date,
+      };
       const { data, error } = await (supabase as any)
         .from("grant_applications")
-        .insert(app)
+        .insert(payload)
         .select()
         .single();
       if (error) throw error;
