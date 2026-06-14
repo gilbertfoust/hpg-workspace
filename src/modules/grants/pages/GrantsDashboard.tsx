@@ -147,7 +147,7 @@ export default function GrantsDashboard() {
               <CardContent>
                 <div className="grid gap-3 md:grid-cols-4">
                   {[
-                    ["Seek", "Load opportunities from the demo source now, then connect real funder sources later."],
+                    ["Seek", "Load opportunities from the live tracker now; connect real public imports in the next ingestion PR."],
                     ["Score", "Match grants against NGO mission, region, focus areas, and needs."],
                     ["Track", "Prioritize grant writing assignments by fit score and funding target."],
                     ["Write", "Generate ready-to-edit proposal drafts for grant writers."],
