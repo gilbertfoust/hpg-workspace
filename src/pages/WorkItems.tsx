@@ -24,7 +24,7 @@ import {
   Search,
   Filter,
 } from "lucide-react";
-import { useWorkItems, WorkItemStatus, ModuleType } from "@/hooks/useWorkItems";
+import { useCompleteAndArchiveWorkItem, useWorkItems, WorkItemStatus, ModuleType } from "@/hooks/useWorkItems";
 import { useNGOs } from "@/hooks/useNGOs";
 import { useOrgUnits } from "@/hooks/useOrgUnits";
 import { useAuth } from "@/contexts/AuthContext";
@@ -32,6 +32,7 @@ import { Switch } from "@/components/ui/switch";
 import { isSupabaseNotConfiguredError } from "@/integrations/supabase/client";
 import { SupabaseNotConfiguredNotice } from "@/components/common/SupabaseNotConfiguredNotice";
 import { useSearchParams } from "react-router-dom";
+import { useToast } from "@/hooks/use-toast";
 
 const modules: { value: string; label: string }[] = [
   { value: "all", label: "All Modules" },
@@ -83,9 +84,12 @@ export default function WorkItems() {
   const [selectedWorkItemId, setSelectedWorkItemId] = useState<string | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [myItemsOnly, setMyItemsOnly] = useState(false);
+  const [completingItemId, setCompletingItemId] = useState<string | null>(null);
   const { user } = useAuth();
+  const { toast } = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
   const workItemIdFromSearch = searchParams.get("workItemId");
+  const completeAndArchive = useCompleteAndArchiveWorkItem();
 
   const filters = useMemo(() => {
     const f: {
@@ -172,6 +176,26 @@ export default function WorkItems() {
     setDrawerOpen(true);
   };
 
+  const handleCompleteItem = async (id: string) => {
+    setCompletingItemId(id);
+    try {
+      await completeAndArchive.mutateAsync({ id, reason: "Checked off complete and sent to admin records" });
+      setSelectedItems((prev) => prev.filter((itemId) => itemId !== id));
+      toast({
+        title: "Work item completed",
+        description: "It was sent to admin records and removed from the active list.",
+      });
+    } catch (err) {
+      toast({
+        variant: "destructive",
+        title: "Unable to complete work item",
+        description: err instanceof Error ? err.message : "The work item could not be completed.",
+      });
+    } finally {
+      setCompletingItemId(null);
+    }
+  };
+
   const handleDrawerOpenChange = (open: boolean) => {
     setDrawerOpen(open);
     if (!open) {
@@ -194,7 +218,7 @@ export default function WorkItems() {
   return (
     <MainLayout
       title="Work Items"
-      subtitle="Manage and track all assignments across departments"
+      subtitle="Manage and track all active assignments across departments"
       actions={
         <div className="flex items-center gap-2">
           {selectedItems.length > 0 && (
@@ -324,13 +348,15 @@ export default function WorkItems() {
         onToggleSelect={toggleSelectItem}
         onToggleSelectAll={toggleSelectAll}
         showSelection
+        onCompleteItem={handleCompleteItem}
+        completingItemId={completingItemId}
         onRowClick={openWorkItemDrawer}
-        emptyMessage="No work items found. Try adjusting your filters or create a new work item."
+        emptyMessage="No active work items found. Completed items are sent to admin records and removed from this list."
       />
 
       <div className="flex items-center justify-between mt-4 text-sm text-muted-foreground">
         <span>
-          Showing {filteredItems.length} of {workItems?.length || 0} items
+          Showing {filteredItems.length} of {workItems?.length || 0} active items
         </span>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" disabled>
