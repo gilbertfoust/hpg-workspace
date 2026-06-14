@@ -32,12 +32,14 @@ interface WorkItemsTableProps {
   selectedItems?: string[];
   onToggleSelect?: (id: string) => void;
   onToggleSelectAll?: () => void;
+  onCompleteAndArchive?: (id: string) => void;
+  completingItemId?: string | null;
   showSelection?: boolean;
   showActions?: boolean;
 }
 
-const formatModuleName = (module: string) =>
-  module.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
+const formatModuleName = (module?: string | null) =>
+  module ? module.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase()) : "Unassigned";
 
 export function WorkItemsTable({
   items,
@@ -49,6 +51,8 @@ export function WorkItemsTable({
   selectedItems = [],
   onToggleSelect,
   onToggleSelectAll,
+  onCompleteAndArchive,
+  completingItemId = null,
   showSelection = false,
   showActions = true,
 }: WorkItemsTableProps) {
@@ -111,106 +115,115 @@ export function WorkItemsTable({
                 </td>
               </tr>
             ) : (
-              items.map((item) => (
-                <tr
-                  key={item.id}
-                  className={cn("group", onRowClick && "cursor-pointer")}
-                  onClick={() => onRowClick?.(item.id)}
-                >
-                  {hasSelection && (
+              items.map((item) => {
+                const isCompleting = completingItemId === item.id;
+                return (
+                  <tr
+                    key={item.id}
+                    className={cn("group", onRowClick && "cursor-pointer")}
+                    onClick={() => onRowClick?.(item.id)}
+                  >
+                    {hasSelection && (
+                      <td onClick={(e) => e.stopPropagation()}>
+                        <Checkbox
+                          checked={selectedItems.includes(item.id)}
+                          onCheckedChange={() => onToggleSelect?.(item.id)}
+                        />
+                      </td>
+                    )}
+                    <td>
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">{item.title}</span>
+                        {item.dependencies && item.dependencies.length > 0 && (
+                          <Link2 className="w-3.5 h-3.5 text-muted-foreground" />
+                        )}
+                        {item.approval_required && (
+                          <CheckCircle2 className="w-3.5 h-3.5 text-info" />
+                        )}
+                      </div>
+                    </td>
+                    <td className="text-muted-foreground">
+                      {item.ngo_id ? ngoMap.get(item.ngo_id) || "Unknown" : "—"}
+                    </td>
+                    <td>
+                      <Badge variant="secondary" className="text-xs font-normal capitalize">
+                        {formatModuleName(item.module)}
+                      </Badge>
+                    </td>
                     <td onClick={(e) => e.stopPropagation()}>
-                      <Checkbox
-                        checked={selectedItems.includes(item.id)}
-                        onCheckedChange={() => onToggleSelect?.(item.id)}
+                      <InlineStatusSelect
+                        workItemId={item.id}
+                        currentStatus={item.status}
                       />
                     </td>
-                  )}
-                  <td>
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium">{item.title}</span>
-                      {item.dependencies && item.dependencies.length > 0 && (
-                        <Link2 className="w-3.5 h-3.5 text-muted-foreground" />
-                      )}
-                      {item.approval_required && (
-                        <CheckCircle2 className="w-3.5 h-3.5 text-info" />
-                      )}
-                    </div>
-                  </td>
-                  <td className="text-muted-foreground">
-                    {item.ngo_id ? ngoMap.get(item.ngo_id) || "Unknown" : "—"}
-                  </td>
-                  <td>
-                    <Badge variant="secondary" className="text-xs font-normal capitalize">
-                      {formatModuleName(item.module)}
-                    </Badge>
-                  </td>
-                  <td onClick={(e) => e.stopPropagation()}>
-                    <InlineStatusSelect
-                      workItemId={item.id}
-                      currentStatus={item.status}
-                    />
-                  </td>
-                  <td>
-                    <PriorityBadge priority={item.priority} />
-                  </td>
-                  <td className="text-muted-foreground whitespace-nowrap">
-                    {item.due_date ? (
-                      <div className="flex items-center gap-1.5">
-                        <Clock className="w-3.5 h-3.5" />
-                        {format(new Date(item.due_date), "MMM d, yyyy")}
-                      </div>
-                    ) : (
-                      "—"
-                    )}
-                  </td>
-                  <td>
-                    {item.evidence_required ? (
-                      <span
-                        className={`status-chip ${
-                          item.evidence_status === "missing"
-                            ? "evidence-missing"
-                            : item.evidence_status === "uploaded"
-                            ? "evidence-uploaded"
-                            : item.evidence_status === "approved"
-                            ? "evidence-approved"
-                            : "evidence-under-review"
-                        }`}
-                      >
-                        {item.evidence_status === "missing" && (
-                          <AlertCircle className="w-3 h-3 mr-1" />
-                        )}
-                        {item.evidence_status || "Required"}
-                      </span>
-                    ) : (
-                      <span className="text-muted-foreground text-xs">—</span>
-                    )}
-                  </td>
-                  {showActions && (
-                    <td onClick={(e) => e.stopPropagation()}>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 opacity-0 group-hover:opacity-100"
-                          >
-                            <MoreHorizontal className="w-4 h-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => onRowClick?.(item.id)}>
-                            View Details
-                          </DropdownMenuItem>
-                          <DropdownMenuItem>Edit</DropdownMenuItem>
-                          <DropdownMenuItem>Reassign</DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem>Sync to Trello</DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                    <td>
+                      <PriorityBadge priority={item.priority} />
                     </td>
-                  )}
-                </tr>
-              ))
+                    <td className="text-muted-foreground whitespace-nowrap">
+                      {item.due_date ? (
+                        <div className="flex items-center gap-1.5">
+                          <Clock className="w-3.5 h-3.5" />
+                          {format(new Date(item.due_date), "MMM d, yyyy")}
+                        </div>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
+                    <td>
+                      {item.evidence_required ? (
+                        <span
+                          className={`status-chip ${
+                            item.evidence_status === "missing"
+                              ? "evidence-missing"
+                              : item.evidence_status === "uploaded"
+                              ? "evidence-uploaded"
+                              : item.evidence_status === "approved"
+                              ? "evidence-approved"
+                              : "evidence-under-review"
+                          }`}
+                        >
+                          {item.evidence_status === "missing" && (
+                            <AlertCircle className="w-3 h-3 mr-1" />
+                          )}
+                          {item.evidence_status || "Required"}
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground text-xs">—</span>
+                      )}
+                    </td>
+                    {showActions && (
+                      <td onClick={(e) => e.stopPropagation()}>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 opacity-0 group-hover:opacity-100"
+                            >
+                              <MoreHorizontal className="w-4 h-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => onRowClick?.(item.id)}>
+                              View Details
+                            </DropdownMenuItem>
+                            {onCompleteAndArchive && item.status !== "complete" && (
+                              <DropdownMenuItem disabled={isCompleting} onClick={() => onCompleteAndArchive(item.id)}>
+                                <CheckCircle2 className="w-4 h-4 mr-2" />
+                                {isCompleting ? "Sending to records..." : "Complete & Send to Admin Records"}
+                              </DropdownMenuItem>
+                            )}
+                            <DropdownMenuItem>Edit</DropdownMenuItem>
+                            <DropdownMenuItem>Reassign</DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem>Sync to Trello</DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </td>
+                    )}
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>
