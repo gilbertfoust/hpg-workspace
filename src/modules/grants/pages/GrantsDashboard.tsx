@@ -55,6 +55,43 @@ const liveOpportunityToStw = (opp: GrantOpportunityRecord): GrantStwOpportunity 
   url: opp.url || "",
 });
 
+const buildDepartmentGrantTasks = (alignment: GrantAlignmentResult, masterWorkItemId: string, dueDate?: string) => {
+  const baseDetails = `Grant: ${alignment.grant.name}\nNGO: ${alignment.ngo.name}\nFunder: ${alignment.grant.funder}\nDeadline: ${alignment.grant.deadline}\nFit score: ${formatScore(alignment.score)}\nMatch notes: ${alignment.notes.join("; ") || "No alignment notes."}`;
+
+  return [
+    {
+      module: "development" as const,
+      title: `Development research: ${alignment.grant.name}`,
+      type: "grant_research",
+      description: `${baseDetails}\n\nDevelopment responsibilities:\n- Complete needs statement research\n- Gather demographics and community statistics\n- Validate program alignment and outcomes\n- Prepare evidence and data points for proposal narrative`,
+    },
+    {
+      module: "finance" as const,
+      title: `Finance budget package: ${alignment.grant.name}`,
+      type: "grant_budget",
+      description: `${baseDetails}\n\nFinance responsibilities:\n- Draft project budget\n- Confirm allowable costs and fiscal sponsor assumptions\n- Add indirect/admin cost notes\n- Prepare budget narrative for proposal review`,
+    },
+    {
+      module: "communications" as const,
+      title: `Communications proposal narrative: ${alignment.grant.name}`,
+      type: "grant_narrative",
+      description: `${baseDetails}\n\nCommunications responsibilities:\n- Draft LOI language\n- Prepare mission, vision, and organizational background\n- Shape the proposal story and impact framing\n- Polish funder-facing language`,
+    },
+    {
+      module: "ngo_coordination" as const,
+      title: `NGO Coordination grant packet: ${alignment.ngo.name}`,
+      type: "grant_document_packet",
+      description: `${baseDetails}\n\nNGO Coordination responsibilities:\n- Confirm NGO questionnaire details\n- Request missing documents\n- Confirm project contact and program details\n- Gather compliance and evidence packet materials`,
+    },
+  ].map((task) => ({
+    ...task,
+    priority: alignment.score >= 2 ? "high" as const : "medium" as const,
+    due_date: dueDate,
+    ngo_id: alignment.ngo.id,
+    dependencies: [masterWorkItemId],
+  }));
+};
+
 export default function GrantsDashboard() {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -124,22 +161,27 @@ export default function GrantsDashboard() {
   const topDrafts = useMemo(() => buildTopGrantDrafts(alignments, 3), [alignments]);
   const draft = selectedAlignment ? buildGrantDraft(selectedAlignment) : topDrafts[0] || null;
 
-  const handleCreateGrantWorkItem = async (alignment: GrantAlignmentResult) => {
+  const handleCreateGrantTaskPackage = async (alignment: GrantAlignmentResult) => {
     const key = `${alignment.ngo.id}-${alignment.grant.id}`;
     setCreatingKey(key);
     try {
       const draftProposal = buildGrantDraft(alignment);
       const dueDate = alignment.grant.deadline && alignment.grant.deadline !== "No deadline recorded" ? alignment.grant.deadline : undefined;
 
-      const workItem = await createWorkItem.mutateAsync({
-        title: `Grant writing: ${alignment.grant.name} for ${alignment.ngo.name}`,
-        description: `Prepare grant application materials for ${alignment.ngo.name}.\n\nFunder: ${alignment.grant.funder}\nDeadline: ${alignment.grant.deadline}\nFit score: ${formatScore(alignment.score)}\nNotes: ${alignment.notes.join("; ") || "No alignment notes."}`,
+      const masterWorkItem = await createWorkItem.mutateAsync({
+        title: `Grant package: ${alignment.grant.name} for ${alignment.ngo.name}`,
+        description: `Coordinate full grant-writing package for ${alignment.ngo.name}.\n\nFunder: ${alignment.grant.funder}\nDeadline: ${alignment.grant.deadline}\nFit score: ${formatScore(alignment.score)}\nNotes: ${alignment.notes.join("; ") || "No alignment notes."}\n\nThis master item is supported by department-specific tasks for Development, Finance, Communications, and NGO Coordination.`,
         module: "development",
-        type: "grant_writing",
+        type: "grant_package_master",
         priority: alignment.score >= 2 ? "high" : "medium",
         due_date: dueDate,
         ngo_id: alignment.ngo.id,
       });
+
+      const departmentTasks = buildDepartmentGrantTasks(alignment, masterWorkItem.id, dueDate);
+      for (const task of departmentTasks) {
+        await createWorkItem.mutateAsync(task);
+      }
 
       await createApplication.mutateAsync({
         title: `${alignment.ngo.name} – ${alignment.grant.name}`,
@@ -148,20 +190,20 @@ export default function GrantsDashboard() {
         stage: "researching",
         source_match_score: alignment.score,
         fit_notes: alignment.notes.join("; "),
-        work_item_id: workItem.id,
+        work_item_id: masterWorkItem.id,
         deadline: dueDate,
         draft_text: draftProposal.content,
-        notes: `Created from Development Grant Writer Tracker Club. Theme matches: ${alignment.themeMatches.join(", ") || "None"}.`,
+        notes: `Created from Development Grant Writer Tracker Club. Generated master work item plus ${departmentTasks.length} department tasks. Theme matches: ${alignment.themeMatches.join(", ") || "None"}.`,
       });
 
       toast({
-        title: "Grant work item created",
-        description: "A Development work item and linked grant application record were created from this match.",
+        title: "Grant task package created",
+        description: "Created the master grant item, department tasks, and linked grant application record.",
       });
     } catch (error) {
       toast({
         variant: "destructive",
-        title: "Unable to create grant work item",
+        title: "Unable to create grant task package",
         description: error instanceof Error ? error.message : "Please try again.",
       });
     } finally {
@@ -240,7 +282,7 @@ export default function GrantsDashboard() {
                   <Badge variant="outline">Score</Badge>
                   <Badge variant="outline">Track</Badge>
                   <Badge variant="outline">Write</Badge>
-                  <Badge variant="outline">Create Work Item</Badge>
+                  <Badge variant="outline">Department Task Package</Badge>
                 </div>
               </CardContent>
             </Card>
@@ -296,7 +338,7 @@ export default function GrantsDashboard() {
                       </ul>
                       <div className="flex flex-wrap gap-2">
                         <Button variant="outline" onClick={() => setSelectedAlignment(alignment)}>Generate Draft From This Match</Button>
-                        <Button onClick={() => handleCreateGrantWorkItem(alignment)} disabled={creatingKey === key}>{creatingKey === key ? "Creating..." : "Create Grant Writing Work Item"}</Button>
+                        <Button onClick={() => handleCreateGrantTaskPackage(alignment)} disabled={creatingKey === key}>{creatingKey === key ? "Creating Package..." : "Create Department Task Package"}</Button>
                       </div>
                     </CardContent>
                   </Card>
