@@ -130,34 +130,58 @@ export function FormRunnerSheet({
 
     setFieldErrors({});
 
-    const plan = buildWorkItemPlan(template, formData, selectedNgoId);
-    let workItemId = plan.workItemId;
+    try {
+      const plan = buildWorkItemPlan(template, formData, selectedNgoId);
+      let workItemId = plan.workItemId;
 
-    if (plan.action === "create" && plan.createInput) {
-      const created = await createWorkItem.mutateAsync(plan.createInput);
-      workItemId = created.id;
-    }
-
-    if (plan.action === "update" && plan.workItemId) {
-      const updateInput = plan.updateInput ? removeUndefined(plan.updateInput) : {};
-      if (Object.keys(updateInput).length > 0) {
-        await updateWorkItem.mutateAsync({ id: plan.workItemId, ...updateInput });
+      if (plan.action === "create" && plan.createInput) {
+        const created = await createWorkItem.mutateAsync(plan.createInput);
+        workItemId = created.id;
       }
+
+      if (plan.action === "update" && plan.workItemId) {
+        const updateInput = plan.updateInput ? removeUndefined(plan.updateInput) : {};
+        if (Object.keys(updateInput).length > 0) {
+          await updateWorkItem.mutateAsync({ id: plan.workItemId, ...updateInput });
+        }
+      }
+
+      const payload: Json = formData as Json;
+
+      await createSubmission.mutateAsync({
+        form_template_id: template.id,
+        ngo_id: selectedNgoId || undefined,
+        work_item_id: workItemId,
+        submitted_by_user_id: user?.id,
+        payload_json: payload,
+        submission_status: submit ? "submitted" : "draft",
+        submitted_at: submit ? new Date().toISOString() : null,
+      });
+
+      if (submit) {
+        toast({
+          title: "Submission successful",
+          description: workItemId
+            ? "The form was submitted and officially generated as a work item."
+            : "The form was submitted successfully.",
+        });
+      } else {
+        toast({
+          title: "Draft saved",
+          description: "The form draft has been saved successfully.",
+        });
+      }
+
+      setFormData({});
+      setFieldErrors({});
+      onOpenChange(false);
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: submit ? "Submission failed" : "Draft save failed",
+        description: error instanceof Error ? error.message : "Please try again.",
+      });
     }
-
-    const payload: Json = formData as Json;
-
-    await createSubmission.mutateAsync({
-      form_template_id: template.id,
-      ngo_id: selectedNgoId || undefined,
-      work_item_id: workItemId,
-      submitted_by_user_id: user?.id,
-      payload_json: payload,
-      submission_status: submit ? "submitted" : "draft",
-      submitted_at: submit ? new Date().toISOString() : null,
-    });
-
-    onOpenChange(false);
   };
 
   const isSaving =
