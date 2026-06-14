@@ -38,6 +38,23 @@ The live database already had a stronger grant foundation than originally expect
 
 The consolidation migration does not create redundant grant tables. It hardens the existing schema with compatibility columns, indexes, RLS policies, saved searches, and seed sources for future ingestion.
 
+## Live implementation status
+
+Applied live to Supabase:
+
+- hardened existing grant tables
+- added compatibility columns for source/funder/eligibility/import data
+- created `grant_saved_searches`
+- enabled internal-only RLS across the grant tracker tables
+- seeded source placeholders for Grant STW Demo Source, Grants.gov, USAspending.gov, and Manual Foundation Research
+- seeded the three Grant STW demo opportunities into `grant_opportunities`
+
+Updated in code:
+
+- Grant opportunity hook now handles `all` status correctly
+- Grant search shows funder names from production fields
+- Grant application hook supports `work_item_id`, `deadline`, and `draft_text`
+
 ## Resulting workflow
 
 Development → Grants now supports:
