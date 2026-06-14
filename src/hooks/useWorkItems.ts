@@ -81,6 +81,14 @@ const ensureSupabase = () => {
   return supabase;
 };
 
+const invalidateWorkItemQueries = (queryClient: ReturnType<typeof useQueryClient>, id?: string) => {
+  queryClient.invalidateQueries({ queryKey: ["work-items"] });
+  queryClient.invalidateQueries({ queryKey: ["my-queue-work-items"] });
+  queryClient.invalidateQueries({ queryKey: ["department-queue-work-items"] });
+  queryClient.invalidateQueries({ queryKey: ["work-item-admin-records"] });
+  if (id) queryClient.invalidateQueries({ queryKey: ["work-item", id] });
+};
+
 export const useWorkItems = (filters?: ListFilters) => {
   return useQuery<WorkItem[]>({
     queryKey: ["work-items", filters],
@@ -151,11 +159,7 @@ export const useCreateWorkItem = () => {
 
       return created;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["work-items"] });
-      queryClient.invalidateQueries({ queryKey: ["my-queue-work-items"] });
-      queryClient.invalidateQueries({ queryKey: ["department-queue-work-items"] });
-    },
+    onSuccess: () => invalidateWorkItemQueries(queryClient),
   });
 };
 
@@ -192,12 +196,24 @@ export const useUpdateWorkItem = () => {
 
       return updated;
     },
-    onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["work-items"] });
-      queryClient.invalidateQueries({ queryKey: ["work-item", variables.id] });
-      queryClient.invalidateQueries({ queryKey: ["my-queue-work-items"] });
-      queryClient.invalidateQueries({ queryKey: ["department-queue-work-items"] });
+    onSuccess: (_data, variables) => invalidateWorkItemQueries(queryClient, variables.id),
+  });
+};
+
+export const useCompleteWorkItemForAdminRecords = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, notes }: { id: string; notes?: string }) => {
+      const client = ensureSupabase();
+      const { data, error } = await client.rpc("complete_work_item_for_admin_records" as never, {
+        _work_item_id: id,
+        _notes: notes || "Completed and sent to admin records",
+      } as never);
+      if (error) throw error;
+      return data as unknown as WorkItem;
     },
+    onSuccess: (_data, variables) => invalidateWorkItemQueries(queryClient, variables.id),
   });
 };
 
@@ -214,12 +230,7 @@ export const useArchiveWorkItem = () => {
       if (error) throw error;
       return data as unknown as WorkItem;
     },
-    onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["work-items"] });
-      queryClient.invalidateQueries({ queryKey: ["work-item", variables.id] });
-      queryClient.invalidateQueries({ queryKey: ["my-queue-work-items"] });
-      queryClient.invalidateQueries({ queryKey: ["department-queue-work-items"] });
-    },
+    onSuccess: (_data, variables) => invalidateWorkItemQueries(queryClient, variables.id),
   });
 };
 
@@ -236,10 +247,7 @@ export const useExportWorkItemToDrive = () => {
       if (data?.error) throw new Error(data.error);
       return data as { file_id?: string; file_url?: string; skipped?: boolean; reason?: string };
     },
-    onSuccess: (_data, id) => {
-      queryClient.invalidateQueries({ queryKey: ["work-items"] });
-      queryClient.invalidateQueries({ queryKey: ["work-item", id] });
-    },
+    onSuccess: (_data, id) => invalidateWorkItemQueries(queryClient, id),
   });
 };
 
@@ -294,11 +302,7 @@ export const useBulkUpdateWorkItems = () => {
       if (error) throw error;
       return { ids, updates, updated: ids.length };
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["work-items"] });
-      queryClient.invalidateQueries({ queryKey: ["my-queue-work-items"] });
-      queryClient.invalidateQueries({ queryKey: ["department-queue-work-items"] });
-    },
+    onSuccess: () => invalidateWorkItemQueries(queryClient),
   });
 };
 
@@ -326,10 +330,6 @@ export const useBulkBumpWorkItemDueDates = () => {
 
       return { items, bumpDays, updated: updates.length };
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["work-items"] });
-      queryClient.invalidateQueries({ queryKey: ["my-queue-work-items"] });
-      queryClient.invalidateQueries({ queryKey: ["department-queue-work-items"] });
-    },
+    onSuccess: () => invalidateWorkItemQueries(queryClient),
   });
 };
