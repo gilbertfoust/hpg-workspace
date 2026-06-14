@@ -24,36 +24,37 @@ Added:
 - filters for theme, region match, minimum score, and search text
 - generated markdown proposal drafts copied from the Grant-Writer proposal structure
 
-## Production schema consolidation
+## Production tracker schema
 
-The live database already had a stronger grant foundation than originally expected. The source of truth is:
+This branch also records the live Supabase grant tracker foundation:
 
 - `grant_sources`
 - `grant_opportunities`
 - `grant_applications`
-- `grant_alignments`
-- `grant_drafts`
+- `grant_alignment_scores`
 - `grant_documents`
-- `grant_saved_searches`
 
-The consolidation migration does not create redundant grant tables. It hardens the existing schema with compatibility columns, indexes, RLS policies, saved searches, and seed sources for future ingestion.
+The live database already includes additional production-ready fields such as:
 
-## Live implementation status
+- source API/base URLs
+- access notes
+- raw source payloads
+- imported/sync timestamps
+- application work item links
+- draft text
+- source match scores
+- grant document links
 
-Applied live to Supabase:
+## Starter sources seeded
 
-- hardened existing grant tables
-- added compatibility columns for source/funder/eligibility/import data
-- created `grant_saved_searches`
-- enabled internal-only RLS across the grant tracker tables
-- seeded source placeholders for Grant STW Demo Source, Grants.gov, USAspending.gov, and Manual Foundation Research
-- seeded the three Grant STW demo opportunities into `grant_opportunities`
+Starter source records were added for:
 
-Updated in code:
+- Grants.gov
+- USAspending.gov
+- SAM.gov Assistance Listings
+- Manual / Foundation Source
 
-- Grant opportunity hook now handles `all` status correctly
-- Grant search shows funder names from production fields
-- Grant application hook supports `work_item_id`, `deadline`, and `draft_text`
+Starter Grant-Writer demo opportunities were also seeded so the existing Grants dashboard and search pages have real rows immediately.
 
 ## Resulting workflow
 
@@ -63,16 +64,8 @@ Development → Grants now supports:
 2. Score NGO/grant alignment
 3. Track best matches
 4. Generate proposal draft text for grant writers
-5. Store opportunities, applications, alignments, drafts, and documents in Supabase
+5. Store and organize grant opportunities/applications in live Supabase tables
 
 ## Next enhancement
 
-A future PR should connect the STW tracker to live NGO profiles and live Supabase grant opportunities, then allow high-scoring matches to create grant-writing work items assigned to Development, Communications, and Finance.
-
-Recommended next workflow:
-
-- Development fills demographics/statistics/research
-- Finance fills budget and financial section
-- Communications fills LOI, mission, vision, background, and narrative polish
-- NGO Coordination requests missing NGO documents or questionnaires
-- Admin/records keeps final submission packet and award history
+A future PR should connect the STW tracker to live Supabase grant opportunities and actual NGO profiles, then allow high-scoring matches to create grant-writing work items assigned to Development, Communications, and Finance.
