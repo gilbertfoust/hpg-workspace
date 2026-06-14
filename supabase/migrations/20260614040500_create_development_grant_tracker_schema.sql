@@ -117,6 +117,16 @@ alter table public.grant_alignments enable row level security;
 alter table public.grant_drafts enable row level security;
 alter table public.grant_documents enable row level security;
 
+drop policy if exists "Internal users can view grant sources" on public.grant_sources;
+drop policy if exists "Internal users can manage grant sources" on public.grant_sources;
+drop policy if exists "Internal users can view grant opportunities" on public.grant_opportunities;
+drop policy if exists "Internal users can manage grant opportunities" on public.grant_opportunities;
+drop policy if exists "Internal users can view grant applications" on public.grant_applications;
+drop policy if exists "Internal users can manage grant applications" on public.grant_applications;
+drop policy if exists "Internal users can manage grant alignments" on public.grant_alignments;
+drop policy if exists "Internal users can manage grant drafts" on public.grant_drafts;
+drop policy if exists "Internal users can manage grant documents" on public.grant_documents;
+
 create policy "Internal users can view grant sources" on public.grant_sources for select to authenticated using (public.is_internal_user());
 create policy "Internal users can manage grant sources" on public.grant_sources for all to authenticated using (public.is_internal_user()) with check (public.is_internal_user());
 create policy "Internal users can view grant opportunities" on public.grant_opportunities for select to authenticated using (public.is_internal_user());
