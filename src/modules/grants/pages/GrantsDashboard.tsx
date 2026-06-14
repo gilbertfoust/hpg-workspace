@@ -9,10 +9,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useGrantApplications } from "@/hooks/useGrantApplications";
-import { useGrantOpportunities } from "@/hooks/useGrantOpportunities";
+import { useGrantOpportunities, type GrantOpportunityRecord } from "@/hooks/useGrantOpportunities";
+import { useNGOs, type NGO } from "@/hooks/useNGOs";
+import { useCreateWorkItem } from "@/hooks/useWorkItems";
 import { GRANT_STAGES } from "@/modules/grants/types";
 import { AlertTriangle, DollarSign, FileText, GitBranch, Search, Sparkles, Target } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useToast } from "@/hooks/use-toast";
 import {
   alignGrantOpportunities,
   buildGrantDraft,
@@ -20,19 +23,60 @@ import {
   grantStwDemoNgos,
   grantStwDemoOpportunities,
   type GrantAlignmentResult,
+  type GrantStwNGO,
+  type GrantStwOpportunity,
 } from "@/modules/grants/lib/grantStw";
 
 const formatScore = (score: number) => score.toFixed(2);
 
+const liveNgoToStw = (ngo: NGO): GrantStwNGO => ({
+  id: ngo.id,
+  name: ngo.common_name || ngo.legal_name,
+  region: ngo.country || "Global",
+  mission: ngo.notes || `${ngo.common_name || ngo.legal_name} is an HPG NGO partner seeking aligned grant support.`,
+  focusAreas: [ngo.bundle, ngo.fiscal_type, ngo.status, ngo.country].filter(Boolean) as string[],
+  annualBudget: "Not recorded",
+  needs: [ngo.notes || "grant funding", ngo.country || "program support"].filter(Boolean),
+  differentiators: [ngo.fiscal_type, ngo.status, ngo.city, ngo.state_province].filter(Boolean) as string[],
+});
+
+const liveOpportunityToStw = (opp: GrantOpportunityRecord): GrantStwOpportunity => ({
+  id: opp.id,
+  name: opp.title,
+  funder: opp.funder_name || opp.funder || opp.grant_sources?.name || "Unknown Funder",
+  description: opp.description || "No description recorded.",
+  themes: opp.focus_areas?.length ? opp.focus_areas : ([opp.region, opp.country].filter(Boolean) as string[]),
+  region: opp.region || opp.country || "Global",
+  amountRange: [
+    opp.min_award ? `$${Number(opp.min_award).toLocaleString()}` : "TBD",
+    opp.max_award ? `$${Number(opp.max_award).toLocaleString()}` : "TBD",
+  ],
+  deadline: opp.deadline || "No deadline recorded",
+  url: opp.url || "",
+});
+
 export default function GrantsDashboard() {
   const navigate = useNavigate();
-  const { data: applications } = useGrantApplications();
+  const { toast } = useToast();
+  const applicationsQuery = useGrantApplications();
+  const createApplication = applicationsQuery.create;
+  const { data: applications } = applicationsQuery;
   const { data: opportunities } = useGrantOpportunities({ status: "open" });
+  const { data: ngos } = useNGOs();
+  const createWorkItem = useCreateWorkItem();
+
   const [search, setSearch] = useState("");
   const [minScore, setMinScore] = useState("0");
   const [requiredTheme, setRequiredTheme] = useState("all");
   const [requireRegionMatch, setRequireRegionMatch] = useState(false);
   const [selectedAlignment, setSelectedAlignment] = useState<GrantAlignmentResult | null>(null);
+  const [creatingKey, setCreatingKey] = useState<string | null>(null);
+
+  const liveNgos = useMemo(() => (ngos?.length ? ngos.map(liveNgoToStw) : []), [ngos]);
+  const liveOpportunities = useMemo(() => (opportunities?.length ? opportunities.map(liveOpportunityToStw) : []), [opportunities]);
+  const stwNgos = liveNgos.length ? liveNgos : grantStwDemoNgos;
+  const stwOpportunities = liveOpportunities.length ? liveOpportunities : grantStwDemoOpportunities;
+  const usingLiveData = liveNgos.length > 0 && liveOpportunities.length > 0;
 
   const stats = {
     openOpportunities: opportunities?.length ?? 0,
@@ -52,12 +96,12 @@ export default function GrantsDashboard() {
 
   const allThemes = useMemo(() => {
     const themes = new Set<string>();
-    grantStwDemoOpportunities.forEach((grant) => grant.themes.forEach((theme) => themes.add(theme)));
+    stwOpportunities.forEach((grant) => grant.themes.forEach((theme) => theme && themes.add(theme)));
     return Array.from(themes).sort();
-  }, []);
+  }, [stwOpportunities]);
 
   const alignments = useMemo(() => {
-    const scored = alignGrantOpportunities(grantStwDemoNgos, grantStwDemoOpportunities, {
+    const scored = alignGrantOpportunities(stwNgos, stwOpportunities, {
       minScore: Number(minScore) || 0,
       requireRegionMatch,
       requiredTheme: requiredTheme === "all" ? undefined : requiredTheme,
@@ -75,10 +119,55 @@ export default function GrantsDashboard() {
       ...result.grant.themes,
       ...result.ngo.focusAreas,
     ].join(" ").toLowerCase().includes(q));
-  }, [minScore, requireRegionMatch, requiredTheme, search]);
+  }, [minScore, requireRegionMatch, requiredTheme, search, stwNgos, stwOpportunities]);
 
   const topDrafts = useMemo(() => buildTopGrantDrafts(alignments, 3), [alignments]);
   const draft = selectedAlignment ? buildGrantDraft(selectedAlignment) : topDrafts[0] || null;
+
+  const handleCreateGrantWorkItem = async (alignment: GrantAlignmentResult) => {
+    const key = `${alignment.ngo.id}-${alignment.grant.id}`;
+    setCreatingKey(key);
+    try {
+      const draftProposal = buildGrantDraft(alignment);
+      const dueDate = alignment.grant.deadline && alignment.grant.deadline !== "No deadline recorded" ? alignment.grant.deadline : undefined;
+
+      const workItem = await createWorkItem.mutateAsync({
+        title: `Grant writing: ${alignment.grant.name} for ${alignment.ngo.name}`,
+        description: `Prepare grant application materials for ${alignment.ngo.name}.\n\nFunder: ${alignment.grant.funder}\nDeadline: ${alignment.grant.deadline}\nFit score: ${formatScore(alignment.score)}\nNotes: ${alignment.notes.join("; ") || "No alignment notes."}`,
+        module: "development",
+        type: "grant_writing",
+        priority: alignment.score >= 2 ? "high" : "medium",
+        due_date: dueDate,
+        ngo_id: alignment.ngo.id,
+      });
+
+      await createApplication.mutateAsync({
+        title: `${alignment.ngo.name} – ${alignment.grant.name}`,
+        ngo_id: alignment.ngo.id,
+        opportunity_id: alignment.grant.id,
+        stage: "researching",
+        source_match_score: alignment.score,
+        fit_notes: alignment.notes.join("; "),
+        work_item_id: workItem.id,
+        deadline: dueDate,
+        draft_text: draftProposal.content,
+        notes: `Created from Development Grant Writer Tracker Club. Theme matches: ${alignment.themeMatches.join(", ") || "None"}.`,
+      });
+
+      toast({
+        title: "Grant work item created",
+        description: "A Development work item and linked grant application record were created from this match.",
+      });
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Unable to create grant work item",
+        description: error instanceof Error ? error.message : "Please try again.",
+      });
+    } finally {
+      setCreatingKey(null);
+    }
+  };
 
   return (
     <MainLayout>
@@ -112,7 +201,7 @@ export default function GrantsDashboard() {
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Strong Demo Fits</CardTitle>
+              <CardTitle className="text-sm font-medium">Strong Fits</CardTitle>
               <AlertTriangle className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent><p className="text-2xl font-bold">{alignments.filter((alignment) => alignment.score >= 2).length}</p></CardContent>
@@ -141,22 +230,17 @@ export default function GrantsDashboard() {
             </Card>
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2"><Sparkles className="h-5 w-5 text-primary" />Grant STW merged into Development</CardTitle>
-                <CardDescription>The separate Grant-Writer repo is now represented inside the main grants dashboard as seeker, tracker, and writer capability.</CardDescription>
+                <CardTitle className="flex items-center gap-2"><Sparkles className="h-5 w-5 text-primary" />Grant STW merged into live Development workflow</CardTitle>
+                <CardDescription>{usingLiveData ? "Scoring is using live NGO records and live grant opportunities." : "Demo STW scoring is shown until live NGO/opportunity records are available."}</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="grid gap-3 md:grid-cols-4">
-                  {[
-                    ["Seek", "Load opportunities from the live tracker now; connect real public imports in the next ingestion PR."],
-                    ["Score", "Match grants against NGO mission, region, focus areas, and needs."],
-                    ["Track", "Prioritize grant writing assignments by fit score and funding target."],
-                    ["Write", "Generate ready-to-edit proposal drafts for grant writers."],
-                  ].map(([title, description]) => (
-                    <div key={title} className="rounded-lg border p-4">
-                      <h3 className="font-semibold">{title}</h3>
-                      <p className="mt-2 text-sm text-muted-foreground">{description}</p>
-                    </div>
-                  ))}
+                <div className="flex flex-wrap gap-2">
+                  <Badge variant={usingLiveData ? "default" : "secondary"}>{usingLiveData ? "Live data active" : "Demo fallback active"}</Badge>
+                  <Badge variant="outline">Seek</Badge>
+                  <Badge variant="outline">Score</Badge>
+                  <Badge variant="outline">Track</Badge>
+                  <Badge variant="outline">Write</Badge>
+                  <Badge variant="outline">Create Work Item</Badge>
                 </div>
               </CardContent>
             </Card>
@@ -186,32 +270,38 @@ export default function GrantsDashboard() {
             </Card>
 
             <div className="grid gap-4">
-              {alignments.map((alignment) => (
-                <Card key={`${alignment.ngo.id}-${alignment.grant.id}`} className="hover:border-primary/50 transition-colors">
-                  <CardHeader className="pb-3">
-                    <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                      <div>
-                        <CardTitle className="text-base">{alignment.ngo.name} → {alignment.grant.name}</CardTitle>
-                        <CardDescription>{alignment.grant.funder} · {alignment.grant.region} · Deadline {alignment.grant.deadline}</CardDescription>
+              {alignments.map((alignment) => {
+                const key = `${alignment.ngo.id}-${alignment.grant.id}`;
+                return (
+                  <Card key={key} className="hover:border-primary/50 transition-colors">
+                    <CardHeader className="pb-3">
+                      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                        <div>
+                          <CardTitle className="text-base">{alignment.ngo.name} → {alignment.grant.name}</CardTitle>
+                          <CardDescription>{alignment.grant.funder} · {alignment.grant.region} · Deadline {alignment.grant.deadline}</CardDescription>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge variant={alignment.score >= 2 ? "default" : "secondary"}>Score {formatScore(alignment.score)}</Badge>
+                          {alignment.regionMatch && <Badge variant="outline">Region match</Badge>}
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Badge variant={alignment.score >= 2 ? "default" : "secondary"}>Score {formatScore(alignment.score)}</Badge>
-                        {alignment.regionMatch && <Badge variant="outline">Region match</Badge>}
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <p className="text-sm text-muted-foreground">{alignment.grant.description}</p>
+                      <div className="flex flex-wrap gap-2">
+                        {alignment.grant.themes.map((theme) => <Badge key={theme} variant={alignment.themeMatches.includes(theme) ? "default" : "outline"}>{theme}</Badge>)}
                       </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <p className="text-sm text-muted-foreground">{alignment.grant.description}</p>
-                    <div className="flex flex-wrap gap-2">
-                      {alignment.grant.themes.map((theme) => <Badge key={theme} variant={alignment.themeMatches.includes(theme) ? "default" : "outline"}>{theme}</Badge>)}
-                    </div>
-                    <ul className="list-disc pl-5 text-sm text-muted-foreground">
-                      {alignment.notes.length ? alignment.notes.map((note) => <li key={note}>{note}</li>) : <li>No alignment notes.</li>}
-                    </ul>
-                    <Button variant="outline" onClick={() => setSelectedAlignment(alignment)}>Generate Draft From This Match</Button>
-                  </CardContent>
-                </Card>
-              ))}
+                      <ul className="list-disc pl-5 text-sm text-muted-foreground">
+                        {alignment.notes.length ? alignment.notes.map((note) => <li key={note}>{note}</li>) : <li>No alignment notes.</li>}
+                      </ul>
+                      <div className="flex flex-wrap gap-2">
+                        <Button variant="outline" onClick={() => setSelectedAlignment(alignment)}>Generate Draft From This Match</Button>
+                        <Button onClick={() => handleCreateGrantWorkItem(alignment)} disabled={creatingKey === key}>{creatingKey === key ? "Creating..." : "Create Grant Writing Work Item"}</Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
           </TabsContent>
 
@@ -219,7 +309,7 @@ export default function GrantsDashboard() {
             <Card>
               <CardHeader>
                 <CardTitle>Proposal Draft Writer</CardTitle>
-                <CardDescription>Drafts use the Grant-Writer repo structure: cover letter, organizational summary, problem statement, activities, measurement, budget, and attachments.</CardDescription>
+                <CardDescription>Drafts use the Grant-Writer repo structure and can be copied into Development/Communications proposal workflows.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
                 {draft ? (
