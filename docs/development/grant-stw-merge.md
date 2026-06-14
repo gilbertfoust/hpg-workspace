@@ -24,6 +24,38 @@ Added:
 - filters for theme, region match, minimum score, and search text
 - generated markdown proposal drafts copied from the Grant-Writer proposal structure
 
+## Production tracker schema
+
+This branch also records the live Supabase grant tracker foundation:
+
+- `grant_sources`
+- `grant_opportunities`
+- `grant_applications`
+- `grant_alignment_scores`
+- `grant_documents`
+
+The live database already includes additional production-ready fields such as:
+
+- source API/base URLs
+- access notes
+- raw source payloads
+- imported/sync timestamps
+- application work item links
+- draft text
+- source match scores
+- grant document links
+
+## Starter sources seeded
+
+Starter source records were added for:
+
+- Grants.gov
+- USAspending.gov
+- SAM.gov Assistance Listings
+- Manual / Foundation Source
+
+Starter Grant-Writer demo opportunities were also seeded so the existing Grants dashboard and search pages have real rows immediately.
+
 ## Resulting workflow
 
 Development → Grants now supports:
@@ -32,7 +64,8 @@ Development → Grants now supports:
 2. Score NGO/grant alignment
 3. Track best matches
 4. Generate proposal draft text for grant writers
+5. Store and organize grant opportunities/applications in live Supabase tables
 
 ## Next enhancement
 
-A future PR should connect these demo objects to live Supabase grant opportunities and actual NGO profiles, then allow high-scoring matches to create grant-writing work items assigned to Development, Communications, and Finance.
+A future PR should connect the STW tracker to live Supabase grant opportunities and actual NGO profiles, then allow high-scoring matches to create grant-writing work items assigned to Development, Communications, and Finance.

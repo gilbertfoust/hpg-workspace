@@ -4,7 +4,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { useGrantOpportunities } from "@/hooks/useGrantOpportunities";
 import { OPPORTUNITY_STATUSES } from "@/modules/grants/types";
 import { Search, ExternalLink, Calendar, DollarSign } from "lucide-react";
@@ -15,7 +14,10 @@ export default function GrantSearch() {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("open");
-  const { data: opportunities, isLoading } = useGrantOpportunities({ search: search || undefined, status: statusFilter || undefined });
+  const { data: opportunities, isLoading } = useGrantOpportunities({
+    search: search || undefined,
+    status: statusFilter === "all" ? undefined : statusFilter,
+  });
 
   return (
     <MainLayout>
@@ -28,7 +30,7 @@ export default function GrantSearch() {
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Search by title or description..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
+            <Input placeholder="Search by title, funder, or description..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
           </div>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-[160px]"><SelectValue placeholder="Status" /></SelectTrigger>
@@ -53,9 +55,7 @@ export default function GrantSearch() {
                   <div className="flex items-start justify-between">
                     <div>
                       <CardTitle className="text-base">{opp.title}</CardTitle>
-                      {(opp as any).grant_sources?.name && (
-                        <p className="text-sm text-muted-foreground">{(opp as any).grant_sources.name}</p>
-                      )}
+                      <p className="text-sm text-muted-foreground">{opp.funder_name || (opp as any).funder || (opp as any).grant_sources?.name || "Unknown funder"}</p>
                     </div>
                     <Badge variant={opp.status === "open" ? "default" : "secondary"}>{opp.status}</Badge>
                   </div>
@@ -82,9 +82,9 @@ export default function GrantSearch() {
                       </a>
                     )}
                   </div>
-                  {opp.focus_areas?.length > 0 && (
+                  {(opp.focus_areas || []).length > 0 && (
                     <div className="flex flex-wrap gap-1 mt-2">
-                      {opp.focus_areas.map(area => <Badge key={area} variant="outline" className="text-xs">{area}</Badge>)}
+                      {(opp.focus_areas || []).map(area => <Badge key={area} variant="outline" className="text-xs">{area}</Badge>)}
                     </div>
                   )}
                 </CardContent>
