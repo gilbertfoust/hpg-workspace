@@ -8,8 +8,10 @@ export interface GrantOpportunityRecord {
   external_id?: string | null;
   title: string;
   funder_name?: string | null;
+  funder?: string | null;
   description?: string | null;
   eligibility_summary?: string | null;
+  eligibility_text?: string | null;
   country?: string | null;
   region?: string | null;
   focus_areas?: string[];
@@ -38,7 +40,10 @@ export function useGrantOpportunities(filters?: { status?: string; country?: str
 
       if (filters?.status && filters.status !== "all") q = q.eq("status", filters.status);
       if (filters?.country) q = q.eq("country", filters.country);
-      if (filters?.search) q = q.or(`title.ilike.%${filters.search}%,description.ilike.%${filters.search}%,funder_name.ilike.%${filters.search}%`);
+      if (filters?.search) {
+        const safeSearch = filters.search.replace(/[%_,]/g, "");
+        q = q.or(`title.ilike.%${safeSearch}%,description.ilike.%${safeSearch}%,funder_name.ilike.%${safeSearch}%,funder.ilike.%${safeSearch}%`);
+      }
 
       const { data, error } = await q;
       if (error) throw error;
@@ -52,8 +57,10 @@ export function useGrantOpportunities(filters?: { status?: string; country?: str
       source_id?: string;
       external_id?: string;
       funder_name?: string;
+      funder?: string;
       description?: string;
       eligibility_summary?: string;
+      eligibility_text?: string;
       country?: string;
       region?: string;
       focus_areas?: string[];
@@ -67,10 +74,16 @@ export function useGrantOpportunities(filters?: { status?: string; country?: str
       status?: string;
       url?: string;
       source_payload?: Record<string, unknown>;
+      raw_source_json?: Record<string, unknown>;
     }) => {
+      const payload = {
+        ...opp,
+        funder_name: opp.funder_name || opp.funder,
+        funder: opp.funder || opp.funder_name,
+      };
       const { data, error } = await (supabase as any)
         .from("grant_opportunities")
-        .insert(opp)
+        .insert(payload)
         .select()
         .single();
       if (error) throw error;
