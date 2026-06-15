@@ -4038,6 +4038,7 @@ export type Database = {
           full_name: string | null
           id: string
           is_approved: boolean
+          role: string | null
           updated_at: string
         }
         Insert: {
@@ -4049,6 +4050,7 @@ export type Database = {
           full_name?: string | null
           id: string
           is_approved?: boolean
+          role?: string | null
           updated_at?: string
         }
         Update: {
@@ -4060,6 +4062,7 @@ export type Database = {
           full_name?: string | null
           id?: string
           is_approved?: boolean
+          role?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -5988,6 +5991,7 @@ export type Database = {
           approval_policy: Json | null
           approval_required: boolean | null
           approver_user_id: string | null
+          archived_at: string | null
           checklist_json: Json | null
           completed_at: string | null
           created_at: string
@@ -6016,6 +6020,7 @@ export type Database = {
           approval_policy?: Json | null
           approval_required?: boolean | null
           approver_user_id?: string | null
+          archived_at?: string | null
           checklist_json?: Json | null
           completed_at?: string | null
           created_at?: string
@@ -6046,6 +6051,7 @@ export type Database = {
           approval_policy?: Json | null
           approval_required?: boolean | null
           approver_user_id?: string | null
+          archived_at?: string | null
           checklist_json?: Json | null
           completed_at?: string | null
           created_at?: string

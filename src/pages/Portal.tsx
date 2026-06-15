@@ -188,13 +188,13 @@ export default function Portal() {
     enabled: ngoIds.length > 0,
     queryFn: async () => {
       ensureSupabase();
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("ngo_compliance_periods")
         .select("id, ngo_id, period_type, period_label, period_start, period_end, due_date, status, submitted_at, reviewed_at")
         .in("ngo_id", ngoIds)
         .order("due_date", { ascending: true });
       if (error) throw error;
-      return data as CompliancePeriodRow[];
+      return (data ?? []) as CompliancePeriodRow[];
     },
   });
 
