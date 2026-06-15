@@ -110,7 +110,7 @@ const normalizeTokens = (values: string[]) => {
   values.forEach((value) => {
     value
       .toLowerCase()
-      .replaceAll("/", " ")
+      .replace(/\//g, " ")
       .split(/\s+/)
       .map((token) => token.replace(/[,.;:()[\]{}]/g, "").trim())
       .filter(Boolean)
