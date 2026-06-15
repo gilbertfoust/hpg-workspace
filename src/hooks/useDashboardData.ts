@@ -29,7 +29,14 @@ export type DepartmentWorkload = {
   count: number;
 };
 
+export type NgoPortfolioStatusBucket = {
+  name: string;
+  value: number;
+};
+
 export type DashboardKpis = {
+  totalNgos: number;
+  activeNgos: number;
   dueIn7Days: number;
   dueIn30Days: number;
   dueIn90Days: number;
@@ -43,6 +50,7 @@ export type DashboardData = {
   workloadByDepartment: DepartmentWorkload[];
   evidencePending: DashboardEvidenceRow[];
   atRiskNgos: DashboardAtRiskRow[];
+  ngoStatusDistribution: NgoPortfolioStatusBucket[];
 };
 
 const ACTIVE_STATUSES: WorkItemStatus[] = [
@@ -54,9 +62,54 @@ const ACTIVE_STATUSES: WorkItemStatus[] = [
   "under_review",
 ];
 
+const LIVE_TITLE_CASE_ACTIVE_STATUSES = [
+  "Not Started",
+  "In Progress",
+  "Waiting on NGO",
+  "Waiting on HPG",
+  "Submitted",
+  "Under Review",
+];
+
+const NGO_PORTFOLIO_STATUS_ORDER = [
+  "Applicants",
+  "Under Review",
+  "Processing",
+  "Onboarding",
+  "Static State",
+  "Out of Compliance",
+  "Exit Process",
+];
+
+const mapNgoStatusToPortfolioBucket = (status: string | null | undefined) => {
+  const normalized = (status || "").trim().toLowerCase().replace(/[\s-]+/g, "_");
+
+  if (["applicant", "applicants", "application", "prospect", "lead", "new"].includes(normalized)) return "Applicants";
+  if (["under_review", "review", "screening", "due_diligence"].includes(normalized)) return "Under Review";
+  if (["processing", "in_process", "in_progress", "pending", "submitted"].includes(normalized)) return "Processing";
+  if (["onboarding", "on_boarding", "training"].includes(normalized)) return "Onboarding";
+  if (["active", "static", "static_state", "good_standing", "compliant"].includes(normalized)) return "Static State";
+  if (["at_risk", "out_of_compliance", "non_compliant", "suspended", "remediation"].includes(normalized)) return "Out of Compliance";
+  if (["exit", "exit_process", "offboarding", "closed", "terminated", "inactive"].includes(normalized)) return "Exit Process";
+
+  return "Processing";
+};
+
 const uniqueSorted = (values: (string | null | undefined)[]) => {
   return [...new Set(values.filter((value): value is string => Boolean(value)))]
     .sort((a, b) => a.localeCompare(b));
+};
+
+const buildNgoStatusDistribution = (ngos: { status: string | null }[]) => {
+  const totals = new Map<string, number>();
+  NGO_PORTFOLIO_STATUS_ORDER.forEach((status) => totals.set(status, 0));
+
+  ngos.forEach((ngo) => {
+    const bucket = mapNgoStatusToPortfolioBucket(ngo.status);
+    totals.set(bucket, (totals.get(bucket) || 0) + 1);
+  });
+
+  return NGO_PORTFOLIO_STATUS_ORDER.map((name) => ({ name, value: totals.get(name) || 0 }));
 };
 
 export const useDashboardFilters = () => {
@@ -94,7 +147,7 @@ export const useDashboardData = (filters: DashboardFilters) => {
 
       const hasNgoFilters = Boolean(filters.bundle || filters.country || filters.state);
 
-      let ngoFilterQuery = supabase.from("ngos").select("id");
+      let ngoFilterQuery = supabase.from("ngos").select("id, status");
       if (filters.bundle) {
         ngoFilterQuery = ngoFilterQuery.eq("bundle", filters.bundle);
       }
@@ -109,9 +162,12 @@ export const useDashboardData = (filters: DashboardFilters) => {
       if (ngoFilterError) throw ngoFilterError;
 
       const ngoFilterIds = ngoFilterData?.map((ngo) => ngo.id) ?? [];
+      const ngoStatusDistribution = buildNgoStatusDistribution((ngoFilterData ?? []) as { status: string | null }[]);
       if (hasNgoFilters && ngoFilterIds.length === 0) {
         return {
           kpis: {
+            totalNgos: 0,
+            activeNgos: 0,
             dueIn7Days: 0,
             dueIn30Days: 0,
             dueIn90Days: 0,
@@ -122,6 +178,7 @@ export const useDashboardData = (filters: DashboardFilters) => {
           workloadByDepartment: [],
           evidencePending: [],
           atRiskNgos: [],
+          ngoStatusDistribution,
         };
       }
 
@@ -130,7 +187,8 @@ export const useDashboardData = (filters: DashboardFilters) => {
         .select(
           "id, ngo_id, department_id, owner_user_id, due_date, status, evidence_required, evidence_status, module",
         )
-        .in("status", ACTIVE_STATUSES);
+        .is("archived_at", null)
+        .in("status", [...ACTIVE_STATUSES, ...LIVE_TITLE_CASE_ACTIVE_STATUSES]);
 
       if (filters.module) {
         workItemsQuery = workItemsQuery.eq("module", filters.module);
@@ -147,7 +205,7 @@ export const useDashboardData = (filters: DashboardFilters) => {
       let atRiskQuery = supabase
         .from("ngos")
         .select("id, legal_name, common_name, bundle, country, state_province, city")
-        .eq("status", "at_risk")
+        .in("status", ["at_risk", "out_of_compliance", "non_compliant", "suspended", "remediation"])
         .order("legal_name", { ascending: true });
 
       if (filters.bundle) {
@@ -266,7 +324,7 @@ export const useDashboardData = (filters: DashboardFilters) => {
           if (!b.dueDate) return -1;
           return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
         })
-        .slice(0, 50); // Limit to top 50 for performance
+        .slice(0, 50);
 
       const workloadTotals = new Map<string, number>();
       (workItems ?? []).forEach((item) => {
@@ -287,10 +345,12 @@ export const useDashboardData = (filters: DashboardFilters) => {
           bundle: ngo.bundle,
           location: [ngo.city, ngo.state_province, ngo.country].filter(Boolean).join(", ") || "-",
         }))
-        .slice(0, 20); // Limit to top 20 for performance
+        .slice(0, 20);
 
       return {
         kpis: {
+          totalNgos: ngoFilterData?.length ?? 0,
+          activeNgos: ngoStatusDistribution.find((item) => item.name === "Static State")?.value ?? 0,
           dueIn7Days,
           dueIn30Days,
           dueIn90Days,
@@ -301,6 +361,7 @@ export const useDashboardData = (filters: DashboardFilters) => {
         workloadByDepartment,
         evidencePending,
         atRiskNgos,
+        ngoStatusDistribution,
       };
     },
   });

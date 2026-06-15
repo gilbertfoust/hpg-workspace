@@ -58,7 +58,7 @@ function useWorkItemTrend() {
       return d >= start && d < nextMonth;
     }).length ?? 0;
     const completed = workItems?.filter(wi => {
-      if (!["complete", "approved"].includes(wi.status)) return false;
+      if (!["complete", "approved", "Complete", "Approved"].includes(wi.status)) return false;
       const d = new Date(wi.updated_at);
       return d >= start && d < nextMonth;
     }).length ?? 0;
@@ -96,7 +96,7 @@ const DashboardKPIs = () => {
     );
   }
 
-  const activeNgoCount = ngoStats?.active || 0;
+  const totalNgoCount = dashboardData?.kpis?.totalNgos || ngoStats?.total || 0;
   const overdueCount = dashboardData?.kpis?.overdue || 0;
   const dueIn7Days = dashboardData?.kpis?.dueIn7Days || 0;
   const totalWorkItems = allWorkItems?.length ?? 0;
@@ -105,12 +105,12 @@ const DashboardKPIs = () => {
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
       <Card>
         <CardHeader className="flex flex-row items-center justify-between pb-2">
-          <CardTitle className="text-sm font-medium">Active NGOs</CardTitle>
+          <CardTitle className="text-sm font-medium">Total NGO Portfolio</CardTitle>
           <Building2 className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <p className="text-2xl font-bold">{activeNgoCount}</p>
-          <p className="text-xs text-muted-foreground">Sponsored organizations</p>
+          <p className="text-2xl font-bold">{totalNgoCount}</p>
+          <p className="text-xs text-muted-foreground">Everyone in the NGO pipeline</p>
         </CardContent>
       </Card>
       <Card>
@@ -140,7 +140,7 @@ const DashboardKPIs = () => {
         </CardHeader>
         <CardContent>
           <p className="text-2xl font-bold">{totalWorkItems.toLocaleString()}</p>
-          <p className="text-xs text-muted-foreground">All time across modules</p>
+          <p className="text-xs text-muted-foreground">Active visible work items</p>
         </CardContent>
       </Card>
     </div>
@@ -194,6 +194,39 @@ const StatusDistributionChart = () => {
             </PieChart>
           </ResponsiveContainer>
         </div>
+      </CardContent>
+    </Card>
+  );
+};
+
+const NgoPortfolioStatusChart = () => {
+  const { data: dashboardData } = useDashboardData({});
+  const portfolioData = dashboardData?.ngoStatusDistribution?.filter((item) => item.value > 0) ?? [];
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">NGO Portfolio Status</CardTitle>
+        <CardDescription>Where everyone stands in the HPG relationship pipeline</CardDescription>
+      </CardHeader>
+      <CardContent>
+        {portfolioData.length === 0 ? (
+          <p className="text-sm text-muted-foreground text-center py-8">No NGO portfolio data available</p>
+        ) : (
+          <div className="h-[250px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie data={portfolioData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`} labelLine={false}>
+                  {portfolioData.map((_, index) => (
+                    <Cell key={index} fill={CHART_COLORS[(index + 2) % CHART_COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
@@ -380,6 +413,7 @@ const Dashboard = () => {
       <div className="grid gap-4 md:grid-cols-2">
         <WorkItemTrendChart />
         <StatusDistributionChart />
+        <NgoPortfolioStatusChart />
       </div>
 
       {/* Department Workload */}
