@@ -54,6 +54,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
+import { useWorkItems } from "@/hooks/useWorkItems";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -170,6 +171,8 @@ export function AppSidebar() {
   const [expandedHubs, setExpandedHubs] = useState<Record<string, boolean>>({});
   const { user, signOut } = useAuth();
   const { data: userRole } = useUserRole();
+  const { data: activeWorkItems } = useWorkItems();
+  const activeWorkItemCount = activeWorkItems?.length ?? 0;
   const { toast } = useToast();
   const navigate = useNavigate();
   const canAccessAdminConfig = userRole?.role === 'super_admin' || userRole?.role === 'admin_pm';
@@ -292,7 +295,7 @@ export function AppSidebar() {
               <NavItem to="/ngos" icon={<Building2 className="w-4 h-4" />} label={isCollapsed ? "" : "NGOs"} />
               <NavItem to="/ngo-coordination/onboarding" icon={<Rocket className="w-4 h-4" />} label={isCollapsed ? "" : "NGO Onboarding"} />
               <NavItem to="/ngo-missing-items" icon={<AlertTriangle className="w-4 h-4" />} label={isCollapsed ? "" : "NGO Missing Items"} />
-              <NavItem to="/work-items" icon={<ClipboardList className="w-4 h-4" />} label={isCollapsed ? "" : "Work Items"} badge={12} />
+              <NavItem to="/work-items" icon={<ClipboardList className="w-4 h-4" />} label={isCollapsed ? "" : "Work Items"} badge={activeWorkItemCount} />
               <NavItem to="/forms" icon={<FileText className="w-4 h-4" />} label={isCollapsed ? "" : "Forms"} />
               <NavItem to="/department-forms" icon={<FolderKanban className="w-4 h-4" />} label={isCollapsed ? "" : "Department Forms"} />
               <NavItem to="/documents" icon={<FolderOpen className="w-4 h-4" />} label={isCollapsed ? "" : "Documents"} />
