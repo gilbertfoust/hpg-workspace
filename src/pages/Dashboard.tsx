@@ -30,6 +30,7 @@ import { useWorkItems } from "@/hooks/useWorkItems";
 import { useWorkItems as useWorkItemsAll } from "@/hooks/useWorkItems";
 import { Loader2 } from "lucide-react";
 import { format, subMonths, startOfMonth } from "date-fns";
+import { TodaysActionCenter } from "@/components/dashboard/TodaysActionCenter";
 
 const HPG_LOGO_URL =
   "https://img1.wsimg.com/isteam/ip/8d5502d6-d937-4d80-bd56-8074053e4d77/Humanity%20Pathways%20Global.jpg/:/rs=h:175,m";
@@ -405,6 +406,9 @@ const Dashboard = () => {
 
       {/* KPI Row */}
       <DashboardKPIs />
+
+      {/* Today's Action Center */}
+      <TodaysActionCenter />
 
       {/* Quick Navigation */}
       <QuickNavCards />
