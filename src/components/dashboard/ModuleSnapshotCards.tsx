@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowRight, Building2, DollarSign, FileText, GraduationCap, Loader2, ShieldCheck, TrendingUp } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -5,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useDashboardModuleSnapshots, type DashboardModuleSnapshot } from "@/hooks/useDashboardModuleSnapshots";
 
-const icons: Record<string, React.ReactNode> = {
+const icons: Record<string, ReactNode> = {
   "ngo-coordination": <Building2 className="h-4 w-4" />,
   "development-grants": <TrendingUp className="h-4 w-4" />,
   finance: <DollarSign className="h-4 w-4" />,
