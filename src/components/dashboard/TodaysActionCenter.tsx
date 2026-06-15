@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { AlertCircle, ArrowRight, Clock, Flag, Loader2, UserX } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -5,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useDashboardActionCenter, type ActionCenterReason } from "@/hooks/useDashboardActionCenter";
 
-const reasonStyles: Record<ActionCenterReason, { icon: React.ReactNode; variant: "default" | "secondary" | "destructive" | "outline" }> = {
+const reasonStyles: Record<ActionCenterReason, { icon: ReactNode; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   Overdue: { icon: <AlertCircle className="h-3.5 w-3.5" />, variant: "destructive" },
   "Due this week": { icon: <Clock className="h-3.5 w-3.5" />, variant: "secondary" },
   "High priority": { icon: <Flag className="h-3.5 w-3.5" />, variant: "default" },
