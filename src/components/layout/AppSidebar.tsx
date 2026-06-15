@@ -15,23 +15,12 @@ import {
   ChevronDown,
   ChevronRight,
   Users,
-  Briefcase,
   DollarSign,
   Scale,
   Megaphone,
   ShieldCheck,
-  MessageSquare,
   GraduationCap,
-  Wrench,
-  Monitor,
-  Handshake,
-  UserPlus,
-  Menu,
-  X,
-  LogOut,
-  Contact,
   ShoppingCart,
-  Award,
   Package,
   Warehouse,
   TrendingUp,
@@ -46,6 +35,11 @@ import {
   Zap,
   Rocket,
   Bot,
+  Menu,
+  X,
+  LogOut,
+  Contact,
+  Award,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -61,6 +55,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useWorkItems } from "@/hooks/useWorkItems";
 
 interface NavItemProps {
   to: string;
@@ -74,13 +69,7 @@ const NavItem = ({ to, icon, label, badge }: NavItemProps) => {
   const isActive = location.pathname === to || location.pathname.startsWith(to + "/");
 
   return (
-    <NavLink
-      to={to}
-      className={cn(
-        "nav-item group",
-        isActive && "active"
-      )}
-    >
+    <NavLink to={to} className={cn("nav-item group", isActive && "active")}>
       {icon}
       <span className="flex-1">{label}</span>
       {badge !== undefined && badge > 0 && (
@@ -138,7 +127,7 @@ const hubsSections: HubConfig[] = [
     basePaths: ["/development", "/partnerships", "/crm", "/grants"],
     items: [
       { to: "/development", icon: <DollarSign className="w-4 h-4" />, label: "Development" },
-      { to: "/partnerships", icon: <Handshake className="w-4 h-4" />, label: "Partnerships" },
+      { to: "/partnerships", icon: <Scale className="w-4 h-4" />, label: "Partnerships" },
       { to: "/crm", icon: <Contact className="w-4 h-4" />, label: "CRM" },
       { to: "/grants", icon: <Award className="w-4 h-4" />, label: "Grants" },
     ],
@@ -170,121 +159,62 @@ export function AppSidebar() {
   const [expandedHubs, setExpandedHubs] = useState<Record<string, boolean>>({});
   const { user, signOut } = useAuth();
   const { data: userRole } = useUserRole();
+  const { data: activeWorkItems } = useWorkItems();
+  const activeWorkItemCount = activeWorkItems?.length ?? 0;
   const { toast } = useToast();
   const navigate = useNavigate();
-  const canAccessAdminConfig = userRole?.role === 'super_admin' || userRole?.role === 'admin_pm';
+  const canAccessAdminConfig = userRole?.role === "super_admin" || userRole?.role === "admin_pm";
 
   const userInitials = user?.user_metadata?.full_name
-    ?.split(' ')
+    ?.split(" ")
     .map((n: string) => n[0])
-    .join('')
+    .join("")
     .toUpperCase()
-    .slice(0, 2) || user?.email?.slice(0, 2).toUpperCase() || 'U';
+    .slice(0, 2) || user?.email?.slice(0, 2).toUpperCase() || "U";
 
-  const displayName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User';
-  const roleLabel = userRole?.role?.replace('_', ' ') || 'Staff';
+  const displayName = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "User";
+  const roleLabel = userRole?.role?.replace("_", " ") || "Staff";
 
   const handleSignOut = async () => {
     const { error } = await signOut();
-    
     if (error) {
-      toast({
-        variant: "destructive",
-        title: "Sign out failed",
-        description: error.message || "Unable to sign out. Please try again.",
-      });
+      toast({ variant: "destructive", title: "Sign out failed", description: error.message || "Unable to sign out. Please try again." });
     } else {
-      toast({
-        title: "Signed out",
-        description: "You have been successfully signed out.",
-      });
+      toast({ title: "Signed out", description: "You have been successfully signed out." });
       navigate("/auth", { replace: true });
     }
   };
 
-  const toggleHub = (title: string) => {
-    setExpandedHubs(prev => ({ ...prev, [title]: !prev[title] }));
-  };
-
-  const isHubActive = (hub: HubConfig) =>
-    hub.basePaths.some(p => location.pathname.startsWith(p));
-
+  const toggleHub = (title: string) => setExpandedHubs((prev) => ({ ...prev, [title]: !prev[title] }));
+  const isHubActive = (hub: HubConfig) => hub.basePaths.some((p) => location.pathname.startsWith(p));
 
   return (
     <>
-      {/* Mobile overlay */}
-      {!isCollapsed && (
-        <div
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
-          onClick={() => setIsCollapsed(true)}
-        />
-      )}
-
-      {/* Mobile toggle button */}
-      <Button
-        variant="ghost"
-        size="icon"
-        className="fixed top-3 left-3 z-50 lg:hidden"
-        onClick={() => setIsCollapsed(!isCollapsed)}
-      >
+      {!isCollapsed && <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" onClick={() => setIsCollapsed(true)} />}
+      <Button variant="ghost" size="icon" className="fixed top-3 left-3 z-50 lg:hidden" onClick={() => setIsCollapsed(!isCollapsed)}>
         {isCollapsed ? <Menu className="w-5 h-5" /> : <X className="w-5 h-5" />}
       </Button>
-
-      {/* Sidebar */}
-      <aside
-        className={cn(
-          "fixed left-0 top-0 z-40 h-screen bg-sidebar transition-all duration-300",
-          isCollapsed ? "-translate-x-full lg:translate-x-0 lg:w-16" : "w-64",
-          "lg:relative lg:translate-x-0"
-        )}
-      >
+      <aside className={cn("fixed left-0 top-0 z-40 h-screen bg-sidebar transition-all duration-300", isCollapsed ? "-translate-x-full lg:translate-x-0 lg:w-16" : "w-64", "lg:relative lg:translate-x-0")}>
         <div className="flex flex-col h-full">
-          {/* Logo / Header */}
           <div className="flex items-center gap-3 px-4 py-4 border-b border-sidebar-border">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button
-                  className={cn(
-                    "w-auto max-w-full object-contain cursor-pointer hover:opacity-80 transition-opacity",
-                    isCollapsed ? "h-8" : "h-10 max-w-[180px]"
-                  )}
-                >
-                  <img
-                    src="https://img1.wsimg.com/isteam/ip/8d5502d6-d937-4d80-bd56-8074053e4d77/Humanity%20Pathways%20Global.jpg/:/rs=h:175,m"
-                    alt="Humanity Pathways Global"
-                    className={cn(
-                      "w-auto max-w-full object-contain",
-                      isCollapsed ? "h-8" : "h-10 max-w-[180px]"
-                    )}
-                  />
+                <button className={cn("w-auto max-w-full object-contain cursor-pointer hover:opacity-80 transition-opacity", isCollapsed ? "h-8" : "h-10 max-w-[180px]")}> 
+                  <img src="https://img1.wsimg.com/isteam/ip/8d5502d6-d937-4d80-bd56-8074053e4d77/Humanity%20Pathways%20Global.jpg/:/rs=h:175,m" alt="Humanity Pathways Global" className={cn("w-auto max-w-full object-contain", isCollapsed ? "h-8" : "h-10 max-w-[180px]")} />
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" className="w-48">
-                <DropdownMenuItem onClick={() => navigate("/dashboard")}>
-                  <LayoutDashboard className="w-4 h-4 mr-2" />
-                  Dashboard
-                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate("/dashboard")}><LayoutDashboard className="w-4 h-4 mr-2" />Dashboard</DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleSignOut}>
-                  <LogOut className="w-4 h-4 mr-2" />
-                  Log out
-                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleSignOut}><LogOut className="w-4 h-4 mr-2" />Log out</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="hidden lg:flex text-white hover:bg-sidebar-accent"
-              onClick={() => setIsCollapsed(!isCollapsed)}
-            >
+            <Button variant="ghost" size="icon" className="hidden lg:flex text-white hover:bg-sidebar-accent" onClick={() => setIsCollapsed(!isCollapsed)}>
               {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronDown className="w-4 h-4 rotate-90" />}
             </Button>
           </div>
-
-          {/* Navigation */}
           <ScrollArea className="flex-1 py-4">
             <nav className="px-2 space-y-1">
-              {/* Main Navigation */}
               <NavItem to="/dashboard" icon={<LayoutDashboard className="w-4 h-4" />} label={isCollapsed ? "" : "Dashboard"} />
               <NavItem to="/modules/ngo-coordination" icon={<Bot className="w-4 h-4" />} label={isCollapsed ? "" : "HPG Assistant"} />
               <NavItem to="/my-queue" icon={<ListChecks className="w-4 h-4" />} label={isCollapsed ? "" : "My Queue"} />
@@ -292,128 +222,27 @@ export function AppSidebar() {
               <NavItem to="/ngos" icon={<Building2 className="w-4 h-4" />} label={isCollapsed ? "" : "NGOs"} />
               <NavItem to="/ngo-coordination/onboarding" icon={<Rocket className="w-4 h-4" />} label={isCollapsed ? "" : "NGO Onboarding"} />
               <NavItem to="/ngo-missing-items" icon={<AlertTriangle className="w-4 h-4" />} label={isCollapsed ? "" : "NGO Missing Items"} />
-              <NavItem to="/work-items" icon={<ClipboardList className="w-4 h-4" />} label={isCollapsed ? "" : "Work Items"} badge={12} />
+              <NavItem to="/work-items" icon={<ClipboardList className="w-4 h-4" />} label={isCollapsed ? "" : "Work Items"} badge={activeWorkItemCount} />
               <NavItem to="/forms" icon={<FileText className="w-4 h-4" />} label={isCollapsed ? "" : "Forms"} />
               <NavItem to="/department-forms" icon={<FolderKanban className="w-4 h-4" />} label={isCollapsed ? "" : "Department Forms"} />
               <NavItem to="/documents" icon={<FolderOpen className="w-4 h-4" />} label={isCollapsed ? "" : "Documents"} />
               <NavItem to="/calendar" icon={<Calendar className="w-4 h-4" />} label={isCollapsed ? "" : "Calendar"} />
 
-              {!isCollapsed && (
-                <div className="pt-4">
-                  <p className="nav-section-title">Executive</p>
-                  <div className="space-y-1">
-                    <NavItem to="/reports" icon={<BarChart3 className="w-4 h-4" />} label="Reports" />
-                  </div>
-                </div>
-              )}
+              {!isCollapsed && <div className="pt-4"><p className="nav-section-title">Executive</p><div className="space-y-1"><NavItem to="/reports" icon={<BarChart3 className="w-4 h-4" />} label="Reports" /></div></div>}
 
-              {/* Hubs Section */}
-              {!isCollapsed && (
-                <div className="pt-4">
-                  <p className="nav-section-title">Hubs</p>
-                  <div className="space-y-1">
-                    {hubsSections.map((hub) => {
-                      const isOpen = expandedHubs[hub.title] || isHubActive(hub);
-                      return (
-                        <div key={hub.title}>
-                          <button
-                            onClick={() => toggleHub(hub.title)}
-                            className={cn(
-                              "nav-item group w-full flex items-center justify-between",
-                              isHubActive(hub) && "active"
-                            )}
-                          >
-                            <span className="flex items-center gap-2">
-                              {hub.icon}
-                              <span>{hub.title}</span>
-                            </span>
-                            <ChevronDown className={cn("w-3.5 h-3.5 transition-transform", isOpen && "rotate-180")} />
-                          </button>
-                          {isOpen && (
-                            <div className="ml-4 space-y-0.5 animate-fade-in">
-                              {hub.items.map((item) => (
-                                <div key={item.to}>
-                                  <NavItem to={item.to} icon={item.icon} label={item.label} />
-                                  {item.subItems && location.pathname.startsWith(item.to) && (
-                                    <div className="ml-5 space-y-0.5">
-                                      {item.subItems.map((sub) => (
-                                        <NavItem key={sub.to} to={sub.to} icon={<ChevronRight className="w-3 h-3" />} label={sub.label} />
-                                      ))}
-                                    </div>
-                                  )}
-                                  {/* Financial Hub sub-pages */}
-                                  {item.to === "/financial-hub" && location.pathname.startsWith("/financial-hub") && (
-                                    <div className="ml-5 space-y-0.5">
-                                      <NavItem to="/financial-hub/journal" icon={<ClipboardList className="w-3.5 h-3.5" />} label="Journal" />
-                                      <NavItem to="/financial-hub/general-ledger" icon={<FileText className="w-3.5 h-3.5" />} label="General Ledger" />
-                                      <NavItem to="/financial-hub/accounts" icon={<Layers className="w-3.5 h-3.5" />} label="Chart of Accounts" />
-                                      <NavItem to="/financial-hub/transactions" icon={<ClipboardList className="w-3.5 h-3.5" />} label="Transactions" />
-                                      <NavItem to="/financial-hub/trial-balance-worksheet" icon={<BarChart3 className="w-3.5 h-3.5" />} label="Trial Balance" />
-                                      <NavItem to="/financial-hub/opening-balances" icon={<Layers className="w-3.5 h-3.5" />} label="Opening Balances" />
-                                      <NavItem to="/financial-hub/reports/profit-and-loss" icon={<TrendingUp className="w-3.5 h-3.5" />} label="Profit & Loss" />
-                                      <NavItem to="/financial-hub/reports/balance-sheet" icon={<Layers className="w-3.5 h-3.5" />} label="Balance Sheet" />
-                                      <NavItem to="/financial-hub/reports/cash-flow-statement" icon={<Activity className="w-3.5 h-3.5" />} label="Cash Flow Statement" />
-                                      <NavItem to="/financial-hub/cash-flow-forecast" icon={<PieChart className="w-3.5 h-3.5" />} label="Cash Flow Forecast" />
-                                      <NavItem to="/financial-hub/reconciliation" icon={<ShieldCheck className="w-3.5 h-3.5" />} label="Reconciliation" />
-                                      <NavItem to="/financial-hub/reports/period-comparison" icon={<ArrowLeftRight className="w-3.5 h-3.5" />} label="Period Comparison" />
-                                      <NavItem to="/financial-hub/invoices" icon={<FileText className="w-3.5 h-3.5" />} label="Invoices (AR)" />
-                                      <NavItem to="/financial-hub/bills" icon={<ClipboardList className="w-3.5 h-3.5" />} label="Bills (AP)" />
-                                      <NavItem to="/financial-hub/recurring-transactions" icon={<Zap className="w-3.5 h-3.5" />} label="Recurring" />
-                                      <NavItem to="/financial-hub/reports/aged-receivables" icon={<BarChart3 className="w-3.5 h-3.5" />} label="Aged Receivables" />
-                                      <NavItem to="/financial-hub/reports/aged-payables" icon={<BarChart3 className="w-3.5 h-3.5" />} label="Aged Payables" />
-                                      <NavItem to="/financial-hub/reports/tax-liability" icon={<DollarSign className="w-3.5 h-3.5" />} label="Tax Liability" />
-                                      <NavItem to="/financial-hub/intake" icon={<FileText className="w-3.5 h-3.5" />} label="Intake" />
-                                      <NavItem to="/financial-hub/cost-centers" icon={<Combine className="w-3.5 h-3.5" />} label="Cost Centers" />
-                                      <NavItem to="/financial-hub/usage" icon={<Activity className="w-3.5 h-3.5" />} label="Usage Tracking" />
-                                      <NavItem to="/financial-hub/allocations" icon={<PieChart className="w-3.5 h-3.5" />} label="Allocations" />
-                                      <NavItem to="/financial-hub/chargebacks" icon={<ArrowLeftRight className="w-3.5 h-3.5" />} label="Chargebacks" />
-                                    </div>
-                                  )}
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
+              {!isCollapsed && <div className="pt-4"><p className="nav-section-title">Hubs</p><div className="space-y-1">{hubsSections.map((hub) => {
+                const isOpen = expandedHubs[hub.title] || isHubActive(hub);
+                return <div key={hub.title}><button onClick={() => toggleHub(hub.title)} className={cn("nav-item group w-full flex items-center justify-between", isHubActive(hub) && "active")}><span className="flex items-center gap-2">{hub.icon}<span>{hub.title}</span></span><ChevronDown className={cn("w-3.5 h-3.5 transition-transform", isOpen && "rotate-180")} /></button>{isOpen && <div className="ml-4 space-y-0.5 animate-fade-in">{hub.items.map((item) => <div key={item.to}><NavItem to={item.to} icon={item.icon} label={item.label} />{item.subItems && location.pathname.startsWith(item.to) && <div className="ml-5 space-y-0.5">{item.subItems.map((sub) => <NavItem key={sub.to} to={sub.to} icon={<ChevronRight className="w-3 h-3" />} label={sub.label} />)}</div>}{item.to === "/financial-hub" && location.pathname.startsWith("/financial-hub") && <div className="ml-5 space-y-0.5"><NavItem to="/financial-hub/journal" icon={<ClipboardList className="w-3.5 h-3.5" />} label="Journal" /><NavItem to="/financial-hub/general-ledger" icon={<FileText className="w-3.5 h-3.5" />} label="General Ledger" /><NavItem to="/financial-hub/accounts" icon={<Layers className="w-3.5 h-3.5" />} label="Chart of Accounts" /><NavItem to="/financial-hub/transactions" icon={<ClipboardList className="w-3.5 h-3.5" />} label="Transactions" /><NavItem to="/financial-hub/trial-balance-worksheet" icon={<BarChart3 className="w-3.5 h-3.5" />} label="Trial Balance" /><NavItem to="/financial-hub/opening-balances" icon={<Layers className="w-3.5 h-3.5" />} label="Opening Balances" /><NavItem to="/financial-hub/reports/profit-and-loss" icon={<TrendingUp className="w-3.5 h-3.5" />} label="Profit & Loss" /><NavItem to="/financial-hub/reports/balance-sheet" icon={<Layers className="w-3.5 h-3.5" />} label="Balance Sheet" /><NavItem to="/financial-hub/reports/cash-flow-statement" icon={<Activity className="w-3.5 h-3.5" />} label="Cash Flow Statement" /><NavItem to="/financial-hub/cash-flow-forecast" icon={<PieChart className="w-3.5 h-3.5" />} label="Cash Flow Forecast" /><NavItem to="/financial-hub/reconciliation" icon={<ShieldCheck className="w-3.5 h-3.5" />} label="Reconciliation" /><NavItem to="/financial-hub/reports/period-comparison" icon={<ArrowLeftRight className="w-3.5 h-3.5" />} label="Period Comparison" /><NavItem to="/financial-hub/invoices" icon={<FileText className="w-3.5 h-3.5" />} label="Invoices (AR)" /><NavItem to="/financial-hub/bills" icon={<ClipboardList className="w-3.5 h-3.5" />} label="Bills (AP)" /><NavItem to="/financial-hub/recurring-transactions" icon={<Zap className="w-3.5 h-3.5" />} label="Recurring" /><NavItem to="/financial-hub/reports/aged-receivables" icon={<BarChart3 className="w-3.5 h-3.5" />} label="Aged Receivables" /><NavItem to="/financial-hub/reports/aged-payables" icon={<BarChart3 className="w-3.5 h-3.5" />} label="Aged Payables" /><NavItem to="/financial-hub/reports/tax-liability" icon={<DollarSign className="w-3.5 h-3.5" />} label="Tax Liability" /><NavItem to="/financial-hub/intake" icon={<FileText className="w-3.5 h-3.5" />} label="Intake" /><NavItem to="/financial-hub/cost-centers" icon={<Combine className="w-3.5 h-3.5" />} label="Cost Centers" /><NavItem to="/financial-hub/usage" icon={<Activity className="w-3.5 h-3.5" />} label="Usage Tracking" /><NavItem to="/financial-hub/allocations" icon={<PieChart className="w-3.5 h-3.5" />} label="Allocations" /><NavItem to="/financial-hub/chargebacks" icon={<ArrowLeftRight className="w-3.5 h-3.5" />} label="Chargebacks" /></div>}</div>)}</div>}</div>;
+              })}</div></div>}
 
-              {/* Footer Navigation */}
               <div className="pt-4 mt-4 border-t border-sidebar-border">
-                {isCollapsed && (
-                  <NavItem to="/reports" icon={<BarChart3 className="w-4 h-4" />} label="" />
-                )}
+                {isCollapsed && <NavItem to="/reports" icon={<BarChart3 className="w-4 h-4" />} label="" />}
                 <NavItem to="/automations" icon={<Zap className="w-4 h-4" />} label={isCollapsed ? "" : "Automations"} />
                 <NavItem to={canAccessAdminConfig ? "/admin/config" : "/admin"} icon={<Settings className="w-4 h-4" />} label={isCollapsed ? "" : "Admin"} />
               </div>
             </nav>
           </ScrollArea>
-
-          {/* User section */}
-          {!isCollapsed && (
-            <div className="p-4 border-t border-sidebar-border">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-sidebar-accent flex items-center justify-center">
-                  <span className="text-xs font-medium text-sidebar-foreground">{userInitials}</span>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-sidebar-foreground truncate">{displayName}</p>
-                  <p className="text-xs text-sidebar-muted truncate capitalize">{roleLabel}</p>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 text-sidebar-muted hover:text-sidebar-foreground hover:bg-sidebar-accent"
-                  onClick={handleSignOut}
-                  title="Sign out"
-                >
-                  <LogOut className="w-4 h-4" />
-                </Button>
-              </div>
-            </div>
-          )}
+          {!isCollapsed && <div className="p-4 border-t border-sidebar-border"><div className="flex items-center gap-3"><div className="w-8 h-8 rounded-full bg-sidebar-accent flex items-center justify-center"><span className="text-xs font-medium text-sidebar-foreground">{userInitials}</span></div><div className="flex-1 min-w-0"><p className="text-sm font-medium text-sidebar-foreground truncate">{displayName}</p><p className="text-xs text-sidebar-muted truncate capitalize">{roleLabel}</p></div><Button variant="ghost" size="icon" className="h-8 w-8 text-sidebar-muted hover:text-sidebar-foreground hover:bg-sidebar-accent" onClick={handleSignOut} title="Sign out"><LogOut className="w-4 h-4" /></Button></div></div>}
         </div>
       </aside>
     </>
