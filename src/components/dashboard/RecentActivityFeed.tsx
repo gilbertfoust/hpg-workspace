@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { Activity, ClipboardList, FileText, FormInput, GitBranch, Landmark, Loader2, ScrollText, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -5,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useDashboardRecentActivity, type RecentActivityType } from "@/hooks/useDashboardRecentActivity";
 
-const iconMap: Record<RecentActivityType, React.ReactNode> = {
+const iconMap: Record<RecentActivityType, ReactNode> = {
   work_item: <ClipboardList className="h-4 w-4" />,
   document: <FileText className="h-4 w-4" />,
   form_submission: <FormInput className="h-4 w-4" />,
