@@ -32,6 +32,7 @@ import { Loader2 } from "lucide-react";
 import { format, subMonths, startOfMonth } from "date-fns";
 import { TodaysActionCenter } from "@/components/dashboard/TodaysActionCenter";
 import { ModuleSnapshotCards } from "@/components/dashboard/ModuleSnapshotCards";
+import { RecentActivityFeed } from "@/components/dashboard/RecentActivityFeed";
 
 const HPG_LOGO_URL =
   "https://img1.wsimg.com/isteam/ip/8d5502d6-d937-4d80-bd56-8074053e4d77/Humanity%20Pathways%20Global.jpg/:/rs=h:175,m";
@@ -394,11 +395,11 @@ const Dashboard = () => {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" onClick={() => navigate("/ngos")}> 
+          <Button variant="outline" onClick={() => navigate("/ngos")}>
             <Users className="w-4 h-4 mr-2" />
             View NGOs
           </Button>
-          <Button onClick={() => navigate("/work-items")}> 
+          <Button onClick={() => navigate("/work-items")}>
             Open Work Queue
             <ArrowRight className="w-4 h-4 ml-2" />
           </Button>
@@ -413,6 +414,9 @@ const Dashboard = () => {
 
       {/* Module Snapshots */}
       <ModuleSnapshotCards />
+
+      {/* Recent Activity */}
+      <RecentActivityFeed />
 
       {/* Quick Navigation */}
       <QuickNavCards />
