@@ -356,8 +356,12 @@
   body.dashboard-print-mode main {
     padding: 0.5rem !important;
   }
+}
 
-  body.dashboard-print-mode .dashboard-page {
-    space-y: 1rem;
-  }
+.dashboard-page section {
+  scroll-margin-top: 5rem;
+}
+
+.dashboard-page .recharts-wrapper {
+  max-width: 100%;
 }

@@ -150,7 +150,7 @@ const DashboardFilterControls = ({
             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
           </div>
         ) : (
-          <div className="grid gap-3 md:grid-cols-4">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <label className="space-y-1 text-xs font-medium text-muted-foreground">
               Bundle
               <select className="w-full rounded-md border bg-background px-3 py-2 text-sm text-foreground" value={filters.bundle || ""} onChange={(event) => updateFilter("bundle", event.target.value)}>
@@ -219,7 +219,7 @@ const DashboardDrilldowns = ({ filters }: { filters: DashboardFilters }) => {
         <CardDescription>Jump from the dashboard into focused queues and filtered workspace views.</CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
           {drilldowns.map((item) => (
             <Button key={item.label} variant="outline" className="justify-between" onClick={() => navigate(item.path)}>
               <span className="flex items-center gap-2">
@@ -314,7 +314,7 @@ const WorkItemTrendChart = ({ filters }: { filters: DashboardFilters }) => {
         <CardDescription>Created vs completed — last 6 months</CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="h-[250px]">
+        <div className="h-[220px] sm:h-[250px] min-w-0">
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={trendData}>
               <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
@@ -340,7 +340,7 @@ const StatusDistributionChart = ({ filters }: { filters: DashboardFilters }) => 
         <CardDescription>Active work items by status</CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="h-[250px]">
+        <div className="h-[220px] sm:h-[250px] min-w-0">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie data={statusData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`} labelLine={false}>
@@ -375,7 +375,7 @@ const NgoPortfolioStatusChart = ({ filters }: { filters: DashboardFilters }) => 
             emptyDescription="Add NGOs to the workspace to see portfolio status distribution."
           />
         ) : (
-          <div className="h-[250px]">
+          <div className="h-[220px] sm:h-[250px] min-w-0">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie data={portfolioData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`} labelLine={false}>
@@ -411,7 +411,7 @@ const DeptWorkloadChart = ({ filters }: { filters: DashboardFilters }) => {
             emptyDescription="Assign work items to departments to see workload distribution."
           />
         ) : (
-          <div className="h-[250px]">
+          <div className="h-[220px] sm:h-[250px] min-w-0">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={workload} layout="vertical">
                 <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
@@ -552,7 +552,7 @@ const Dashboard = () => {
 
   return (
     <MainLayout>
-    <div className="space-y-6 dashboard-page">
+    <div className="space-y-4 sm:space-y-6 dashboard-page min-w-0 overflow-x-hidden">
       {/* Header */}
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between dashboard-no-print">
         <div>
@@ -613,7 +613,7 @@ const Dashboard = () => {
 
       {/* Dashboard Filters */}
       {!boardBriefMode && (
-      <section id="filters">
+      <section id="filters" className="scroll-mt-20">
         <DashboardFilterControls
           filters={filters}
           setFilters={setFilters}
@@ -670,7 +670,7 @@ const Dashboard = () => {
       )}
 
       {/* Data Health */}
-      <section id="data-health">
+      <section id="data-health" className="scroll-mt-20">
         <DataHealthPanel compact={boardBriefMode} />
       </section>
 
@@ -690,7 +690,7 @@ const Dashboard = () => {
       )}
 
       {/* Charts Row */}
-      <section id="charts" className={`grid gap-4 md:grid-cols-2 ${boardBriefMode ? "md:grid-cols-1" : ""}`}>
+      <section id="charts" className={`scroll-mt-20 grid gap-4 grid-cols-1 md:grid-cols-2 ${boardBriefMode ? "md:grid-cols-1" : ""}`}>
         {!boardBriefMode && <WorkItemTrendChart filters={filters} />}
         {!boardBriefMode && <StatusDistributionChart filters={filters} />}
         <NgoPortfolioStatusChart filters={filters} />
