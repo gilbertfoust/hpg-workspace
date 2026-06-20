@@ -42,6 +42,9 @@ import { DashboardAlertsBanner } from "@/components/dashboard/DashboardAlertsBan
 import { DashboardFollowUpQueue } from "@/components/dashboard/DashboardFollowUpQueue";
 import { NgoPortfolioIntelligencePanel } from "@/components/dashboard/NgoPortfolioIntelligencePanel";
 import { GrantPipelineIntelligencePanel } from "@/components/dashboard/GrantPipelineIntelligencePanel";
+import { FinanceReadinessPanel } from "@/components/dashboard/FinanceReadinessPanel";
+import { HrReadinessPanel } from "@/components/dashboard/HrReadinessPanel";
+import { DashboardDataDefinitions } from "@/components/dashboard/DashboardDataDefinitions";
 import { SavedDashboardViews } from "@/components/dashboard/SavedDashboardViews";
 import { useSavedDashboardViews, type SavedDashboardView } from "@/hooks/useSavedDashboardViews";
 import { useDashboardSectionScroll, useDashboardUrlState, type DashboardSectionId } from "@/hooks/useDashboardUrlState";
@@ -661,6 +664,14 @@ const Dashboard = () => {
       <section id="data-health">
         <DataHealthPanel compact={boardBriefMode} />
       </section>
+
+      {/* Finance & HR Readiness */}
+      {!boardBriefMode && (
+      <section id="readiness-panels" className="dashboard-operational grid gap-4 lg:grid-cols-2">
+        <FinanceReadinessPanel />
+        <HrReadinessPanel />
+      </section>
+      )}
 
       {/* Quick Navigation */}
       {!boardBriefMode && (
