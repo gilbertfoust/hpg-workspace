@@ -1,5 +1,8 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getSupabaseNotConfiguredError, supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+
+const AVATAR_BUCKET = "profile-avatars";
 
 export interface Profile {
   id: string;
@@ -51,6 +54,82 @@ export const useProfile = (id: string) => {
       return data as Profile;
     },
     enabled: !!id,
+  });
+};
+
+export const useCurrentProfile = () => {
+  return useQuery({
+    queryKey: ["current-profile"],
+    enabled: !!supabase,
+    queryFn: async () => {
+      ensureSupabase();
+      const {
+        data: { user },
+      } = await supabase!.auth.getUser();
+      if (!user) return null;
+
+      const { data, error } = await supabase!
+        .from("profiles")
+        .select("*")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      if (error) throw error;
+      return (data as Profile) ?? null;
+    },
+  });
+};
+
+export const useUpdateProfileAvatar = () => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async ({ userId, file }: { userId: string; file: File }) => {
+      ensureSupabase();
+
+      const extension = file.name.split(".").pop()?.toLowerCase() || "jpg";
+      const filePath = `${userId}/avatar.${extension}`;
+
+      const { error: uploadError } = await supabase!.storage
+        .from(AVATAR_BUCKET)
+        .upload(filePath, file, {
+          upsert: true,
+          cacheControl: "3600",
+          contentType: file.type || "image/jpeg",
+        });
+
+      if (uploadError) throw uploadError;
+
+      const { data: publicUrlData } = supabase!.storage.from(AVATAR_BUCKET).getPublicUrl(filePath);
+      const avatarUrl = `${publicUrlData.publicUrl}?t=${Date.now()}`;
+
+      const { data, error } = await supabase!
+        .from("profiles")
+        .update({ avatar_url: avatarUrl } as never)
+        .eq("id" as never, userId as never)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data as Profile;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["profiles"] });
+      queryClient.invalidateQueries({ queryKey: ["current-profile"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
+      toast({ title: "Profile photo updated" });
+    },
+    onError: (error: Error) => {
+      toast({
+        variant: "destructive",
+        title: "Could not upload photo",
+        description:
+          error.message.includes("Bucket not found") || error.message.includes("not found")
+            ? "Profile avatar storage is not configured yet. Apply the profile-avatars bucket migration in docs/proposed-schemas/user-access-bundle-schemas.md."
+            : error.message,
+      });
+    },
   });
 };
 
