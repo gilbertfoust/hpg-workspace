@@ -228,3 +228,39 @@ export type FinanceBankAccountInput = {
   opening_balance_date?: string;
   is_active?: boolean;
 };
+
+// ---------------------------------------------------------------------------
+// Document / receipt links
+// ---------------------------------------------------------------------------
+
+export type FinanceDocumentLinkEntityType =
+  | "journal_entry"
+  | "journal_line"
+  | "bill"
+  | "bill_payment"
+  | "payment"
+  | "deposit"
+  | "reimbursement";
+
+export interface FinanceDocumentLink {
+  id: string;
+  document_id: string;
+  entity_type: FinanceDocumentLinkEntityType;
+  entity_id: string;
+  link_notes: string | null;
+  created_by_user_id: string | null;
+  created_at: string;
+  document?: { id: string; file_name: string } | null;
+}
+
+export type FinanceReceiptStatus = "attached" | "missing" | "partial";
+
+export const FINANCE_DOCUMENT_LINK_ENTITY_LABELS: Record<FinanceDocumentLinkEntityType, string> = {
+  journal_entry: "Journal entry",
+  journal_line: "Journal line",
+  bill: "Bill",
+  bill_payment: "Bill payment",
+  payment: "Payment",
+  deposit: "Deposit",
+  reimbursement: "Reimbursement",
+};

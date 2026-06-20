@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -29,6 +29,7 @@ import {
 interface DocumentUploadDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  defaultRouteType?: UploadRouteType;
 }
 
 const acceptedFileTypes = [
@@ -45,9 +46,9 @@ const acceptedFileTypes = [
   "text/csv",
 ].join(",");
 
-export function DocumentUploadDialog({ open, onOpenChange }: DocumentUploadDialogProps) {
+export function DocumentUploadDialog({ open, onOpenChange, defaultRouteType }: DocumentUploadDialogProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [routeType, setRouteType] = useState<UploadRouteType>("ngo_upload");
+  const [routeType, setRouteType] = useState<UploadRouteType>(defaultRouteType ?? "ngo_upload");
   const [selectedNgoId, setSelectedNgoId] = useState<string>("");
   const [selectedDepartmentId, setSelectedDepartmentId] = useState<string>("");
   const [isDragging, setIsDragging] = useState(false);
@@ -58,6 +59,12 @@ export function DocumentUploadDialog({ open, onOpenChange }: DocumentUploadDialo
   const { data: orgUnits, isLoading: orgUnitsLoading } = useOrgUnits();
 
   const routeConfig = getUploadRouteConfig(routeType);
+
+  useEffect(() => {
+    if (open && defaultRouteType) {
+      setRouteType(defaultRouteType);
+    }
+  }, [open, defaultRouteType]);
 
   const selectedDepartment = useMemo(
     () => orgUnits?.find((unit) => unit.id === selectedDepartmentId),
