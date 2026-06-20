@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
-import { Activity, ClipboardList, FileText, FormInput, GitBranch, Landmark, Loader2, ScrollText, Users } from "lucide-react";
+import { Activity, ClipboardList, FileText, FormInput, GitBranch, Landmark, ScrollText, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";

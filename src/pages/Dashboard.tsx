@@ -49,6 +49,7 @@ import { DashboardPanelState } from "@/components/dashboard/DashboardPanelState"
 import { SavedDashboardViews } from "@/components/dashboard/SavedDashboardViews";
 import { useSavedDashboardViews, type SavedDashboardView } from "@/hooks/useSavedDashboardViews";
 import { useDashboardSectionScroll, useDashboardUrlState, type DashboardSectionId } from "@/hooks/useDashboardUrlState";
+import { toDashboardSearchParams } from "@/lib/dashboardSearchParams";
 
 const HPG_LOGO_URL =
   "https://img1.wsimg.com/isteam/ip/8d5502d6-d937-4d80-bd56-8074053e4d77/Humanity%20Pathways%20Global.jpg/:/rs=h:175,m";
@@ -66,15 +67,6 @@ const CHART_COLORS = [
 
 const hasActiveFilters = (filters: DashboardFilters) =>
   Boolean(filters.bundle || filters.country || filters.state || filters.module);
-
-const toSearchParams = (params: Record<string, string | number | undefined>) => {
-  const search = new URLSearchParams();
-  Object.entries(params).forEach(([key, value]) => {
-    if (value !== undefined && value !== "") search.set(key, String(value));
-  });
-  const value = search.toString();
-  return value ? `?${value}` : "";
-};
 
 function useWorkItemTrend(filters: DashboardFilters) {
   const { data: workItems } = useWorkItems(filters.module ? { module: filters.module } : {});
@@ -202,14 +194,14 @@ const DashboardDrilldowns = ({ filters }: { filters: DashboardFilters }) => {
   };
 
   const drilldowns = [
-    { label: "Overdue Work Items", path: `/work-items${toSearchParams({ ...baseParams, due: "overdue" })}`, icon: AlertCircle },
-    { label: "Due This Week", path: `/work-items${toSearchParams({ ...baseParams, due: "7d" })}`, icon: Clock },
-    { label: "High Priority", path: `/work-items${toSearchParams({ ...baseParams, priority: "high" })}`, icon: TrendingUp },
-    { label: "Waiting on NGO", path: `/work-items${toSearchParams({ ...baseParams, status: "waiting_on_ngo" })}`, icon: Users },
-    { label: "Out of Compliance NGOs", path: `/ngos${toSearchParams({ ...baseParams, portfolioStatus: "out_of_compliance" })}`, icon: Shield },
-    { label: "Grant Applications", path: `/grants${toSearchParams({ ...baseParams, view: "applications" })}`, icon: Briefcase },
-    { label: "Pending Documents", path: `/documents${toSearchParams({ ...baseParams, review_status: "Pending" })}`, icon: FileText },
-    { label: "Data Health", path: `/dashboard${toSearchParams({ ...baseParams, section: "data-health" })}`, icon: LayoutDashboard },
+    { label: "Overdue Work Items", path: `/work-items${toDashboardSearchParams({ ...baseParams, due: "overdue" })}`, icon: AlertCircle },
+    { label: "Due This Week", path: `/work-items${toDashboardSearchParams({ ...baseParams, due: "7d" })}`, icon: Clock },
+    { label: "High Priority", path: `/work-items${toDashboardSearchParams({ ...baseParams, priority: "high" })}`, icon: TrendingUp },
+    { label: "Waiting on NGO", path: `/work-items${toDashboardSearchParams({ ...baseParams, status: "waiting_on_ngo" })}`, icon: Users },
+    { label: "Out of Compliance NGOs", path: `/ngos${toDashboardSearchParams({ ...baseParams, portfolioStatus: "out_of_compliance" })}`, icon: Shield },
+    { label: "Grant Applications", path: `/grants${toDashboardSearchParams({ ...baseParams, view: "applications" })}`, icon: Briefcase },
+    { label: "Pending Documents", path: `/documents${toDashboardSearchParams({ ...baseParams, review_status: "Pending" })}`, icon: FileText },
+    { label: "Data Health", path: `/dashboard${toDashboardSearchParams({ ...baseParams, section: "data-health" })}`, icon: LayoutDashboard },
   ];
 
   return (

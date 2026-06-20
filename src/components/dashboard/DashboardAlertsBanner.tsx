@@ -3,15 +3,7 @@ import { AlertTriangle, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useDashboardData, type DashboardFilters } from "@/hooks/useDashboardData";
 import { useDashboardDataHealth } from "@/hooks/useDashboardDataHealth";
-
-const toSearchParams = (params: Record<string, string | undefined>) => {
-  const search = new URLSearchParams();
-  Object.entries(params).forEach(([key, value]) => {
-    if (value) search.set(key, value);
-  });
-  const value = search.toString();
-  return value ? `?${value}` : "";
-};
+import { toDashboardSearchParams } from "@/lib/dashboardSearchParams";
 
 export const DashboardAlertsBanner = ({ filters }: { filters: DashboardFilters }) => {
   const navigate = useNavigate();
@@ -51,25 +43,25 @@ export const DashboardAlertsBanner = ({ filters }: { filters: DashboardFilters }
         </div>
         <div className="flex flex-wrap gap-2">
           {overdue > 0 && (
-            <Button size="sm" variant="outline" onClick={() => navigate(`/work-items${toSearchParams({ ...baseParams, due: "overdue" })}`)}>
+            <Button size="sm" variant="outline" onClick={() => navigate(`/work-items${toDashboardSearchParams({ ...baseParams, due: "overdue" })}`)}>
               Overdue
               <ArrowRight className="ml-1 h-3 w-3" />
             </Button>
           )}
           {missingEvidence > 0 && (
-            <Button size="sm" variant="outline" onClick={() => navigate(`/work-items${toSearchParams(baseParams)}`)}>
+            <Button size="sm" variant="outline" onClick={() => navigate(`/work-items${toDashboardSearchParams(baseParams)}`)}>
               Evidence
               <ArrowRight className="ml-1 h-3 w-3" />
             </Button>
           )}
           {atRisk > 0 && (
-            <Button size="sm" variant="outline" onClick={() => navigate(`/ngos${toSearchParams({ ...baseParams, portfolioStatus: "out_of_compliance" })}`)}>
+            <Button size="sm" variant="outline" onClick={() => navigate(`/ngos${toDashboardSearchParams({ ...baseParams, portfolioStatus: "out_of_compliance" })}`)}>
               At-risk NGOs
               <ArrowRight className="ml-1 h-3 w-3" />
             </Button>
           )}
           {missingSources > 0 && (
-            <Button size="sm" variant="outline" onClick={() => navigate(`/dashboard${toSearchParams({ ...baseParams, section: "data-health" })}`)}>
+            <Button size="sm" variant="outline" onClick={() => navigate(`/dashboard${toDashboardSearchParams({ ...baseParams, section: "data-health" })}`)}>
               Data health
               <ArrowRight className="ml-1 h-3 w-3" />
             </Button>
