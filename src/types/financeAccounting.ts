@@ -199,3 +199,32 @@ export const FINANCE_FUND_TYPE_LABELS: Record<FinanceFundType, string> = {
   fiscal_sponsorship: "Fiscal sponsorship",
   pass_through: "Pass-through",
 };
+
+// ---------------------------------------------------------------------------
+// Bank accounts
+// ---------------------------------------------------------------------------
+
+export interface FinanceBankAccount {
+  id: string;
+  account_name: string;
+  institution_name: string | null;
+  last_four: string | null;
+  linked_finance_account_id: string;
+  opening_balance: number;
+  opening_balance_date: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+  ledger_balance?: number;
+  linked_account?: Pick<FinanceAccount, "code" | "name"> | null;
+}
+
+export type FinanceBankAccountInput = {
+  account_name: string;
+  institution_name?: string | null;
+  last_four?: string | null;
+  linked_finance_account_id: string;
+  opening_balance?: number;
+  opening_balance_date?: string;
+  is_active?: boolean;
+};
