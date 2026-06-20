@@ -6,6 +6,8 @@ export interface QueueUploadNotificationInput {
   documentId: string;
   module: ModuleType;
   departmentId?: string | null;
+  fileName?: string;
+  departmentName?: string | null;
 }
 
 /**
@@ -29,13 +31,12 @@ export async function queueUploadNotification(input: QueueUploadNotificationInpu
     notification_status: "queued",
     metadata_json: {
       source: "document_upload",
-      integration: "pending_slack_processor",
+      file_name: input.fileName ?? null,
+      department_name: input.departmentName ?? null,
     },
   };
 
-  const { error } = await supabase
-    .from("upload_notification_events" as never)
-    .insert(payload as never);
+  const { error } = await supabase.from("upload_notification_events").insert(payload);
 
   if (error) {
     return {
@@ -43,6 +44,14 @@ export async function queueUploadNotification(input: QueueUploadNotificationInpu
       message:
         "Upload routed successfully. Slack notification queue is not available yet — apply the upload_notification_events migration to enable dispatch.",
     };
+  }
+
+  try {
+    await supabase.functions.invoke("process-upload-notification-events", {
+      body: { limit: 1 },
+    });
+  } catch {
+    // Non-blocking: queued events can be processed manually or by automation.
   }
 
   return {

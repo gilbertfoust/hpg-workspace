@@ -143,6 +143,8 @@ export const useRoutedDocumentUpload = () => {
         documentId: document.id,
         module,
         departmentId,
+        fileName: input.file.name,
+        departmentName: input.departmentName ?? routedTo,
       });
 
       return {

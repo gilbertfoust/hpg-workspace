@@ -8,10 +8,10 @@ export const archiveWorkItemWithFallback = async (
   id: string,
   reason?: string,
 ) => {
-  const { data, error } = await client.rpc("archive_work_item" as never, {
+  const { data, error } = await client.rpc("archive_work_item", {
     _work_item_id: id,
     _reason: reason || "Archived from workspace",
-  } as never);
+  });
 
   if (!error) return data as WorkItem;
 
@@ -43,10 +43,10 @@ export const completeWorkItemForAdminRecordsWithFallback = async (
   id: string,
   notes?: string,
 ) => {
-  const { data, error } = await client.rpc("complete_work_item_for_admin_records" as never, {
+  const { data, error } = await client.rpc("complete_work_item_for_admin_records", {
     _work_item_id: id,
     _notes: notes || "Completed and sent to admin records",
-  } as never);
+  });
 
   if (!error) return data as WorkItem;
 

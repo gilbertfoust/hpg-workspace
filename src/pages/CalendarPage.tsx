@@ -166,7 +166,7 @@ export default function CalendarPage() {
             />
             {calendarEvents.length === 0 && canManageEvents && (
               <p className="text-xs text-muted-foreground mt-3">
-                Admin events require the calendar_events table. See docs/proposed-schemas/user-access-bundle-schemas.md.
+                No admin events yet. Use Add event to schedule meetings, deadlines, and compliance dates.
               </p>
             )}
           </CardContent>

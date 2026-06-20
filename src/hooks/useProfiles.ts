@@ -126,7 +126,7 @@ export const useUpdateProfileAvatar = () => {
         title: "Could not upload photo",
         description:
           error.message.includes("Bucket not found") || error.message.includes("not found")
-            ? "Profile avatar storage is not configured yet. Apply the profile-avatars bucket migration in docs/proposed-schemas/user-access-bundle-schemas.md."
+            ? "Profile avatar storage is not configured on the server yet."
             : error.message,
       });
     },

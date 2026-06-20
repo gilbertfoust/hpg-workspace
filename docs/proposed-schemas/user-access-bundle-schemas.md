@@ -1,9 +1,15 @@
-# Proposed Schemas — User Access Bundle (Phases 23–26, 30)
+# User Access Bundle — Supabase Backend
 
-These migrations are **proposed only**. Apply after approval. Client code references these tables with graceful degradation when tables/buckets are missing.
+**Status: implemented** in migration `20260620180000_user_access_bundle_backend.sql`.
+
+This document describes the schema that powers calendar events, upload notifications, potential sponsees, profile avatars, and the admin records FK fix.
+
+Apply migrations with `supabase db push` or your deployment pipeline, then deploy edge functions:
+
+- `process-upload-notification-events`
+- `admin-update-role` (updated to sync `profiles.role`)
 
 ---
-
 ## 1. Calendar events (Phase 23)
 
 ```sql

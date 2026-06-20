@@ -148,8 +148,7 @@ export default function PotentialSponsees() {
       {prospects.length === 0 && !isLoading && (
         <Card className="mb-4">
           <CardContent className="py-6 text-sm text-muted-foreground">
-            No prospects yet. Add organizations to track outreach. If saves fail, apply the proposed
-            `potential_sponsees` migration in docs/proposed-schemas/user-access-bundle-schemas.md.
+            No prospects yet. Add organizations to track fiscal sponsorship outreach.
           </CardContent>
         </Card>
       )}

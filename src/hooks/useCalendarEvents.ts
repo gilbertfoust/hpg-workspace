@@ -3,38 +3,11 @@ import { getSupabaseNotConfiguredError, supabase } from "@/integrations/supabase
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { isAdminRole } from "@/hooks/useUserRole";
+import type { Database } from "@/integrations/supabase/types";
 
-export type CalendarEventType =
-  | "meeting"
-  | "deadline"
-  | "birthday"
-  | "compliance"
-  | "training"
-  | "other";
-
-export interface CalendarEvent {
-  id: string;
-  title: string;
-  event_type: CalendarEventType;
-  starts_at: string;
-  ends_at: string | null;
-  description: string | null;
-  ngo_id: string | null;
-  department_id: string | null;
-  created_by_user_id: string | null;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface CreateCalendarEventInput {
-  title: string;
-  event_type: CalendarEventType;
-  starts_at: string;
-  ends_at?: string | null;
-  description?: string | null;
-  ngo_id?: string | null;
-  department_id?: string | null;
-}
+export type CalendarEventType = Database["public"]["Enums"]["calendar_event_type"];
+export type CalendarEvent = Database["public"]["Tables"]["calendar_events"]["Row"];
+export type CreateCalendarEventInput = Database["public"]["Tables"]["calendar_events"]["Insert"];
 
 const ensureSupabase = () => {
   if (!supabase) {
@@ -49,16 +22,11 @@ export const useCalendarEvents = () => {
     queryFn: async () => {
       ensureSupabase();
       const { data, error } = await supabase
-        .from("calendar_events" as never)
+        .from("calendar_events")
         .select("*")
         .order("starts_at", { ascending: true });
 
-      if (error) {
-        if (error.code === "42P01" || error.message.includes("does not exist")) {
-          return [] as CalendarEvent[];
-        }
-        throw error;
-      }
+      if (error) throw error;
       return (data || []) as CalendarEvent[];
     },
   });
@@ -75,11 +43,11 @@ export const useCreateCalendarEvent = () => {
       if (!user?.id) throw new Error("You must be signed in to create events.");
 
       const { data, error } = await supabase
-        .from("calendar_events" as never)
+        .from("calendar_events")
         .insert({
           ...input,
           created_by_user_id: user.id,
-        } as never)
+        })
         .select()
         .single();
 
@@ -94,10 +62,7 @@ export const useCreateCalendarEvent = () => {
       toast({
         variant: "destructive",
         title: "Could not create event",
-        description:
-          error.message.includes("does not exist") || error.message.includes("42P01")
-            ? "Calendar events table is not available yet. Apply the proposed calendar_events migration first."
-            : error.message,
+        description: error.message,
       });
     },
   });

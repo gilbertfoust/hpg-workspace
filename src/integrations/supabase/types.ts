@@ -6116,11 +6116,298 @@ export type Database = {
           },
         ]
       }
+      calendar_events: {
+        Row: {
+          id: string
+          title: string
+          event_type: Database["public"]["Enums"]["calendar_event_type"]
+          starts_at: string
+          ends_at: string | null
+          description: string | null
+          ngo_id: string | null
+          department_id: string | null
+          created_by_user_id: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          title: string
+          event_type?: Database["public"]["Enums"]["calendar_event_type"]
+          starts_at: string
+          ends_at?: string | null
+          description?: string | null
+          ngo_id?: string | null
+          department_id?: string | null
+          created_by_user_id?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          title?: string
+          event_type?: Database["public"]["Enums"]["calendar_event_type"]
+          starts_at?: string
+          ends_at?: string | null
+          description?: string | null
+          ngo_id?: string | null
+          department_id?: string | null
+          created_by_user_id?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "calendar_events_created_by_user_id_fkey"
+            columns: ["created_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calendar_events_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "org_units"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calendar_events_ngo_id_fkey"
+            columns: ["ngo_id"]
+            isOneToOne: false
+            referencedRelation: "ngos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      potential_sponsees: {
+        Row: {
+          id: string
+          organization_name: string
+          country: string | null
+          state_province: string | null
+          city: string | null
+          contact_person: string | null
+          email: string | null
+          phone: string | null
+          website: string | null
+          mission_area: string | null
+          sponsorship_fit: string | null
+          outreach_status: Database["public"]["Enums"]["sponsee_outreach_status"]
+          next_follow_up_date: string | null
+          assigned_owner_user_id: string | null
+          notes: string | null
+          created_by_user_id: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          organization_name: string
+          country?: string | null
+          state_province?: string | null
+          city?: string | null
+          contact_person?: string | null
+          email?: string | null
+          phone?: string | null
+          website?: string | null
+          mission_area?: string | null
+          sponsorship_fit?: string | null
+          outreach_status?: Database["public"]["Enums"]["sponsee_outreach_status"]
+          next_follow_up_date?: string | null
+          assigned_owner_user_id?: string | null
+          notes?: string | null
+          created_by_user_id?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          organization_name?: string
+          country?: string | null
+          state_province?: string | null
+          city?: string | null
+          contact_person?: string | null
+          email?: string | null
+          phone?: string | null
+          website?: string | null
+          mission_area?: string | null
+          sponsorship_fit?: string | null
+          outreach_status?: Database["public"]["Enums"]["sponsee_outreach_status"]
+          next_follow_up_date?: string | null
+          assigned_owner_user_id?: string | null
+          notes?: string | null
+          created_by_user_id?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "potential_sponsees_assigned_owner_user_id_fkey"
+            columns: ["assigned_owner_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "potential_sponsees_created_by_user_id_fkey"
+            columns: ["created_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      upload_notification_events: {
+        Row: {
+          id: string
+          work_item_id: string
+          document_id: string | null
+          module: string
+          department_id: string | null
+          notification_type: string
+          notification_status: string
+          recipient: string | null
+          error_message: string | null
+          metadata_json: Json
+          created_at: string
+          processed_at: string | null
+        }
+        Insert: {
+          id?: string
+          work_item_id: string
+          document_id?: string | null
+          module: string
+          department_id?: string | null
+          notification_type: string
+          notification_status?: string
+          recipient?: string | null
+          error_message?: string | null
+          metadata_json?: Json
+          created_at?: string
+          processed_at?: string | null
+        }
+        Update: {
+          id?: string
+          work_item_id?: string
+          document_id?: string | null
+          module?: string
+          department_id?: string | null
+          notification_type?: string
+          notification_status?: string
+          recipient?: string | null
+          error_message?: string | null
+          metadata_json?: Json
+          created_at?: string
+          processed_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "upload_notification_events_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "org_units"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "upload_notification_events_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "upload_notification_events_work_item_id_fkey"
+            columns: ["work_item_id"]
+            isOneToOne: false
+            referencedRelation: "work_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      work_item_admin_records: {
+        Row: {
+          id: string
+          work_item_id: string
+          title: string
+          module: Database["public"]["Enums"]["module_type"] | null
+          department_id: string | null
+          ngo_id: string | null
+          completed_by_user_id: string | null
+          completed_at: string
+          archive_reason: string
+          record_status: string
+          notes: string | null
+          snapshot_json: Json | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          work_item_id: string
+          title: string
+          module?: Database["public"]["Enums"]["module_type"] | null
+          department_id?: string | null
+          ngo_id?: string | null
+          completed_by_user_id?: string | null
+          completed_at?: string
+          archive_reason?: string
+          record_status?: string
+          notes?: string | null
+          snapshot_json?: Json | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          work_item_id?: string
+          title?: string
+          module?: Database["public"]["Enums"]["module_type"] | null
+          department_id?: string | null
+          ngo_id?: string | null
+          completed_by_user_id?: string | null
+          completed_at?: string
+          archive_reason?: string
+          record_status?: string
+          notes?: string | null
+          snapshot_json?: Json | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "work_item_admin_records_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "org_units"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_item_admin_records_ngo_id_fkey"
+            columns: ["ngo_id"]
+            isOneToOne: false
+            referencedRelation: "ngos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_item_admin_records_work_item_id_fkey"
+            columns: ["work_item_id"]
+            isOneToOne: true
+            referencedRelation: "work_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      archive_work_item: {
+        Args: { _work_item_id: string; _reason?: string }
+        Returns: Database["public"]["Tables"]["work_items"]["Row"]
+      }
+      complete_work_item_for_admin_records: {
+        Args: { _work_item_id: string; _notes?: string }
+        Returns: Database["public"]["Tables"]["work_items"]["Row"]
+      }
       get_my_department: { Args: never; Returns: string }
       get_my_ngo_id: { Args: never; Returns: string }
       get_my_role: {
@@ -6155,6 +6442,7 @@ export type Database = {
       is_internal_user: { Args: never; Returns: boolean }
       is_management: { Args: never; Returns: boolean }
       is_super_admin: { Args: never; Returns: boolean }
+      is_admin_user: { Args: never; Returns: boolean }
     }
     Enums: {
       app_role:
@@ -6163,8 +6451,24 @@ export type Database = {
         | "ngo_coordinator"
         | "department_lead"
         | "staff_member"
+        | "staff"
         | "executive_secretariat"
         | "external_ngo"
+        | "ngo_user"
+        | "vp_operations"
+        | "vp_programs"
+        | "vp_development"
+        | "vp_finance"
+        | "vp_communications"
+        | "viewer"
+        | "board"
+      calendar_event_type:
+        | "meeting"
+        | "deadline"
+        | "birthday"
+        | "compliance"
+        | "training"
+        | "other"
       document_category:
         | "onboarding"
         | "compliance"
@@ -6207,6 +6511,13 @@ export type Database = {
         | "closed"
       org_type: "ngo" | "partner" | "funder" | "vendor" | "applicant"
       priority_level: "low" | "medium" | "high"
+      sponsee_outreach_status:
+        | "research"
+        | "contacted"
+        | "in_conversation"
+        | "on_hold"
+        | "declined"
+        | "converted"
       work_item_status:
         | "draft"
         | "not_started"
@@ -6352,8 +6663,25 @@ export const Constants = {
         "ngo_coordinator",
         "department_lead",
         "staff_member",
+        "staff",
         "executive_secretariat",
         "external_ngo",
+        "ngo_user",
+        "vp_operations",
+        "vp_programs",
+        "vp_development",
+        "vp_finance",
+        "vp_communications",
+        "viewer",
+        "board",
+      ],
+      calendar_event_type: [
+        "meeting",
+        "deadline",
+        "birthday",
+        "compliance",
+        "training",
+        "other",
       ],
       document_category: [
         "onboarding",
@@ -6401,6 +6729,14 @@ export const Constants = {
       ],
       org_type: ["ngo", "partner", "funder", "vendor", "applicant"],
       priority_level: ["low", "medium", "high"],
+      sponsee_outreach_status: [
+        "research",
+        "contacted",
+        "in_conversation",
+        "on_hold",
+        "declined",
+        "converted",
+      ],
       work_item_status: [
         "draft",
         "not_started",
