@@ -38,6 +38,7 @@ import { ModuleSnapshotCards } from "@/components/dashboard/ModuleSnapshotCards"
 import { RecentActivityFeed } from "@/components/dashboard/RecentActivityFeed";
 import { DataHealthPanel } from "@/components/dashboard/DataHealthPanel";
 import { ExecutiveBrief } from "@/components/dashboard/ExecutiveBrief";
+import { DashboardAlertsBanner } from "@/components/dashboard/DashboardAlertsBanner";
 import { SavedDashboardViews } from "@/components/dashboard/SavedDashboardViews";
 import { useSavedDashboardViews, type SavedDashboardView } from "@/hooks/useSavedDashboardViews";
 import { useDashboardSectionScroll, useDashboardUrlState, type DashboardSectionId } from "@/hooks/useDashboardUrlState";
@@ -592,6 +593,8 @@ const Dashboard = () => {
           )}
         </div>
       </div>
+
+      {!boardBriefMode && <DashboardAlertsBanner filters={filters} />}
 
       {/* Dashboard Filters */}
       {!boardBriefMode && (
