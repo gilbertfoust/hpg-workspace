@@ -661,6 +661,15 @@ const Dashboard = () => {
       </section>
       )}
 
+      {/* Charts — directly under filters */}
+      {!boardBriefMode && (
+      <section id="charts" className="scroll-mt-20 grid gap-4 grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
+        <WorkItemTrendChart filters={filters} />
+        <NgoPortfolioStatusChart filters={filters} />
+        <StatusDistributionChart filters={filters} />
+      </section>
+      )}
+
       {/* Drilldowns */}
       {!boardBriefMode && (
       <section id="drilldowns" className="dashboard-operational">
@@ -726,12 +735,12 @@ const Dashboard = () => {
       </div>
       )}
 
-      {/* Charts Row */}
-      <section id="charts" className={`scroll-mt-20 grid gap-4 grid-cols-1 md:grid-cols-2 ${boardBriefMode ? "md:grid-cols-1" : ""}`}>
-        {!boardBriefMode && <WorkItemTrendChart filters={filters} />}
-        {!boardBriefMode && <StatusDistributionChart filters={filters} />}
+      {/* NGO status chart in board brief mode */}
+      {boardBriefMode && (
+      <section id="charts" className="scroll-mt-20">
         <NgoPortfolioStatusChart filters={filters} />
       </section>
+      )}
 
       {/* NGO Portfolio Intelligence */}
       {!boardBriefMode && (
