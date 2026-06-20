@@ -36,7 +36,9 @@ import { ModuleSnapshotCards } from "@/components/dashboard/ModuleSnapshotCards"
 import { RecentActivityFeed } from "@/components/dashboard/RecentActivityFeed";
 import { DataHealthPanel } from "@/components/dashboard/DataHealthPanel";
 import { ExecutiveBrief } from "@/components/dashboard/ExecutiveBrief";
-import { useDashboardSectionScroll, useDashboardUrlState } from "@/hooks/useDashboardUrlState";
+import { SavedDashboardViews } from "@/components/dashboard/SavedDashboardViews";
+import { useSavedDashboardViews, type SavedDashboardView } from "@/hooks/useSavedDashboardViews";
+import { useDashboardSectionScroll, useDashboardUrlState, type DashboardSectionId } from "@/hooks/useDashboardUrlState";
 
 const HPG_LOGO_URL =
   "https://img1.wsimg.com/isteam/ip/8d5502d6-d937-4d80-bd56-8074053e4d77/Humanity%20Pathways%20Global.jpg/:/rs=h:175,m";
@@ -96,7 +98,19 @@ function useStatusDistribution(filters: DashboardFilters) {
   return Array.from(statusMap.entries()).map(([name, value]) => ({ name, value }));
 }
 
-const DashboardFilterControls = ({ filters, setFilters }: { filters: DashboardFilters; setFilters: (filters: DashboardFilters) => void }) => {
+const DashboardFilterControls = ({
+  filters,
+  setFilters,
+  section,
+  onApplySavedView,
+  onResetView,
+}: {
+  filters: DashboardFilters;
+  setFilters: (filters: DashboardFilters) => void;
+  section: DashboardSectionId | null;
+  onApplySavedView: (view: SavedDashboardView) => void;
+  onResetView: () => void;
+}) => {
   const { data: options, isLoading } = useDashboardFilters();
 
   const updateFilter = (key: keyof DashboardFilters, value: string) => {
@@ -157,6 +171,12 @@ const DashboardFilterControls = ({ filters, setFilters }: { filters: DashboardFi
             </label>
           </div>
         )}
+        <SavedDashboardViews
+          filters={filters}
+          section={section}
+          onApply={onApplySavedView}
+          onReset={onResetView}
+        />
       </CardContent>
     </Card>
   );
@@ -493,8 +513,13 @@ const QuickNavCards = () => {
 const Dashboard = () => {
   const navigate = useNavigate();
   const [logoFailed, setLogoFailed] = useState(false);
-  const { filters, section, setFilters } = useDashboardUrlState();
+  const { filters, section, setFilters, applyView, resetToDefault } = useDashboardUrlState();
+  const { toFilters } = useSavedDashboardViews();
   useDashboardSectionScroll(section);
+
+  const handleApplySavedView = (view: SavedDashboardView) => {
+    applyView({ filters: toFilters(view), section: view.section ?? null });
+  };
   const filterSummary = useMemo(() => {
     const entries = Object.entries(filters).filter(([, value]) => Boolean(value));
     return entries.length ? entries.map(([key, value]) => `${key}: ${value}`).join(" • ") : "All workspace data";
@@ -540,7 +565,13 @@ const Dashboard = () => {
 
       {/* Dashboard Filters */}
       <section id="filters">
-        <DashboardFilterControls filters={filters} setFilters={setFilters} />
+        <DashboardFilterControls
+          filters={filters}
+          setFilters={setFilters}
+          section={section}
+          onApplySavedView={handleApplySavedView}
+          onResetView={resetToDefault}
+        />
       </section>
 
       {/* Drilldowns */}

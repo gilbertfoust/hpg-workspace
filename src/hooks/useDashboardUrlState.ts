@@ -56,7 +56,28 @@ export const useDashboardUrlState = () => {
     setSearchParams(params, { replace: true });
   };
 
-  return { filters, section, setFilters };
+  const applyView = (view: { filters: DashboardFilters; section?: DashboardSectionId | null }) => {
+    const params = new URLSearchParams();
+
+    FILTER_PARAM_KEYS.forEach((key) => {
+      const value = view.filters[key];
+      if (value) {
+        params.set(key, value);
+      }
+    });
+
+    if (view.section) {
+      params.set("section", view.section);
+    }
+
+    setSearchParams(params, { replace: true });
+  };
+
+  const resetToDefault = () => {
+    setSearchParams(new URLSearchParams(), { replace: true });
+  };
+
+  return { filters, section, setFilters, applyView, resetToDefault };
 };
 
 export const useDashboardSectionScroll = (section: DashboardSectionId | null) => {
