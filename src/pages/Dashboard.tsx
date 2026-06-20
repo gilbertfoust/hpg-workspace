@@ -39,6 +39,7 @@ import { RecentActivityFeed } from "@/components/dashboard/RecentActivityFeed";
 import { DataHealthPanel } from "@/components/dashboard/DataHealthPanel";
 import { ExecutiveBrief } from "@/components/dashboard/ExecutiveBrief";
 import { DashboardAlertsBanner } from "@/components/dashboard/DashboardAlertsBanner";
+import { DashboardFollowUpQueue } from "@/components/dashboard/DashboardFollowUpQueue";
 import { SavedDashboardViews } from "@/components/dashboard/SavedDashboardViews";
 import { useSavedDashboardViews, type SavedDashboardView } from "@/hooks/useSavedDashboardViews";
 import { useDashboardSectionScroll, useDashboardUrlState, type DashboardSectionId } from "@/hooks/useDashboardUrlState";
@@ -630,6 +631,13 @@ const Dashboard = () => {
       {!boardBriefMode && (
       <section id="action-center" className="dashboard-operational">
         <TodaysActionCenter filters={filters} />
+      </section>
+      )}
+
+      {/* Follow-Up Queue */}
+      {!boardBriefMode && (
+      <section id="follow-up-queue" className="dashboard-operational">
+        <DashboardFollowUpQueue filters={filters} />
       </section>
       )}
 
