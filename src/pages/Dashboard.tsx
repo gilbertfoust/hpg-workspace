@@ -41,6 +41,7 @@ import { ExecutiveBrief } from "@/components/dashboard/ExecutiveBrief";
 import { DashboardAlertsBanner } from "@/components/dashboard/DashboardAlertsBanner";
 import { DashboardFollowUpQueue } from "@/components/dashboard/DashboardFollowUpQueue";
 import { NgoPortfolioIntelligencePanel } from "@/components/dashboard/NgoPortfolioIntelligencePanel";
+import { GrantPipelineIntelligencePanel } from "@/components/dashboard/GrantPipelineIntelligencePanel";
 import { SavedDashboardViews } from "@/components/dashboard/SavedDashboardViews";
 import { useSavedDashboardViews, type SavedDashboardView } from "@/hooks/useSavedDashboardViews";
 import { useDashboardSectionScroll, useDashboardUrlState, type DashboardSectionId } from "@/hooks/useDashboardUrlState";
@@ -679,6 +680,13 @@ const Dashboard = () => {
       {!boardBriefMode && (
       <section id="portfolio-intelligence" className="dashboard-operational">
         <NgoPortfolioIntelligencePanel filters={filters} />
+      </section>
+      )}
+
+      {/* Grant Pipeline Intelligence */}
+      {!boardBriefMode && (
+      <section id="grant-pipeline" className="dashboard-operational">
+        <GrantPipelineIntelligencePanel />
       </section>
       )}
 
