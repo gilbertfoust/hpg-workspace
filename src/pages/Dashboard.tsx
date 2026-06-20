@@ -389,18 +389,23 @@ const NgoPortfolioStatusChart = ({ filters }: { filters: DashboardFilters }) => 
 const DeptWorkloadChart = ({ filters }: { filters: DashboardFilters }) => {
   const { data: dashboardData } = useDashboardData(filters);
   const workload = dashboardData?.workloadByDepartment ?? [];
+  const openCount = dashboardData?.openWorkItemCount ?? 0;
   return (
     <Card className="col-span-full">
       <CardHeader>
         <CardTitle className="text-base">Workload by Department</CardTitle>
-        <CardDescription>Open work items per department</CardDescription>
+        <CardDescription>Open work items per department (includes module-based routing when department is unset)</CardDescription>
       </CardHeader>
       <CardContent>
         {workload.length === 0 ? (
           <DashboardPanelState
             isEmpty
-            emptyTitle="No department workload"
-            emptyDescription="Assign work items to departments to see workload distribution."
+            emptyTitle={openCount > 0 ? "Work items found without department grouping" : "No open work items in this view"}
+            emptyDescription={
+              openCount > 0
+                ? `${openCount} open work item${openCount === 1 ? "" : "s"} exist but could not be grouped by department. Assign a department on each work item for clearer workload charts.`
+                : "Create or reopen work items in this dashboard view to see department workload."
+            }
           />
         ) : (
           <div className="h-[220px] sm:h-[250px] min-w-0">
@@ -423,7 +428,17 @@ const DeptWorkloadChart = ({ filters }: { filters: DashboardFilters }) => {
 const AtRiskAndEvidencePanel = ({ filters }: { filters: DashboardFilters }) => {
   const { data: dashboardData } = useDashboardData(filters);
   const navigate = useNavigate();
-  const missingEvidenceCount = dashboardData?.evidencePending?.length || 0;
+  const evidenceRows = dashboardData?.evidencePending ?? [];
+  const evidenceSummary = dashboardData?.evidenceSummary;
+  const attentionCount = evidenceRows.length;
+  const openCount = dashboardData?.openWorkItemCount ?? 0;
+
+  const evidenceBadgeVariant = (category: string): "default" | "secondary" | "destructive" | "outline" => {
+    if (category === "missing") return "destructive";
+    if (category === "rejected") return "destructive";
+    if (category === "under_review") return "default";
+    return "secondary";
+  };
 
   return (
     <div className="grid gap-4 md:grid-cols-2">
@@ -448,7 +463,7 @@ const AtRiskAndEvidencePanel = ({ filters }: { filters: DashboardFilters }) => {
               ))}
             </div>
           ) : (
-            <p className="text-sm text-muted-foreground text-center py-6">No at-risk NGOs</p>
+            <p className="text-sm text-muted-foreground text-center py-6">No at-risk NGOs in the current view.</p>
           )}
         </CardContent>
       </Card>
@@ -456,31 +471,61 @@ const AtRiskAndEvidencePanel = ({ filters }: { filters: DashboardFilters }) => {
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
             <AlertCircle className="h-4 w-4 text-orange-500" />
-            Missing Evidence ({missingEvidenceCount})
+            Evidence Status ({attentionCount} need attention)
           </CardTitle>
+          <CardDescription>
+            {openCount > 0
+              ? "Tracks work items with evidence requirements in the current dashboard view."
+              : "No open work items in the current view to evaluate for evidence."}
+          </CardDescription>
         </CardHeader>
-        <CardContent>
-          {dashboardData?.evidencePending && dashboardData.evidencePending.length > 0 ? (
+        <CardContent className="space-y-3">
+          {evidenceSummary && openCount > 0 && (
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              <div className="rounded border p-2"><span className="text-muted-foreground">Missing</span><p className="font-semibold text-destructive">{evidenceSummary.missing}</p></div>
+              <div className="rounded border p-2"><span className="text-muted-foreground">Pending review</span><p className="font-semibold">{evidenceSummary.uploadedPendingReview + evidenceSummary.underReview}</p></div>
+              <div className="rounded border p-2"><span className="text-muted-foreground">Rejected</span><p className="font-semibold text-destructive">{evidenceSummary.rejected}</p></div>
+              <div className="rounded border p-2"><span className="text-muted-foreground">Up to date / N/A</span><p className="font-semibold text-green-600">{evidenceSummary.upToDate + evidenceSummary.noEvidenceRequired}</p></div>
+            </div>
+          )}
+
+          {attentionCount > 0 ? (
             <div className="space-y-2">
-              {dashboardData.evidencePending.slice(0, 8).map((item) => (
-                <div key={item.id} className="flex items-center justify-between p-2 border rounded text-sm">
-                  <div>
-                    <p className="font-medium">{item.ngoName}</p>
-                    <p className="text-xs text-muted-foreground">{item.department}</p>
+              {evidenceRows.slice(0, 8).map((item) => (
+                <div
+                  key={item.id}
+                  className="flex items-center justify-between gap-2 p-2 border rounded text-sm cursor-pointer hover:bg-accent/50"
+                  onClick={() => navigate(`/work-items?highlight=${item.id}`)}
+                >
+                  <div className="min-w-0">
+                    <p className="font-medium truncate">{item.ngoName}</p>
+                    <p className="text-xs text-muted-foreground truncate">{item.department}</p>
+                    <p className="text-xs text-muted-foreground">{item.evidenceLabel}</p>
                   </div>
-                  {item.dueDate && (
-                    <Badge variant="outline" className="text-xs">
-                      {new Date(item.dueDate).toLocaleDateString()}
+                  <div className="flex shrink-0 flex-col items-end gap-1">
+                    <Badge variant={evidenceBadgeVariant(item.evidenceCategory)} className="text-[10px]">
+                      {item.evidenceCategory.replace(/_/g, " ")}
                     </Badge>
-                  )}
+                    {item.dueDate && (
+                      <Badge variant="outline" className="text-[10px]">
+                        {new Date(item.dueDate).toLocaleDateString()}
+                      </Badge>
+                    )}
+                  </div>
                 </div>
               ))}
-              {missingEvidenceCount > 8 && (
-                <p className="text-xs text-muted-foreground text-center">+{missingEvidenceCount - 8} more</p>
+              {attentionCount > 8 && (
+                <p className="text-xs text-muted-foreground text-center">+{attentionCount - 8} more</p>
               )}
             </div>
+          ) : openCount === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-6">
+              Evidence tracking will appear when open work items exist in this dashboard view.
+            </p>
           ) : (
-            <p className="text-sm text-muted-foreground text-center py-6">All evidence up to date</p>
+            <p className="text-sm text-muted-foreground text-center py-6">
+              All evidence is up to date, or no work items in this view require evidence.
+            </p>
           )}
         </CardContent>
       </Card>
