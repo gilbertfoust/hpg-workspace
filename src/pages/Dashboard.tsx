@@ -36,6 +36,7 @@ import { ModuleSnapshotCards } from "@/components/dashboard/ModuleSnapshotCards"
 import { RecentActivityFeed } from "@/components/dashboard/RecentActivityFeed";
 import { DataHealthPanel } from "@/components/dashboard/DataHealthPanel";
 import { ExecutiveBrief } from "@/components/dashboard/ExecutiveBrief";
+import { useDashboardSectionScroll, useDashboardUrlState } from "@/hooks/useDashboardUrlState";
 
 const HPG_LOGO_URL =
   "https://img1.wsimg.com/isteam/ip/8d5502d6-d937-4d80-bd56-8074053e4d77/Humanity%20Pathways%20Global.jpg/:/rs=h:175,m";
@@ -492,7 +493,8 @@ const QuickNavCards = () => {
 const Dashboard = () => {
   const navigate = useNavigate();
   const [logoFailed, setLogoFailed] = useState(false);
-  const [filters, setFilters] = useState<DashboardFilters>({});
+  const { filters, section, setFilters } = useDashboardUrlState();
+  useDashboardSectionScroll(section);
   const filterSummary = useMemo(() => {
     const entries = Object.entries(filters).filter(([, value]) => Boolean(value));
     return entries.length ? entries.map(([key, value]) => `${key}: ${value}`).join(" • ") : "All workspace data";
@@ -537,44 +539,64 @@ const Dashboard = () => {
       </div>
 
       {/* Dashboard Filters */}
-      <DashboardFilterControls filters={filters} setFilters={setFilters} />
+      <section id="filters">
+        <DashboardFilterControls filters={filters} setFilters={setFilters} />
+      </section>
 
       {/* Drilldowns */}
-      <DashboardDrilldowns filters={filters} />
+      <section id="drilldowns">
+        <DashboardDrilldowns filters={filters} />
+      </section>
 
       {/* Executive Brief */}
-      <ExecutiveBrief filters={filters} />
+      <section id="executive-brief">
+        <ExecutiveBrief filters={filters} />
+      </section>
 
       {/* KPI Row */}
-      <DashboardKPIs filters={filters} />
+      <section id="kpis">
+        <DashboardKPIs filters={filters} />
+      </section>
 
       {/* Today's Action Center */}
-      <TodaysActionCenter />
+      <section id="action-center">
+        <TodaysActionCenter filters={filters} />
+      </section>
 
       {/* Module Snapshots */}
-      <ModuleSnapshotCards />
+      <section id="module-snapshots">
+        <ModuleSnapshotCards />
+      </section>
 
       {/* Recent Activity */}
-      <RecentActivityFeed />
+      <section id="recent-activity">
+        <RecentActivityFeed filters={filters} />
+      </section>
 
       {/* Data Health */}
-      <DataHealthPanel />
+      <section id="data-health">
+        <DataHealthPanel />
+      </section>
 
       {/* Quick Navigation */}
       <QuickNavCards />
 
       {/* Charts Row */}
-      <div className="grid gap-4 md:grid-cols-2">
+      <section id="charts" className="grid gap-4 md:grid-cols-2">
         <WorkItemTrendChart filters={filters} />
         <StatusDistributionChart filters={filters} />
         <NgoPortfolioStatusChart filters={filters} />
-      </div>
+      </section>
 
       {/* Department Workload */}
-      <DeptWorkloadChart filters={filters} />
+      <section id="workload">
+        <DeptWorkloadChart filters={filters} />
+      </section>
 
       {/* At-Risk & Evidence */}
-      <AtRiskAndEvidencePanel filters={filters} />
+      <section id="risk-evidence">
+        <AtRiskAndEvidencePanel filters={filters} />
+      </section>
     </div>
     </MainLayout>
   );

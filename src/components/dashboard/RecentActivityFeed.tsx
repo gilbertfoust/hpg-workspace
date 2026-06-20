@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useDashboardRecentActivity, type RecentActivityType } from "@/hooks/useDashboardRecentActivity";
+import type { DashboardFilters } from "@/hooks/useDashboardData";
 
 const iconMap: Record<RecentActivityType, ReactNode> = {
   work_item: <ClipboardList className="h-4 w-4" />,
@@ -40,9 +41,10 @@ const formatWhen = (timestamp: string) => {
   return date.toLocaleDateString();
 };
 
-export const RecentActivityFeed = () => {
+export const RecentActivityFeed = ({ filters = {} }: { filters?: DashboardFilters }) => {
   const navigate = useNavigate();
-  const { data: activity, isLoading } = useDashboardRecentActivity();
+  const { data: activity, isLoading } = useDashboardRecentActivity(filters);
+  const hasFilters = Boolean(filters.bundle || filters.country || filters.state || filters.module);
 
   return (
     <Card>
@@ -52,7 +54,10 @@ export const RecentActivityFeed = () => {
             <Activity className="h-4 w-4 text-primary" />
             Recent Activity
           </CardTitle>
-          <CardDescription>Latest movement across work items, NGOs, grants, documents, forms, and audit records.</CardDescription>
+          <CardDescription>
+            Latest movement across work items, NGOs, grants, documents, forms, and audit records.
+            {hasFilters ? " Filtered to work items, documents, and NGOs matching the current dashboard view." : ""}
+          </CardDescription>
         </div>
         <Button variant="outline" size="sm" onClick={() => navigate("/reports")}>
           Open reports

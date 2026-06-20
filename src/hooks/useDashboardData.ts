@@ -100,6 +100,34 @@ const uniqueSorted = (values: (string | null | undefined)[]) => {
     .sort((a, b) => a.localeCompare(b));
 };
 
+export const fetchNgoFilterIds = async (filters: DashboardFilters) => {
+  const supabase = ensureSupabase();
+  const hasNgoFilters = Boolean(filters.bundle || filters.country || filters.state);
+
+  if (!hasNgoFilters) {
+    return { hasNgoFilters: false, ngoFilterIds: [] as string[] };
+  }
+
+  let ngoFilterQuery = supabase.from("ngos").select("id");
+  if (filters.bundle) {
+    ngoFilterQuery = ngoFilterQuery.eq("bundle", filters.bundle);
+  }
+  if (filters.country) {
+    ngoFilterQuery = ngoFilterQuery.eq("country", filters.country);
+  }
+  if (filters.state) {
+    ngoFilterQuery = ngoFilterQuery.eq("state_province", filters.state);
+  }
+
+  const { data, error } = await ngoFilterQuery;
+  if (error) throw error;
+
+  return {
+    hasNgoFilters: true,
+    ngoFilterIds: data?.map((ngo) => ngo.id) ?? [],
+  };
+};
+
 const buildNgoStatusDistribution = (ngos: { status: string | null }[]) => {
   const totals = new Map<string, number>();
   NGO_PORTFOLIO_STATUS_ORDER.forEach((status) => totals.set(status, 0));

@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { ensureSupabase } from "@/integrations/supabase/client";
+import { fetchNgoFilterIds, type DashboardFilters } from "@/hooks/useDashboardData";
 
 export type ActionCenterReason =
   | "Overdue"
@@ -42,24 +43,47 @@ const activeStatuses = [
   "Under Review",
 ];
 
+const emptySummary = (): ActionCenterSummary => ({
+  Overdue: 0,
+  "Due this week": 0,
+  "High priority": 0,
+  "Waiting on NGO": 0,
+  "Missing evidence": 0,
+  Unassigned: 0,
+});
+
 const normalize = (value: string | null | undefined) =>
   (value || "").trim().toLowerCase().replace(/[\s-]+/g, "_");
 
 const formatStatus = (value: string | null | undefined) =>
   (value || "Unassigned").replace(/_/g, " ");
 
-export const useDashboardActionCenter = () => {
+export const useDashboardActionCenter = (filters: DashboardFilters = {}) => {
   return useQuery({
-    queryKey: ["dashboard-action-center"],
+    queryKey: ["dashboard-action-center", filters],
     queryFn: async () => {
       const supabase = ensureSupabase();
+      const { hasNgoFilters, ngoFilterIds } = await fetchNgoFilterIds(filters);
 
-      const { data: workItems, error: workItemsError } = await supabase
+      if (hasNgoFilters && ngoFilterIds.length === 0) {
+        return { summary: emptySummary(), items: [] as ActionCenterItem[] };
+      }
+
+      let workItemsQuery = supabase
         .from("work_items")
         .select("id, title, ngo_id, department_id, owner_user_id, due_date, status, priority, evidence_required, evidence_status, module")
         .is("archived_at", null)
         .in("status", activeStatuses)
         .order("due_date", { ascending: true, nullsFirst: false });
+
+      if (filters.module) {
+        workItemsQuery = workItemsQuery.eq("module", filters.module);
+      }
+      if (hasNgoFilters) {
+        workItemsQuery = workItemsQuery.in("ngo_id", ngoFilterIds);
+      }
+
+      const { data: workItems, error: workItemsError } = await workItemsQuery;
 
       if (workItemsError) throw workItemsError;
 
@@ -96,14 +120,7 @@ export const useDashboardActionCenter = () => {
       today.setHours(0, 0, 0, 0);
       const in7Days = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
 
-      const summary: ActionCenterSummary = {
-        Overdue: 0,
-        "Due this week": 0,
-        "High priority": 0,
-        "Waiting on NGO": 0,
-        "Missing evidence": 0,
-        Unassigned: 0,
-      };
+      const summary = emptySummary();
 
       const items: ActionCenterItem[] = safeWorkItems
         .map((item) => {

@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useDashboardActionCenter, type ActionCenterReason } from "@/hooks/useDashboardActionCenter";
+import type { DashboardFilters } from "@/hooks/useDashboardData";
 
 const reasonStyles: Record<ActionCenterReason, { icon: ReactNode; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   Overdue: { icon: <AlertCircle className="h-3.5 w-3.5" />, variant: "destructive" },
@@ -29,9 +30,10 @@ const formatDueDate = (date: string | null) => {
   return new Date(date).toLocaleDateString();
 };
 
-export const TodaysActionCenter = () => {
+export const TodaysActionCenter = ({ filters = {} }: { filters?: DashboardFilters }) => {
   const navigate = useNavigate();
-  const { data, isLoading } = useDashboardActionCenter();
+  const { data, isLoading } = useDashboardActionCenter(filters);
+  const hasFilters = Boolean(filters.bundle || filters.country || filters.state || filters.module);
 
   return (
     <Card>
@@ -41,7 +43,10 @@ export const TodaysActionCenter = () => {
             <AlertCircle className="h-4 w-4 text-primary" />
             Today&apos;s Action Center
           </CardTitle>
-          <CardDescription>Priority work that needs attention now.</CardDescription>
+          <CardDescription>
+            Priority work that needs attention now.
+            {hasFilters ? " Showing items matching the current dashboard filters." : ""}
+          </CardDescription>
         </div>
         <Button variant="outline" size="sm" onClick={() => navigate("/work-items")}>
           Open full queue

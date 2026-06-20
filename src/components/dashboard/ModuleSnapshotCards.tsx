@@ -44,7 +44,7 @@ export const ModuleSnapshotCards = () => {
     <Card>
       <CardHeader>
         <CardTitle className="text-base">Module Snapshots</CardTitle>
-        <CardDescription>Live health and readiness view for major HPG workspace areas.</CardDescription>
+        <CardDescription>Live health and readiness view for major HPG workspace areas. System-wide snapshot.</CardDescription>
       </CardHeader>
       <CardContent>
         {isLoading ? (
