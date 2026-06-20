@@ -35,6 +35,7 @@ import { TodaysActionCenter } from "@/components/dashboard/TodaysActionCenter";
 import { ModuleSnapshotCards } from "@/components/dashboard/ModuleSnapshotCards";
 import { RecentActivityFeed } from "@/components/dashboard/RecentActivityFeed";
 import { DataHealthPanel } from "@/components/dashboard/DataHealthPanel";
+import { ExecutiveBrief } from "@/components/dashboard/ExecutiveBrief";
 
 const HPG_LOGO_URL =
   "https://img1.wsimg.com/isteam/ip/8d5502d6-d937-4d80-bd56-8074053e4d77/Humanity%20Pathways%20Global.jpg/:/rs=h:175,m";
@@ -540,6 +541,9 @@ const Dashboard = () => {
 
       {/* Drilldowns */}
       <DashboardDrilldowns filters={filters} />
+
+      {/* Executive Brief */}
+      <ExecutiveBrief filters={filters} />
 
       {/* KPI Row */}
       <DashboardKPIs filters={filters} />
