@@ -712,6 +712,12 @@ const Dashboard = () => {
         <AtRiskAndEvidencePanel filters={filters} />
       </section>
       )}
+
+      {!boardBriefMode && (
+      <section id="data-definitions">
+        <DashboardDataDefinitions />
+      </section>
+      )}
     </div>
     </MainLayout>
   );
