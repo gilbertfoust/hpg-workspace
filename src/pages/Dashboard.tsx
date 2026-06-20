@@ -40,6 +40,7 @@ import { DataHealthPanel } from "@/components/dashboard/DataHealthPanel";
 import { ExecutiveBrief } from "@/components/dashboard/ExecutiveBrief";
 import { DashboardAlertsBanner } from "@/components/dashboard/DashboardAlertsBanner";
 import { DashboardFollowUpQueue } from "@/components/dashboard/DashboardFollowUpQueue";
+import { NgoPortfolioIntelligencePanel } from "@/components/dashboard/NgoPortfolioIntelligencePanel";
 import { SavedDashboardViews } from "@/components/dashboard/SavedDashboardViews";
 import { useSavedDashboardViews, type SavedDashboardView } from "@/hooks/useSavedDashboardViews";
 import { useDashboardSectionScroll, useDashboardUrlState, type DashboardSectionId } from "@/hooks/useDashboardUrlState";
@@ -673,6 +674,13 @@ const Dashboard = () => {
         {!boardBriefMode && <StatusDistributionChart filters={filters} />}
         <NgoPortfolioStatusChart filters={filters} />
       </section>
+
+      {/* NGO Portfolio Intelligence */}
+      {!boardBriefMode && (
+      <section id="portfolio-intelligence" className="dashboard-operational">
+        <NgoPortfolioIntelligencePanel filters={filters} />
+      </section>
+      )}
 
       {/* Department Workload */}
       <section id="workload">
