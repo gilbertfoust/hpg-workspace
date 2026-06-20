@@ -16,6 +16,8 @@ import {
   Briefcase,
   Shield,
   Filter,
+  Printer,
+  Presentation,
 } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -513,6 +515,7 @@ const QuickNavCards = () => {
 const Dashboard = () => {
   const navigate = useNavigate();
   const [logoFailed, setLogoFailed] = useState(false);
+  const [boardBriefMode, setBoardBriefMode] = useState(false);
   const { filters, section, setFilters, applyView, resetToDefault } = useDashboardUrlState();
   const { toFilters } = useSavedDashboardViews();
   useDashboardSectionScroll(section);
@@ -525,11 +528,17 @@ const Dashboard = () => {
     return entries.length ? entries.map(([key, value]) => `${key}: ${value}`).join(" • ") : "All workspace data";
   }, [filters]);
 
+  const handlePrintBoardBrief = () => {
+    document.body.classList.add("dashboard-print-mode");
+    window.print();
+    window.setTimeout(() => document.body.classList.remove("dashboard-print-mode"), 500);
+  };
+
   return (
     <MainLayout>
-    <div className="space-y-6">
+    <div className="space-y-6 dashboard-page">
       {/* Header */}
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between dashboard-no-print">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
             <span className="inline-flex h-7 w-7 items-center justify-center overflow-hidden rounded-md border bg-background/60">
@@ -544,26 +553,48 @@ const Dashboard = () => {
                 />
               )}
             </span>
-            HPG Workspace
+            {boardBriefMode ? "HPG Board Brief" : "HPG Workspace"}
           </h1>
           <p className="text-muted-foreground">
-            Overview of NGOs, work items, finances, and compliance across Humanity Pathways Global.
+            {boardBriefMode
+              ? "Leadership summary for board review and print export."
+              : "Overview of NGOs, work items, finances, and compliance across Humanity Pathways Global."}
           </p>
-          <p className="mt-1 text-xs text-muted-foreground">Current view: {filterSummary}</p>
+          {!boardBriefMode && (
+            <p className="mt-1 text-xs text-muted-foreground">Current view: {filterSummary}</p>
+          )}
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" onClick={() => navigate("/ngos")}> 
-            <Users className="w-4 h-4 mr-2" />
-            View NGOs
+          <Button
+            variant={boardBriefMode ? "default" : "outline"}
+            onClick={() => setBoardBriefMode((v) => !v)}
+          >
+            <Presentation className="w-4 h-4 mr-2" />
+            Board Brief Mode
           </Button>
-          <Button onClick={() => navigate("/work-items")}> 
-            Open Work Queue
-            <ArrowRight className="w-4 h-4 ml-2" />
-          </Button>
+          {boardBriefMode && (
+            <Button variant="outline" onClick={handlePrintBoardBrief}>
+              <Printer className="w-4 h-4 mr-2" />
+              Print
+            </Button>
+          )}
+          {!boardBriefMode && (
+            <>
+              <Button variant="outline" onClick={() => navigate("/ngos")}>
+                <Users className="w-4 h-4 mr-2" />
+                View NGOs
+              </Button>
+              <Button onClick={() => navigate("/work-items")}>
+                Open Work Queue
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </Button>
+            </>
+          )}
         </div>
       </div>
 
       {/* Dashboard Filters */}
+      {!boardBriefMode && (
       <section id="filters">
         <DashboardFilterControls
           filters={filters}
@@ -573,11 +604,14 @@ const Dashboard = () => {
           onResetView={resetToDefault}
         />
       </section>
+      )}
 
       {/* Drilldowns */}
-      <section id="drilldowns">
+      {!boardBriefMode && (
+      <section id="drilldowns" className="dashboard-operational">
         <DashboardDrilldowns filters={filters} />
       </section>
+      )}
 
       {/* Executive Brief */}
       <section id="executive-brief">
@@ -590,32 +624,42 @@ const Dashboard = () => {
       </section>
 
       {/* Today's Action Center */}
-      <section id="action-center">
+      {!boardBriefMode && (
+      <section id="action-center" className="dashboard-operational">
         <TodaysActionCenter filters={filters} />
       </section>
+      )}
 
       {/* Module Snapshots */}
-      <section id="module-snapshots">
+      {!boardBriefMode && (
+      <section id="module-snapshots" className="dashboard-operational">
         <ModuleSnapshotCards />
       </section>
+      )}
 
       {/* Recent Activity */}
-      <section id="recent-activity">
+      {!boardBriefMode && (
+      <section id="recent-activity" className="dashboard-operational">
         <RecentActivityFeed filters={filters} />
       </section>
+      )}
 
       {/* Data Health */}
       <section id="data-health">
-        <DataHealthPanel />
+        <DataHealthPanel compact={boardBriefMode} />
       </section>
 
       {/* Quick Navigation */}
-      <QuickNavCards />
+      {!boardBriefMode && (
+      <div className="dashboard-operational dashboard-no-print">
+        <QuickNavCards />
+      </div>
+      )}
 
       {/* Charts Row */}
-      <section id="charts" className="grid gap-4 md:grid-cols-2">
-        <WorkItemTrendChart filters={filters} />
-        <StatusDistributionChart filters={filters} />
+      <section id="charts" className={`grid gap-4 md:grid-cols-2 ${boardBriefMode ? "md:grid-cols-1" : ""}`}>
+        {!boardBriefMode && <WorkItemTrendChart filters={filters} />}
+        {!boardBriefMode && <StatusDistributionChart filters={filters} />}
         <NgoPortfolioStatusChart filters={filters} />
       </section>
 
@@ -625,9 +669,11 @@ const Dashboard = () => {
       </section>
 
       {/* At-Risk & Evidence */}
-      <section id="risk-evidence">
+      {!boardBriefMode && (
+      <section id="risk-evidence" className="dashboard-operational">
         <AtRiskAndEvidencePanel filters={filters} />
       </section>
+      )}
     </div>
     </MainLayout>
   );

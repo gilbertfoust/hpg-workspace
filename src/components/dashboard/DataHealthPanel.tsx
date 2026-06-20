@@ -21,7 +21,7 @@ const statusLabel = (status: DataHealthStatus) => {
   return "Missing";
 };
 
-export const DataHealthPanel = () => {
+export const DataHealthPanel = ({ compact = false }: { compact?: boolean }) => {
   const { data, isLoading } = useDashboardDataHealth();
 
   return (
@@ -32,7 +32,9 @@ export const DataHealthPanel = () => {
           System / Data Health
         </CardTitle>
         <CardDescription>
-          Shows which dashboard data sources are live, empty, or still need schema/build work.
+          {compact
+            ? "Summary of dashboard data source readiness."
+            : "Shows which dashboard data sources are live, empty, or still need schema/build work."}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -61,6 +63,8 @@ export const DataHealthPanel = () => {
               </div>
             </div>
 
+            {!compact && (
+              <>
             <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-4">
               {(data?.items ?? []).map((item) => (
                 <div key={item.table} className="rounded-lg border p-3">
@@ -88,6 +92,8 @@ export const DataHealthPanel = () => {
                 Live means the table is connected and has records. Empty means the table exists but has no records yet. Missing means the dashboard could not access the source.
               </span>
             </div>
+              </>
+            )}
           </div>
         )}
       </CardContent>
