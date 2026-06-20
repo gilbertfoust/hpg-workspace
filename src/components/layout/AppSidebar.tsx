@@ -52,6 +52,9 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useCurrentProfile } from "@/hooks/useProfiles";
+import { UserAvatar, getUserDisplayName, getUserInitials } from "@/components/common/UserAvatar";
+import { canAccessArea, canAccessAdmin, getRoleLabel } from "@/lib/accessControl";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { useWorkItems } from "@/hooks/useWorkItems";
@@ -139,6 +142,7 @@ const hubsSections: HubConfig[] = [
     basePaths: ["/development", "/partnerships", "/crm", "/grants"],
     items: [
       { to: "/development", icon: <DollarSign className="w-4 h-4" />, label: "Development" },
+      { to: "/development/potential-sponsees", icon: <Handshake className="w-4 h-4" />, label: "Potential Sponsees" },
       { to: "/partnerships", icon: <Handshake className="w-4 h-4" />, label: "Partnerships" },
       { to: "/crm", icon: <Contact className="w-4 h-4" />, label: "CRM" },
       { to: "/grants", icon: <Award className="w-4 h-4" />, label: "Grants" },
@@ -171,21 +175,26 @@ export function AppSidebar() {
   const [expandedHubs, setExpandedHubs] = useState<Record<string, boolean>>({});
   const { user, signOut } = useAuth();
   const { data: userRole } = useUserRole();
+  const { data: profile } = useCurrentProfile();
   const { data: activeWorkItems } = useWorkItems();
   const activeWorkItemCount = activeWorkItems?.length ?? 0;
   const { toast } = useToast();
   const navigate = useNavigate();
-  const canAccessAdminConfig = userRole?.role === 'super_admin' || userRole?.role === 'admin_pm';
+  const canAccessAdminConfig = canAccessAdmin(userRole?.role);
+  const role = userRole?.role;
 
-  const userInitials = user?.user_metadata?.full_name
-    ?.split(' ')
-    .map((n: string) => n[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2) || user?.email?.slice(0, 2).toUpperCase() || 'U';
+  const visibleHubs = hubsSections.filter((hub) => {
+    if (hub.title === "Financial Hub") return canAccessArea(role, "finance");
+    if (hub.title === "HR Hub") return canAccessArea(role, "hr");
+    if (hub.title === "Development Hub") return canAccessArea(role, "development");
+    if (hub.title === "Program Hub") return canAccessArea(role, "grants") || canAccessArea(role, "work_items");
+    if (hub.title === "Compliance Hub") return canAccessArea(role, "finance") || canAccessArea(role, "documents");
+    return true;
+  });
 
-  const displayName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User';
-  const roleLabel = userRole?.role?.replace('_', ' ') || 'Staff';
+  const displayName = getUserDisplayName(profile?.full_name ?? user?.user_metadata?.full_name, profile?.email ?? user?.email);
+  const userInitials = getUserInitials(profile?.full_name ?? user?.user_metadata?.full_name, profile?.email ?? user?.email);
+  const roleLabel = getRoleLabel(role);
 
   const handleSignOut = async () => {
     const { error } = await signOut();
@@ -315,7 +324,7 @@ export function AppSidebar() {
                 <div className="pt-4">
                   <p className="nav-section-title">Hubs</p>
                   <div className="space-y-1">
-                    {hubsSections.map((hub) => {
+                    {visibleHubs.map((hub) => {
                       const isOpen = expandedHubs[hub.title] || isHubActive(hub);
                       return (
                         <div key={hub.title}>
@@ -398,9 +407,11 @@ export function AppSidebar() {
           {!isCollapsed && (
             <div className="p-4 border-t border-sidebar-border">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-sidebar-accent flex items-center justify-center">
-                  <span className="text-xs font-medium text-sidebar-foreground">{userInitials}</span>
-                </div>
+                <UserAvatar
+                  name={profile?.full_name ?? user?.user_metadata?.full_name}
+                  email={profile?.email ?? user?.email}
+                  avatarUrl={profile?.avatar_url}
+                />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-sidebar-foreground truncate">{displayName}</p>
                   <p className="text-xs text-sidebar-muted truncate capitalize">{roleLabel}</p>
