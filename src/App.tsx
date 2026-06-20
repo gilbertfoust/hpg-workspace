@@ -30,6 +30,7 @@ import NGOCoordination from "./pages/NGOCoordination";
 import ITDashboard from "./pages/ITDashboard";
 import SignDocument from "./pages/SignDocument";
 import FinancialHub from "./pages/FinancialHub";
+import FinanceChartOfAccountsPage from "./pages/FinanceChartOfAccountsPage";
 import NGOFinancialOverview from "./pages/NGOFinancialOverview";
 import PeriodDetail from "./pages/PeriodDetail";
 import AccountsPage from "./pages/AccountsPage";
@@ -220,6 +221,7 @@ const App = () => {
 
                 {/* Financial Hub */}
                 <Route path="/financial-hub" element={<P><FinancialHub /></P>} />
+                <Route path="/financial-hub/accounting/chart-of-accounts" element={<P><FinanceChartOfAccountsPage /></P>} />
                 <Route path="/financial-hub/ngo/:ngoId" element={<P><NGOFinancialOverview /></P>} />
                 <Route path="/financial-hub/ngo/:ngoId/period/:periodId" element={<P><PeriodDetail /></P>} />
                 <Route path="/financial-hub/accounts" element={<P><AccountsPage /></P>} />

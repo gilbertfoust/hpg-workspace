@@ -8,6 +8,7 @@ const FinancialHub = () => {
   const navigate = useNavigate();
 
   const quickLinks = [
+    { label: "Accounting COA", path: "/financial-hub/accounting/chart-of-accounts", icon: BookOpen },
     { label: "Accounts (COA)", path: "/financial-hub/accounts", icon: BookOpen },
     { label: "Transactions", path: "/financial-hub/transactions", icon: Receipt },
     { label: "General Ledger", path: "/financial-hub/ledger", icon: BarChart3 },
