@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { MainLayout } from "@/components/layout/MainLayout";
 import {
@@ -15,6 +15,7 @@ import {
   TrendingUp,
   Briefcase,
   Shield,
+  Filter,
 } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -24,7 +25,7 @@ import {
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { useDashboardData } from "@/hooks/useDashboardData";
+import { useDashboardData, useDashboardFilters, type DashboardFilters } from "@/hooks/useDashboardData";
 import { useNGOStats } from "@/hooks/useNGOs";
 import { useWorkItems } from "@/hooks/useWorkItems";
 import { useWorkItems as useWorkItemsAll } from "@/hooks/useWorkItems";
@@ -49,8 +50,20 @@ const CHART_COLORS = [
   "hsl(190, 60%, 45%)",
 ];
 
-function useWorkItemTrend() {
-  const { data: workItems } = useWorkItems({});
+const hasActiveFilters = (filters: DashboardFilters) =>
+  Boolean(filters.bundle || filters.country || filters.state || filters.module);
+
+const toSearchParams = (params: Record<string, string | number | undefined>) => {
+  const search = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== "") search.set(key, String(value));
+  });
+  const value = search.toString();
+  return value ? `?${value}` : "";
+};
+
+function useWorkItemTrend(filters: DashboardFilters) {
+  const { data: workItems } = useWorkItems(filters.module ? { module: filters.module } : {});
   const months: { month: string; created: number; completed: number }[] = [];
   const now = new Date();
   for (let i = 5; i >= 0; i--) {
@@ -71,8 +84,8 @@ function useWorkItemTrend() {
   return months;
 }
 
-function useStatusDistribution() {
-  const { data: workItems } = useWorkItems({});
+function useStatusDistribution(filters: DashboardFilters) {
+  const { data: workItems } = useWorkItems(filters.module ? { module: filters.module } : {});
   const statusMap = new Map<string, number>();
   workItems?.forEach(wi => {
     const s = wi.status.replace(/_/g, " ");
@@ -81,10 +94,119 @@ function useStatusDistribution() {
   return Array.from(statusMap.entries()).map(([name, value]) => ({ name, value }));
 }
 
-const DashboardKPIs = () => {
-  const { data: dashboardData, isLoading: dashboardLoading } = useDashboardData({});
+const DashboardFilterControls = ({ filters, setFilters }: { filters: DashboardFilters; setFilters: (filters: DashboardFilters) => void }) => {
+  const { data: options, isLoading } = useDashboardFilters();
+
+  const updateFilter = (key: keyof DashboardFilters, value: string) => {
+    setFilters({
+      ...filters,
+      [key]: value || undefined,
+    });
+  };
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+        <div>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Filter className="h-4 w-4 text-primary" />
+            Dashboard Filters
+          </CardTitle>
+          <CardDescription>Focus dashboard data by portfolio, location, or module.</CardDescription>
+        </div>
+        <Button variant="outline" size="sm" onClick={() => setFilters({})} disabled={!hasActiveFilters(filters)}>
+          Reset filters
+        </Button>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <div className="flex items-center justify-center py-4">
+            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+          </div>
+        ) : (
+          <div className="grid gap-3 md:grid-cols-4">
+            <label className="space-y-1 text-xs font-medium text-muted-foreground">
+              Bundle
+              <select className="w-full rounded-md border bg-background px-3 py-2 text-sm text-foreground" value={filters.bundle || ""} onChange={(event) => updateFilter("bundle", event.target.value)}>
+                <option value="">All bundles</option>
+                {(options?.bundles ?? []).map((bundle) => <option key={bundle} value={bundle}>{bundle}</option>)}
+              </select>
+            </label>
+            <label className="space-y-1 text-xs font-medium text-muted-foreground">
+              Country
+              <select className="w-full rounded-md border bg-background px-3 py-2 text-sm text-foreground" value={filters.country || ""} onChange={(event) => updateFilter("country", event.target.value)}>
+                <option value="">All countries</option>
+                {(options?.countries ?? []).map((country) => <option key={country} value={country}>{country}</option>)}
+              </select>
+            </label>
+            <label className="space-y-1 text-xs font-medium text-muted-foreground">
+              State / Province
+              <select className="w-full rounded-md border bg-background px-3 py-2 text-sm text-foreground" value={filters.state || ""} onChange={(event) => updateFilter("state", event.target.value)}>
+                <option value="">All states</option>
+                {(options?.states ?? []).map((state) => <option key={state} value={state}>{state}</option>)}
+              </select>
+            </label>
+            <label className="space-y-1 text-xs font-medium text-muted-foreground">
+              Module
+              <select className="w-full rounded-md border bg-background px-3 py-2 text-sm text-foreground" value={filters.module || ""} onChange={(event) => updateFilter("module", event.target.value)}>
+                <option value="">All modules</option>
+                {(options?.modules ?? []).map((module) => <option key={module} value={module}>{module}</option>)}
+              </select>
+            </label>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
+
+const DashboardDrilldowns = ({ filters }: { filters: DashboardFilters }) => {
+  const navigate = useNavigate();
+  const baseParams = {
+    bundle: filters.bundle,
+    country: filters.country,
+    state: filters.state,
+    module: filters.module,
+  };
+
+  const drilldowns = [
+    { label: "Overdue Work Items", path: `/work-items${toSearchParams({ ...baseParams, due: "overdue" })}`, icon: AlertCircle },
+    { label: "Due This Week", path: `/work-items${toSearchParams({ ...baseParams, due: "7d" })}`, icon: Clock },
+    { label: "High Priority", path: `/work-items${toSearchParams({ ...baseParams, priority: "high" })}`, icon: TrendingUp },
+    { label: "Waiting on NGO", path: `/work-items${toSearchParams({ ...baseParams, status: "waiting_on_ngo" })}`, icon: Users },
+    { label: "Out of Compliance NGOs", path: `/ngos${toSearchParams({ ...baseParams, portfolioStatus: "out_of_compliance" })}`, icon: Shield },
+    { label: "Grant Applications", path: `/grants${toSearchParams({ ...baseParams, view: "applications" })}`, icon: Briefcase },
+    { label: "Pending Documents", path: `/documents${toSearchParams({ ...baseParams, review_status: "Pending" })}`, icon: FileText },
+    { label: "Data Health", path: `/dashboard${toSearchParams({ ...baseParams, section: "data-health" })}`, icon: LayoutDashboard },
+  ];
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">Dashboard Drilldowns</CardTitle>
+        <CardDescription>Jump from the dashboard into focused queues and filtered workspace views.</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-4">
+          {drilldowns.map((item) => (
+            <Button key={item.label} variant="outline" className="justify-between" onClick={() => navigate(item.path)}>
+              <span className="flex items-center gap-2">
+                <item.icon className="h-4 w-4" />
+                {item.label}
+              </span>
+              <ArrowRight className="h-4 w-4" />
+            </Button>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+
+const DashboardKPIs = ({ filters }: { filters: DashboardFilters }) => {
+  const { data: dashboardData, isLoading: dashboardLoading } = useDashboardData(filters);
   const { data: ngoStats, isLoading: ngoStatsLoading } = useNGOStats();
-  const { data: allWorkItems } = useWorkItemsAll({});
+  const { data: allWorkItems } = useWorkItemsAll(filters.module ? { module: filters.module } : {});
 
   if (dashboardLoading || ngoStatsLoading) {
     return (
@@ -100,7 +222,7 @@ const DashboardKPIs = () => {
     );
   }
 
-  const totalNgoCount = dashboardData?.kpis?.totalNgos || ngoStats?.total || 0;
+  const totalNgoCount = hasActiveFilters(filters) ? dashboardData?.kpis?.totalNgos || 0 : dashboardData?.kpis?.totalNgos || ngoStats?.total || 0;
   const overdueCount = dashboardData?.kpis?.overdue || 0;
   const dueIn7Days = dashboardData?.kpis?.dueIn7Days || 0;
   const totalWorkItems = allWorkItems?.length ?? 0;
@@ -114,7 +236,7 @@ const DashboardKPIs = () => {
         </CardHeader>
         <CardContent>
           <p className="text-2xl font-bold">{totalNgoCount}</p>
-          <p className="text-xs text-muted-foreground">Everyone in the NGO pipeline</p>
+          <p className="text-xs text-muted-foreground">{hasActiveFilters(filters) ? "Filtered portfolio" : "Everyone in the NGO pipeline"}</p>
         </CardContent>
       </Card>
       <Card>
@@ -151,8 +273,8 @@ const DashboardKPIs = () => {
   );
 };
 
-const WorkItemTrendChart = () => {
-  const trendData = useWorkItemTrend();
+const WorkItemTrendChart = ({ filters }: { filters: DashboardFilters }) => {
+  const trendData = useWorkItemTrend(filters);
   return (
     <Card>
       <CardHeader>
@@ -177,8 +299,8 @@ const WorkItemTrendChart = () => {
   );
 };
 
-const StatusDistributionChart = () => {
-  const statusData = useStatusDistribution();
+const StatusDistributionChart = ({ filters }: { filters: DashboardFilters }) => {
+  const statusData = useStatusDistribution(filters);
   return (
     <Card>
       <CardHeader>
@@ -203,8 +325,8 @@ const StatusDistributionChart = () => {
   );
 };
 
-const NgoPortfolioStatusChart = () => {
-  const { data: dashboardData } = useDashboardData({});
+const NgoPortfolioStatusChart = ({ filters }: { filters: DashboardFilters }) => {
+  const { data: dashboardData } = useDashboardData(filters);
   const portfolioData = dashboardData?.ngoStatusDistribution?.filter((item) => item.value > 0) ?? [];
 
   return (
@@ -236,8 +358,8 @@ const NgoPortfolioStatusChart = () => {
   );
 };
 
-const DeptWorkloadChart = () => {
-  const { data: dashboardData } = useDashboardData({});
+const DeptWorkloadChart = ({ filters }: { filters: DashboardFilters }) => {
+  const { data: dashboardData } = useDashboardData(filters);
   const workload = dashboardData?.workloadByDepartment ?? [];
   return (
     <Card className="col-span-full">
@@ -266,8 +388,8 @@ const DeptWorkloadChart = () => {
   );
 };
 
-const AtRiskAndEvidencePanel = () => {
-  const { data: dashboardData } = useDashboardData({});
+const AtRiskAndEvidencePanel = ({ filters }: { filters: DashboardFilters }) => {
+  const { data: dashboardData } = useDashboardData(filters);
   const navigate = useNavigate();
   const missingEvidenceCount = dashboardData?.evidencePending?.length || 0;
 
@@ -369,6 +491,11 @@ const QuickNavCards = () => {
 const Dashboard = () => {
   const navigate = useNavigate();
   const [logoFailed, setLogoFailed] = useState(false);
+  const [filters, setFilters] = useState<DashboardFilters>({});
+  const filterSummary = useMemo(() => {
+    const entries = Object.entries(filters).filter(([, value]) => Boolean(value));
+    return entries.length ? entries.map(([key, value]) => `${key}: ${value}`).join(" • ") : "All workspace data";
+  }, [filters]);
 
   return (
     <MainLayout>
@@ -394,21 +521,28 @@ const Dashboard = () => {
           <p className="text-muted-foreground">
             Overview of NGOs, work items, finances, and compliance across Humanity Pathways Global.
           </p>
+          <p className="mt-1 text-xs text-muted-foreground">Current view: {filterSummary}</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" onClick={() => navigate("/ngos")}>
+          <Button variant="outline" onClick={() => navigate("/ngos")}> 
             <Users className="w-4 h-4 mr-2" />
             View NGOs
           </Button>
-          <Button onClick={() => navigate("/work-items")}>
+          <Button onClick={() => navigate("/work-items")}> 
             Open Work Queue
             <ArrowRight className="w-4 h-4 ml-2" />
           </Button>
         </div>
       </div>
 
+      {/* Dashboard Filters */}
+      <DashboardFilterControls filters={filters} setFilters={setFilters} />
+
+      {/* Drilldowns */}
+      <DashboardDrilldowns filters={filters} />
+
       {/* KPI Row */}
-      <DashboardKPIs />
+      <DashboardKPIs filters={filters} />
 
       {/* Today's Action Center */}
       <TodaysActionCenter />
@@ -427,16 +561,16 @@ const Dashboard = () => {
 
       {/* Charts Row */}
       <div className="grid gap-4 md:grid-cols-2">
-        <WorkItemTrendChart />
-        <StatusDistributionChart />
-        <NgoPortfolioStatusChart />
+        <WorkItemTrendChart filters={filters} />
+        <StatusDistributionChart filters={filters} />
+        <NgoPortfolioStatusChart filters={filters} />
       </div>
 
       {/* Department Workload */}
-      <DeptWorkloadChart />
+      <DeptWorkloadChart filters={filters} />
 
       {/* At-Risk & Evidence */}
-      <AtRiskAndEvidencePanel />
+      <AtRiskAndEvidencePanel filters={filters} />
     </div>
     </MainLayout>
   );
