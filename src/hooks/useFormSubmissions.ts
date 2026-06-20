@@ -558,6 +558,52 @@ export const useUpdateFormSubmission = () => {
   });
 };
 
+export const useArchiveFormSubmission = () => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async ({ id, workItemId }: { id: string; workItemId?: string | null }) => {
+      const client = ensureSupabase();
+
+      if (workItemId) {
+        await completeWorkItemForAdminRecordsWithFallback(
+          client,
+          workItemId,
+          "Form submission moved to admin records",
+        );
+      }
+
+      const { error } = await client
+        .from("form_submissions")
+        .update({
+          submission_status: "archived",
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", id);
+
+      if (error) throw error;
+      return id;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["form-submissions"] });
+      queryClient.invalidateQueries({ queryKey: ["work-items"] });
+      queryClient.invalidateQueries({ queryKey: ["work-item-admin-records"] });
+      toast({
+        title: "Form moved to admin records",
+        description: "The linked work item was archived and the submission was marked archived.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        variant: "destructive",
+        title: "Unable to archive form submission",
+        description: error instanceof Error ? error.message : "Archive failed. The submission was not removed.",
+      });
+    },
+  });
+};
+
 export const useDeleteFormSubmission = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();

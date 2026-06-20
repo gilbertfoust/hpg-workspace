@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { CreateWorkItemDialog } from "@/components/work-items/CreateWorkItemDialog";
-import { WorkItemDrawer } from "@/components/work-items/WorkItemDrawer";
+import { WorkItemAdminRecordsPanel } from "@/components/work-items/WorkItemAdminRecordsPanel";
 import { WorkItemsTable } from "@/components/work-items/WorkItemsTable";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -164,6 +164,10 @@ export default function WorkItems() {
       </div>
 
       <WorkItemsTable items={filteredItems} isLoading={isLoading} error={error} ngoMap={ngoMap} selectedItems={selectedItems} onToggleSelect={toggleSelectItem} onToggleSelectAll={toggleSelectAll} showSelection onCompleteForRecords={handleCompleteForRecords} completingItemId={completingItemId} onRowClick={openWorkItemDrawer} emptyMessage="No active work items found. Completed items are sent to Admin Records and removed from this list." />
+
+      <div className="mt-8">
+        <WorkItemAdminRecordsPanel />
+      </div>
 
       <div className="flex items-center justify-between mt-4 text-sm text-muted-foreground"><span>Showing {filteredItems.length} of {workItems?.length || 0} active items</span><div className="flex items-center gap-2"><Button variant="outline" size="sm" disabled>Previous</Button><Button variant="outline" size="sm" disabled>Next</Button></div></div>
       <CreateWorkItemDialog open={createDialogOpen} onOpenChange={setCreateDialogOpen} />
