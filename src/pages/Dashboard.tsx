@@ -45,6 +45,7 @@ import { GrantPipelineIntelligencePanel } from "@/components/dashboard/GrantPipe
 import { FinanceReadinessPanel } from "@/components/dashboard/FinanceReadinessPanel";
 import { HrReadinessPanel } from "@/components/dashboard/HrReadinessPanel";
 import { DashboardDataDefinitions } from "@/components/dashboard/DashboardDataDefinitions";
+import { DashboardPanelState } from "@/components/dashboard/DashboardPanelState";
 import { SavedDashboardViews } from "@/components/dashboard/SavedDashboardViews";
 import { useSavedDashboardViews, type SavedDashboardView } from "@/hooks/useSavedDashboardViews";
 import { useDashboardSectionScroll, useDashboardUrlState, type DashboardSectionId } from "@/hooks/useDashboardUrlState";
@@ -368,7 +369,11 @@ const NgoPortfolioStatusChart = ({ filters }: { filters: DashboardFilters }) => 
       </CardHeader>
       <CardContent>
         {portfolioData.length === 0 ? (
-          <p className="text-sm text-muted-foreground text-center py-8">No NGO portfolio data available</p>
+          <DashboardPanelState
+            isEmpty
+            emptyTitle="No NGO portfolio data"
+            emptyDescription="Add NGOs to the workspace to see portfolio status distribution."
+          />
         ) : (
           <div className="h-[250px]">
             <ResponsiveContainer width="100%" height="100%">
@@ -400,7 +405,11 @@ const DeptWorkloadChart = ({ filters }: { filters: DashboardFilters }) => {
       </CardHeader>
       <CardContent>
         {workload.length === 0 ? (
-          <p className="text-sm text-muted-foreground text-center py-8">No department workload data available</p>
+          <DashboardPanelState
+            isEmpty
+            emptyTitle="No department workload"
+            emptyDescription="Assign work items to departments to see workload distribution."
+          />
         ) : (
           <div className="h-[250px]">
             <ResponsiveContainer width="100%" height="100%">

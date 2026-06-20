@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useDashboardActionCenter, type ActionCenterReason } from "@/hooks/useDashboardActionCenter";
 import type { DashboardFilters } from "@/hooks/useDashboardData";
+import { DashboardPanelState } from "@/components/dashboard/DashboardPanelState";
 
 const reasonStyles: Record<ActionCenterReason, { icon: ReactNode; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   Overdue: { icon: <AlertCircle className="h-3.5 w-3.5" />, variant: "destructive" },
@@ -32,7 +33,7 @@ const formatDueDate = (date: string | null) => {
 
 export const TodaysActionCenter = ({ filters = {} }: { filters?: DashboardFilters }) => {
   const navigate = useNavigate();
-  const { data, isLoading } = useDashboardActionCenter(filters);
+  const { data, isLoading, isError } = useDashboardActionCenter(filters);
   const hasFilters = Boolean(filters.bundle || filters.country || filters.state || filters.module);
 
   return (
@@ -54,11 +55,11 @@ export const TodaysActionCenter = ({ filters = {} }: { filters?: DashboardFilter
         </Button>
       </CardHeader>
       <CardContent className="space-y-4">
-        {isLoading ? (
-          <div className="flex items-center justify-center py-8">
-            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-          </div>
-        ) : (
+        <DashboardPanelState
+          isLoading={isLoading}
+          isError={isError}
+          errorMessage="Action Center data could not load. Try refreshing the page."
+        >
           <>
             <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-6">
               {reasonOrder.map((reason) => {
@@ -76,7 +77,9 @@ export const TodaysActionCenter = ({ filters = {} }: { filters?: DashboardFilter
             </div>
 
             {!data?.items?.length ? (
-              <p className="text-sm text-muted-foreground text-center py-6">No urgent action items right now.</p>
+              <p className="text-sm text-muted-foreground text-center py-6">
+                No urgent action items. Create work items with due dates, priorities, or evidence requirements to populate this queue.
+              </p>
             ) : (
               <div className="overflow-x-auto rounded-lg border">
                 <table className="w-full text-sm">
@@ -120,7 +123,7 @@ export const TodaysActionCenter = ({ filters = {} }: { filters?: DashboardFilter
               </div>
             )}
           </>
-        )}
+        </DashboardPanelState>
       </CardContent>
     </Card>
   );
