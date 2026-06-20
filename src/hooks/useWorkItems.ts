@@ -1,6 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getSupabaseNotConfiguredError, supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import {
+  archiveWorkItemWithFallback,
+  completeWorkItemForAdminRecordsWithFallback,
+} from "@/lib/workItemRecordActions";
 
 export type WorkItemStatus =
   | "draft"
@@ -206,12 +210,7 @@ export const useCompleteWorkItemForAdminRecords = () => {
   return useMutation({
     mutationFn: async ({ id, notes }: { id: string; notes?: string }) => {
       const client = ensureSupabase();
-      const { data, error } = await client.rpc("complete_work_item_for_admin_records" as never, {
-        _work_item_id: id,
-        _notes: notes || "Completed and sent to admin records",
-      } as never);
-      if (error) throw error;
-      return data as unknown as WorkItem;
+      return completeWorkItemForAdminRecordsWithFallback(client, id, notes);
     },
     onSuccess: (_data, variables) => invalidateWorkItemQueries(queryClient, variables.id),
   });
@@ -223,12 +222,7 @@ export const useArchiveWorkItem = () => {
   return useMutation({
     mutationFn: async ({ id, reason }: { id: string; reason?: string }) => {
       const client = ensureSupabase();
-      const { data, error } = await client.rpc("archive_work_item" as never, {
-        _work_item_id: id,
-        _reason: reason || "Archived from work item drawer",
-      } as never);
-      if (error) throw error;
-      return data as unknown as WorkItem;
+      return archiveWorkItemWithFallback(client, id, reason);
     },
     onSuccess: (_data, variables) => invalidateWorkItemQueries(queryClient, variables.id),
   });

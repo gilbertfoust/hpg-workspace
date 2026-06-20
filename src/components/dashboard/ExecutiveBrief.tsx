@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useDashboardData, type DashboardFilters } from "@/hooks/useDashboardData";
 import { useDashboardDataHealth } from "@/hooks/useDashboardDataHealth";
+import { DashboardPanelState } from "@/components/dashboard/DashboardPanelState";
 
 const pluralize = (count: number, singular: string, plural = `${singular}s`) => `${count} ${count === 1 ? singular : plural}`;
 
@@ -16,14 +17,24 @@ const buildAttentionSummary = (overdue: number, dueThisWeek: number, missingEvid
 };
 
 export const ExecutiveBrief = ({ filters }: { filters: DashboardFilters }) => {
-  const { data: dashboardData, isLoading: dashboardLoading } = useDashboardData(filters);
-  const { data: healthData, isLoading: healthLoading } = useDashboardDataHealth();
+  const { data: dashboardData, isLoading: dashboardLoading, isError: dashboardError } = useDashboardData(filters);
+  const { data: healthData, isLoading: healthLoading, isError: healthError } = useDashboardDataHealth();
 
   if (dashboardLoading || healthLoading) {
     return (
       <Card>
         <CardContent className="flex items-center justify-center py-8">
           <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (dashboardError || healthError) {
+    return (
+      <Card>
+        <CardContent className="py-8">
+          <DashboardPanelState isError errorMessage="Executive Brief could not load dashboard summary data." />
         </CardContent>
       </Card>
     );

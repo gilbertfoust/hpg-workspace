@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { ensureSupabase } from "@/integrations/supabase/client";
+import { fetchNgoFilterIds, type DashboardFilters } from "@/hooks/useDashboardData";
 
 export type RecentActivityType =
   | "work_item"
@@ -35,62 +36,107 @@ const safeQuery = async <T>(label: string, queryBuilder: () => Promise<{ data: T
 
 const formatEntityName = (primary?: string | null, fallback?: string | null) => primary || fallback || "Untitled";
 
-export const useDashboardRecentActivity = () => {
+export const useDashboardRecentActivity = (filters: DashboardFilters = {}) => {
   return useQuery({
-    queryKey: ["dashboard-recent-activity"],
+    queryKey: ["dashboard-recent-activity", filters],
     queryFn: async (): Promise<RecentActivityItem[]> => {
       const supabase = ensureSupabase();
+      const { hasNgoFilters, ngoFilterIds } = await fetchNgoFilterIds(filters);
+      const hasFilters = Boolean(filters.module || hasNgoFilters);
+
+      if (hasNgoFilters && ngoFilterIds.length === 0) {
+        return [];
+      }
 
       const [workItems, documents, formSubmissions, grantOpportunities, grantApplications, ngos, auditLogs] = await Promise.all([
-        safeQuery("work_items", () =>
-          supabase
-            .from("work_items")
-            .select("id, title, module, status, created_at")
-            .order("created_at", { ascending: false })
-            .limit(8),
-        ),
-        safeQuery("documents", () =>
-          supabase
-            .from("documents")
-            .select("id, title, file_name, review_status, created_at")
-            .order("created_at", { ascending: false })
-            .limit(8),
-        ),
-        safeQuery("form_submissions", () =>
-          supabase
-            .from("form_submissions")
-            .select("id, status, created_at")
-            .order("created_at", { ascending: false })
-            .limit(8),
-        ),
-        safeQuery("grant_opportunities", () =>
-          supabase
-            .from("grant_opportunities")
-            .select("id, title, funder_name, created_at")
-            .order("created_at", { ascending: false })
-            .limit(8),
-        ),
-        safeQuery("grant_applications", () =>
-          supabase
-            .from("grant_applications")
-            .select("id, status, stage, created_at")
-            .order("created_at", { ascending: false })
-            .limit(8),
-        ),
-        safeQuery("ngos", () =>
-          supabase
+        hasNgoFilters && ngoFilterIds.length === 0
+          ? Promise.resolve([])
+          : safeQuery("work_items", () => {
+              let query = supabase
+                .from("work_items")
+                .select("id, title, module, status, created_at")
+                .order("created_at", { ascending: false })
+                .limit(8);
+
+              if (filters.module) {
+                query = query.eq("module", filters.module);
+              }
+              if (hasNgoFilters) {
+                query = query.in("ngo_id", ngoFilterIds);
+              }
+
+              return query;
+            }),
+        hasNgoFilters && ngoFilterIds.length === 0
+          ? Promise.resolve([])
+          : safeQuery("documents", () => {
+              let query = supabase
+                .from("documents")
+                .select("id, title, file_name, review_status, created_at")
+                .order("created_at", { ascending: false })
+                .limit(8);
+
+              if (hasNgoFilters) {
+                query = query.in("ngo_id", ngoFilterIds);
+              }
+
+              return query;
+            }),
+        hasFilters
+          ? Promise.resolve([])
+          : safeQuery("form_submissions", () =>
+              supabase
+                .from("form_submissions")
+                .select("id, status, created_at")
+                .order("created_at", { ascending: false })
+                .limit(8),
+            ),
+        hasFilters
+          ? Promise.resolve([])
+          : safeQuery("grant_opportunities", () =>
+              supabase
+                .from("grant_opportunities")
+                .select("id, title, funder_name, created_at")
+                .order("created_at", { ascending: false })
+                .limit(8),
+            ),
+        hasFilters
+          ? Promise.resolve([])
+          : safeQuery("grant_applications", () =>
+              supabase
+                .from("grant_applications")
+                .select("id, status, stage, created_at")
+                .order("created_at", { ascending: false })
+                .limit(8),
+            ),
+        safeQuery("ngos", () => {
+          let query = supabase
             .from("ngos")
             .select("id, legal_name, common_name, status, created_at, updated_at")
             .order("updated_at", { ascending: false })
-            .limit(8),
-        ),
-        safeQuery("audit_log", () =>
-          supabase
-            .from("audit_log")
-            .select("id, action_type, entity_type, entity_id, created_at")
-            .order("created_at", { ascending: false })
-            .limit(8),
-        ),
+            .limit(8);
+
+          if (filters.bundle) {
+            query = query.eq("bundle", filters.bundle);
+          }
+          if (filters.country) {
+            query = query.eq("country", filters.country);
+          }
+          if (filters.state) {
+            query = query.eq("state_province", filters.state);
+          }
+
+          return query;
+        }),
+        hasFilters
+          ? Promise.resolve([])
+          : safeQuery("audit_log", () =>
+              supabase
+                .from("audit_log")
+                .select("id, action_type, entity_type, entity_id, created_at")
+                .order("created_at", { ascending: false })
+                .limit(8),
+            ),
       ]);
 
       const activity: RecentActivityItem[] = [

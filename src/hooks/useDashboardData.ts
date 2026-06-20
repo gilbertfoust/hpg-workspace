@@ -1,6 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
 import { ensureSupabase } from "../integrations/supabase/client";
-import { ModuleType, WorkItemStatus } from "@/hooks/useWorkItems";
+import { ModuleType } from "@/hooks/useWorkItems";
+import {
+  classifyEvidenceCategory,
+  evidenceCategoryLabel,
+  isOpenDashboardWorkItem,
+  resolveWorkItemDepartmentLabel,
+  type DashboardEvidenceCategory,
+} from "@/lib/workItemDashboardUtils";
 
 export type DashboardFilters = {
   bundle?: string;
@@ -15,6 +22,17 @@ export type DashboardEvidenceRow = {
   department: string;
   owner: string;
   dueDate: string | null;
+  evidenceCategory: DashboardEvidenceCategory;
+  evidenceLabel: string;
+};
+
+export type DashboardEvidenceSummary = {
+  missing: number;
+  uploadedPendingReview: number;
+  underReview: number;
+  rejected: number;
+  upToDate: number;
+  noEvidenceRequired: number;
 };
 
 export type DashboardAtRiskRow = {
@@ -49,27 +67,20 @@ export type DashboardData = {
   kpis: DashboardKpis;
   workloadByDepartment: DepartmentWorkload[];
   evidencePending: DashboardEvidenceRow[];
+  evidenceSummary: DashboardEvidenceSummary;
   atRiskNgos: DashboardAtRiskRow[];
   ngoStatusDistribution: NgoPortfolioStatusBucket[];
+  openWorkItemCount: number;
 };
 
-const ACTIVE_STATUSES: WorkItemStatus[] = [
-  "not_started",
-  "in_progress",
-  "waiting_on_ngo",
-  "waiting_on_hpg",
-  "submitted",
-  "under_review",
-];
-
-const LIVE_TITLE_CASE_ACTIVE_STATUSES = [
-  "Not Started",
-  "In Progress",
-  "Waiting on NGO",
-  "Waiting on HPG",
-  "Submitted",
-  "Under Review",
-];
+const emptyEvidenceSummary = (): DashboardEvidenceSummary => ({
+  missing: 0,
+  uploadedPendingReview: 0,
+  underReview: 0,
+  rejected: 0,
+  upToDate: 0,
+  noEvidenceRequired: 0,
+});
 
 const NGO_PORTFOLIO_STATUS_ORDER = [
   "Applicants",
@@ -98,6 +109,34 @@ const mapNgoStatusToPortfolioBucket = (status: string | null | undefined) => {
 const uniqueSorted = (values: (string | null | undefined)[]) => {
   return [...new Set(values.filter((value): value is string => Boolean(value)))]
     .sort((a, b) => a.localeCompare(b));
+};
+
+export const fetchNgoFilterIds = async (filters: DashboardFilters) => {
+  const supabase = ensureSupabase();
+  const hasNgoFilters = Boolean(filters.bundle || filters.country || filters.state);
+
+  if (!hasNgoFilters) {
+    return { hasNgoFilters: false, ngoFilterIds: [] as string[] };
+  }
+
+  let ngoFilterQuery = supabase.from("ngos").select("id");
+  if (filters.bundle) {
+    ngoFilterQuery = ngoFilterQuery.eq("bundle", filters.bundle);
+  }
+  if (filters.country) {
+    ngoFilterQuery = ngoFilterQuery.eq("country", filters.country);
+  }
+  if (filters.state) {
+    ngoFilterQuery = ngoFilterQuery.eq("state_province", filters.state);
+  }
+
+  const { data, error } = await ngoFilterQuery;
+  if (error) throw error;
+
+  return {
+    hasNgoFilters: true,
+    ngoFilterIds: data?.map((ngo) => ngo.id) ?? [],
+  };
 };
 
 const buildNgoStatusDistribution = (ngos: { status: string | null }[]) => {
@@ -177,8 +216,10 @@ export const useDashboardData = (filters: DashboardFilters) => {
           },
           workloadByDepartment: [],
           evidencePending: [],
+          evidenceSummary: emptyEvidenceSummary(),
           atRiskNgos: [],
           ngoStatusDistribution,
+          openWorkItemCount: 0,
         };
       }
 
@@ -187,8 +228,7 @@ export const useDashboardData = (filters: DashboardFilters) => {
         .select(
           "id, ngo_id, department_id, owner_user_id, due_date, status, evidence_required, evidence_status, module",
         )
-        .is("archived_at", null)
-        .in("status", [...ACTIVE_STATUSES, ...LIVE_TITLE_CASE_ACTIVE_STATUSES]);
+        .is("archived_at", null);
 
       if (filters.module) {
         workItemsQuery = workItemsQuery.eq("module", filters.module);
@@ -197,10 +237,11 @@ export const useDashboardData = (filters: DashboardFilters) => {
         workItemsQuery = workItemsQuery.in("ngo_id", ngoFilterIds);
       }
 
-      const { data: workItems, error: workItemsError } = await workItemsQuery;
+      const { data: workItemsRaw, error: workItemsError } = await workItemsQuery;
       if (workItemsError) throw workItemsError;
 
-      const workItemIds = workItems?.map((item) => item.id) ?? [];
+      const workItems = (workItemsRaw ?? []).filter((item) => isOpenDashboardWorkItem(item.status));
+      const workItemIds = workItems.map((item) => item.id);
 
       let atRiskQuery = supabase
         .from("ngos")
@@ -308,29 +349,49 @@ export const useDashboardData = (filters: DashboardFilters) => {
         return dueDate < today;
       }).length;
 
-      const evidencePending = (workItems ?? [])
-        .filter((item) => item.evidence_required && item.evidence_status !== "approved")
-        .map((item) => ({
+      const evidenceSummary = emptyEvidenceSummary();
+      const evidencePending: DashboardEvidenceRow[] = [];
+
+      workItems.forEach((item) => {
+        if (!item.evidence_required) {
+          evidenceSummary.noEvidenceRequired += 1;
+          return;
+        }
+
+        const category = classifyEvidenceCategory(item.evidence_required, item.evidence_status);
+
+        if (!category) {
+          evidenceSummary.upToDate += 1;
+          return;
+        }
+
+        if (category === "missing") evidenceSummary.missing += 1;
+        if (category === "uploaded_pending_review") evidenceSummary.uploadedPendingReview += 1;
+        if (category === "under_review") evidenceSummary.underReview += 1;
+        if (category === "rejected") evidenceSummary.rejected += 1;
+
+        evidencePending.push({
           id: item.id,
           ngoName: item.ngo_id ? ngoNameMap.get(item.ngo_id) || "Unknown NGO" : "Unassigned",
-          department: item.department_id
-            ? departmentMap.get(item.department_id) || "Unassigned"
-            : "Unassigned",
+          department: resolveWorkItemDepartmentLabel(item.department_id, item.module, departmentMap),
           owner: item.owner_user_id ? ownerMap.get(item.owner_user_id) || "Unassigned" : "Unassigned",
           dueDate: item.due_date,
-        }))
-        .sort((a, b) => {
-          if (!a.dueDate) return 1;
-          if (!b.dueDate) return -1;
-          return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
-        })
-        .slice(0, 50);
+          evidenceCategory: category,
+          evidenceLabel: evidenceCategoryLabel(category),
+        });
+      });
+
+      evidencePending.sort((a, b) => {
+        if (!a.dueDate) return 1;
+        if (!b.dueDate) return -1;
+        return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+      });
+
+      const evidencePendingLimited = evidencePending.slice(0, 50);
 
       const workloadTotals = new Map<string, number>();
-      (workItems ?? []).forEach((item) => {
-        const department = item.department_id
-          ? departmentMap.get(item.department_id) || "Unassigned"
-          : "Unassigned";
+      workItems.forEach((item) => {
+        const department = resolveWorkItemDepartmentLabel(item.department_id, item.module, departmentMap);
         workloadTotals.set(department, (workloadTotals.get(department) || 0) + 1);
       });
 
@@ -359,9 +420,11 @@ export const useDashboardData = (filters: DashboardFilters) => {
           pendingDocuments: pendingDocumentsCount ?? 0,
         },
         workloadByDepartment,
-        evidencePending,
+        evidencePending: evidencePendingLimited,
+        evidenceSummary,
         atRiskNgos,
         ngoStatusDistribution,
+        openWorkItemCount: workItems.length,
       };
     },
   });

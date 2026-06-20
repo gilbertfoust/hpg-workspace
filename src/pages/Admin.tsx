@@ -47,23 +47,23 @@ import {
   Loader2,
   KeyRound,
   UserCog,
+  Camera,
 } from "lucide-react";
 import { useAdminUsers, useDeleteAdminUser } from "@/hooks/useAdminUsers";
 import { useAuth } from "@/contexts/AuthContext";
-import { useUserRole } from "@/hooks/useUserRole";
+import { useUserRole, getRoleAccessLane } from "@/hooks/useUserRole";
+import { useUpdateProfileAvatar } from "@/hooks/useProfiles";
+import { UserAvatar } from "@/components/common/UserAvatar";
+import {
+  ADMIN_ASSIGNABLE_ROLES,
+  canAssignRoles,
+  getRoleLabel,
+} from "@/lib/accessControl";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 
-const ALL_ROLES = [
-  { value: "super_admin", label: "Super Admin" },
-  { value: "admin_pm", label: "Admin PM" },
-  { value: "executive_secretariat", label: "Executive Secretariat" },
-  { value: "ngo_coordinator", label: "NGO Coordinator" },
-  { value: "department_lead", label: "Department Lead" },
-  { value: "staff_member", label: "Staff Member" },
-  { value: "external_ngo", label: "External NGO Portal" },
-];
+const ALL_ROLES = ADMIN_ASSIGNABLE_ROLES;
 
 const mockDepartments = [
   { id: "1", name: "Administration", subDepts: ["Executive Secretariat"], lead: "Jane Smith", items: 12 },
@@ -88,18 +88,14 @@ const roleColors: Record<string, string> = {
   external_ngo: "bg-cyan-500/10 text-cyan-600",
 };
 
-const formatRoleName = (role: string) => {
-  return role
-    .split("_")
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(" ");
-};
+const formatRoleName = (role: string) => getRoleLabel(role);
 
 export default function Admin() {
   const { data: users, isLoading: usersLoading, error: usersError } = useAdminUsers();
   const { user: currentUser } = useAuth();
   const { data: currentUserRole } = useUserRole();
   const deleteUserMutation = useDeleteAdminUser();
+  const updateAvatarMutation = useUpdateProfileAvatar();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -107,8 +103,10 @@ export default function Admin() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [resetPasswordUser, setResetPasswordUser] = useState<{ id: string; name: string | null } | null>(null);
   const [changingRoleUserId, setChangingRoleUserId] = useState<string | null>(null);
+  const [uploadingAvatarUserId, setUploadingAvatarUserId] = useState<string | null>(null);
 
-  const isSuperAdmin = currentUserRole?.role === "super_admin" || currentUserRole?.role === "admin_pm";
+  const canManageRoles = canAssignRoles(currentUserRole?.role);
+  const isSuperAdmin = canManageRoles;
 
   const handleDeleteClick = (userId: string, userName: string | null, userEmail: string | null) => {
     setUserToDelete({ id: userId, name: userName, email: userEmail });
@@ -126,6 +124,15 @@ export default function Admin() {
   };
 
   const handleRoleChange = async (userId: string, newRole: string) => {
+    if (!canManageRoles) {
+      toast({
+        variant: "destructive",
+        title: "Not authorized",
+        description: "Only Super Admin and Admin users can assign access levels.",
+      });
+      return;
+    }
+
     setChangingRoleUserId(userId);
     try {
       const { data, error } = await supabase!.functions.invoke("admin-update-role", {
@@ -141,6 +148,15 @@ export default function Admin() {
       toast({ variant: "destructive", title: "Failed to update role", description: err.message });
     } finally {
       setChangingRoleUserId(null);
+    }
+  };
+
+  const handleAvatarUpload = async (userId: string, file: File) => {
+    setUploadingAvatarUserId(userId);
+    try {
+      await updateAvatarMutation.mutateAsync({ userId, file });
+    } finally {
+      setUploadingAvatarUserId(null);
     }
   };
 
@@ -210,10 +226,11 @@ export default function Admin() {
                   <table className="w-full">
                     <thead>
                       <tr>
+                        <th className="w-12">Photo</th>
                         <th>Name</th>
                         <th>Email</th>
-                        <th>Role</th>
-                        <th>Department</th>
+                        <th>Access level</th>
+                        <th>Access lane</th>
                         <th>Status</th>
                         {isSuperAdmin && <th className="w-10">Actions</th>}
                       </tr>
@@ -226,6 +243,31 @@ export default function Admin() {
                           const isChangingRole = changingRoleUserId === user.id;
                           return (
                             <tr key={user.id}>
+                              <td>
+                                <div className="flex items-center gap-2">
+                                  <UserAvatar
+                                    name={user.full_name}
+                                    email={user.email}
+                                    avatarUrl={user.avatar_url}
+                                  />
+                                  {isSuperAdmin && (
+                                    <label className="cursor-pointer">
+                                      <input
+                                        type="file"
+                                        accept="image/jpeg,image/png,image/webp,image/gif"
+                                        className="hidden"
+                                        disabled={uploadingAvatarUserId === user.id}
+                                        onChange={(event) => {
+                                          const file = event.target.files?.[0];
+                                          if (file) handleAvatarUpload(user.id, file);
+                                          event.currentTarget.value = "";
+                                        }}
+                                      />
+                                      <Camera className="w-3.5 h-3.5 text-muted-foreground hover:text-foreground" />
+                                    </label>
+                                  )}
+                                </div>
+                              </td>
                               <td className="font-medium">{user.full_name || "N/A"}</td>
                               <td className="text-muted-foreground text-sm">{user.email || "N/A"}</td>
                               <td>
@@ -257,7 +299,9 @@ export default function Admin() {
                                   </Badge>
                                 )}
                               </td>
-                              <td className="text-sm text-muted-foreground">—</td>
+                              <td className="text-sm text-muted-foreground">
+                                {getRoleAccessLane(primaryRole)}
+                              </td>
                               <td>
                                 <Badge variant="outline" className="gap-1">
                                   <Check className="w-3 h-3" />
@@ -304,7 +348,7 @@ export default function Admin() {
                         })
                       ) : (
                         <tr>
-                          <td colSpan={isSuperAdmin ? 6 : 5} className="text-center py-8 text-muted-foreground">
+                          <td colSpan={isSuperAdmin ? 7 : 6} className="text-center py-8 text-muted-foreground">
                             No users found. Click "Add User" to create the first account.
                           </td>
                         </tr>

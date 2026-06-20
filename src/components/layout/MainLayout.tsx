@@ -9,6 +9,9 @@ import { format } from "date-fns";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { useCurrentProfile } from "@/hooks/useProfiles";
+import { useUserRole } from "@/hooks/useUserRole";
+import { UserIdentityChip } from "@/components/layout/UserIdentityChip";
 
 interface MainLayoutProps {
   children: ReactNode;
@@ -21,7 +24,9 @@ export function MainLayout({ children, title, subtitle, actions }: MainLayoutPro
   const { data: upcomingReminders } = useUpcomingReminders({ hours: 48 });
   const markReminderSeen = useMarkReminderSeen();
   const reminderCount = upcomingReminders?.length ?? 0;
-  const { signOut } = useAuth();
+  const { user, signOut } = useAuth();
+  const { data: profile } = useCurrentProfile();
+  const { data: userRole } = useUserRole();
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -60,6 +65,12 @@ export function MainLayout({ children, title, subtitle, actions }: MainLayoutPro
           </div>
           
           <div className="flex items-center gap-2">
+            <UserIdentityChip
+              fullName={profile?.full_name ?? user?.user_metadata?.full_name}
+              email={profile?.email ?? user?.email}
+              avatarUrl={profile?.avatar_url}
+              role={userRole?.role}
+            />
             <Popover>
               <PopoverTrigger asChild>
                 <Button variant="ghost" size="icon" className="relative">

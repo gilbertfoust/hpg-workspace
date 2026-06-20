@@ -81,6 +81,18 @@ serve(async (req) => {
       );
     }
 
+    const { error: profileError } = await adminClient
+      .from("profiles")
+      .update({ role: new_role })
+      .eq("id", target_user_id);
+
+    if (profileError) {
+      return new Response(
+        JSON.stringify({ error: profileError.message }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     return new Response(
       JSON.stringify({ success: true }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }

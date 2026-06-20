@@ -344,3 +344,24 @@
     overflow: hidden;
   }
 }
+
+@media print {
+  body.dashboard-print-mode aside,
+  body.dashboard-print-mode header,
+  body.dashboard-print-mode .dashboard-operational,
+  body.dashboard-print-mode .dashboard-no-print {
+    display: none !important;
+  }
+
+  body.dashboard-print-mode main {
+    padding: 0.5rem !important;
+  }
+}
+
+.dashboard-page section {
+  scroll-margin-top: 5rem;
+}
+
+.dashboard-page .recharts-wrapper {
+  max-width: 100%;
+}

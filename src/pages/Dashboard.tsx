@@ -16,6 +16,8 @@ import {
   Briefcase,
   Shield,
   Filter,
+  Printer,
+  Presentation,
 } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -36,6 +38,18 @@ import { ModuleSnapshotCards } from "@/components/dashboard/ModuleSnapshotCards"
 import { RecentActivityFeed } from "@/components/dashboard/RecentActivityFeed";
 import { DataHealthPanel } from "@/components/dashboard/DataHealthPanel";
 import { ExecutiveBrief } from "@/components/dashboard/ExecutiveBrief";
+import { DashboardAlertsBanner } from "@/components/dashboard/DashboardAlertsBanner";
+import { DashboardFollowUpQueue } from "@/components/dashboard/DashboardFollowUpQueue";
+import { NgoPortfolioIntelligencePanel } from "@/components/dashboard/NgoPortfolioIntelligencePanel";
+import { GrantPipelineIntelligencePanel } from "@/components/dashboard/GrantPipelineIntelligencePanel";
+import { FinanceReadinessPanel } from "@/components/dashboard/FinanceReadinessPanel";
+import { HrReadinessPanel } from "@/components/dashboard/HrReadinessPanel";
+import { DashboardDataDefinitions } from "@/components/dashboard/DashboardDataDefinitions";
+import { DashboardPanelState } from "@/components/dashboard/DashboardPanelState";
+import { SavedDashboardViews } from "@/components/dashboard/SavedDashboardViews";
+import { useSavedDashboardViews, type SavedDashboardView } from "@/hooks/useSavedDashboardViews";
+import { useDashboardSectionScroll, useDashboardUrlState, type DashboardSectionId } from "@/hooks/useDashboardUrlState";
+import { toDashboardSearchParams } from "@/lib/dashboardSearchParams";
 
 const HPG_LOGO_URL =
   "https://img1.wsimg.com/isteam/ip/8d5502d6-d937-4d80-bd56-8074053e4d77/Humanity%20Pathways%20Global.jpg/:/rs=h:175,m";
@@ -53,15 +67,6 @@ const CHART_COLORS = [
 
 const hasActiveFilters = (filters: DashboardFilters) =>
   Boolean(filters.bundle || filters.country || filters.state || filters.module);
-
-const toSearchParams = (params: Record<string, string | number | undefined>) => {
-  const search = new URLSearchParams();
-  Object.entries(params).forEach(([key, value]) => {
-    if (value !== undefined && value !== "") search.set(key, String(value));
-  });
-  const value = search.toString();
-  return value ? `?${value}` : "";
-};
 
 function useWorkItemTrend(filters: DashboardFilters) {
   const { data: workItems } = useWorkItems(filters.module ? { module: filters.module } : {});
@@ -95,7 +100,19 @@ function useStatusDistribution(filters: DashboardFilters) {
   return Array.from(statusMap.entries()).map(([name, value]) => ({ name, value }));
 }
 
-const DashboardFilterControls = ({ filters, setFilters }: { filters: DashboardFilters; setFilters: (filters: DashboardFilters) => void }) => {
+const DashboardFilterControls = ({
+  filters,
+  setFilters,
+  section,
+  onApplySavedView,
+  onResetView,
+}: {
+  filters: DashboardFilters;
+  setFilters: (filters: DashboardFilters) => void;
+  section: DashboardSectionId | null;
+  onApplySavedView: (view: SavedDashboardView) => void;
+  onResetView: () => void;
+}) => {
   const { data: options, isLoading } = useDashboardFilters();
 
   const updateFilter = (key: keyof DashboardFilters, value: string) => {
@@ -125,7 +142,7 @@ const DashboardFilterControls = ({ filters, setFilters }: { filters: DashboardFi
             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
           </div>
         ) : (
-          <div className="grid gap-3 md:grid-cols-4">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <label className="space-y-1 text-xs font-medium text-muted-foreground">
               Bundle
               <select className="w-full rounded-md border bg-background px-3 py-2 text-sm text-foreground" value={filters.bundle || ""} onChange={(event) => updateFilter("bundle", event.target.value)}>
@@ -156,6 +173,12 @@ const DashboardFilterControls = ({ filters, setFilters }: { filters: DashboardFi
             </label>
           </div>
         )}
+        <SavedDashboardViews
+          filters={filters}
+          section={section}
+          onApply={onApplySavedView}
+          onReset={onResetView}
+        />
       </CardContent>
     </Card>
   );
@@ -171,14 +194,14 @@ const DashboardDrilldowns = ({ filters }: { filters: DashboardFilters }) => {
   };
 
   const drilldowns = [
-    { label: "Overdue Work Items", path: `/work-items${toSearchParams({ ...baseParams, due: "overdue" })}`, icon: AlertCircle },
-    { label: "Due This Week", path: `/work-items${toSearchParams({ ...baseParams, due: "7d" })}`, icon: Clock },
-    { label: "High Priority", path: `/work-items${toSearchParams({ ...baseParams, priority: "high" })}`, icon: TrendingUp },
-    { label: "Waiting on NGO", path: `/work-items${toSearchParams({ ...baseParams, status: "waiting_on_ngo" })}`, icon: Users },
-    { label: "Out of Compliance NGOs", path: `/ngos${toSearchParams({ ...baseParams, portfolioStatus: "out_of_compliance" })}`, icon: Shield },
-    { label: "Grant Applications", path: `/grants${toSearchParams({ ...baseParams, view: "applications" })}`, icon: Briefcase },
-    { label: "Pending Documents", path: `/documents${toSearchParams({ ...baseParams, review_status: "Pending" })}`, icon: FileText },
-    { label: "Data Health", path: `/dashboard${toSearchParams({ ...baseParams, section: "data-health" })}`, icon: LayoutDashboard },
+    { label: "Overdue Work Items", path: `/work-items${toDashboardSearchParams({ ...baseParams, due: "overdue" })}`, icon: AlertCircle },
+    { label: "Due This Week", path: `/work-items${toDashboardSearchParams({ ...baseParams, due: "7d" })}`, icon: Clock },
+    { label: "High Priority", path: `/work-items${toDashboardSearchParams({ ...baseParams, priority: "high" })}`, icon: TrendingUp },
+    { label: "Waiting on NGO", path: `/work-items${toDashboardSearchParams({ ...baseParams, status: "waiting_on_ngo" })}`, icon: Users },
+    { label: "Out of Compliance NGOs", path: `/ngos${toDashboardSearchParams({ ...baseParams, portfolioStatus: "out_of_compliance" })}`, icon: Shield },
+    { label: "Grant Applications", path: `/grants${toDashboardSearchParams({ ...baseParams, view: "applications" })}`, icon: Briefcase },
+    { label: "Pending Documents", path: `/documents${toDashboardSearchParams({ ...baseParams, review_status: "Pending" })}`, icon: FileText },
+    { label: "Data Health", path: `/dashboard${toDashboardSearchParams({ ...baseParams, section: "data-health" })}`, icon: LayoutDashboard },
   ];
 
   return (
@@ -188,7 +211,7 @@ const DashboardDrilldowns = ({ filters }: { filters: DashboardFilters }) => {
         <CardDescription>Jump from the dashboard into focused queues and filtered workspace views.</CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
           {drilldowns.map((item) => (
             <Button key={item.label} variant="outline" className="justify-between" onClick={() => navigate(item.path)}>
               <span className="flex items-center gap-2">
@@ -283,7 +306,7 @@ const WorkItemTrendChart = ({ filters }: { filters: DashboardFilters }) => {
         <CardDescription>Created vs completed — last 6 months</CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="h-[250px]">
+        <div className="h-[220px] sm:h-[250px] min-w-0">
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={trendData}>
               <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
@@ -309,7 +332,7 @@ const StatusDistributionChart = ({ filters }: { filters: DashboardFilters }) => 
         <CardDescription>Active work items by status</CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="h-[250px]">
+        <div className="h-[220px] sm:h-[250px] min-w-0">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie data={statusData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`} labelLine={false}>
@@ -338,9 +361,13 @@ const NgoPortfolioStatusChart = ({ filters }: { filters: DashboardFilters }) => 
       </CardHeader>
       <CardContent>
         {portfolioData.length === 0 ? (
-          <p className="text-sm text-muted-foreground text-center py-8">No NGO portfolio data available</p>
+          <DashboardPanelState
+            isEmpty
+            emptyTitle="No NGO portfolio data"
+            emptyDescription="Add NGOs to the workspace to see portfolio status distribution."
+          />
         ) : (
-          <div className="h-[250px]">
+          <div className="h-[220px] sm:h-[250px] min-w-0">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie data={portfolioData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`} labelLine={false}>
@@ -362,17 +389,26 @@ const NgoPortfolioStatusChart = ({ filters }: { filters: DashboardFilters }) => 
 const DeptWorkloadChart = ({ filters }: { filters: DashboardFilters }) => {
   const { data: dashboardData } = useDashboardData(filters);
   const workload = dashboardData?.workloadByDepartment ?? [];
+  const openCount = dashboardData?.openWorkItemCount ?? 0;
   return (
     <Card className="col-span-full">
       <CardHeader>
         <CardTitle className="text-base">Workload by Department</CardTitle>
-        <CardDescription>Open work items per department</CardDescription>
+        <CardDescription>Open work items per department (includes module-based routing when department is unset)</CardDescription>
       </CardHeader>
       <CardContent>
         {workload.length === 0 ? (
-          <p className="text-sm text-muted-foreground text-center py-8">No department workload data available</p>
+          <DashboardPanelState
+            isEmpty
+            emptyTitle={openCount > 0 ? "Work items found without department grouping" : "No open work items in this view"}
+            emptyDescription={
+              openCount > 0
+                ? `${openCount} open work item${openCount === 1 ? "" : "s"} exist but could not be grouped by department. Assign a department on each work item for clearer workload charts.`
+                : "Create or reopen work items in this dashboard view to see department workload."
+            }
+          />
         ) : (
-          <div className="h-[250px]">
+          <div className="h-[220px] sm:h-[250px] min-w-0">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={workload} layout="vertical">
                 <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
@@ -392,7 +428,17 @@ const DeptWorkloadChart = ({ filters }: { filters: DashboardFilters }) => {
 const AtRiskAndEvidencePanel = ({ filters }: { filters: DashboardFilters }) => {
   const { data: dashboardData } = useDashboardData(filters);
   const navigate = useNavigate();
-  const missingEvidenceCount = dashboardData?.evidencePending?.length || 0;
+  const evidenceRows = dashboardData?.evidencePending ?? [];
+  const evidenceSummary = dashboardData?.evidenceSummary;
+  const attentionCount = evidenceRows.length;
+  const openCount = dashboardData?.openWorkItemCount ?? 0;
+
+  const evidenceBadgeVariant = (category: string): "default" | "secondary" | "destructive" | "outline" => {
+    if (category === "missing") return "destructive";
+    if (category === "rejected") return "destructive";
+    if (category === "under_review") return "default";
+    return "secondary";
+  };
 
   return (
     <div className="grid gap-4 md:grid-cols-2">
@@ -417,7 +463,7 @@ const AtRiskAndEvidencePanel = ({ filters }: { filters: DashboardFilters }) => {
               ))}
             </div>
           ) : (
-            <p className="text-sm text-muted-foreground text-center py-6">No at-risk NGOs</p>
+            <p className="text-sm text-muted-foreground text-center py-6">No at-risk NGOs in the current view.</p>
           )}
         </CardContent>
       </Card>
@@ -425,31 +471,61 @@ const AtRiskAndEvidencePanel = ({ filters }: { filters: DashboardFilters }) => {
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
             <AlertCircle className="h-4 w-4 text-orange-500" />
-            Missing Evidence ({missingEvidenceCount})
+            Evidence Status ({attentionCount} need attention)
           </CardTitle>
+          <CardDescription>
+            {openCount > 0
+              ? "Tracks work items with evidence requirements in the current dashboard view."
+              : "No open work items in the current view to evaluate for evidence."}
+          </CardDescription>
         </CardHeader>
-        <CardContent>
-          {dashboardData?.evidencePending && dashboardData.evidencePending.length > 0 ? (
+        <CardContent className="space-y-3">
+          {evidenceSummary && openCount > 0 && (
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              <div className="rounded border p-2"><span className="text-muted-foreground">Missing</span><p className="font-semibold text-destructive">{evidenceSummary.missing}</p></div>
+              <div className="rounded border p-2"><span className="text-muted-foreground">Pending review</span><p className="font-semibold">{evidenceSummary.uploadedPendingReview + evidenceSummary.underReview}</p></div>
+              <div className="rounded border p-2"><span className="text-muted-foreground">Rejected</span><p className="font-semibold text-destructive">{evidenceSummary.rejected}</p></div>
+              <div className="rounded border p-2"><span className="text-muted-foreground">Up to date / N/A</span><p className="font-semibold text-green-600">{evidenceSummary.upToDate + evidenceSummary.noEvidenceRequired}</p></div>
+            </div>
+          )}
+
+          {attentionCount > 0 ? (
             <div className="space-y-2">
-              {dashboardData.evidencePending.slice(0, 8).map((item) => (
-                <div key={item.id} className="flex items-center justify-between p-2 border rounded text-sm">
-                  <div>
-                    <p className="font-medium">{item.ngoName}</p>
-                    <p className="text-xs text-muted-foreground">{item.department}</p>
+              {evidenceRows.slice(0, 8).map((item) => (
+                <div
+                  key={item.id}
+                  className="flex items-center justify-between gap-2 p-2 border rounded text-sm cursor-pointer hover:bg-accent/50"
+                  onClick={() => navigate(`/work-items?highlight=${item.id}`)}
+                >
+                  <div className="min-w-0">
+                    <p className="font-medium truncate">{item.ngoName}</p>
+                    <p className="text-xs text-muted-foreground truncate">{item.department}</p>
+                    <p className="text-xs text-muted-foreground">{item.evidenceLabel}</p>
                   </div>
-                  {item.dueDate && (
-                    <Badge variant="outline" className="text-xs">
-                      {new Date(item.dueDate).toLocaleDateString()}
+                  <div className="flex shrink-0 flex-col items-end gap-1">
+                    <Badge variant={evidenceBadgeVariant(item.evidenceCategory)} className="text-[10px]">
+                      {item.evidenceCategory.replace(/_/g, " ")}
                     </Badge>
-                  )}
+                    {item.dueDate && (
+                      <Badge variant="outline" className="text-[10px]">
+                        {new Date(item.dueDate).toLocaleDateString()}
+                      </Badge>
+                    )}
+                  </div>
                 </div>
               ))}
-              {missingEvidenceCount > 8 && (
-                <p className="text-xs text-muted-foreground text-center">+{missingEvidenceCount - 8} more</p>
+              {attentionCount > 8 && (
+                <p className="text-xs text-muted-foreground text-center">+{attentionCount - 8} more</p>
               )}
             </div>
+          ) : openCount === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-6">
+              Evidence tracking will appear when open work items exist in this dashboard view.
+            </p>
           ) : (
-            <p className="text-sm text-muted-foreground text-center py-6">All evidence up to date</p>
+            <p className="text-sm text-muted-foreground text-center py-6">
+              All evidence is up to date, or no work items in this view require evidence.
+            </p>
           )}
         </CardContent>
       </Card>
@@ -492,17 +568,30 @@ const QuickNavCards = () => {
 const Dashboard = () => {
   const navigate = useNavigate();
   const [logoFailed, setLogoFailed] = useState(false);
-  const [filters, setFilters] = useState<DashboardFilters>({});
+  const [boardBriefMode, setBoardBriefMode] = useState(false);
+  const { filters, section, setFilters, applyView, resetToDefault } = useDashboardUrlState();
+  const { toFilters } = useSavedDashboardViews();
+  useDashboardSectionScroll(section);
+
+  const handleApplySavedView = (view: SavedDashboardView) => {
+    applyView({ filters: toFilters(view), section: view.section ?? null });
+  };
   const filterSummary = useMemo(() => {
     const entries = Object.entries(filters).filter(([, value]) => Boolean(value));
     return entries.length ? entries.map(([key, value]) => `${key}: ${value}`).join(" • ") : "All workspace data";
   }, [filters]);
 
+  const handlePrintBoardBrief = () => {
+    document.body.classList.add("dashboard-print-mode");
+    window.print();
+    window.setTimeout(() => document.body.classList.remove("dashboard-print-mode"), 500);
+  };
+
   return (
     <MainLayout>
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6 dashboard-page min-w-0 overflow-x-hidden">
       {/* Header */}
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between dashboard-no-print">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
             <span className="inline-flex h-7 w-7 items-center justify-center overflow-hidden rounded-md border bg-background/60">
@@ -517,64 +606,164 @@ const Dashboard = () => {
                 />
               )}
             </span>
-            HPG Workspace
+            {boardBriefMode ? "HPG Board Brief" : "HPG Workspace"}
           </h1>
           <p className="text-muted-foreground">
-            Overview of NGOs, work items, finances, and compliance across Humanity Pathways Global.
+            {boardBriefMode
+              ? "Leadership summary for board review and print export."
+              : "Overview of NGOs, work items, finances, and compliance across Humanity Pathways Global."}
           </p>
-          <p className="mt-1 text-xs text-muted-foreground">Current view: {filterSummary}</p>
+          {!boardBriefMode && (
+            <p className="mt-1 text-xs text-muted-foreground">Current view: {filterSummary}</p>
+          )}
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" onClick={() => navigate("/ngos")}> 
-            <Users className="w-4 h-4 mr-2" />
-            View NGOs
+          <Button
+            variant={boardBriefMode ? "default" : "outline"}
+            onClick={() => setBoardBriefMode((v) => !v)}
+          >
+            <Presentation className="w-4 h-4 mr-2" />
+            Board Brief Mode
           </Button>
-          <Button onClick={() => navigate("/work-items")}> 
-            Open Work Queue
-            <ArrowRight className="w-4 h-4 ml-2" />
-          </Button>
+          {boardBriefMode && (
+            <Button variant="outline" onClick={handlePrintBoardBrief}>
+              <Printer className="w-4 h-4 mr-2" />
+              Print
+            </Button>
+          )}
+          {!boardBriefMode && (
+            <>
+              <Button variant="outline" onClick={() => navigate("/ngos")}>
+                <Users className="w-4 h-4 mr-2" />
+                View NGOs
+              </Button>
+              <Button onClick={() => navigate("/work-items")}>
+                Open Work Queue
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </Button>
+            </>
+          )}
         </div>
       </div>
 
+      {!boardBriefMode && <DashboardAlertsBanner filters={filters} />}
+
       {/* Dashboard Filters */}
-      <DashboardFilterControls filters={filters} setFilters={setFilters} />
+      {!boardBriefMode && (
+      <section id="filters" className="scroll-mt-20">
+        <DashboardFilterControls
+          filters={filters}
+          setFilters={setFilters}
+          section={section}
+          onApplySavedView={handleApplySavedView}
+          onResetView={resetToDefault}
+        />
+      </section>
+      )}
 
       {/* Drilldowns */}
-      <DashboardDrilldowns filters={filters} />
+      {!boardBriefMode && (
+      <section id="drilldowns" className="dashboard-operational">
+        <DashboardDrilldowns filters={filters} />
+      </section>
+      )}
 
       {/* Executive Brief */}
-      <ExecutiveBrief filters={filters} />
+      <section id="executive-brief">
+        <ExecutiveBrief filters={filters} />
+      </section>
 
       {/* KPI Row */}
-      <DashboardKPIs filters={filters} />
+      <section id="kpis">
+        <DashboardKPIs filters={filters} />
+      </section>
 
       {/* Today's Action Center */}
-      <TodaysActionCenter />
+      {!boardBriefMode && (
+      <section id="action-center" className="dashboard-operational">
+        <TodaysActionCenter filters={filters} />
+      </section>
+      )}
+
+      {/* Follow-Up Queue */}
+      {!boardBriefMode && (
+      <section id="follow-up-queue" className="dashboard-operational">
+        <DashboardFollowUpQueue filters={filters} />
+      </section>
+      )}
 
       {/* Module Snapshots */}
-      <ModuleSnapshotCards />
+      {!boardBriefMode && (
+      <section id="module-snapshots" className="dashboard-operational">
+        <ModuleSnapshotCards />
+      </section>
+      )}
 
       {/* Recent Activity */}
-      <RecentActivityFeed />
+      {!boardBriefMode && (
+      <section id="recent-activity" className="dashboard-operational">
+        <RecentActivityFeed filters={filters} />
+      </section>
+      )}
 
       {/* Data Health */}
-      <DataHealthPanel />
+      <section id="data-health" className="scroll-mt-20">
+        <DataHealthPanel compact={boardBriefMode} />
+      </section>
+
+      {/* Finance & HR Readiness */}
+      {!boardBriefMode && (
+      <section id="readiness-panels" className="dashboard-operational grid gap-4 lg:grid-cols-2">
+        <FinanceReadinessPanel />
+        <HrReadinessPanel />
+      </section>
+      )}
 
       {/* Quick Navigation */}
-      <QuickNavCards />
+      {!boardBriefMode && (
+      <div className="dashboard-operational dashboard-no-print">
+        <QuickNavCards />
+      </div>
+      )}
 
       {/* Charts Row */}
-      <div className="grid gap-4 md:grid-cols-2">
-        <WorkItemTrendChart filters={filters} />
-        <StatusDistributionChart filters={filters} />
+      <section id="charts" className={`scroll-mt-20 grid gap-4 grid-cols-1 md:grid-cols-2 ${boardBriefMode ? "md:grid-cols-1" : ""}`}>
+        {!boardBriefMode && <WorkItemTrendChart filters={filters} />}
+        {!boardBriefMode && <StatusDistributionChart filters={filters} />}
         <NgoPortfolioStatusChart filters={filters} />
-      </div>
+      </section>
+
+      {/* NGO Portfolio Intelligence */}
+      {!boardBriefMode && (
+      <section id="portfolio-intelligence" className="dashboard-operational">
+        <NgoPortfolioIntelligencePanel filters={filters} />
+      </section>
+      )}
+
+      {/* Grant Pipeline Intelligence */}
+      {!boardBriefMode && (
+      <section id="grant-pipeline" className="dashboard-operational">
+        <GrantPipelineIntelligencePanel />
+      </section>
+      )}
 
       {/* Department Workload */}
-      <DeptWorkloadChart filters={filters} />
+      <section id="workload">
+        <DeptWorkloadChart filters={filters} />
+      </section>
 
       {/* At-Risk & Evidence */}
-      <AtRiskAndEvidencePanel filters={filters} />
+      {!boardBriefMode && (
+      <section id="risk-evidence" className="dashboard-operational">
+        <AtRiskAndEvidencePanel filters={filters} />
+      </section>
+      )}
+
+      {!boardBriefMode && (
+      <section id="data-definitions">
+        <DashboardDataDefinitions />
+      </section>
+      )}
     </div>
     </MainLayout>
   );

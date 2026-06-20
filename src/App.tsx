@@ -71,6 +71,7 @@ import MyQueue from "./pages/MyQueue";
 import DeptQueue from "./pages/DeptQueue";
 import HRDashboard from "./pages/HRDashboard";
 import DevelopmentDashboard from "./pages/DevelopmentDashboard";
+import PotentialSponsees from "./pages/PotentialSponsees";
 import PartnershipsDashboard from "./pages/PartnershipsDashboard";
 import HPGAssistantHistory from "./pages/HPGAssistantHistory";
 
@@ -211,6 +212,7 @@ const App = () => {
                 {/* Department dashboards */}
                 <Route path="/hr" element={<Navigate to="/erp/hr" replace />} />
                 <Route path="/development" element={<P><DevelopmentDashboard /></P>} />
+                <Route path="/development/potential-sponsees" element={<P><PotentialSponsees /></P>} />
                 <Route path="/partnerships" element={<P><PartnershipsDashboard /></P>} />
                 <Route path="/it" element={<P><ITDashboard /></P>} />
                 <Route path="/ngo-coordination" element={<P><NGOCoordination /></P>} />

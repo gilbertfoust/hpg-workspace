@@ -1,6 +1,7 @@
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { isNgoPortalRole, useUserRole } from '@/hooks/useUserRole';
+import { canAccessRoute } from '@/lib/accessControl';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2 } from 'lucide-react';
@@ -54,6 +55,10 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   }
 
   if (!isNgoUser && isPortalRoute) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  if (!canAccessRoute(role?.role, location.pathname)) {
     return <Navigate to="/dashboard" replace />;
   }
 

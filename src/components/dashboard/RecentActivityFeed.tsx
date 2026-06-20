@@ -1,10 +1,12 @@
 import type { ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
-import { Activity, ClipboardList, FileText, FormInput, GitBranch, Landmark, Loader2, ScrollText, Users } from "lucide-react";
+import { Activity, ClipboardList, FileText, FormInput, GitBranch, Landmark, ScrollText, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useDashboardRecentActivity, type RecentActivityType } from "@/hooks/useDashboardRecentActivity";
+import type { DashboardFilters } from "@/hooks/useDashboardData";
+import { DashboardPanelState } from "@/components/dashboard/DashboardPanelState";
 
 const iconMap: Record<RecentActivityType, ReactNode> = {
   work_item: <ClipboardList className="h-4 w-4" />,
@@ -40,9 +42,10 @@ const formatWhen = (timestamp: string) => {
   return date.toLocaleDateString();
 };
 
-export const RecentActivityFeed = () => {
+export const RecentActivityFeed = ({ filters = {} }: { filters?: DashboardFilters }) => {
   const navigate = useNavigate();
-  const { data: activity, isLoading } = useDashboardRecentActivity();
+  const { data: activity, isLoading, isError } = useDashboardRecentActivity(filters);
+  const hasFilters = Boolean(filters.bundle || filters.country || filters.state || filters.module);
 
   return (
     <Card>
@@ -52,22 +55,26 @@ export const RecentActivityFeed = () => {
             <Activity className="h-4 w-4 text-primary" />
             Recent Activity
           </CardTitle>
-          <CardDescription>Latest movement across work items, NGOs, grants, documents, forms, and audit records.</CardDescription>
+          <CardDescription>
+            Latest movement across work items, NGOs, grants, documents, forms, and audit records.
+            {hasFilters ? " Filtered to work items, documents, and NGOs matching the current dashboard view." : ""}
+          </CardDescription>
         </div>
         <Button variant="outline" size="sm" onClick={() => navigate("/reports")}>
           Open reports
         </Button>
       </CardHeader>
       <CardContent>
-        {isLoading ? (
-          <div className="flex items-center justify-center py-8">
-            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-          </div>
-        ) : !activity?.length ? (
-          <p className="text-sm text-muted-foreground text-center py-6">No recent activity found.</p>
-        ) : (
+        <DashboardPanelState
+          isLoading={isLoading}
+          isError={isError}
+          isEmpty={!isLoading && !isError && !activity?.length}
+          emptyTitle="No recent activity"
+          emptyDescription="Activity appears when work items, NGOs, documents, grants, or forms are created or updated."
+          errorMessage="Recent activity could not load. Other dashboard sections will continue to work."
+        >
           <div className="space-y-2">
-            {activity.map((item) => (
+            {activity?.map((item) => (
               <button
                 key={item.id}
                 type="button"
@@ -90,7 +97,7 @@ export const RecentActivityFeed = () => {
               </button>
             ))}
           </div>
-        )}
+        </DashboardPanelState>
       </CardContent>
     </Card>
   );
