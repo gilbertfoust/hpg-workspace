@@ -30,6 +30,16 @@ import NGOCoordination from "./pages/NGOCoordination";
 import ITDashboard from "./pages/ITDashboard";
 import SignDocument from "./pages/SignDocument";
 import FinancialHub from "./pages/FinancialHub";
+import FinanceChartOfAccountsPage from "./pages/FinanceChartOfAccountsPage";
+import FinanceJournalEntriesPage from "./pages/FinanceJournalEntriesPage";
+import FinanceBankAccountsPage from "./pages/FinanceBankAccountsPage";
+import FinanceReceiptsPage from "./pages/FinanceReceiptsPage";
+import FinanceAccountsPayablePage from "./pages/FinanceAccountsPayablePage";
+import FinancePaymentsPage from "./pages/FinancePaymentsPage";
+import FinanceDepositsPage from "./pages/FinanceDepositsPage";
+import FinanceReconciliationPage from "./pages/FinanceReconciliationPage";
+import FinanceBudgetsPage from "./pages/FinanceBudgetsPage";
+import FinanceReportsPage from "./pages/FinanceReportsPage";
 import NGOFinancialOverview from "./pages/NGOFinancialOverview";
 import PeriodDetail from "./pages/PeriodDetail";
 import AccountsPage from "./pages/AccountsPage";
@@ -220,6 +230,16 @@ const App = () => {
 
                 {/* Financial Hub */}
                 <Route path="/financial-hub" element={<P><FinancialHub /></P>} />
+                <Route path="/financial-hub/accounting/chart-of-accounts" element={<P><FinanceChartOfAccountsPage /></P>} />
+                <Route path="/financial-hub/accounting/journal-entries" element={<P><FinanceJournalEntriesPage /></P>} />
+                <Route path="/financial-hub/accounting/bank-accounts" element={<P><FinanceBankAccountsPage /></P>} />
+                <Route path="/financial-hub/accounting/receipts" element={<P><FinanceReceiptsPage /></P>} />
+                <Route path="/financial-hub/accounting/accounts-payable" element={<P><FinanceAccountsPayablePage /></P>} />
+                <Route path="/financial-hub/accounting/payments" element={<P><FinancePaymentsPage /></P>} />
+                <Route path="/financial-hub/accounting/deposits" element={<P><FinanceDepositsPage /></P>} />
+                <Route path="/financial-hub/accounting/reconciliation" element={<P><FinanceReconciliationPage /></P>} />
+                <Route path="/financial-hub/accounting/budgets" element={<P><FinanceBudgetsPage /></P>} />
+                <Route path="/financial-hub/accounting/reports" element={<P><FinanceReportsPage /></P>} />
                 <Route path="/financial-hub/ngo/:ngoId" element={<P><NGOFinancialOverview /></P>} />
                 <Route path="/financial-hub/ngo/:ngoId/period/:periodId" element={<P><PeriodDetail /></P>} />
                 <Route path="/financial-hub/accounts" element={<P><AccountsPage /></P>} />
