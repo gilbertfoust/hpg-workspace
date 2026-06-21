@@ -264,3 +264,122 @@ export const FINANCE_DOCUMENT_LINK_ENTITY_LABELS: Record<FinanceDocumentLinkEnti
   deposit: "Deposit",
   reimbursement: "Reimbursement",
 };
+
+// ---------------------------------------------------------------------------
+// Accounts payable
+// ---------------------------------------------------------------------------
+
+export type FinanceBillStatus =
+  | "draft"
+  | "pending_approval"
+  | "approved"
+  | "partially_paid"
+  | "paid"
+  | "voided";
+
+export interface FinanceVendor {
+  id: string;
+  name: string;
+  email: string | null;
+  phone: string | null;
+  address: string | null;
+  tax_notes: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export type FinanceVendorInput = {
+  name: string;
+  email?: string | null;
+  phone?: string | null;
+  address?: string | null;
+  tax_notes?: string | null;
+  is_active?: boolean;
+};
+
+export interface FinanceBillLine {
+  id: string;
+  bill_id: string;
+  expense_account_id: string;
+  amount: number;
+  memo: string | null;
+  fund_id: string | null;
+  ngo_id: string | null;
+  department_id: string | null;
+  dimension_id: string | null;
+  grant_application_id: string | null;
+  line_number: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export type FinanceBillLineInput = {
+  id?: string;
+  expense_account_id: string;
+  amount: number;
+  memo?: string | null;
+  fund_id?: string | null;
+  ngo_id?: string | null;
+  department_id?: string | null;
+  dimension_id?: string | null;
+  grant_application_id?: string | null;
+  line_number?: number;
+};
+
+export interface FinanceBill {
+  id: string;
+  vendor_id: string;
+  bill_number: string;
+  bill_date: string;
+  due_date: string | null;
+  terms: string | null;
+  status: FinanceBillStatus;
+  memo: string | null;
+  document_id: string | null;
+  total_amount: number;
+  amount_paid: number;
+  journal_entry_id: string | null;
+  approved_by_user_id: string | null;
+  approved_at: string | null;
+  voided_at: string | null;
+  void_reason: string | null;
+  created_by_user_id: string | null;
+  created_at: string;
+  updated_at: string;
+  vendor?: Pick<FinanceVendor, "id" | "name"> | null;
+  lines?: FinanceBillLine[];
+  balance_due?: number;
+}
+
+export type FinanceBillInput = {
+  vendor_id: string;
+  bill_date: string;
+  due_date?: string | null;
+  terms?: string | null;
+  memo?: string | null;
+  document_id?: string | null;
+  lines: FinanceBillLineInput[];
+};
+
+export interface FinanceBillPayment {
+  id: string;
+  bill_id: string;
+  payment_date: string;
+  amount: number;
+  bank_account_id: string;
+  journal_entry_id: string | null;
+  memo: string | null;
+  document_id: string | null;
+  created_by_user_id: string | null;
+  created_at: string;
+}
+
+export const FINANCE_BILL_STATUS_LABELS: Record<FinanceBillStatus, string> = {
+  draft: "Draft",
+  pending_approval: "Pending approval",
+  approved: "Approved",
+  partially_paid: "Partially paid",
+  paid: "Paid",
+  voided: "Voided",
+};
