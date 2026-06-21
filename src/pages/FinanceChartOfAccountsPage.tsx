@@ -15,11 +15,12 @@ import {
   useSeedStarterFinanceAccounts,
   useUpdateFinanceAccount,
 } from "@/hooks/useFinanceAccounts";
-import type { FinanceAccount, FinanceAccountInput } from "@/types/financeAccounting";
-import { FINANCE_ACCOUNT_TYPE_LABELS } from "@/types/financeAccounting";
+import type { FinanceAccount, FinanceAccountInput, FinanceEntityScope } from "@/types/financeAccounting";
+import { FINANCE_ACCOUNT_TYPE_LABELS, FINANCE_ENTITY_SCOPE_LABELS } from "@/types/financeAccounting";
 
 const FinanceChartOfAccountsPage = () => {
   const [includeInactive, setIncludeInactive] = useState(false);
+  const [entityScopeFilter, setEntityScopeFilter] = useState<string>("all");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingAccount, setEditingAccount] = useState<FinanceAccount | null>(null);
 
@@ -38,10 +39,13 @@ const FinanceChartOfAccountsPage = () => {
     return map;
   }, [accounts]);
 
-  const sortedAccounts = useMemo(
-    () => [...accounts].sort((a, b) => a.code.localeCompare(b.code, undefined, { numeric: true })),
-    [accounts]
-  );
+  const sortedAccounts = useMemo(() => {
+    let list = [...accounts];
+    if (entityScopeFilter !== "all") {
+      list = list.filter((a) => (a.entity_scope ?? "hpg_operating") === entityScopeFilter);
+    }
+    return list.sort((a, b) => a.code.localeCompare(b.code, undefined, { numeric: true }));
+  }, [accounts, entityScopeFilter]);
 
   const openCreate = () => {
     setEditingAccount(null);
@@ -101,9 +105,24 @@ const FinanceChartOfAccountsPage = () => {
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-center gap-2">
-              <Switch id="include-inactive" checked={includeInactive} onCheckedChange={setIncludeInactive} />
-              <Label htmlFor="include-inactive">Show inactive accounts</Label>
+            <div className="flex flex-wrap items-center gap-4">
+              <div className="flex items-center gap-2">
+                <Switch id="include-inactive" checked={includeInactive} onCheckedChange={setIncludeInactive} />
+                <Label htmlFor="include-inactive">Show inactive accounts</Label>
+              </div>
+              <div className="flex items-center gap-2">
+                <Label>Entity scope</Label>
+                <select
+                  className="rounded border px-2 py-1 text-sm bg-background"
+                  value={entityScopeFilter}
+                  onChange={(e) => setEntityScopeFilter(e.target.value)}
+                >
+                  <option value="all">All</option>
+                  {(Object.keys(FINANCE_ENTITY_SCOPE_LABELS) as FinanceEntityScope[]).map((s) => (
+                    <option key={s} value={s}>{FINANCE_ENTITY_SCOPE_LABELS[s]}</option>
+                  ))}
+                </select>
+              </div>
             </div>
 
             {isLoading ? (
@@ -128,6 +147,8 @@ const FinanceChartOfAccountsPage = () => {
                       <th className="p-3">Code</th>
                       <th className="p-3">Name</th>
                       <th className="p-3">Type</th>
+                      <th className="p-3">Scope</th>
+                      <th className="p-3">Classification</th>
                       <th className="p-3">Subtype</th>
                       <th className="p-3">Parent</th>
                       <th className="p-3">Normal</th>
@@ -143,6 +164,10 @@ const FinanceChartOfAccountsPage = () => {
                           <td className="p-3 font-mono">{account.code}</td>
                           <td className="p-3 font-medium">{account.name}</td>
                           <td className="p-3">{FINANCE_ACCOUNT_TYPE_LABELS[account.account_type]}</td>
+                          <td className="p-3 text-xs">{FINANCE_ENTITY_SCOPE_LABELS[account.entity_scope ?? "hpg_operating"]}</td>
+                          <td className="p-3 text-xs text-muted-foreground">
+                            {account.revenue_restriction_class || account.expense_functional_class || account.financial_statement_line || "—"}
+                          </td>
                           <td className="p-3 text-muted-foreground">{account.account_subtype || "—"}</td>
                           <td className="p-3 text-muted-foreground">
                             {account.parent_account_id ? parentNameById.get(account.parent_account_id) || "—" : "—"}

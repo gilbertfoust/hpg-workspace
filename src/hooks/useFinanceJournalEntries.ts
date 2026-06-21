@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getSupabaseNotConfiguredError, supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/contexts/AuthContext";
+import { mapPostingError } from "@/lib/financePostingErrors";
 import type {
   FinanceAuditEvent,
   FinanceJournalEntry,
@@ -174,119 +174,36 @@ const normalizeLines = (lines: FinanceJournalLineInput[]): FinanceJournalLineInp
 export const useSaveFinanceJournalEntry = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  const { user } = useAuth();
 
   return useMutation({
     mutationFn: async ({ id, input }: { id?: string; input: FinanceJournalEntryInput }) => {
       ensureSupabase();
       const lines = normalizeLines(input.lines);
 
-      if (id) {
-        const { data: existing, error: fetchError } = await supabase
-          .from("finance_journal_entries" as never)
-          .select("status")
-          .eq("id" as never, id as never)
-          .single();
-
-        if (fetchError) throw fetchError;
-        if ((existing as { status: string }).status !== "draft") {
-          throw new Error("Only draft journal entries can be edited.");
-        }
-
-        const { data: entry, error: updateError } = await supabase
-          .from("finance_journal_entries" as never)
-          .update({
-            entry_date: input.entry_date,
-            memo: input.memo?.trim() || null,
-          } as never)
-          .eq("id" as never, id as never)
-          .select()
-          .single();
-
-        if (updateError) throw updateError;
-
-        const { error: deleteError } = await supabase
-          .from("finance_journal_lines" as never)
-          .delete()
-          .eq("journal_entry_id" as never, id as never);
-
-        if (deleteError) throw deleteError;
-
-        if (lines.length > 0) {
-          const { error: insertError } = await supabase.from("finance_journal_lines" as never).insert(
-            lines.map((line) => ({
-              journal_entry_id: id,
-              account_id: line.account_id,
-              debit: line.debit,
-              credit: line.credit,
-              memo: line.memo?.trim() || null,
-              fund_id: line.fund_id || null,
-              ngo_id: line.ngo_id || null,
-              department_id: line.department_id || null,
-              dimension_id: line.dimension_id || null,
-              document_id: line.document_id || null,
-              grant_application_id: line.grant_application_id || null,
-              work_item_id: line.work_item_id || null,
-              line_number: line.line_number,
-            })) as never
-          );
-          if (insertError) throw insertError;
-        }
-
-        await supabase.rpc("finance_log_audit_event" as never, {
-          _entity_type: "finance_journal_entry",
-          _entity_id: id,
-          _action: "updated",
-          _metadata: { line_count: lines.length },
-        } as never);
-
-        return entry as FinanceJournalEntry;
-      }
-
-      const { data: entry, error: insertError } = await supabase
-        .from("finance_journal_entries" as never)
-        .insert({
-          entry_date: input.entry_date,
-          memo: input.memo?.trim() || null,
-          status: "draft",
-          created_by_user_id: user?.id ?? null,
-          entry_number: "",
-        } as never)
-        .select()
-        .single();
-
-      if (insertError) throw insertError;
-
-      const entryId = (entry as FinanceJournalEntry).id;
-
-      if (lines.length > 0) {
-        const { error: linesError } = await supabase.from("finance_journal_lines" as never).insert(
-          lines.map((line) => ({
-            journal_entry_id: entryId,
-            account_id: line.account_id,
-            debit: line.debit,
-            credit: line.credit,
-            memo: line.memo?.trim() || null,
-            fund_id: line.fund_id || null,
-            ngo_id: line.ngo_id || null,
-            department_id: line.department_id || null,
-            dimension_id: line.dimension_id || null,
-            document_id: line.document_id || null,
-            grant_application_id: line.grant_application_id || null,
-            work_item_id: line.work_item_id || null,
-            line_number: line.line_number,
-          })) as never
-        );
-        if (linesError) throw linesError;
-      }
-
-      await supabase.rpc("finance_log_audit_event" as never, {
-        _entity_type: "finance_journal_entry",
-        _entity_id: entryId,
-        _action: "created",
-        _metadata: { line_count: lines.length },
+      const { data: entry, error } = await supabase.rpc("save_finance_journal_entry" as never, {
+        _entry_id: id ?? null,
+        _entry_date: input.entry_date,
+        _memo: input.memo?.trim() || null,
+        _source_type: null,
+        _source_id: null,
+        _fiscal_period_id: input.fiscal_period_id ?? null,
+        _lines: lines.map((line) => ({
+          account_id: line.account_id,
+          debit: line.debit,
+          credit: line.credit,
+          memo: line.memo?.trim() || null,
+          fund_id: line.fund_id || null,
+          ngo_id: line.ngo_id || null,
+          department_id: line.department_id || null,
+          dimension_id: line.dimension_id || null,
+          document_id: line.document_id || null,
+          grant_application_id: line.grant_application_id || null,
+          work_item_id: line.work_item_id || null,
+          line_number: line.line_number,
+        })),
       } as never);
 
+      if (error) throw error;
       return entry as FinanceJournalEntry;
     },
     onSuccess: () => {
@@ -296,7 +213,7 @@ export const useSaveFinanceJournalEntry = () => {
       toast({ title: "Journal entry saved" });
     },
     onError: (error: Error) => {
-      toast({ variant: "destructive", title: "Could not save journal entry", description: error.message });
+      toast({ variant: "destructive", title: "Could not save journal entry", description: mapPostingError(error) });
     },
   });
 };
@@ -354,7 +271,7 @@ export const usePostFinanceJournalEntry = () => {
       toast({ title: "Journal entry posted", description: entry.entry_number });
     },
     onError: (error: Error) => {
-      toast({ variant: "destructive", title: "Could not post journal entry", description: error.message });
+      toast({ variant: "destructive", title: "Could not post journal entry", description: mapPostingError(error) });
     },
   });
 };

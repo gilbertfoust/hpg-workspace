@@ -11,7 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { Loader2, Plus, CheckCircle } from "lucide-react";
 import { useFinanceBankAccounts } from "@/hooks/useFinanceBankAccounts";
 import {
-  useCreateReconciliation, useFinalizeReconciliation, useFinanceReconciliationItems, useFinanceReconciliations, useToggleReconItemCleared,
+  useCreateReconciliation, useFinalizeReconciliation, useFinanceReconciliationItems, useFinanceReconciliations, useRefreshReconciliationBalances, useToggleReconItemCleared,
 } from "@/hooks/useFinanceReconciliation";
 
 const fmt = (n: number) => n.toLocaleString(undefined, { style: "currency", currency: "USD" });
@@ -21,6 +21,7 @@ const FinanceReconciliationPage = () => {
   const { data: bankAccounts = [] } = useFinanceBankAccounts();
   const createRecon = useCreateReconciliation();
   const finalize = useFinalizeReconciliation();
+  const refreshBalances = useRefreshReconciliationBalances();
   const toggleCleared = useToggleReconItemCleared();
 
   const [bankId, setBankId] = useState("none");
@@ -81,9 +82,14 @@ const FinanceReconciliationPage = () => {
         <Card className="mt-6">
           <CardHeader>
             <CardTitle className="text-base">Clear transactions</CardTitle>
-            <CardDescription>Cleared: {fmt(clearedTotal)} · Difference: {fmt(difference)}</CardDescription>
+            <CardDescription>
+              Book balance: {fmt(Number(activeRecon.book_balance ?? 0))} · Cleared: {fmt(clearedTotal)} · Difference: {fmt(difference)}
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            <Button variant="outline" size="sm" onClick={() => refreshBalances.mutate(activeRecon.id)} disabled={refreshBalances.isPending}>
+              Refresh book balance
+            </Button>
             <div className="overflow-x-auto max-h-96">
               <table className="w-full text-sm"><thead><tr className="border-b text-muted-foreground"><th className="p-2">Date</th><th className="p-2">Description</th><th className="p-2">Amount</th><th className="p-2">Cleared</th></tr></thead>
                 <tbody>{items.map((item) => (

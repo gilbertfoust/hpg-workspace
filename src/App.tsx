@@ -40,6 +40,11 @@ import FinanceDepositsPage from "./pages/FinanceDepositsPage";
 import FinanceReconciliationPage from "./pages/FinanceReconciliationPage";
 import FinanceBudgetsPage from "./pages/FinanceBudgetsPage";
 import FinanceReportsPage from "./pages/FinanceReportsPage";
+import FinanceFiscalPeriodsPage from "./pages/FinanceFiscalPeriodsPage";
+import FinanceAccountsReceivablePage from "./pages/FinanceAccountsReceivablePage";
+import FinanceCompliancePage from "./pages/FinanceCompliancePage";
+import FinanceFiscalSponsorshipPage from "./pages/FinanceFiscalSponsorshipPage";
+import FinanceOpeningBalancesPage from "./pages/FinanceOpeningBalancesPage";
 import NGOFinancialOverview from "./pages/NGOFinancialOverview";
 import PeriodDetail from "./pages/PeriodDetail";
 import AccountsPage from "./pages/AccountsPage";
@@ -240,6 +245,11 @@ const App = () => {
                 <Route path="/financial-hub/accounting/reconciliation" element={<P><FinanceReconciliationPage /></P>} />
                 <Route path="/financial-hub/accounting/budgets" element={<P><FinanceBudgetsPage /></P>} />
                 <Route path="/financial-hub/accounting/reports" element={<P><FinanceReportsPage /></P>} />
+                <Route path="/financial-hub/accounting/fiscal-periods" element={<P><FinanceFiscalPeriodsPage /></P>} />
+                <Route path="/financial-hub/accounting/accounts-receivable" element={<P><FinanceAccountsReceivablePage /></P>} />
+                <Route path="/financial-hub/accounting/compliance" element={<P><FinanceCompliancePage /></P>} />
+                <Route path="/financial-hub/accounting/fiscal-sponsorship" element={<P><FinanceFiscalSponsorshipPage /></P>} />
+                <Route path="/financial-hub/accounting/opening-balances" element={<P><FinanceOpeningBalancesPage /></P>} />
                 <Route path="/financial-hub/ngo/:ngoId" element={<P><NGOFinancialOverview /></P>} />
                 <Route path="/financial-hub/ngo/:ngoId/period/:periodId" element={<P><PeriodDetail /></P>} />
                 <Route path="/financial-hub/accounts" element={<P><AccountsPage /></P>} />

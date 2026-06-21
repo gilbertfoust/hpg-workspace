@@ -49,10 +49,9 @@ const TransactionsPage = () => {
 
   const handleVoid = async (id: string) => {
     try {
-      await voidTransaction.mutateAsync(id);
-      toast({ title: "Transaction voided" });
-    } catch (err: any) {
-      toast({ variant: "destructive", title: "Error", description: err.message });
+      await voidTransaction.mutateAsync({ id });
+    } catch {
+      // Error toast handled by mutation hook
     }
   };
 
@@ -70,6 +69,7 @@ const TransactionsPage = () => {
           description: data.description,
           reference_number: data.reference_number || null,
           created_by_user_id: user?.id || null,
+          source_module: "manual",
         },
         entries: data.entries,
       });

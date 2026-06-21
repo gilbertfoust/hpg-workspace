@@ -23,7 +23,9 @@ const FinanceBudgetsPage = () => {
   const [amount, setAmount] = useState("");
 
   const selected = budgets.find((b) => b.id === selectedId);
-  const { data: vsActual = [] } = useBudgetVsActual(selectedId, selected?.fiscal_year ?? new Date().getFullYear());
+  const yearStart = selected ? `${selected.fiscal_year}-01-01` : undefined;
+  const yearEnd = selected ? `${selected.fiscal_year}-12-31` : undefined;
+  const { data: vsActual = [] } = useBudgetVsActual(selectedId, yearStart, yearEnd);
 
   const handleCreateBudget = async () => {
     const b = await saveBudget.mutateAsync({ header: { name: name.trim() || `FY${fiscalYear} Budget`, fiscal_year: Number(fiscalYear), scope_type: "organization", status: "draft" } });
@@ -78,12 +80,12 @@ const FinanceBudgetsPage = () => {
                   <Input type="number" placeholder="Amount" value={amount} onChange={(e) => setAmount(e.target.value)} />
                 </div>
                 <Button size="sm" onClick={handleAddLine} disabled={accountId === "none"}>Add line</Button>
-                <table className="w-full text-sm mt-4"><thead><tr className="border-b text-muted-foreground"><th className="p-2">Account</th><th className="p-2">Month</th><th className="p-2">Budget</th><th className="p-2">Actual</th><th className="p-2">Variance</th></tr></thead>
+                <table className="w-full text-sm mt-4"><thead><tr className="border-b text-muted-foreground"><th className="p-2">Account</th><th className="p-2">Month</th><th className="p-2">Budget</th><th className="p-2">Actual (YTD)</th><th className="p-2">Variance</th></tr></thead>
                   <tbody>{(selected.lines || []).map((l) => {
-                    const va = vsActual.find((v) => v.account_id === l.account_id && v.period_month === l.period_month);
+                    const va = vsActual.find((v) => v.account_id === l.account_id);
                     const acct = accounts.find((a) => a.id === l.account_id);
                     return <tr key={l.id} className="border-b"><td className="p-2">{acct?.code}</td><td className="p-2">{l.period_month}</td>
-                      <td className="p-2">{fmt(l.amount)}</td><td className="p-2">{fmt(va?.actual ?? 0)}</td><td className="p-2">{fmt(va?.variance ?? 0)}</td></tr>;
+                      <td className="p-2">{fmt(l.amount)}</td><td className="p-2">{fmt(va?.actual_amount ?? 0)}</td><td className="p-2">{fmt(va?.variance ?? 0)}</td></tr>;
                   })}</tbody></table>
               </>
             )}

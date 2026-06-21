@@ -49,24 +49,24 @@ export const useSaveFinanceBudget = () => {
   });
 };
 
-export const useBudgetVsActual = (budgetId: string | null, fiscalYear: number) => useQuery({
-  queryKey: ["finance-budget-vs-actual", budgetId, fiscalYear],
+export const useBudgetVsActual = (budgetId: string | null, startDate?: string, endDate?: string) => useQuery({
+  queryKey: ["finance-budget-vs-actual", budgetId, startDate, endDate],
   enabled: !!supabase && !!budgetId,
   queryFn: async () => {
     ensureSupabase();
-    const { data: budgetLines } = await supabase.from("finance_budget_lines" as never).select("*").eq("budget_id" as never, budgetId as never);
-    const { data: entries } = await supabase.from("finance_journal_entries" as never).select("id").eq("status" as never, "posted" as never)
-      .gte("entry_date" as never, `${fiscalYear}-01-01`).lte("entry_date" as never, `${fiscalYear}-12-31`);
-    const entryIds = (entries || []).map((e: { id: string }) => e.id);
-    const { data: jl } = entryIds.length ? await supabase.from("finance_journal_lines" as never).select("account_id, debit, credit, journal_entry_id").in("journal_entry_id" as never, entryIds as never) : { data: [] };
-    const actualByAccount = new Map<string, number>();
-    (jl || []).forEach((l: { account_id: string; debit: number; credit: number }) => {
-      actualByAccount.set(l.account_id, (actualByAccount.get(l.account_id) || 0) + Number(l.debit) - Number(l.credit));
-    });
-    return (budgetLines || []).map((bl: FinanceBudgetLine) => ({
-      account_id: bl.account_id, period_month: bl.period_month,
-      budget: Number(bl.amount), actual: actualByAccount.get(bl.account_id) || 0,
-      variance: (actualByAccount.get(bl.account_id) || 0) - Number(bl.amount),
-    }));
+    const { data, error } = await supabase.rpc("finance_budget_vs_actual_report" as never, {
+      _budget_id: budgetId,
+      _start_date: startDate ?? null,
+      _end_date: endDate ?? null,
+    } as never);
+    if (error) throw error;
+    return (data || []) as Array<{
+      account_id: string;
+      account_code: string;
+      account_name: string;
+      budget_amount: number;
+      actual_amount: number;
+      variance: number;
+    }>;
   },
 });

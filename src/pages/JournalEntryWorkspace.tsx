@@ -89,6 +89,7 @@ export default function JournalEntryWorkspace() {
           description,
           reference_number: referenceNumber || null,
           created_by_user_id: user?.id || null,
+          source_module: "journal_workspace",
         },
         entries: lines
           .filter((l) => l.account_id && (l.debit > 0 || l.credit > 0))
