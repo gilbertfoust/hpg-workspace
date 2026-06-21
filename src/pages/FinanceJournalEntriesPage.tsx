@@ -37,6 +37,8 @@ import {
 import type { FinanceJournalEntryInput, FinanceJournalEntryStatus, FinanceJournalEntryWithLines } from "@/types/financeAccounting";
 import { FINANCE_JOURNAL_STATUS_LABELS } from "@/types/financeAccounting";
 import { computeJournalTotals } from "@/types/financeAccounting";
+import { useUserRole } from "@/hooks/useUserRole";
+import { hasFinancePermission } from "@/lib/financePermissions";
 
 const statusVariant = (status: FinanceJournalEntryStatus): "default" | "secondary" | "destructive" | "outline" => {
   switch (status) {
@@ -78,6 +80,9 @@ const FinanceJournalEntriesPage = () => {
   const postEntry = usePostFinanceJournalEntry();
   const voidEntry = useVoidFinanceJournalEntry();
   const reverseEntry = useReverseFinanceJournalEntry();
+  const { role } = useUserRole();
+  const canPost = hasFinancePermission(role, "post_journal");
+  const canVoid = hasFinancePermission(role, "void_transaction");
 
   const filteredEntries = useMemo(() => {
     if (statusFilter === "all") return entries;
@@ -242,7 +247,7 @@ const FinanceJournalEntriesPage = () => {
                                     variant="ghost"
                                     size="sm"
                                     onClick={() => handlePost(entry)}
-                                    disabled={!balanced || postEntry.isPending}
+                                    disabled={!balanced || postEntry.isPending || !canPost}
                                   >
                                     <Send className="h-3 w-3 mr-1" />
                                     Post
@@ -338,7 +343,7 @@ const FinanceJournalEntriesPage = () => {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setVoidDialogOpen(false)}>Cancel</Button>
-            <Button variant="destructive" onClick={handleVoid} disabled={voidEntry.isPending}>
+            <Button variant="destructive" onClick={handleVoid} disabled={voidEntry.isPending || !canVoid}>
               Void entry
             </Button>
           </DialogFooter>
@@ -374,7 +379,7 @@ const FinanceJournalEntriesPage = () => {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setReverseDialogOpen(false)}>Cancel</Button>
-            <Button onClick={handleReverse} disabled={reverseEntry.isPending}>
+            <Button onClick={handleReverse} disabled={reverseEntry.isPending || !canVoid}>
               Post reversal
             </Button>
           </DialogFooter>
