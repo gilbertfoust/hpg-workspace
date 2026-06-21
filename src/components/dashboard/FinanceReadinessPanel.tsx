@@ -1,56 +1,56 @@
 import { useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { DollarSign, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { useDashboardDataHealth, type DataHealthItem } from "@/hooks/useDashboardDataHealth";
-import { useQuery } from "@tanstack/react-query";
+import { useFinanceHubSnapshot } from "@/hooks/useFinanceHubSnapshot";
 import { ensureSupabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
 
-const FINANCE_TABLES = ["accounts", "transactions", "journal_entries"];
-
-const recommendAction = (items: DataHealthItem[]) => {
-  const missing = items.filter((item) => item.status === "missing");
-  const empty = items.filter((item) => item.status === "empty");
-
-  if (missing.some((item) => item.table === "accounts")) {
-    return "Build or connect the chart of accounts before importing transactions.";
-  }
-  if (empty.some((item) => item.table === "accounts")) {
-    return "Create chart of accounts records to establish the finance foundation.";
-  }
-  if (empty.some((item) => item.table === "journal_entries")) {
-    return "Start recording journal entries once accounts are in place.";
-  }
-  if (empty.some((item) => item.table === "transactions")) {
-    return "Import or enter transactions to activate bookkeeping workflows.";
-  }
-  return "Finance sources are connected. Continue posting entries and reconciling accounts.";
-};
+const FINANCE_TABLES = [
+  { table: "finance_accounts", label: "Chart of Accounts" },
+  { table: "finance_journal_entries", label: "Journal Entries" },
+  { table: "finance_bank_accounts", label: "Bank Accounts" },
+  { table: "finance_bills", label: "Bills (AP)" },
+  { table: "finance_payments", label: "Payments" },
+  { table: "finance_deposits", label: "Deposits" },
+];
 
 export const FinanceReadinessPanel = () => {
-  const { data: healthData, isLoading: healthLoading } = useDashboardDataHealth();
+  const navigate = useNavigate();
+  const { data: snapshot, isLoading: snapLoading } = useFinanceHubSnapshot();
 
-  const { data: financeWorkItems, isLoading: workItemsLoading } = useQuery({
-    queryKey: ["dashboard-finance-work-items"],
+  const { data: tableHealth = [], isLoading: healthLoading } = useQuery({
+    queryKey: ["finance-readiness-tables"],
     queryFn: async () => {
       const supabase = ensureSupabase();
-      const { count, error } = await supabase
-        .from("work_items")
-        .select("id", { count: "exact", head: true })
-        .is("archived_at", null)
-        .eq("module", "finance");
-      if (error) return null;
-      return count ?? 0;
+      const results = await Promise.all(
+        FINANCE_TABLES.map(async ({ table, label }) => {
+          try {
+            const { count, error } = await supabase.from(table as never).select("id", { count: "exact", head: true });
+            if (error?.message?.includes("does not exist")) return { table, label, status: "missing" as const, count: null };
+            if (error) return { table, label, status: "missing" as const, count: null };
+            return { table, label, status: (count ?? 0) > 0 ? ("connected" as const) : ("empty" as const), count: count ?? 0 };
+          } catch {
+            return { table, label, status: "missing" as const, count: null };
+          }
+        })
+      );
+      return results;
     },
   });
 
-  const financeItems = useMemo(
-    () => (healthData?.items ?? []).filter((item) => FINANCE_TABLES.includes(item.table)),
-    [healthData?.items],
-  );
-
-  const isLoading = healthLoading || workItemsLoading;
-  const nextAction = recommendAction(financeItems);
+  const isLoading = snapLoading || healthLoading;
+  const nextAction = useMemo(() => {
+    if (tableHealth.some((t) => t.status === "missing")) return "Apply finance migrations (Phases 31–41) to your Supabase project.";
+    if (tableHealth.find((t) => t.table === "finance_accounts")?.status === "empty") return "Load starter chart of accounts or create GL accounts.";
+    if ((snapshot?.draftEntries ?? 0) > 0) return "Review and post draft journal entries.";
+    if ((snapshot?.missingReceipts ?? 0) > 0) return "Attach receipts to posted journal entries.";
+    if ((snapshot?.billsDue ?? 0) > 0) return "Process bills due in Accounts Payable.";
+    if ((snapshot?.unreconciledBanks ?? 0) > 0) return "Complete bank reconciliations.";
+    return "Finance ledger is operational. Run reports and monitor fiscal sponsorship funds.";
+  }, [tableHealth, snapshot]);
 
   return (
     <Card>
@@ -59,38 +59,36 @@ export const FinanceReadinessPanel = () => {
           <DollarSign className="h-4 w-4 text-primary" />
           Finance Readiness
         </CardTitle>
-        <CardDescription>What is live, empty, or missing for bookkeeping and finance operations.</CardDescription>
+        <CardDescription>HPG internal accounting foundation — finance_* tables, not legacy NGO ledger.</CardDescription>
       </CardHeader>
       <CardContent>
         {isLoading ? (
-          <div className="flex items-center justify-center py-8">
-            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-          </div>
+          <div className="flex items-center justify-center py-8"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
         ) : (
           <div className="space-y-4">
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              {financeItems.map((item) => (
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {tableHealth.map((item) => (
                 <div key={item.table} className="rounded-lg border p-3">
                   <p className="text-xs text-muted-foreground">{item.label}</p>
                   <div className="mt-2 flex items-center justify-between gap-2">
                     <Badge variant={item.status === "connected" ? "default" : item.status === "empty" ? "secondary" : "destructive"}>
                       {item.status === "connected" ? "Live" : item.status === "empty" ? "Empty" : "Missing"}
                     </Badge>
-                    <span className="text-xs text-muted-foreground">
-                      {item.count === null ? "—" : `${item.count}`}
-                    </span>
+                    <span className="text-xs text-muted-foreground">{item.count === null ? "—" : `${item.count}`}</span>
                   </div>
                 </div>
               ))}
-              <div className="rounded-lg border p-3">
-                <p className="text-xs text-muted-foreground">Finance work items</p>
-                <p className="mt-2 text-xl font-semibold">{financeWorkItems ?? "—"}</p>
+            </div>
+            {snapshot && (
+              <div className="grid gap-2 sm:grid-cols-4 text-sm">
+                <div className="rounded border p-2"><span className="text-muted-foreground">AP due</span><p className="font-medium">{snapshot.billsDue}</p></div>
+                <div className="rounded border p-2"><span className="text-muted-foreground">Missing receipts</span><p className="font-medium">{snapshot.missingReceipts}</p></div>
+                <div className="rounded border p-2"><span className="text-muted-foreground">Finance tasks</span><p className="font-medium">{snapshot.openWorkItems}</p></div>
+                <div className="rounded border p-2"><span className="text-muted-foreground">Readiness</span><p className="font-medium capitalize">{snapshot.dataReadiness}</p></div>
               </div>
-            </div>
-            <div className="rounded-lg border bg-muted/20 p-3 text-sm text-muted-foreground">
-              <span className="font-medium text-foreground">Recommended next action: </span>
-              {nextAction}
-            </div>
+            )}
+            <p className="text-sm text-muted-foreground">{nextAction}</p>
+            <Button variant="outline" size="sm" onClick={() => navigate("/financial-hub")}>Open Finance Hub</Button>
           </div>
         )}
       </CardContent>
