@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { ReportingTable } from "@/components/finance/ReportingTable";
-import { DollarSign, Building, FileCheck, ArrowRight, BookOpen, Scale, Receipt, BarChart3, ShieldCheck, BookOpenCheck, Landmark, Paperclip, FileStack } from "lucide-react";
+import { DollarSign, Building, FileCheck, ArrowRight, BookOpen, Scale, Receipt, BarChart3, ShieldCheck, BookOpenCheck, Landmark, Paperclip, FileStack, Wallet } from "lucide-react";
 
 const FinancialHub = () => {
   const navigate = useNavigate();
@@ -13,6 +13,7 @@ const FinancialHub = () => {
     { label: "Bank Accounts", path: "/financial-hub/accounting/bank-accounts", icon: Landmark },
     { label: "Receipts", path: "/financial-hub/accounting/receipts", icon: Paperclip },
     { label: "Accounts Payable", path: "/financial-hub/accounting/accounts-payable", icon: FileStack },
+    { label: "Payments", path: "/financial-hub/accounting/payments", icon: Wallet },
     { label: "Accounts (COA)", path: "/financial-hub/accounts", icon: BookOpen },
     { label: "Transactions", path: "/financial-hub/transactions", icon: Receipt },
     { label: "General Ledger", path: "/financial-hub/ledger", icon: BarChart3 },

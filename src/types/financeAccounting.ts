@@ -383,3 +383,78 @@ export const FINANCE_BILL_STATUS_LABELS: Record<FinanceBillStatus, string> = {
   paid: "Paid",
   voided: "Voided",
 };
+
+// ---------------------------------------------------------------------------
+// Payments / disbursements
+// ---------------------------------------------------------------------------
+
+export type FinancePaymentType =
+  | "vendor_bill"
+  | "reimbursement"
+  | "ngo_disbursement"
+  | "grant_pass_through"
+  | "internal_transfer";
+
+export type FinancePaymentStatus = "draft" | "pending_approval" | "posted" | "voided";
+
+export interface FinancePayment {
+  id: string;
+  payment_number: string;
+  payment_type: FinancePaymentType;
+  payment_date: string;
+  amount: number;
+  status: FinancePaymentStatus;
+  bank_account_id: string | null;
+  target_bank_account_id: string | null;
+  bill_id: string | null;
+  payee_name: string | null;
+  ngo_id: string | null;
+  fund_id: string | null;
+  grant_application_id: string | null;
+  expense_account_id: string | null;
+  memo: string | null;
+  document_id: string | null;
+  approval_notes: string | null;
+  approved_by_user_id: string | null;
+  approved_at: string | null;
+  journal_entry_id: string | null;
+  voided_at: string | null;
+  void_reason: string | null;
+  created_by_user_id: string | null;
+  created_at: string;
+  updated_at: string;
+  ngo?: { id: string; legal_name: string; common_name: string | null } | null;
+  bill?: Pick<FinanceBill, "id" | "bill_number" | "vendor_id"> | null;
+}
+
+export type FinancePaymentInput = {
+  payment_type: FinancePaymentType;
+  payment_date: string;
+  amount: number;
+  bank_account_id?: string | null;
+  target_bank_account_id?: string | null;
+  bill_id?: string | null;
+  payee_name?: string | null;
+  ngo_id?: string | null;
+  fund_id?: string | null;
+  grant_application_id?: string | null;
+  expense_account_id?: string | null;
+  memo?: string | null;
+  document_id?: string | null;
+  approval_notes?: string | null;
+};
+
+export const FINANCE_PAYMENT_TYPE_LABELS: Record<FinancePaymentType, string> = {
+  vendor_bill: "Vendor bill payment",
+  reimbursement: "Reimbursement",
+  ngo_disbursement: "Sponsored NGO disbursement",
+  grant_pass_through: "Grant pass-through",
+  internal_transfer: "Internal transfer",
+};
+
+export const FINANCE_PAYMENT_STATUS_LABELS: Record<FinancePaymentStatus, string> = {
+  draft: "Draft",
+  pending_approval: "Pending approval",
+  posted: "Posted",
+  voided: "Voided",
+};
