@@ -458,3 +458,62 @@ export const FINANCE_PAYMENT_STATUS_LABELS: Record<FinancePaymentStatus, string>
   posted: "Posted",
   voided: "Voided",
 };
+
+// Deposits
+export type FinanceDepositSource = "donation" | "grant_award" | "program_revenue" | "admin_fee" | "reimbursement_refund" | "other_income";
+export type FinanceDepositStatus = "draft" | "pending_approval" | "posted" | "voided";
+
+export interface FinanceDepositLine {
+  id: string; deposit_id: string; revenue_account_id: string; amount: number;
+  fund_id: string | null; ngo_id: string | null; grant_application_id: string | null;
+  restriction_type: string | null; donor_source: string | null; memo: string | null; line_number: number;
+}
+export type FinanceDepositLineInput = Omit<FinanceDepositLine, "id" | "deposit_id"> & { id?: string };
+export interface FinanceDeposit {
+  id: string; deposit_number: string; deposit_date: string; source_type: FinanceDepositSource;
+  bank_account_id: string; total_amount: number; status: FinanceDepositStatus;
+  memo: string | null; document_id: string | null; restriction_notes: string | null;
+  journal_entry_id: string | null; created_at: string; updated_at: string; lines?: FinanceDepositLine[];
+}
+export type FinanceDepositInput = {
+  deposit_date: string; source_type: FinanceDepositSource; bank_account_id: string;
+  memo?: string | null; document_id?: string | null; restriction_notes?: string | null; lines: FinanceDepositLineInput[];
+};
+export const FINANCE_DEPOSIT_SOURCE_LABELS: Record<FinanceDepositSource, string> = {
+  donation: "Donation", grant_award: "Grant award", program_revenue: "Program revenue",
+  admin_fee: "Fiscal sponsorship admin fee", reimbursement_refund: "Reimbursement/refund", other_income: "Other income",
+};
+
+// Admin fee rules
+export interface FinanceAdminFeeRule {
+  id: string; name: string; default_percentage: number; ngo_id: string | null;
+  grant_application_id: string | null; fee_account_id: string | null; fee_fund_id: string | null;
+  pass_through_fund_id: string | null; is_active: boolean; created_at: string; updated_at: string;
+}
+export interface FinanceAdminFeeCalculation {
+  suggested_fee: number; pass_through_amount: number; fee_percentage: number; rule_id: string | null;
+}
+
+// Reconciliation
+export type FinanceReconciliationStatus = "in_progress" | "finalized" | "voided";
+export interface FinanceBankReconciliation {
+  id: string; bank_account_id: string; statement_start_date: string; statement_end_date: string;
+  beginning_balance: number; ending_balance: number; cleared_balance: number; difference: number;
+  status: FinanceReconciliationStatus; exception_notes: string | null; finalized_at: string | null; created_at: string;
+}
+export interface FinanceBankReconciliationItem {
+  id: string; reconciliation_id: string; journal_line_id: string | null;
+  transaction_date: string | null; description: string | null; amount: number; is_cleared: boolean; locked_at: string | null;
+}
+
+// Budgets
+export interface FinanceBudget {
+  id: string; name: string; fiscal_year: number; scope_type: string;
+  department_id: string | null; ngo_id: string | null; fund_id: string | null;
+  grant_application_id: string | null; status: string; memo: string | null; created_at: string;
+  lines?: FinanceBudgetLine[];
+}
+export interface FinanceBudgetLine {
+  id: string; budget_id: string; account_id: string; period_month: number; amount: number; memo: string | null;
+}
+export type FinanceBudgetLineInput = { account_id: string; period_month: number; amount: number; memo?: string | null };
