@@ -17,9 +17,19 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import type { FinanceAccount, FinanceAccountInput, FinanceAccountType } from "@/types/financeAccounting";
+import type {
+  FinanceAccount,
+  FinanceAccountInput,
+  FinanceAccountType,
+  FinanceEntityScope,
+  FinanceExpenseFunctionalClass,
+  FinanceRevenueRestrictionClass,
+} from "@/types/financeAccounting";
 import {
   FINANCE_ACCOUNT_TYPE_LABELS,
+  FINANCE_ENTITY_SCOPE_LABELS,
+  FINANCE_FUNCTIONAL_LABELS,
+  FINANCE_RESTRICTION_LABELS,
   defaultNormalBalanceForType,
 } from "@/types/financeAccounting";
 
@@ -47,6 +57,12 @@ export function FinanceAccountDialog({
   const [parentAccountId, setParentAccountId] = useState<string>("none");
   const [normalBalance, setNormalBalance] = useState<"debit" | "credit">("debit");
   const [isActive, setIsActive] = useState(true);
+  const [isCashAccount, setIsCashAccount] = useState(false);
+  const [entityScope, setEntityScope] = useState<FinanceEntityScope>("hpg_operating");
+  const [revenueRestriction, setRevenueRestriction] = useState<string>("none");
+  const [expenseFunctional, setExpenseFunctional] = useState<string>("none");
+  const [form990Line, setForm990Line] = useState("");
+  const [statementLine, setStatementLine] = useState("");
 
   useEffect(() => {
     if (!open) return;
@@ -58,6 +74,12 @@ export function FinanceAccountDialog({
       setParentAccountId(account.parent_account_id || "none");
       setNormalBalance(account.normal_balance);
       setIsActive(account.is_active);
+      setIsCashAccount(account.is_cash_account ?? false);
+      setEntityScope(account.entity_scope ?? "hpg_operating");
+      setRevenueRestriction(account.revenue_restriction_class ?? "none");
+      setExpenseFunctional(account.expense_functional_class ?? "none");
+      setForm990Line(account.form_990_line ?? "");
+      setStatementLine(account.financial_statement_line ?? "");
     } else {
       setCode("");
       setName("");
@@ -66,6 +88,12 @@ export function FinanceAccountDialog({
       setParentAccountId("none");
       setNormalBalance("debit");
       setIsActive(true);
+      setIsCashAccount(false);
+      setEntityScope("hpg_operating");
+      setRevenueRestriction("none");
+      setExpenseFunctional("none");
+      setForm990Line("");
+      setStatementLine("");
     }
   }, [open, account]);
 
@@ -85,6 +113,12 @@ export function FinanceAccountDialog({
       parent_account_id: parentAccountId === "none" ? null : parentAccountId,
       normal_balance: normalBalance,
       is_active: isActive,
+      is_cash_account: isCashAccount,
+      entity_scope: entityScope,
+      revenue_restriction_class: revenueRestriction === "none" ? null : (revenueRestriction as FinanceRevenueRestrictionClass),
+      expense_functional_class: expenseFunctional === "none" ? null : (expenseFunctional as FinanceExpenseFunctionalClass),
+      form_990_line: form990Line.trim() || null,
+      financial_statement_line: statementLine.trim() || null,
     });
     onOpenChange(false);
   };
@@ -160,6 +194,65 @@ export function FinanceAccountDialog({
                 ))}
               </SelectContent>
             </Select>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Entity scope</Label>
+              <Select value={entityScope} onValueChange={(v) => setEntityScope(v as FinanceEntityScope)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {(Object.keys(FINANCE_ENTITY_SCOPE_LABELS) as FinanceEntityScope[]).map((s) => (
+                    <SelectItem key={s} value={s}>{FINANCE_ENTITY_SCOPE_LABELS[s]}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Financial statement line</Label>
+              <Input value={statementLine} onChange={(e) => setStatementLine(e.target.value)} placeholder="net_assets_without_donor_restrictions" />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Revenue restriction</Label>
+              <Select value={revenueRestriction} onValueChange={setRevenueRestriction}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">None</SelectItem>
+                  {(Object.keys(FINANCE_RESTRICTION_LABELS) as FinanceRevenueRestrictionClass[]).map((r) => (
+                    <SelectItem key={r} value={r}>{FINANCE_RESTRICTION_LABELS[r]}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Expense functional class</Label>
+              <Select value={expenseFunctional} onValueChange={setExpenseFunctional}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">None</SelectItem>
+                  {(Object.keys(FINANCE_FUNCTIONAL_LABELS) as FinanceExpenseFunctionalClass[]).map((f) => (
+                    <SelectItem key={f} value={f}>{FINANCE_FUNCTIONAL_LABELS[f]}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Form 990 line</Label>
+              <Input value={form990Line} onChange={(e) => setForm990Line(e.target.value)} />
+            </div>
+            <div className="flex items-center justify-between rounded-md border p-3">
+              <div>
+                <p className="text-sm font-medium">Cash account</p>
+                <p className="text-xs text-muted-foreground">Used for statement of cash flows.</p>
+              </div>
+              <Switch checked={isCashAccount} onCheckedChange={setIsCashAccount} />
+            </div>
           </div>
 
           <div className="flex items-center justify-between rounded-md border p-3">

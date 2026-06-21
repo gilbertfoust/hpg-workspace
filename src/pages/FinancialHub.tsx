@@ -35,7 +35,12 @@ const FinancialHub = () => {
     { label: "Deposits", path: "/financial-hub/accounting/deposits", icon: TrendingUp },
     { label: "Reconciliation", path: "/financial-hub/accounting/reconciliation", icon: Scale },
     { label: "Budgets", path: "/financial-hub/accounting/budgets", icon: Target },
+    { label: "Fiscal Periods", path: "/financial-hub/accounting/fiscal-periods", icon: ShieldCheck },
+    { label: "Opening Balances", path: "/financial-hub/accounting/opening-balances", icon: Scale },
+    { label: "Accounts Receivable", path: "/financial-hub/accounting/accounts-receivable", icon: Receipt },
+    { label: "Fiscal Sponsorship", path: "/financial-hub/accounting/fiscal-sponsorship", icon: Building },
     { label: "Reports", path: "/financial-hub/accounting/reports", icon: PieChart },
+    { label: "Compliance", path: "/financial-hub/accounting/compliance", icon: FileCheck },
   ];
 
   const legacyLinks = [

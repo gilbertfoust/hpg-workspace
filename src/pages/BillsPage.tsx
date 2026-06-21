@@ -69,6 +69,7 @@ export default function BillsPage() {
             reference_number: `BILL-${billNumber}`,
             fiscal_period_id: null,
             created_by_user_id: null,
+            source_module: "legacy_bills",
           },
           entries: [
             { account_id: expenseAccountId, debit: total, credit: 0, memo: "Expense from bill" },
@@ -102,6 +103,7 @@ export default function BillsPage() {
           reference_number: `PMT-BILL-${bill.bill_number}`,
           fiscal_period_id: bill.fiscal_period_id,
           created_by_user_id: null,
+          source_module: "legacy_bills",
         },
         entries: [
           { account_id: apId, debit: Number(bill.total), credit: 0, memo: "AP cleared" },

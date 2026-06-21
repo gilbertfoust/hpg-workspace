@@ -78,6 +78,27 @@ export const useToggleReconItemCleared = () => {
   });
 };
 
+export const useRefreshReconciliationBalances = () => {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+  return useMutation({
+    mutationFn: async (reconId: string) => {
+      ensureSupabase();
+      const { data, error } = await supabase.rpc("refresh_finance_bank_reconciliation_balances" as never, {
+        _recon_id: reconId,
+      } as never);
+      if (error) throw error;
+      return data as FinanceBankReconciliation;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["finance-reconciliations"] });
+      qc.invalidateQueries({ queryKey: ["finance-recon-items"] });
+      toast({ title: "Balances refreshed" });
+    },
+    onError: (e: Error) => toast({ variant: "destructive", title: "Could not refresh", description: e.message }),
+  });
+};
+
 export const useFinalizeReconciliation = () => {
   const qc = useQueryClient(); const { toast } = useToast();
   return useMutation({

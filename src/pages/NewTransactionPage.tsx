@@ -43,6 +43,7 @@ const NewTransactionPage = () => {
           description: data.description,
           reference_number: data.reference_number || null,
           created_by_user_id: user?.id || null,
+          source_module: "manual",
         },
         entries: data.entries,
       });

@@ -1,6 +1,15 @@
 export type FinanceAccountType = "asset" | "liability" | "equity" | "revenue" | "expense";
 export type FinanceNormalBalance = "debit" | "credit";
 
+export type FinanceEntityScope = "hpg_operating" | "fiscal_sponsorship" | "consolidated";
+export type FinanceRevenueRestrictionClass =
+  | "without_donor_restrictions"
+  | "with_donor_restrictions"
+  | "grant_restricted"
+  | "program_released"
+  | "pass_through";
+export type FinanceExpenseFunctionalClass = "program" | "management_general" | "fundraising" | "pass_through";
+
 export interface FinanceAccount {
   id: string;
   code: string;
@@ -10,6 +19,15 @@ export interface FinanceAccount {
   parent_account_id: string | null;
   normal_balance: FinanceNormalBalance;
   is_active: boolean;
+  is_cash_account?: boolean;
+  is_contra_account?: boolean;
+  revenue_restriction_class?: FinanceRevenueRestrictionClass | null;
+  expense_functional_class?: FinanceExpenseFunctionalClass | null;
+  program_classification?: string | null;
+  grant_reporting_class?: string | null;
+  form_990_line?: string | null;
+  financial_statement_line?: string | null;
+  entity_scope?: FinanceEntityScope;
   created_at: string;
   updated_at: string;
 }
@@ -22,6 +40,15 @@ export type FinanceAccountInput = {
   parent_account_id?: string | null;
   normal_balance: FinanceNormalBalance;
   is_active?: boolean;
+  is_cash_account?: boolean;
+  is_contra_account?: boolean;
+  revenue_restriction_class?: FinanceRevenueRestrictionClass | null;
+  expense_functional_class?: FinanceExpenseFunctionalClass | null;
+  program_classification?: string | null;
+  grant_reporting_class?: string | null;
+  form_990_line?: string | null;
+  financial_statement_line?: string | null;
+  entity_scope?: FinanceEntityScope;
 };
 
 export const FINANCE_ACCOUNT_TYPE_LABELS: Record<FinanceAccountType, string> = {
@@ -78,6 +105,7 @@ export interface FinanceJournalEntry {
   source_type: string | null;
   source_id: string | null;
   status: FinanceJournalEntryStatus;
+  fiscal_period_id: string | null;
   reversal_of_entry_id: string | null;
   created_by_user_id: string | null;
   approved_by_user_id: string | null;
@@ -127,6 +155,7 @@ export type FinanceJournalEntryInput = {
   entry_date: string;
   memo?: string | null;
   status?: FinanceJournalEntryStatus;
+  fiscal_period_id?: string | null;
   lines: FinanceJournalLineInput[];
 };
 
@@ -499,6 +528,7 @@ export type FinanceReconciliationStatus = "in_progress" | "finalized" | "voided"
 export interface FinanceBankReconciliation {
   id: string; bank_account_id: string; statement_start_date: string; statement_end_date: string;
   beginning_balance: number; ending_balance: number; cleared_balance: number; difference: number;
+  book_balance?: number | null;
   status: FinanceReconciliationStatus; exception_notes: string | null; finalized_at: string | null; created_at: string;
 }
 export interface FinanceBankReconciliationItem {
@@ -517,3 +547,83 @@ export interface FinanceBudgetLine {
   id: string; budget_id: string; account_id: string; period_month: number; amount: number; memo: string | null;
 }
 export type FinanceBudgetLineInput = { account_id: string; period_month: number; amount: number; memo?: string | null };
+
+// Fiscal periods (Phase 3)
+export type FinancePeriodStatus = "open" | "closed" | "locked";
+export interface FinanceFiscalPeriod {
+  id: string;
+  label: string;
+  fiscal_year: number;
+  period_number: number | null;
+  period_type: string;
+  start_date: string;
+  end_date: string;
+  status: FinancePeriodStatus;
+  closed_at: string | null;
+  locked_at: string | null;
+  reopen_reason: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface FinanceOpeningBalance {
+  id: string;
+  fiscal_period_id: string;
+  account_id: string;
+  fund_id: string | null;
+  ngo_id: string | null;
+  debit: number;
+  credit: number;
+  memo: string | null;
+}
+
+// AR (Phase 7)
+export type FinanceInvoiceStatus = "draft" | "sent" | "partial" | "paid" | "written_off" | "voided";
+export interface FinanceDonor {
+  id: string;
+  name: string;
+  email: string | null;
+  phone: string | null;
+  organization_name: string | null;
+  donor_type: string;
+  ngo_id: string | null;
+  is_active: boolean;
+  notes: string | null;
+}
+export interface FinanceInvoice {
+  id: string;
+  invoice_number: string;
+  donor_id: string | null;
+  customer_name: string | null;
+  ngo_id: string | null;
+  grant_application_id: string | null;
+  invoice_date: string;
+  due_date: string | null;
+  status: FinanceInvoiceStatus;
+  subtotal: number;
+  total: number;
+  amount_paid: number;
+  amount_written_off: number;
+  memo: string | null;
+}
+
+export const FINANCE_ENTITY_SCOPE_LABELS: Record<FinanceEntityScope, string> = {
+  hpg_operating: "HPG Operating",
+  fiscal_sponsorship: "Fiscal Sponsorship",
+  consolidated: "Consolidated",
+};
+
+export const FINANCE_RESTRICTION_LABELS: Record<FinanceRevenueRestrictionClass, string> = {
+  without_donor_restrictions: "Without donor restrictions",
+  with_donor_restrictions: "With donor restrictions",
+  grant_restricted: "Grant restricted",
+  program_released: "Released from restriction",
+  pass_through: "Pass-through",
+};
+
+export const FINANCE_FUNCTIONAL_LABELS: Record<FinanceExpenseFunctionalClass, string> = {
+  program: "Program",
+  management_general: "Management & general",
+  fundraising: "Fundraising",
+  pass_through: "Pass-through",
+};
