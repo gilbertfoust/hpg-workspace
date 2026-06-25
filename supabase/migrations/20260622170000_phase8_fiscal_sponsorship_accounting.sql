@@ -97,7 +97,7 @@ AS $$
     'ngo_id', _ngo_id,
     'as_of_date', _as_of_date,
     'unrestricted_balance', COALESCE(SUM(CASE WHEN f.fund_type = 'unrestricted' THEN l.credit - l.debit ELSE 0 END), 0),
-    'restricted_balance', COALESCE(SUM(CASE WHEN f.fund_type IN ('donor_restricted', 'grant_restricted', 'purpose_restricted') THEN l.credit - l.debit ELSE 0 END), 0),
+    'restricted_balance', COALESCE(SUM(CASE WHEN f.fund_type IN ('donor_restricted', 'grant_restricted') THEN l.credit - l.debit ELSE 0 END), 0),
     'pass_through_balance', COALESCE(SUM(CASE WHEN f.fund_type = 'pass_through' THEN l.credit - l.debit ELSE 0 END), 0),
     'total_balance', COALESCE(SUM(l.credit - l.debit), 0)
   )
