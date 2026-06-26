@@ -28,9 +28,22 @@ interface NGOEditSheetProps {
 
 const bundles = ["Detroit", "Chicago", "US", "Mexican", "African", "Asian"];
 
+type NGOEditFormData = {
+  legal_name: string;
+  common_name: string;
+  bundle: string;
+  country: string;
+  state_province: string;
+  city: string;
+  website: string;
+  fiscal_type: DbFiscalType;
+  status: NGOStatus;
+  notes: string;
+};
+
 export function NGOEditSheet({ ngo, open, onOpenChange }: NGOEditSheetProps) {
   const updateNGO = useUpdateNGO();
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<NGOEditFormData>({
     legal_name: ngo.legal_name,
     common_name: ngo.common_name || "",
     bundle: ngo.bundle || "",
@@ -104,12 +117,12 @@ export function NGOEditSheet({ ngo, open, onOpenChange }: NGOEditSheetProps) {
               <Select value={formData.status} onValueChange={(v) => setFormData({ ...formData, status: v as NGOStatus })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Prospect">Prospect</SelectItem>
-                  <SelectItem value="Onboarding">Onboarding</SelectItem>
-                  <SelectItem value="Active">Active</SelectItem>
-                  <SelectItem value="At-Risk">At Risk</SelectItem>
-                  <SelectItem value="Offboarding">Offboarding</SelectItem>
-                  <SelectItem value="Closed">Closed</SelectItem>
+                  <SelectItem value="prospect">Prospect</SelectItem>
+                  <SelectItem value="onboarding">Onboarding</SelectItem>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="at_risk">At Risk</SelectItem>
+                  <SelectItem value="offboarding">Offboarding</SelectItem>
+                  <SelectItem value="closed">Closed</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -137,9 +150,9 @@ export function NGOEditSheet({ ngo, open, onOpenChange }: NGOEditSheetProps) {
             <Select value={formData.fiscal_type} onValueChange={(v) => setFormData({ ...formData, fiscal_type: v as DbFiscalType })}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="Model A">Model A</SelectItem>
-                <SelectItem value="Model C">Model C</SelectItem>
-                <SelectItem value="Other">Other</SelectItem>
+                <SelectItem value="model_a">Model A</SelectItem>
+                <SelectItem value="model_c">Model C</SelectItem>
+                <SelectItem value="other">Other</SelectItem>
               </SelectContent>
             </Select>
           </div>

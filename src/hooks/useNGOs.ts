@@ -195,14 +195,25 @@ export const useUpdateNGO = () => {
         .single();
 
       ensureSupabase();
+
+      const normalizedInput = {
+        ...input,
+        fiscal_type: input.fiscal_type ? toDbFiscalType(input.fiscal_type) : undefined,
+      };
+
       const { data, error } = await supabase
         .from('ngos')
-        .update(input as any)
+        .update(normalizedInput as any)
         .eq('id', id)
         .select()
         .single();
       
-      if (error) throw error;
+      if (error) {
+        const enriched = new Error(error.message);
+        (enriched as Error & { details?: string; hint?: string }).details = error.details;
+        (enriched as Error & { details?: string; hint?: string }).hint = error.hint;
+        throw enriched;
+      }
 
       const { error: auditError } = await supabase
         .from('audit_log')
@@ -231,10 +242,16 @@ export const useUpdateNGO = () => {
       });
     },
     onError: (error) => {
+      let description = error instanceof Error ? error.message : String(error);
+      const details = (error as Error & { details?: string }).details;
+      const hint = (error as Error & { hint?: string }).hint;
+      if (details) description += `\n${details}`;
+      if (hint) description += `\n${hint}`;
+
       toast({
         variant: 'destructive',
         title: 'Error updating NGO',
-        description: error.message,
+        description,
       });
     },
   });
