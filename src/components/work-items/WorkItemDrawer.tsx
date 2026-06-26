@@ -104,6 +104,13 @@ const priorityOptions: { value: Priority; label: string }[] = [
   { value: "urgent", label: "Urgent" },
 ];
 
+const formatNullableDate = (value?: string | null, pattern = "MMM d, yyyy") => {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+  return format(date, pattern);
+};
+
 export const WorkItemDrawer: React.FC<WorkItemDrawerProps> = ({ open, onOpenChange, workItemId }) => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -302,8 +309,8 @@ export const WorkItemDrawer: React.FC<WorkItemDrawerProps> = ({ open, onOpenChan
               <div className="flex justify-between"><span className="text-muted-foreground">Type:</span><span className="font-medium">{workItem.type || "—"}</span></div>
               <div className="flex justify-between"><span className="text-muted-foreground">Department:</span><Badge variant="outline">{currentDepartment?.name || workItem.module || "Unassigned"}</Badge></div>
               {workItem.module && <div className="flex justify-between"><span className="text-muted-foreground">Module:</span><Badge variant="outline">{workItem.module}</Badge></div>}
-              {workItem.due_date && <div className="flex justify-between"><span className="text-muted-foreground">Due Date:</span><span className="font-medium">{format(new Date(workItem.due_date), "MMM d, yyyy")}</span></div>}
-              {workItem.completed_at && <div className="flex justify-between"><span className="text-muted-foreground">Completed:</span><span className="font-medium">{format(new Date(workItem.completed_at), "MMM d, yyyy")}</span></div>}
+              {workItem.due_date && <div className="flex justify-between"><span className="text-muted-foreground">Due Date:</span><span className="font-medium">{formatNullableDate(workItem.due_date, "MMM d, yyyy")}</span></div>}
+              {workItem.completed_at && <div className="flex justify-between"><span className="text-muted-foreground">Completed:</span><span className="font-medium">{formatNullableDate(workItem.completed_at, "MMM d, yyyy")}</span></div>}
               {workItem.archived_at && <div className="flex justify-between"><span className="text-muted-foreground">Admin Record:</span><Badge variant="secondary">Sent for filing</Badge></div>}
               {workItem.google_drive_file_url && <div className="flex justify-between gap-3"><span className="text-muted-foreground">Drive Archive:</span><a href={workItem.google_drive_file_url} target="_blank" rel="noreferrer" className="text-primary hover:underline">Open Drive File</a></div>}
               {ownerProfile && <div className="flex justify-between"><span className="text-muted-foreground">Assigned To:</span><span className="font-medium">{ownerProfile.full_name || ownerProfile.email || workItem.owner_user_id}</span></div>}
@@ -383,7 +390,7 @@ export const WorkItemDrawer: React.FC<WorkItemDrawerProps> = ({ open, onOpenChan
           <div>
             <h4 className="text-sm font-medium mb-3">Evidence & Documents</h4>
             <div className="space-y-2">
-              {(documents || []).length === 0 ? <p className="text-sm text-muted-foreground">No documents uploaded yet.</p> : documents?.map((doc) => <div key={doc.id} className="flex items-center justify-between text-sm p-2 border rounded"><div><p className="font-medium">{doc.file_name}</p><p className="text-xs text-muted-foreground">{doc.file_path}</p></div><Badge variant="outline">{format(new Date(doc.uploaded_at), "MMM d, yyyy")}</Badge></div>)}
+              {(documents || []).length === 0 ? <p className="text-sm text-muted-foreground">No documents uploaded yet.</p> : documents?.map((doc) => <div key={doc.id} className="flex items-center justify-between text-sm p-2 border rounded"><div><p className="font-medium">{doc.file_name}</p><p className="text-xs text-muted-foreground">{doc.file_path}</p></div><Badge variant="outline">{formatNullableDate(doc.uploaded_at, "MMM d, yyyy")}</Badge></div>)}
             </div>
           </div>
 
@@ -392,7 +399,7 @@ export const WorkItemDrawer: React.FC<WorkItemDrawerProps> = ({ open, onOpenChan
           <div>
             <h4 className="text-sm font-medium mb-2">Comments</h4>
             <div className="space-y-3">
-              {(comments || []).length === 0 ? <p className="text-sm text-muted-foreground">No comments yet.</p> : comments?.map((comment) => <div key={comment.id} className="rounded-lg border p-3 text-sm"><div className="flex items-center justify-between mb-1"><span className="font-medium">{comment.author?.full_name || comment.author?.email || comment.author_user_id}</span><span className="text-xs text-muted-foreground">{format(new Date(comment.created_at), "MMM d, yyyy 'at' h:mm a")}</span></div><p className="text-muted-foreground">{comment.comment_text}</p></div>)}
+              {(comments || []).length === 0 ? <p className="text-sm text-muted-foreground">No comments yet.</p> : comments?.map((comment) => <div key={comment.id} className="rounded-lg border p-3 text-sm"><div className="flex items-center justify-between mb-1"><span className="font-medium">{comment.author?.full_name || comment.author?.email || comment.author_user_id}</span><span className="text-xs text-muted-foreground">{formatNullableDate(comment.created_at, "MMM d, yyyy 'at' h:mm a")}</span></div><p className="text-muted-foreground">{comment.comment_text}</p></div>)}
             </div>
             <div className="mt-3 space-y-2">
               <Textarea placeholder="Add a comment" value={commentText} onChange={(e) => setCommentText(e.target.value)} rows={3} />
@@ -406,7 +413,7 @@ export const WorkItemDrawer: React.FC<WorkItemDrawerProps> = ({ open, onOpenChan
             <div>
               <h4 className="text-sm font-medium mb-3">Form Submissions</h4>
               <div className="space-y-2">
-                {formSubmissions.map((submission) => <div key={submission.id} className="flex items-center justify-between text-sm p-3 border rounded-lg hover:bg-muted/50 transition-colors"><div className="flex items-center gap-3 flex-1"><FileText className="w-4 h-4 text-muted-foreground" /><div className="flex-1"><p className="font-medium">{submission.form_template?.name || "Unknown Form"}</p><div className="flex items-center gap-2 mt-1"><Badge variant="outline" className="text-xs">{submission.submission_status || "pending"}</Badge><span className="text-xs text-muted-foreground">{format(new Date(submission.created_at), "MMM d, yyyy")}</span></div></div></div><div className="flex items-center gap-1"><Button variant="ghost" size="icon" className="h-8 w-8 text-primary hover:text-primary hover:bg-primary/10" onClick={(e) => { e.stopPropagation(); setEditingFormSubmissionId(submission.id); }} title="Edit form"><Edit className="w-4 h-4" /></Button><Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={(e) => { e.stopPropagation(); setFormSubmissionToArchive({ id: submission.id, workItemId: submission.work_item_id }); }} title="Move to admin records"><Archive className="w-4 h-4" /></Button></div></div>)}
+                {formSubmissions.map((submission) => <div key={submission.id} className="flex items-center justify-between text-sm p-3 border rounded-lg hover:bg-muted/50 transition-colors"><div className="flex items-center gap-3 flex-1"><FileText className="w-4 h-4 text-muted-foreground" /><div className="flex-1"><p className="font-medium">{submission.form_template?.name || "Unknown Form"}</p><div className="flex items-center gap-2 mt-1"><Badge variant="outline" className="text-xs">{submission.submission_status || "pending"}</Badge><span className="text-xs text-muted-foreground">{formatNullableDate(submission.created_at, "MMM d, yyyy")}</span></div></div></div><div className="flex items-center gap-1"><Button variant="ghost" size="icon" className="h-8 w-8 text-primary hover:text-primary hover:bg-primary/10" onClick={(e) => { e.stopPropagation(); setEditingFormSubmissionId(submission.id); }} title="Edit form"><Edit className="w-4 h-4" /></Button><Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={(e) => { e.stopPropagation(); setFormSubmissionToArchive({ id: submission.id, workItemId: submission.work_item_id }); }} title="Move to admin records"><Archive className="w-4 h-4" /></Button></div></div>)}
               </div>
             </div>
           )}
