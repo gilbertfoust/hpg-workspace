@@ -3,6 +3,7 @@ import { MainLayout } from "@/components/layout/MainLayout";
 import { CreateWorkItemDialog } from "@/components/work-items/CreateWorkItemDialog";
 import { WorkItemAdminRecordsPanel } from "@/components/work-items/WorkItemAdminRecordsPanel";
 import { WorkItemsTable } from "@/components/work-items/WorkItemsTable";
+import { WorkItemDrawer } from "@/components/work-items/WorkItemDrawer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
