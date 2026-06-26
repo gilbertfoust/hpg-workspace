@@ -159,6 +159,17 @@ export type FinanceJournalEntryInput = {
   lines: FinanceJournalLineInput[];
 };
 
+export type FinanceJournalEntryReceiptAttachment = {
+  existingDocumentId?: string | null;
+  file?: File | null;
+  linkNotes?: string | null;
+};
+
+export type FinanceJournalEntrySavePayload = {
+  input: FinanceJournalEntryInput;
+  receipt?: FinanceJournalEntryReceiptAttachment | null;
+};
+
 export interface FinanceJournalEntryWithLines extends FinanceJournalEntry {
   lines: FinanceJournalLine[];
   total_debit?: number;

@@ -20,7 +20,7 @@ import {
 import { Loader2, Save, Send } from "lucide-react";
 import type { FormField, FormTemplate } from "@/hooks/useFormTemplates";
 import { useCreateFormSubmission } from "@/hooks/useFormSubmissions";
-import { useCreateWorkItem, useUpdateWorkItem } from "@/hooks/useWorkItems";
+import { useUpdateWorkItem } from "@/hooks/useWorkItems";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNGOs } from "@/hooks/useNGOs";
 import { useToast } from "@/hooks/use-toast";
@@ -88,7 +88,6 @@ export function FormRunnerSheet({
   const { data: ngos } = useNGOs();
 
   const createSubmission = useCreateFormSubmission();
-  const createWorkItem = useCreateWorkItem();
   const updateWorkItem = useUpdateWorkItem();
 
   const [formData, setFormData] = useState<Record<string, unknown>>({});
@@ -134,12 +133,7 @@ export function FormRunnerSheet({
       const plan = buildWorkItemPlan(template, formData, selectedNgoId);
       let workItemId = plan.workItemId;
 
-      if (plan.action === "create" && plan.createInput) {
-        const created = await createWorkItem.mutateAsync(plan.createInput);
-        workItemId = created.id;
-      }
-
-      if (plan.action === "update" && plan.workItemId) {
+      if (submit && plan.action === "update" && plan.workItemId) {
         const updateInput = plan.updateInput ? removeUndefined(plan.updateInput) : {};
         if (Object.keys(updateInput).length > 0) {
           await updateWorkItem.mutateAsync({ id: plan.workItemId, ...updateInput });
@@ -151,7 +145,7 @@ export function FormRunnerSheet({
       await createSubmission.mutateAsync({
         form_template_id: template.id,
         ngo_id: selectedNgoId || undefined,
-        work_item_id: workItemId,
+        ...(workItemId ? { work_item_id: workItemId } : {}),
         submitted_by_user_id: user?.id,
         payload_json: payload,
         submission_status: submit ? "submitted" : "draft",
@@ -184,8 +178,7 @@ export function FormRunnerSheet({
     }
   };
 
-  const isSaving =
-    createSubmission.isPending || createWorkItem.isPending || updateWorkItem.isPending;
+  const isSaving = createSubmission.isPending || updateWorkItem.isPending;
 
   const ngoOptions = useMemo(
     () =>

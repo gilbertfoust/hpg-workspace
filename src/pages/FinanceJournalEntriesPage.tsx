@@ -24,6 +24,7 @@ import { Loader2, Plus, BookOpenCheck, RotateCcw, Ban, Send, Eye, Pencil, Trash2
 import { FinanceJournalEntryDialog } from "@/components/finance/accounting/FinanceJournalEntryDialog";
 import { useFinanceAccounts } from "@/hooks/useFinanceAccounts";
 import { useFinanceFunds } from "@/hooks/useFinanceFunds";
+import { useFinanceFiscalPeriods } from "@/hooks/useFinanceFiscalPeriods";
 import {
   useDeleteFinanceJournalEntry,
   useFinanceJournalAuditEvents,
@@ -34,10 +35,15 @@ import {
   useSaveFinanceJournalEntry,
   useVoidFinanceJournalEntry,
 } from "@/hooks/useFinanceJournalEntries";
-import type { FinanceJournalEntryInput, FinanceJournalEntryStatus, FinanceJournalEntryWithLines } from "@/types/financeAccounting";
+import type { FinanceJournalEntrySavePayload, FinanceJournalEntryStatus, FinanceJournalEntryWithLines } from "@/types/financeAccounting";
 import { FINANCE_JOURNAL_STATUS_LABELS } from "@/types/financeAccounting";
 import { computeJournalTotals } from "@/types/financeAccounting";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useToast } from "@/hooks/use-toast";
+import {
+  uploadFinanceSupportingDocument,
+  useLinkFinanceDocument,
+} from "@/hooks/useFinanceDocumentLinks";
 import { hasFinancePermission } from "@/lib/financePermissions";
 
 const statusVariant = (status: FinanceJournalEntryStatus): "default" | "secondary" | "destructive" | "outline" => {
@@ -72,15 +78,18 @@ const FinanceJournalEntriesPage = () => {
   const { data: entries = [], isLoading, error } = useFinanceJournalEntries();
   const { data: accounts = [] } = useFinanceAccounts();
   const { data: funds = [] } = useFinanceFunds();
+  const { data: fiscalPeriods = [] } = useFinanceFiscalPeriods();
   const { data: referenceData } = useFinanceJournalReferenceData();
   const { data: auditEvents = [] } = useFinanceJournalAuditEvents(auditEntryId);
 
   const saveEntry = useSaveFinanceJournalEntry();
+  const linkDocument = useLinkFinanceDocument();
   const deleteEntry = useDeleteFinanceJournalEntry();
   const postEntry = usePostFinanceJournalEntry();
   const voidEntry = useVoidFinanceJournalEntry();
   const reverseEntry = useReverseFinanceJournalEntry();
   const { role } = useUserRole();
+  const { toast } = useToast();
   const canPost = hasFinancePermission(role, "post_journal");
   const canVoid = hasFinancePermission(role, "void_transaction");
 
@@ -107,8 +116,32 @@ const FinanceJournalEntriesPage = () => {
     setDialogOpen(true);
   };
 
-  const handleSave = async (input: FinanceJournalEntryInput) => {
-    await saveEntry.mutateAsync({ id: viewEntry?.id, input });
+  const handleSave = async ({ input, receipt }: FinanceJournalEntrySavePayload) => {
+    const saved = await saveEntry.mutateAsync({ id: viewEntry?.id, input });
+
+    if (!receipt || !saved?.id) return;
+
+    try {
+      let documentId = receipt.existingDocumentId || null;
+      if (receipt.file) {
+        documentId = await uploadFinanceSupportingDocument(receipt.file);
+      }
+
+      if (!documentId) return;
+
+      await linkDocument.mutateAsync({
+        documentId,
+        entityType: "journal_entry",
+        entityId: saved.id,
+        linkNotes: receipt.linkNotes || undefined,
+      });
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Journal saved but receipt could not be attached",
+        description: error instanceof Error ? error.message : "Try linking the receipt from the entry editor.",
+      });
+    }
   };
 
   const handlePost = async (entry: FinanceJournalEntryWithLines) => {
@@ -319,6 +352,7 @@ const FinanceJournalEntriesPage = () => {
         readOnly={readOnly}
         accounts={accounts}
         funds={funds}
+        fiscalPeriods={fiscalPeriods}
         referenceData={referenceData}
         onSave={handleSave}
         isSaving={isSaving}

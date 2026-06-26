@@ -14,6 +14,54 @@ const ensureSupabase = () => {
   if (!supabase) throw getSupabaseNotConfiguredError();
 };
 
+const FINANCE_RECEIPT_BUCKET = "ngo-documents";
+
+export const uploadFinanceSupportingDocument = async (file: File): Promise<string> => {
+  ensureSupabase();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("You must be logged in to upload documents");
+
+  const timestamp = Date.now();
+  const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, "_");
+  const filePath = `internal/finance/journal-receipts/${timestamp}_${sanitizedFileName}`;
+
+  const { error: uploadError } = await supabase.storage
+    .from(FINANCE_RECEIPT_BUCKET)
+    .upload(filePath, file, {
+      cacheControl: "3600",
+      upsert: false,
+      contentType: file.type || "application/octet-stream",
+    });
+
+  if (uploadError) throw uploadError;
+
+  const { data: document, error: documentError } = await supabase
+    .from("documents")
+    .insert({
+      file_name: file.name,
+      file_path: filePath,
+      file_type: file.type || "application/octet-stream",
+      file_size: file.size,
+      category: "finance",
+      ngo_id: null,
+      work_item_id: null,
+      uploaded_by_user_id: user.id,
+      review_status: "Pending",
+    })
+    .select("id")
+    .single();
+
+  if (documentError) {
+    await supabase.storage.from(FINANCE_RECEIPT_BUCKET).remove([filePath]);
+    throw documentError;
+  }
+
+  return document.id as string;
+};
+
 export const useFinanceDocumentLinks = (entityType: FinanceDocumentLinkEntityType, entityId: string | null) => {
   return useQuery({
     queryKey: ["finance-document-links", entityType, entityId],
@@ -96,6 +144,8 @@ export const useLinkFinanceDocument = () => {
       queryClient.invalidateQueries({ queryKey: ["finance-document-links"] });
       queryClient.invalidateQueries({ queryKey: ["finance-receipt-coverage"] });
       queryClient.invalidateQueries({ queryKey: ["finance-journal-entries"] });
+      queryClient.invalidateQueries({ queryKey: ["finance-documents-picker"] });
+      queryClient.invalidateQueries({ queryKey: ["documents"] });
       toast({ title: "Receipt linked" });
     },
     onError: (error: Error) => {

@@ -6,6 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { ModuleType } from '@/hooks/useWorkItems';
 import { createWorkItemForSubmission } from '@/lib/createWorkItemForSubmission';
 import { createGrantFromFormSubmission } from '@/lib/createGrantFromFormSubmission';
+import { completeWorkItemForAdminRecordsWithFallback } from '@/lib/workItemRecordActions';
 
 const MODULE_TO_DOC_CATEGORY: Record<string, string> = {
   ngo_coordination: 'other',
@@ -104,6 +105,7 @@ const ensureSupabase = () => {
   if (!supabase) {
     throw getSupabaseNotConfiguredError();
   }
+  return supabase;
 };
 
 export const useFormSubmissions = (filters?: { ngo_id?: string; form_template_id?: string; work_item_id?: string }) => {
@@ -200,6 +202,10 @@ export const useCreateFormSubmission = () => {
       if ('payload_json' in input) sanitizedInput.payload_json = input.payload_json;
       if ('submission_status' in input) sanitizedInput.submission_status = input.submission_status;
       if ('submitted_at' in input) sanitizedInput.submitted_at = input.submitted_at ?? null;
+      if ('audience' in input && input.audience) sanitizedInput.audience = input.audience;
+      else sanitizedInput.audience = 'staff';
+      if ('intake_status' in input && input.intake_status) sanitizedInput.intake_status = input.intake_status;
+      else sanitizedInput.intake_status = 'new';
 
       console.log('[useCreateFormSubmission] Inserting form submission into database', {
         sanitized_keys: Object.keys(sanitizedInput),
