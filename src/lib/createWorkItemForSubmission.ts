@@ -72,12 +72,13 @@ export async function createWorkItemForSubmission(
   const departmentId = await getDepartmentIdForModule(formTemplateModule);
 
   // Create work item using proper Supabase types
+  // Omit null department_id so the DB trigger can resolve org_units safely.
   const workItemInput = prepareWorkItemForDb({
     title: workItemTitle,
     description: description,
     module: formTemplateModule,
     ngo_id: ngoId || null,
-    department_id: departmentId,
+    ...(departmentId ? { department_id: departmentId } : {}),
     owner_user_id: userId,
     created_by_user_id: userId,
     status: "not_started",

@@ -360,17 +360,21 @@ export const useCreateFormSubmission = () => {
 
       return finalSubmission;
     },
-    onSuccess: (_data, variables) => {
+    onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['form-submissions'] });
       queryClient.invalidateQueries({ queryKey: ['work-items'] });
       queryClient.invalidateQueries({ queryKey: ['my-queue-work-items'] });
       queryClient.invalidateQueries({ queryKey: ['department-queue-work-items'] });
       queryClient.invalidateQueries({ queryKey: ['documents'] });
+
+      const createdWorkItem = Boolean(data?.work_item_id);
       toast({
         title: variables.submission_status === 'submitted' ? 'Form submitted' : 'Draft saved',
         description:
           variables.submission_status === 'submitted'
-            ? 'Your form has been submitted and a work item has been created.'
+            ? createdWorkItem
+              ? 'Your form has been submitted and a work item has been created.'
+              : 'Your form was submitted, but no work item was linked.'
             : 'Your draft has been saved.',
       });
     },
@@ -495,7 +499,7 @@ export const useUpdateFormSubmission = () => {
           formTemplateModule: template.module as ModuleType,
           ngoId: currentSubmission.ngo_id || null,
           ngoName,
-          payloadJson: currentSubmission.payload_json,
+          payloadJson: input.payload_json ?? currentSubmission.payload_json,
           userId: user.id,
         });
 

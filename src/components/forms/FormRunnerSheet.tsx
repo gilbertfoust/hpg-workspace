@@ -20,7 +20,7 @@ import {
 import { Loader2, Save, Send } from "lucide-react";
 import type { FormField, FormTemplate } from "@/hooks/useFormTemplates";
 import { useCreateFormSubmission } from "@/hooks/useFormSubmissions";
-import { useUpdateWorkItem } from "@/hooks/useWorkItems";
+import { useCreateWorkItem, useUpdateWorkItem } from "@/hooks/useWorkItems";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNGOs } from "@/hooks/useNGOs";
 import { useToast } from "@/hooks/use-toast";
@@ -88,6 +88,7 @@ export function FormRunnerSheet({
   const { data: ngos } = useNGOs();
 
   const createSubmission = useCreateFormSubmission();
+  const createWorkItem = useCreateWorkItem();
   const updateWorkItem = useUpdateWorkItem();
 
   const [formData, setFormData] = useState<Record<string, unknown>>({});
@@ -133,6 +134,16 @@ export function FormRunnerSheet({
       const plan = buildWorkItemPlan(template, formData, selectedNgoId);
       let workItemId = plan.workItemId;
 
+      if (submit && plan.action === "create" && !workItemId && plan.createInput?.module) {
+        const created = await createWorkItem.mutateAsync({
+          ...plan.createInput,
+          module: plan.createInput.module,
+          type: plan.createInput.type || "form_submission",
+          ngo_id: plan.createInput.ngo_id ?? selectedNgoId ?? undefined,
+        });
+        workItemId = created.id;
+      }
+
       if (submit && plan.action === "update" && plan.workItemId) {
         const updateInput = plan.updateInput ? removeUndefined(plan.updateInput) : {};
         if (Object.keys(updateInput).length > 0) {
@@ -152,20 +163,6 @@ export function FormRunnerSheet({
         submitted_at: submit ? new Date().toISOString() : null,
       });
 
-      if (submit) {
-        toast({
-          title: "Submission successful",
-          description: workItemId
-            ? "The form was submitted and officially generated as a work item."
-            : "The form was submitted successfully.",
-        });
-      } else {
-        toast({
-          title: "Draft saved",
-          description: "The form draft has been saved successfully.",
-        });
-      }
-
       setFormData({});
       setFieldErrors({});
       onOpenChange(false);
@@ -178,7 +175,7 @@ export function FormRunnerSheet({
     }
   };
 
-  const isSaving = createSubmission.isPending || updateWorkItem.isPending;
+  const isSaving = createSubmission.isPending || createWorkItem.isPending || updateWorkItem.isPending;
 
   const ngoOptions = useMemo(
     () =>
