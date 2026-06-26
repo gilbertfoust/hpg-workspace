@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { WorkItem } from "@/hooks/useWorkItems";
+import { normalizeWorkItem, prepareWorkItemForDb } from "@/lib/workItemValues";
 
 type Client = SupabaseClient;
 
@@ -13,20 +14,22 @@ export const archiveWorkItemWithFallback = async (
     _reason: reason || "Archived from workspace",
   });
 
-  if (!error) return data as WorkItem;
+  if (!error) return normalizeWorkItem(data as WorkItem);
 
   const { data: authData } = await client.auth.getUser();
   const userId = authData.user?.id;
 
   const { data: archived, error: updateError } = await client
     .from("work_items")
-    .update({
-      status: "canceled",
-      archived_at: new Date().toISOString(),
-      archived_by_user_id: userId ?? null,
-      archive_reason: reason || "Archived from workspace",
-      updated_at: new Date().toISOString(),
-    })
+    .update(
+      prepareWorkItemForDb({
+        status: "canceled",
+        archived_at: new Date().toISOString(),
+        archived_by_user_id: userId ?? null,
+        archive_reason: reason || "Archived from workspace",
+        updated_at: new Date().toISOString(),
+      }),
+    )
     .eq("id", id)
     .select("*")
     .single();
@@ -35,7 +38,7 @@ export const archiveWorkItemWithFallback = async (
     throw new Error(error.message || updateError.message);
   }
 
-  return archived as WorkItem;
+  return normalizeWorkItem(archived as WorkItem);
 };
 
 export const completeWorkItemForAdminRecordsWithFallback = async (
@@ -48,7 +51,7 @@ export const completeWorkItemForAdminRecordsWithFallback = async (
     _notes: notes || "Completed and sent to admin records",
   });
 
-  if (!error) return data as WorkItem;
+  if (!error) return normalizeWorkItem(data as WorkItem);
 
   const { data: authData } = await client.auth.getUser();
   const userId = authData.user?.id;
@@ -56,14 +59,16 @@ export const completeWorkItemForAdminRecordsWithFallback = async (
 
   const { data: completed, error: updateError } = await client
     .from("work_items")
-    .update({
-      status: "complete",
-      completed_at: new Date().toISOString(),
-      archived_at: new Date().toISOString(),
-      archived_by_user_id: userId ?? null,
-      archive_reason: archiveReason,
-      updated_at: new Date().toISOString(),
-    })
+    .update(
+      prepareWorkItemForDb({
+        status: "complete",
+        completed_at: new Date().toISOString(),
+        archived_at: new Date().toISOString(),
+        archived_by_user_id: userId ?? null,
+        archive_reason: archiveReason,
+        updated_at: new Date().toISOString(),
+      }),
+    )
     .eq("id", id)
     .select("*")
     .single();
@@ -72,5 +77,5 @@ export const completeWorkItemForAdminRecordsWithFallback = async (
     throw new Error(error.message || updateError.message);
   }
 
-  return completed as WorkItem;
+  return normalizeWorkItem(completed as WorkItem);
 };

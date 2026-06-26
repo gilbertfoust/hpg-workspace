@@ -4,6 +4,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import type { Json } from "@/integrations/supabase/types";
 import type { ModuleType, Priority, WorkItemStatus } from "@/hooks/useWorkItems";
+import { prepareWorkItemForDb } from "@/lib/workItemValues";
 
 export type ApplicantStage =
   | "Applied" | "Screening" | "Interviewing" | "Offer" | "Hired" | "Rejected"
@@ -229,16 +230,18 @@ export const useUpdateHRApplicant = () => {
 
       const d = data as any;
       if (b.stage !== "Hired" && d.stage === "Hired" || b.stage !== "Sent to IT" && d.stage === "Sent to IT") {
-        const workItems = onboardingWorkItems(d as Applicant).map((item) => ({
-          ...item,
-          status: "not_started" as WorkItemStatus,
-          priority: "medium" as Priority,
-          created_by_user_id: user?.id ?? null,
-          owner_user_id: null,
-          department_id: null,
-          ngo_id: null,
-          type: "onboarding",
-        }));
+        const workItems = onboardingWorkItems(d as Applicant).map((item) =>
+          prepareWorkItemForDb({
+            ...item,
+            status: "not_started" as WorkItemStatus,
+            priority: "medium" as Priority,
+            created_by_user_id: user?.id ?? null,
+            owner_user_id: null,
+            department_id: null,
+            ngo_id: null,
+            type: "onboarding",
+          }),
+        );
 
         const { data: createdWorkItems, error: workItemError } = await supabase
           .from("work_items")

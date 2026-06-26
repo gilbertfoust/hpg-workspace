@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import type { FormField, FormTemplate } from "@/hooks/useFormTemplates";
 import type { Json } from "@/integrations/supabase/types";
+import { prepareWorkItemForDb } from "@/lib/workItemValues";
 
 const ensureSupabase = () => {
   if (!supabase) throw getSupabaseNotConfiguredError();
@@ -66,17 +67,19 @@ export const useSubmitNgoPortalForm = () => {
 
       const { data: workItem, error: workItemError } = await client
         .from("work_items")
-        .insert({
-          title: `NGO Request: ${summary}`,
-          description: `Submitted from NGO Portal form: ${formTemplate.name}`,
-          module: "ngo_coordination",
-          ngo_id: ngoId,
-          status: "submitted",
-          priority: "medium",
-          type: "ngo_portal_request",
-          external_visible: true,
-          created_by_user_id: user.id,
-        } as never)
+        .insert(
+          prepareWorkItemForDb({
+            title: `NGO Request: ${summary}`,
+            description: `Submitted from NGO Portal form: ${formTemplate.name}`,
+            module: "ngo_coordination",
+            ngo_id: ngoId,
+            status: "submitted",
+            priority: "medium",
+            type: "ngo_portal_request",
+            external_visible: true,
+            created_by_user_id: user.id,
+          }) as never,
+        )
         .select("id")
         .single();
 

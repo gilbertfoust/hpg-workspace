@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { ModuleType } from "@/hooks/useWorkItems";
 import { getDepartmentIdForModule } from "@/utils/moduleToDepartment";
 import type { Json } from "@/integrations/supabase/types";
+import { prepareWorkItemForDb } from "@/lib/workItemValues";
 
 export interface CreateWorkItemForSubmissionParams {
   formTemplateId: string;
@@ -71,19 +72,19 @@ export async function createWorkItemForSubmission(
   const departmentId = await getDepartmentIdForModule(formTemplateModule);
 
   // Create work item using proper Supabase types
-  const workItemInput = {
+  const workItemInput = prepareWorkItemForDb({
     title: workItemTitle,
     description: description,
     module: formTemplateModule,
     ngo_id: ngoId || null,
     department_id: departmentId,
     owner_user_id: userId,
-    created_by_user_id: userId, // Required for RLS
-    status: 'not_started' as const,
-    priority: 'medium' as const,
+    created_by_user_id: userId,
+    status: "not_started",
+    priority: "medium",
     evidence_required: false,
-    type: 'form_submission',
-  };
+    type: "form_submission",
+  });
 
   console.log('[createWorkItemForSubmission] Inserting work item', {
     title: workItemTitle,
@@ -96,10 +97,6 @@ export async function createWorkItemForSubmission(
     priority: workItemInput.priority,
     type: workItemInput.type,
   });
-
-  // #region agent log
-  fetch('http://127.0.0.1:7242/ingest/611bc9d1-427e-4c48-9b30-3ae32ef68254',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'createWorkItemForSubmission.ts:104',message:'About to insert work item',data:{priority:workItemInput.priority,status:workItemInput.status,fullInput:JSON.stringify(workItemInput)},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'E'})}).catch(()=>{});
-  // #endregion
 
   const { data: workItem, error: workItemError } = await supabase
     .from('work_items')

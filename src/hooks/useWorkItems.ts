@@ -5,6 +5,11 @@ import {
   archiveWorkItemWithFallback,
   completeWorkItemForAdminRecordsWithFallback,
 } from "@/lib/workItemRecordActions";
+import {
+  normalizeWorkItem,
+  prepareWorkItemForDb,
+  toDbWorkItemStatus,
+} from "@/lib/workItemValues";
 
 export type WorkItemStatus =
   | "draft"
@@ -107,8 +112,12 @@ export const useWorkItems = (filters?: ListFilters) => {
       const ngoId = filters?.ngoId || filters?.ngo_id;
       if (ngoId) query = query.eq("ngo_id", ngoId);
       if (filters?.status) {
-        if (Array.isArray(filters.status)) query = query.in("status", filters.status);
-        else query = query.eq("status", filters.status);
+        const statuses = Array.isArray(filters.status) ? filters.status : [filters.status];
+        const dbStatuses = statuses
+          .map((status) => toDbWorkItemStatus(status))
+          .filter((status): status is NonNullable<ReturnType<typeof toDbWorkItemStatus>> => Boolean(status));
+        if (dbStatuses.length === 1) query = query.eq("status", dbStatuses[0]);
+        else if (dbStatuses.length > 1) query = query.in("status", dbStatuses);
       }
       if (filters?.evidence_required !== undefined) query = query.eq("evidence_required", filters.evidence_required);
       if (filters?.module) query = query.eq("module", filters.module as any);
@@ -118,7 +127,7 @@ export const useWorkItems = (filters?: ListFilters) => {
 
       const { data, error } = await query;
       if (error) throw error;
-      return (data ?? []) as WorkItem[];
+      return (data ?? []).map((row) => normalizeWorkItem(row as WorkItem));
     },
   });
 };
@@ -132,20 +141,33 @@ export const useWorkItem = (id?: string | null) => {
       const client = ensureSupabase();
       const { data, error } = await client.from("work_items").select("*").eq("id", id).maybeSingle();
       if (error) throw error;
-      return (data as WorkItem) ?? null;
+      return data ? normalizeWorkItem(data as WorkItem) : null;
     },
   });
 };
 
 export const useCreateWorkItem = () => {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   return useMutation({
     mutationFn: async (input: Partial<WorkItem> & { module: ModuleType }) => {
       const client = ensureSupabase();
-      const { data, error } = await client.from("work_items").insert(input as any).select().single();
+      if (!user?.id) {
+        throw new Error("You must be logged in to create a work item.");
+      }
+
+      const insertPayload = prepareWorkItemForDb({
+        status: "not_started",
+        priority: "medium",
+        ...input,
+        created_by_user_id: input.created_by_user_id ?? user.id,
+        owner_user_id: input.owner_user_id ?? user.id,
+      });
+
+      const { data, error } = await client.from("work_items").insert(insertPayload as any).select().single();
       if (error) throw error;
-      const created = data as WorkItem;
+      const created = normalizeWorkItem(data as WorkItem);
 
       if (created.due_date) {
         try {
@@ -180,9 +202,14 @@ export const useUpdateWorkItem = () => {
         updatePayload.completed_at = new Date().toISOString();
       }
 
-      const { data, error } = await client.from("work_items").update(updatePayload as any).eq("id", id).select().single();
+      const { data, error } = await client
+        .from("work_items")
+        .update(prepareWorkItemForDb(updatePayload as Record<string, unknown>) as any)
+        .eq("id", id)
+        .select()
+        .single();
       if (error) throw error;
-      const updated = data as WorkItem;
+      const updated = normalizeWorkItem(data as WorkItem);
 
       if (input.due_date && updated.due_date) {
         try {
@@ -261,7 +288,7 @@ export const useMyQueueWorkItems = () => {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      return (data ?? []) as WorkItem[];
+      return (data ?? []).map((row) => normalizeWorkItem(row as WorkItem));
     },
   });
 };
@@ -281,7 +308,7 @@ export const useDepartmentQueueWorkItems = (departmentIds: string[]) => {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      return (data ?? []) as WorkItem[];
+      return (data ?? []).map((row) => normalizeWorkItem(row as WorkItem));
     },
   });
 };
@@ -292,7 +319,10 @@ export const useBulkUpdateWorkItems = () => {
     mutationFn: async ({ ids, updates }: { ids: string[]; updates: Partial<WorkItem> }) => {
       const client = ensureSupabase();
       if (ids.length === 0) return { ids, updates, updated: 0 };
-      const { error } = await client.from("work_items").update(updates as any).in("id", ids);
+      const { error } = await client
+        .from("work_items")
+        .update(prepareWorkItemForDb(updates as Record<string, unknown>) as any)
+        .in("id", ids);
       if (error) throw error;
       return { ids, updates, updated: ids.length };
     },

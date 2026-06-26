@@ -12,6 +12,7 @@ import {
   type UploadRouteType,
 } from "@/lib/uploadRouting";
 import { queueUploadNotification } from "@/lib/uploadNotifications";
+import { prepareWorkItemForDb } from "@/lib/workItemValues";
 
 const BUCKET_NAME = "ngo-documents";
 
@@ -92,22 +93,24 @@ export const useRoutedDocumentUpload = () => {
 
       const { data: workItem, error: workItemError } = await supabase
         .from("work_items")
-        .insert({
-          title: buildUploadWorkItemTitle(input.file.name, routeConfig.label),
-          description: buildUploadWorkItemDescription({
-            routeType: input.routeType,
-            fileName: input.file.name,
-            routedTo,
-            ngoName: input.ngoName,
-          }),
-          status: "not_started",
-          module,
-          department_id: departmentId,
-          ngo_id: input.ngoId ?? null,
-          type: "document_upload",
-          evidence_required: false,
-          created_by_user_id: user.id,
-        } as never)
+        .insert(
+          prepareWorkItemForDb({
+            title: buildUploadWorkItemTitle(input.file.name, routeConfig.label),
+            description: buildUploadWorkItemDescription({
+              routeType: input.routeType,
+              fileName: input.file.name,
+              routedTo,
+              ngoName: input.ngoName,
+            }),
+            status: "not_started",
+            module,
+            department_id: departmentId,
+            ngo_id: input.ngoId ?? null,
+            type: "document_upload",
+            evidence_required: false,
+            created_by_user_id: user.id,
+          }) as never,
+        )
         .select()
         .single();
 

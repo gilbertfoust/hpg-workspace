@@ -13,6 +13,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { Rocket } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { prepareWorkItemForDb } from "@/lib/workItemValues";
 
 const FSA_STAGES = [
   "G1 - Intake",
@@ -243,17 +244,19 @@ export default function NGOOnboardingPipeline() {
     if (!launchNgo || !user) return;
     setLaunching(true);
     try {
-      const items = ONBOARDING_WORK_ITEMS.map((item) => ({
-        title: `${item.title} — ${launchNgo.common_name || launchNgo.legal_name}`,
-        description: item.description,
-        module: item.module,
-        ngo_id: launchNgo.id,
-        type: "NGO Onboarding",
-        status: "not_started" as const,
-        priority: "medium" as const,
-        owner_user_id: user.id,
-        checklist_json: item.checklist.length > 0 ? item.checklist : null,
-      }));
+      const items = ONBOARDING_WORK_ITEMS.map((item) =>
+        prepareWorkItemForDb({
+          title: `${item.title} — ${launchNgo.common_name || launchNgo.legal_name}`,
+          description: item.description,
+          module: item.module,
+          ngo_id: launchNgo.id,
+          type: "NGO Onboarding",
+          status: "not_started",
+          priority: "medium",
+          owner_user_id: user.id,
+          checklist_json: item.checklist.length > 0 ? item.checklist : null,
+        }),
+      );
 
       const { error } = await supabase.from("work_items").insert(items as any);
       if (error) throw error;
