@@ -7,7 +7,7 @@ import type { Database, Json } from '@/integrations/supabase/types';
 
 export interface FormField {
   name: string;
-  type: 'text' | 'textarea' | 'email' | 'tel' | 'url' | 'number' | 'date' | 'select' | 'multiselect' | 'checkbox';
+  type: 'text' | 'textarea' | 'email' | 'tel' | 'url' | 'number' | 'date' | 'select' | 'multiselect' | 'checkbox' | 'signature' | 'file';
   label: string;
   required?: boolean;
   options?: string[];

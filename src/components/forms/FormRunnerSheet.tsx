@@ -53,6 +53,10 @@ const validateFields = (fields: FormField[], values: Record<string, unknown>) =>
         if (!value) {
           errors[field.name] = "This field is required.";
         }
+      } else if (field.type === "signature") {
+        if (!value || typeof value !== "string" || !(value as string).startsWith("data:image")) {
+          errors[field.name] = "Please provide your signature.";
+        }
       } else if (isEmptyValue(value)) {
         errors[field.name] = "This field is required.";
       }

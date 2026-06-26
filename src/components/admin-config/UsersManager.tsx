@@ -27,6 +27,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
+  Building2,
   Check,
   KeyRound,
   Loader2,
@@ -39,21 +40,15 @@ import {
 import { useAdminUsers, useDeleteAdminUser } from '@/hooks/useAdminUsers';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserRole } from '@/hooks/useUserRole';
-import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
 import CreateUserDialog from '@/components/admin/CreateUserDialog';
+import AssignNgoDialog from '@/components/admin/AssignNgoDialog';
 import ResetPasswordDialog from '@/components/admin/ResetPasswordDialog';
+import { ADMIN_ASSIGNABLE_ROLES } from '@/lib/accessControl';
+import { invokeAdminFunction } from '@/lib/invokeAdminFunction';
 
-const ALL_ROLES = [
-  { value: 'super_admin', label: 'Super Admin' },
-  { value: 'admin_pm', label: 'Admin PM' },
-  { value: 'executive_secretariat', label: 'Executive Secretariat' },
-  { value: 'ngo_coordinator', label: 'NGO Coordinator' },
-  { value: 'department_lead', label: 'Department Lead' },
-  { value: 'staff_member', label: 'Staff Member' },
-  { value: 'external_ngo', label: 'External NGO Portal' },
-];
+const ALL_ROLES = ADMIN_ASSIGNABLE_ROLES;
 
 const roleColors: Record<string, string> = {
   super_admin: 'bg-destructive/10 text-destructive',
@@ -64,9 +59,11 @@ const roleColors: Record<string, string> = {
   staff: 'bg-muted text-muted-foreground',
   executive_secretariat: 'bg-purple-500/10 text-purple-600',
   external_ngo: 'bg-cyan-500/10 text-cyan-600',
+  ngo_user: 'bg-cyan-500/10 text-cyan-600',
 };
 
 const formatRoleName = (role: string) =>
+  ALL_ROLES.find((entry) => entry.value === role)?.label ||
   role
     .split('_')
     .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
@@ -83,6 +80,7 @@ export default function UsersManager() {
   const [userToDelete, setUserToDelete] = useState<{ id: string; name: string | null; email: string | null } | null>(null);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [resetPasswordUser, setResetPasswordUser] = useState<{ id: string; name: string | null } | null>(null);
+  const [assignNgoUser, setAssignNgoUser] = useState<{ id: string; name: string } | null>(null);
   const [changingRoleUserId, setChangingRoleUserId] = useState<string | null>(null);
 
   const isSuperAdmin = currentUserRole?.role === 'super_admin' || currentUserRole?.role === 'admin_pm';
@@ -90,16 +88,19 @@ export default function UsersManager() {
   const handleRoleChange = async (userId: string, newRole: string) => {
     setChangingRoleUserId(userId);
     try {
-      const { data, error } = await supabase!.functions.invoke('admin-update-role', {
-        body: { target_user_id: userId, new_role: newRole },
+      await invokeAdminFunction('admin-update-role', {
+        target_user_id: userId,
+        new_role: newRole,
       });
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
       toast({ title: 'Role updated', description: `Role changed to ${formatRoleName(newRole)}.` });
       queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
       queryClient.invalidateQueries({ queryKey: ['user-roles'] });
-    } catch (err: any) {
-      toast({ variant: 'destructive', title: 'Failed to update role', description: err.message });
+    } catch (err: unknown) {
+      toast({
+        variant: 'destructive',
+        title: 'Failed to update role',
+        description: err instanceof Error ? err.message : 'Please try again.',
+      });
     } finally {
       setChangingRoleUserId(null);
     }
@@ -212,6 +213,19 @@ export default function UsersManager() {
                                     Reset Password
                                   </DropdownMenuItem>
                                   {!isCurrentUser && (
+                                    <DropdownMenuItem
+                                      onClick={() =>
+                                        setAssignNgoUser({
+                                          id: user.id,
+                                          name: user.full_name || user.email || 'User',
+                                        })
+                                      }
+                                    >
+                                      <Building2 className="w-4 h-4 mr-2" />
+                                      Assign to NGO
+                                    </DropdownMenuItem>
+                                  )}
+                                  {!isCurrentUser && (
                                     <>
                                       <DropdownMenuSeparator />
                                       <DropdownMenuItem
@@ -251,6 +265,14 @@ export default function UsersManager() {
         userId={resetPasswordUser?.id || ''}
         userName={resetPasswordUser?.name || ''}
       />
+      {assignNgoUser && (
+        <AssignNgoDialog
+          open={!!assignNgoUser}
+          onOpenChange={(open) => !open && setAssignNgoUser(null)}
+          userId={assignNgoUser.id}
+          userName={assignNgoUser.name}
+        />
+      )}
       <AlertDialog open={!!userToDelete} onOpenChange={(open) => !open && setUserToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>

@@ -11,9 +11,14 @@ import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { format } from "date-fns";
 import { Link } from "react-router-dom";
+import { FileDown, Loader2 } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
 import type { FormSubmissionWithSchema } from "@/hooks/useFormSubmissions";
 import { useFormSubmission } from "@/hooks/useFormSubmissions";
 import type { FormSubmission } from "@/hooks/useFormSubmissions";
+import { exportFormSubmissionToPdf } from "@/lib/pdf/formToPdf";
+import { downloadPdfBytes } from "@/lib/pdf/pdfDocument";
 
 interface FormSubmissionDetailSheetProps {
   open: boolean;
@@ -30,6 +35,7 @@ export function FormSubmissionDetailSheet({
 }: FormSubmissionDetailSheetProps) {
   const { data: detail } = useFormSubmission(submission?.id || "");
   const sub = detail || submission;
+  const [exporting, setExporting] = useState(false);
 
   const fields = (sub as FormSubmissionWithSchema)?.form_template?.schema_json?.fields || [];
   const payload =
@@ -41,7 +47,32 @@ export function FormSubmissionDetailSheet({
     if (value === null || value === undefined) return "—";
     if (typeof value === "boolean") return value ? "Yes" : "No";
     if (Array.isArray(value)) return value.join(", ");
+    if (typeof value === "string" && value.startsWith("data:image")) return "[Signature]";
     return String(value);
+  };
+
+  const handleExportPdf = async () => {
+    if (!sub?.form_template || !payload) return;
+    setExporting(true);
+    try {
+      const bytes = await exportFormSubmissionToPdf(
+        sub.form_template.name,
+        fields,
+        payload,
+        {
+          submittedAt: sub.submitted_at
+            ? format(new Date(sub.submitted_at), "MMM d, yyyy h:mm a")
+            : undefined,
+        }
+      );
+      const safeName = sub.form_template.name.replace(/[^a-z0-9-_]+/gi, "-").toLowerCase();
+      await downloadPdfBytes(bytes, `${safeName}-submission.pdf`);
+      toast.success("PDF exported");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Export failed");
+    } finally {
+      setExporting(false);
+    }
   };
 
   return (
@@ -76,6 +107,16 @@ export function FormSubmissionDetailSheet({
               <Link to={`/work-items?workItemId=${sub.work_item_id}`}>
                 View Work Item
               </Link>
+            </Button>
+          )}
+          {payload && fields.length > 0 && (
+            <Button variant="outline" size="sm" onClick={handleExportPdf} disabled={exporting}>
+              {exporting ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <FileDown className="h-4 w-4 mr-2" />
+              )}
+              Export PDF
             </Button>
           )}
         </div>

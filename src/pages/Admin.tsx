@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ConfigCheckPanel from "@/components/admin/ConfigCheckPanel";
 import CreateUserDialog from "@/components/admin/CreateUserDialog";
+import AssignNgoDialog from "@/components/admin/AssignNgoDialog";
 import ResetPasswordDialog from "@/components/admin/ResetPasswordDialog";
 import {
   AlertDialog,
@@ -34,6 +35,7 @@ import {
 import {
   Users,
   Building,
+  Building2,
   FileText,
   Settings,
   Shield,
@@ -59,7 +61,7 @@ import {
   canAssignRoles,
   getRoleLabel,
 } from "@/lib/accessControl";
-import { supabase } from "@/integrations/supabase/client";
+import { invokeAdminFunction } from "@/lib/invokeAdminFunction";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -86,6 +88,7 @@ const roleColors: Record<string, string> = {
   staff: "bg-muted text-muted-foreground",
   executive_secretariat: "bg-purple-500/10 text-purple-600",
   external_ngo: "bg-cyan-500/10 text-cyan-600",
+  ngo_user: "bg-cyan-500/10 text-cyan-600",
 };
 
 const formatRoleName = (role: string) => getRoleLabel(role);
@@ -102,6 +105,7 @@ export default function Admin() {
   const [userToDelete, setUserToDelete] = useState<{ id: string; name: string | null; email: string | null } | null>(null);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [resetPasswordUser, setResetPasswordUser] = useState<{ id: string; name: string | null } | null>(null);
+  const [assignNgoUser, setAssignNgoUser] = useState<{ id: string; name: string } | null>(null);
   const [changingRoleUserId, setChangingRoleUserId] = useState<string | null>(null);
   const [uploadingAvatarUserId, setUploadingAvatarUserId] = useState<string | null>(null);
 
@@ -135,11 +139,10 @@ export default function Admin() {
 
     setChangingRoleUserId(userId);
     try {
-      const { data, error } = await supabase!.functions.invoke("admin-update-role", {
-        body: { target_user_id: userId, new_role: newRole },
+      await invokeAdminFunction("admin-update-role", {
+        target_user_id: userId,
+        new_role: newRole,
       });
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
 
       toast({ title: "Role updated", description: `Role changed to ${formatRoleName(newRole)}.` });
       queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
@@ -325,6 +328,19 @@ export default function Admin() {
                                         <KeyRound className="w-4 h-4 mr-2" />
                                         Reset Password
                                       </DropdownMenuItem>
+                                      {!isCurrentUser && (
+                                        <DropdownMenuItem
+                                          onClick={() =>
+                                            setAssignNgoUser({
+                                              id: user.id,
+                                              name: user.full_name || user.email || "User",
+                                            })
+                                          }
+                                        >
+                                          <Building2 className="w-4 h-4 mr-2" />
+                                          Assign to NGO
+                                        </DropdownMenuItem>
+                                      )}
                                       {!isCurrentUser && (
                                         <>
                                           <DropdownMenuSeparator />
@@ -569,6 +585,15 @@ export default function Admin() {
           onOpenChange={(open) => !open && setResetPasswordUser(null)}
           userId={resetPasswordUser.id}
           userName={resetPasswordUser.name}
+        />
+      )}
+
+      {assignNgoUser && (
+        <AssignNgoDialog
+          open={!!assignNgoUser}
+          onOpenChange={(open) => !open && setAssignNgoUser(null)}
+          userId={assignNgoUser.id}
+          userName={assignNgoUser.name}
         />
       )}
 

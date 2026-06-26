@@ -7,6 +7,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DocumentUploadDialog } from "@/components/documents/DocumentUploadDialog";
 import { EsignDocumentsTab } from "@/components/esign/EsignDocumentsTab";
 import { SigningRequestsTab } from "@/components/esign/SigningRequestsTab";
+import { PdfViewerDialog } from "@/components/pdf/PdfViewerDialog";
+import { PdfMergeSplitDialog } from "@/components/pdf/PdfMergeSplitDialog";
+import { Link } from "react-router-dom";
 import {
   Select,
   SelectContent,
@@ -47,6 +50,8 @@ import {
   XCircle,
   PenTool,
   Loader2,
+  Layers,
+  ExternalLink,
 } from "lucide-react";
 import { useDocuments, useDeleteDocument, useDocumentUrl, type Document } from "@/hooks/useDocuments";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -116,17 +121,28 @@ export default function Documents() {
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("documents");
   const [deleteTarget, setDeleteTarget] = useState<Document | null>(null);
+  const [pdfPreview, setPdfPreview] = useState<{ url: string; name: string } | null>(null);
+  const [mergeSplitOpen, setMergeSplitOpen] = useState(false);
 
   const categoryFilter = selectedCategory === "All Categories" ? undefined : selectedCategory as any;
   const { data: documents, isLoading } = useDocuments({ category: categoryFilter });
   const deleteMutation = useDeleteDocument();
-  const { downloadDocument, previewDocument } = useDocumentUrl();
+  const { downloadDocument, previewDocument, getSignedUrl } = useDocumentUrl();
 
   const filteredDocs = (documents || []).filter((doc) => {
     if (!searchQuery) return true;
     const q = searchQuery.toLowerCase();
     return doc.file_name.toLowerCase().includes(q);
   });
+
+  const handlePreview = async (doc: Document) => {
+    if (doc.file_type?.includes("pdf")) {
+      const url = await getSignedUrl(doc.file_path);
+      if (url) setPdfPreview({ url, name: doc.file_name });
+    } else {
+      previewDocument(doc.file_path);
+    }
+  };
 
   const handleDelete = () => {
     if (!deleteTarget) return;
@@ -141,10 +157,22 @@ export default function Documents() {
       subtitle="Manage documents, uploads, and e-signatures"
       actions={
         activeTab === "documents" ? (
-          <Button onClick={() => setUploadDialogOpen(true)}>
-            <Upload className="w-4 h-4 mr-2" />
-            Upload Document
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" asChild>
+              <Link to="/pdf-workspace">
+                <ExternalLink className="w-4 h-4 mr-2" />
+                PDF Workspace
+              </Link>
+            </Button>
+            <Button variant="outline" onClick={() => setMergeSplitOpen(true)}>
+              <Layers className="w-4 h-4 mr-2" />
+              Merge / Split
+            </Button>
+            <Button onClick={() => setUploadDialogOpen(true)}>
+              <Upload className="w-4 h-4 mr-2" />
+              Upload Document
+            </Button>
+          </div>
         ) : undefined
       }
     >
@@ -259,7 +287,7 @@ export default function Documents() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => previewDocument(doc.file_path)}>
+                              <DropdownMenuItem onClick={() => handlePreview(doc)}>
                                 <Eye className="w-4 h-4 mr-2" />
                                 Preview
                               </DropdownMenuItem>
@@ -331,6 +359,16 @@ export default function Documents() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <PdfViewerDialog
+        open={!!pdfPreview}
+        onOpenChange={(open) => !open && setPdfPreview(null)}
+        url={pdfPreview?.url}
+        fileName={pdfPreview?.name}
+        title={pdfPreview?.name}
+      />
+
+      <PdfMergeSplitDialog open={mergeSplitOpen} onOpenChange={setMergeSplitOpen} />
     </MainLayout>
   );
 }

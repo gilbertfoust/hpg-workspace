@@ -18,6 +18,7 @@ import NGOMissingItems from "./pages/NGOMissingItems";
 import WorkItems from "./pages/WorkItems";
 import Forms from "./pages/Forms";
 import Documents from "./pages/Documents";
+import PdfWorkspace from "./pages/PdfWorkspace";
 import CalendarPage from "./pages/CalendarPage";
 import ReportsDashboard from "./pages/ReportsDashboard";
 import Admin from "./pages/Admin";
@@ -217,6 +218,7 @@ const App = () => {
                 <Route path="/work-items" element={<P><WorkItems /></P>} />
                 <Route path="/forms" element={<P><Forms /></P>} />
                 <Route path="/documents" element={<P><Documents /></P>} />
+                <Route path="/pdf-workspace" element={<P><PdfWorkspace /></P>} />
                 <Route path="/calendar" element={<P><CalendarPage /></P>} />
                 <Route path="/reports" element={<P><ReportsDashboard /></P>} />
 

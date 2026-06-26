@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { invokeAdminFunction } from "@/lib/invokeAdminFunction";
 import { useToast } from "@/hooks/use-toast";
 
 interface ResetPasswordDialogProps {
@@ -44,12 +44,10 @@ export default function ResetPasswordDialog({
 
     setLoading(true);
     try {
-      const { data, error } = await supabase!.functions.invoke("admin-reset-password", {
-        body: { target_user_id: userId, new_password: newPassword },
+      await invokeAdminFunction("admin-reset-password", {
+        target_user_id: userId,
+        new_password: newPassword,
       });
-
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
 
       toast({ title: "Password reset", description: `Password updated for ${userName || "user"}.` });
       setNewPassword("");

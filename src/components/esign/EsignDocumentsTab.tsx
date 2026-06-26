@@ -1,18 +1,23 @@
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { useEsignDocuments, useUploadEsignDocument, useDeleteEsignDocument } from "@/hooks/useEsignDocuments";
 import { Button } from "@/components/ui/button";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { Upload, Trash2, Loader2, FileText } from "lucide-react";
+import { Upload, Trash2, Loader2, FileText, Eye } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { supabase } from "@/integrations/supabase/client";
+import { PdfViewerDialog } from "@/components/pdf/PdfViewerDialog";
+import type { EsignDocument } from "@/types/esignature";
 
 export function EsignDocumentsTab() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { data: documents, isLoading } = useEsignDocuments();
   const uploadMutation = useUploadEsignDocument();
   const deleteMutation = useDeleteEsignDocument();
+  const [preview, setPreview] = useState<{ url: string; name: string } | null>(null);
+  const [previewLoading, setPreviewLoading] = useState<string | null>(null);
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -24,18 +29,34 @@ export function EsignDocumentsTab() {
     try {
       await uploadMutation.mutateAsync(file);
       toast.success("Document uploaded successfully");
-    } catch (error: any) {
-      toast.error(error.message);
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : "Upload failed");
     }
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  const handleDelete = async (doc: (typeof documents extends (infer T)[] ? T : never)) => {
+  const handleDelete = async (doc: EsignDocument) => {
     try {
       await deleteMutation.mutateAsync(doc);
       toast.success("Document deleted");
-    } catch (error: any) {
-      toast.error(error.message);
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : "Delete failed");
+    }
+  };
+
+  const handlePreview = async (doc: EsignDocument) => {
+    if (!supabase) return;
+    setPreviewLoading(doc.id);
+    try {
+      const { data, error } = await supabase.storage
+        .from("esign-documents")
+        .createSignedUrl(doc.storage_path, 3600);
+      if (error || !data?.signedUrl) throw error ?? new Error("Could not load PDF");
+      setPreview({ url: data.signedUrl, name: doc.original_filename });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Preview failed");
+    } finally {
+      setPreviewLoading(null);
     }
   };
 
@@ -83,7 +104,7 @@ export function EsignDocumentsTab() {
               <TableRow>
                 <TableHead>Filename</TableHead>
                 <TableHead>Uploaded</TableHead>
-                <TableHead className="w-20">Actions</TableHead>
+                <TableHead className="w-28">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -99,14 +120,30 @@ export function EsignDocumentsTab() {
                     {format(new Date(doc.created_at), "MMM d, yyyy")}
                   </TableCell>
                   <TableCell>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleDelete(doc)}
-                      disabled={deleteMutation.isPending}
-                    >
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
+                    <div className="flex gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handlePreview(doc)}
+                        disabled={previewLoading === doc.id}
+                        title="Preview"
+                      >
+                        {previewLoading === doc.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDelete(doc)}
+                        disabled={deleteMutation.isPending}
+                        title="Delete"
+                      >
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
@@ -114,6 +151,14 @@ export function EsignDocumentsTab() {
           </Table>
         )}
       </div>
+
+      <PdfViewerDialog
+        open={!!preview}
+        onOpenChange={(open) => !open && setPreview(null)}
+        url={preview?.url}
+        fileName={preview?.name}
+        title={preview?.name}
+      />
     </div>
   );
 }

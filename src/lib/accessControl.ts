@@ -164,6 +164,7 @@ export const ADMIN_ASSIGNABLE_ROLES = [
   { value: "ngo_coordinator", label: "NGO Coordinator" },
   { value: "executive_secretariat", label: "Executive Secretariat" },
   { value: "staff_member", label: "Staff" },
+  { value: "ngo_user", label: "NGO User" },
   { value: "external_ngo", label: "NGO User (Portal)" },
   { value: "viewer", label: "Viewer / Board" },
 ];

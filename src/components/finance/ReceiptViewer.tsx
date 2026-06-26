@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { PdfViewerDialog } from "@/components/pdf/PdfViewerDialog";
 import { Eye, Download, FileText, Loader2, Paperclip } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
@@ -23,6 +24,7 @@ export function ReceiptViewer({ transactionId }: ReceiptViewerProps) {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewName, setPreviewName] = useState("");
   const [previewIsImage, setPreviewIsImage] = useState(false);
+  const [previewIsPdf, setPreviewIsPdf] = useState(false);
 
   const { data: receipts, isLoading } = useQuery({
     queryKey: ["receipts", transactionId],
@@ -53,10 +55,16 @@ export function ReceiptViewer({ transactionId }: ReceiptViewerProps) {
     const url = await getSignedUrl(filePath);
     if (!url) return;
 
-    if (isImageFile(fileName) || isPdfFile(fileName)) {
+    if (isImageFile(fileName)) {
       setPreviewUrl(url);
       setPreviewName(fileName);
-      setPreviewIsImage(isImageFile(fileName));
+      setPreviewIsImage(true);
+      setPreviewIsPdf(false);
+    } else if (isPdfFile(fileName)) {
+      setPreviewUrl(url);
+      setPreviewName(fileName);
+      setPreviewIsImage(false);
+      setPreviewIsPdf(true);
     } else {
       window.open(url, "_blank");
     }
@@ -135,28 +143,30 @@ export function ReceiptViewer({ transactionId }: ReceiptViewerProps) {
         </div>
       </div>
 
-      <Dialog open={!!previewUrl} onOpenChange={(open) => !open && setPreviewUrl(null)}>
+      <PdfViewerDialog
+        open={!!previewUrl && previewIsPdf}
+        onOpenChange={(open) => !open && setPreviewUrl(null)}
+        url={previewIsPdf ? previewUrl ?? undefined : undefined}
+        fileName={previewName}
+        title={previewName}
+      />
+
+      {!previewIsPdf && (
+      <Dialog open={!!previewUrl && previewIsImage} onOpenChange={(open) => !open && setPreviewUrl(null)}>
         <DialogContent className="max-w-3xl max-h-[85vh]">
           <DialogHeader>
             <DialogTitle className="truncate">{previewName}</DialogTitle>
           </DialogHeader>
           <div className="overflow-auto max-h-[70vh] flex items-center justify-center bg-muted/20 rounded-md">
-            {previewIsImage ? (
               <img
                 src={previewUrl!}
                 alt={previewName}
                 className="max-w-full max-h-[68vh] object-contain rounded"
               />
-            ) : (
-              <iframe
-                src={previewUrl!}
-                title={previewName}
-                className="w-full h-[68vh] rounded"
-              />
-            )}
           </div>
         </DialogContent>
       </Dialog>
+      )}
     </>
   );
 }

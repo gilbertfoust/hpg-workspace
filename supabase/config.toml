@@ -33,6 +33,9 @@ verify_jwt = true
 [functions.admin-approve-user]
 verify_jwt = true
 
+[functions.admin-assign-ngo]
+verify_jwt = true
+
 [functions.receive-sponsorship-application]
 verify_jwt = false
 

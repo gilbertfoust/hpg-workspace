@@ -1,26 +1,28 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import SignatureCanvas from "react-signature-canvas";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import type { SigningRequestByToken } from "@/types/esignature";
+import type { PdfSignaturePlacement } from "@/types/pdf";
+import { PdfViewer } from "@/components/pdf/PdfViewer";
+import { ESignatureCapture } from "@/components/esign/ESignatureCapture";
+import { ESignaturePlacer } from "@/components/esign/ESignaturePlacer";
 
 type PageState = "loading" | "ready" | "signing" | "signed" | "error";
 
 export default function SignDocument() {
   const { token } = useParams<{ token: string }>();
-  const sigCanvasRef = useRef<SignatureCanvas | null>(null);
   const [state, setState] = useState<PageState>("loading");
   const [request, setRequest] = useState<SigningRequestByToken | null>(null);
   const [errorMsg, setErrorMsg] = useState("");
-  const [typedSignature, setTypedSignature] = useState("");
-  const [signatureMode, setSignatureMode] = useState<"draw" | "type">("draw");
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [signatureDataUrl, setSignatureDataUrl] = useState<string | null>(null);
+  const [placement, setPlacement] = useState<PdfSignaturePlacement | null>(null);
+  const [pageDims, setPageDims] = useState({ width: 612, height: 792, pageIndex: 0 });
+  const [viewerScale, setViewerScale] = useState(1);
 
   useEffect(() => {
     if (!token || !supabase) {
@@ -34,13 +36,13 @@ export default function SignDocument() {
         request_token: token!,
       } as never);
 
-      if (error || !data || (data as any[]).length === 0) {
+      if (error || !data || (data as unknown[]).length === 0) {
         setErrorMsg("Signing request not found");
         setState("error");
         return;
       }
 
-      const req = (data as any[])[0] as SigningRequestByToken;
+      const req = (data as unknown[])[0] as SigningRequestByToken;
 
       if (req.status === "signed") {
         setErrorMsg("This document has already been signed");
@@ -73,48 +75,49 @@ export default function SignDocument() {
   const handleSign = useCallback(async () => {
     if (!request || !token || !supabase) return;
 
-    let signatureDataUrl: string;
-
-    if (signatureMode === "draw") {
-      if (!sigCanvasRef.current || sigCanvasRef.current.isEmpty()) {
-        toast.error("Please draw your signature first");
-        return;
-      }
-      signatureDataUrl = sigCanvasRef.current.toDataURL("image/png");
-    } else {
-      if (!typedSignature.trim()) {
-        toast.error("Please type your signature");
-        return;
-      }
-      const canvas = document.createElement("canvas");
-      canvas.width = 400;
-      canvas.height = 100;
-      const ctx = canvas.getContext("2d")!;
-      ctx.fillStyle = "white";
-      ctx.fillRect(0, 0, 400, 100);
-      ctx.fillStyle = "#1a1a2e";
-      ctx.font = "italic 36px 'Georgia', serif";
-      ctx.textBaseline = "middle";
-      ctx.fillText(typedSignature, 20, 50);
-      signatureDataUrl = canvas.toDataURL("image/png");
+    if (!signatureDataUrl) {
+      toast.error("Please capture your signature first");
+      return;
     }
 
     setState("signing");
 
+    const signedDate = new Date().toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+
+    const effectivePlacement = placement ?? {
+      pageIndex: pageDims.pageIndex,
+      x: 50,
+      y: pageDims.height - 120,
+      width: 200,
+      height: 60,
+    };
+
     try {
       const { data, error } = await supabase.functions.invoke("process-signature", {
-        body: { token, signature_data: signatureDataUrl },
+        body: {
+          token,
+          signature_data: signatureDataUrl,
+          signature_placement: {
+            ...effectivePlacement,
+            pageIndex: pageDims.pageIndex,
+          },
+          signer_caption: `Signed by ${request.signer_name} on ${signedDate}`,
+        },
       });
 
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
 
       setState("signed");
-    } catch (error: any) {
-      toast.error(error.message || "Failed to sign document");
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : "Failed to sign document");
       setState("ready");
     }
-  }, [request, token, signatureMode, typedSignature]);
+  }, [request, token, signatureDataUrl, placement, pageDims]);
 
   if (state === "loading") {
     return (
@@ -145,7 +148,7 @@ export default function SignDocument() {
             <CheckCircle2 className="mx-auto h-12 w-12 text-green-600" />
             <h2 className="mt-4 text-xl font-bold">Document Signed!</h2>
             <p className="mt-2 text-muted-foreground">
-              "{request?.original_filename}" has been signed successfully.
+              &ldquo;{request?.original_filename}&rdquo; has been signed successfully.
             </p>
           </CardContent>
         </Card>
@@ -155,7 +158,7 @@ export default function SignDocument() {
 
   return (
     <div className="min-h-screen bg-background p-4">
-      <div className="mx-auto max-w-3xl space-y-6">
+      <div className="mx-auto max-w-5xl space-y-6">
         <Card>
           <CardHeader>
             <CardTitle>Sign Document: {request?.original_filename}</CardTitle>
@@ -165,11 +168,28 @@ export default function SignDocument() {
           </CardHeader>
           <CardContent>
             {pdfUrl && (
-              <iframe
-                src={pdfUrl}
-                className="h-[500px] w-full rounded-md border"
-                title="PDF Preview"
-              />
+              <div className="h-[55vh] min-h-[400px]">
+                <PdfViewer
+                  url={pdfUrl}
+                  fileName={request?.original_filename}
+                  className="h-full"
+                  showThumbnails
+                  onPageDimensions={(w, h, pageIndex) => setPageDims({ width: w, height: h, pageIndex })}
+                  onScaleChange={setViewerScale}
+                  overlay={
+                    signatureDataUrl ? (
+                      <ESignaturePlacer
+                        signatureDataUrl={signatureDataUrl}
+                        pageWidth={pageDims.width}
+                        pageHeight={pageDims.height}
+                        scale={viewerScale}
+                        placement={placement ? { ...placement, pageIndex: pageDims.pageIndex } : null}
+                        onPlacementChange={(p) => setPlacement({ ...p, pageIndex: pageDims.pageIndex })}
+                      />
+                    ) : null
+                  }
+                />
+              </div>
             )}
           </CardContent>
         </Card>
@@ -177,59 +197,18 @@ export default function SignDocument() {
         <Card>
           <CardHeader>
             <CardTitle>Your Signature</CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Capture your signature, then drag it onto the document above.
+            </p>
           </CardHeader>
           <CardContent className="space-y-4">
-            <Tabs value={signatureMode} onValueChange={(v) => setSignatureMode(v as "draw" | "type")}>
-              <TabsList className="w-full">
-                <TabsTrigger value="draw" className="flex-1">Draw</TabsTrigger>
-                <TabsTrigger value="type" className="flex-1">Type</TabsTrigger>
-              </TabsList>
-              <TabsContent value="draw" className="mt-4">
-                <div className="rounded-md border bg-white">
-                  <SignatureCanvas
-                    ref={sigCanvasRef}
-                    canvasProps={{
-                      className: "w-full h-40",
-                      style: { width: "100%", height: "160px" },
-                    }}
-                    penColor="#1a1a2e"
-                  />
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="mt-2"
-                  onClick={() => sigCanvasRef.current?.clear()}
-                >
-                  Clear
-                </Button>
-              </TabsContent>
-              <TabsContent value="type" className="mt-4">
-                <Input
-                  value={typedSignature}
-                  onChange={(e) => setTypedSignature(e.target.value)}
-                  placeholder="Type your full name"
-                  className="text-lg"
-                />
-                {typedSignature && (
-                  <div className="mt-3 rounded-md border bg-white p-4">
-                    <p
-                      className="text-3xl"
-                      style={{ fontFamily: "'Georgia', serif", fontStyle: "italic", color: "#1a1a2e" }}
-                    >
-                      {typedSignature}
-                    </p>
-                  </div>
-                )}
-              </TabsContent>
-            </Tabs>
-
-            <Button
-              onClick={handleSign}
-              disabled={state === "signing"}
-              className="w-full"
-              size="lg"
-            >
+            <ESignatureCapture onCapture={setSignatureDataUrl} />
+            {signatureDataUrl && (
+              <p className="text-xs text-muted-foreground">
+                Signature captured. Drag the box on the PDF to position it before signing.
+              </p>
+            )}
+            <Button onClick={handleSign} disabled={state === "signing"} className="w-full" size="lg">
               {state === "signing" ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />

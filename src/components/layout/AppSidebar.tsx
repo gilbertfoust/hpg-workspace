@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import {
   LayoutDashboard,
@@ -169,10 +169,23 @@ const hubsSections: HubConfig[] = [
   },
 ];
 
+const SIDEBAR_SCROLL_KEY = "hpg-sidebar-scroll";
+const SIDEBAR_EXPANDED_HUBS_KEY = "hpg-sidebar-expanded-hubs";
+
+function readExpandedHubs(): Record<string, boolean> {
+  try {
+    const saved = sessionStorage.getItem(SIDEBAR_EXPANDED_HUBS_KEY);
+    return saved ? (JSON.parse(saved) as Record<string, boolean>) : {};
+  } catch {
+    return {};
+  }
+}
+
 export function AppSidebar() {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const location = useLocation();
-  const [expandedHubs, setExpandedHubs] = useState<Record<string, boolean>>({});
+  const [expandedHubs, setExpandedHubs] = useState<Record<string, boolean>>(readExpandedHubs);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
   const { user, signOut } = useAuth();
   const { data: userRole } = useUserRole();
   const { data: profile } = useCurrentProfile();
@@ -215,11 +228,59 @@ export function AppSidebar() {
   };
 
   const toggleHub = (title: string) => {
-    setExpandedHubs(prev => ({ ...prev, [title]: !prev[title] }));
+    setExpandedHubs((prev) => {
+      const next = { ...prev, [title]: !prev[title] };
+      sessionStorage.setItem(SIDEBAR_EXPANDED_HUBS_KEY, JSON.stringify(next));
+      return next;
+    });
   };
 
   const isHubActive = (hub: HubConfig) =>
     hub.basePaths.some(p => location.pathname.startsWith(p));
+
+  const getScrollViewport = useCallback(
+    () => scrollAreaRef.current?.querySelector("[data-radix-scroll-area-viewport]") as HTMLElement | null,
+    [],
+  );
+
+  useEffect(() => {
+    const viewport = getScrollViewport();
+    if (!viewport || isCollapsed) return;
+
+    const onScroll = () => {
+      sessionStorage.setItem(SIDEBAR_SCROLL_KEY, String(viewport.scrollTop));
+    };
+
+    viewport.addEventListener("scroll", onScroll, { passive: true });
+    return () => viewport.removeEventListener("scroll", onScroll);
+  }, [getScrollViewport, isCollapsed]);
+
+  useEffect(() => {
+    if (isCollapsed) return;
+
+    const restoreScroll = () => {
+      const viewport = getScrollViewport();
+      if (!viewport) return;
+
+      const savedScroll = sessionStorage.getItem(SIDEBAR_SCROLL_KEY);
+      if (savedScroll !== null) {
+        viewport.scrollTop = Number(savedScroll);
+        return;
+      }
+
+      viewport.querySelector<HTMLElement>(".nav-item.active")?.scrollIntoView({ block: "nearest" });
+    };
+
+    const frame = window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(restoreScroll);
+    });
+    const timer = window.setTimeout(restoreScroll, 100);
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.clearTimeout(timer);
+    };
+  }, [getScrollViewport, isCollapsed, location.pathname, visibleHubs.length, expandedHubs]);
 
 
   return (
@@ -294,7 +355,7 @@ export function AppSidebar() {
           </div>
 
           {/* Navigation */}
-          <ScrollArea className="flex-1 py-4">
+          <ScrollArea ref={scrollAreaRef} className="flex-1 py-4">
             <nav className="px-2 space-y-1">
               {/* Main Navigation */}
               <NavItem to="/dashboard" icon={<LayoutDashboard className="w-4 h-4" />} label={isCollapsed ? "" : "Dashboard"} />
@@ -308,6 +369,7 @@ export function AppSidebar() {
               <NavItem to="/forms" icon={<FileText className="w-4 h-4" />} label={isCollapsed ? "" : "Forms"} />
               <NavItem to="/department-forms" icon={<FolderKanban className="w-4 h-4" />} label={isCollapsed ? "" : "Department Forms"} />
               <NavItem to="/documents" icon={<FolderOpen className="w-4 h-4" />} label={isCollapsed ? "" : "Documents"} />
+              <NavItem to="/pdf-workspace" icon={<Layers className="w-4 h-4" />} label={isCollapsed ? "" : "PDF Workspace"} />
               <NavItem to="/calendar" icon={<Calendar className="w-4 h-4" />} label={isCollapsed ? "" : "Calendar"} />
 
               {!isCollapsed && (

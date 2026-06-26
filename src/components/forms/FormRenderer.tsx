@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import type { FormField } from "@/hooks/useFormTemplates";
+import { ESignatureCapture } from "@/components/esign/ESignatureCapture";
 
 interface FormRendererProps {
   fields: FormField[];
@@ -135,6 +136,34 @@ export function FormRenderer({
               </p>
             )}
           </div>
+        );
+
+      case "signature":
+        return readOnly ? (
+          value && typeof value === "string" && value.startsWith("data:image") ? (
+            <img src={value as string} alt="Signature" className="max-h-24 border rounded bg-white p-2" />
+          ) : (
+            <p className="text-sm text-muted-foreground">No signature</p>
+          )
+        ) : (
+          <div className="space-y-2">
+            {value && typeof value === "string" && (value as string).startsWith("data:image") && (
+              <img src={value as string} alt="Signature" className="max-h-20 border rounded bg-white p-2" />
+            )}
+            <ESignatureCapture onCapture={(dataUrl) => onChange(field.name, dataUrl)} />
+          </div>
+        );
+
+      case "file":
+        return (
+          <Input
+            type="file"
+            disabled={readOnly}
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+              if (file) onChange(field.name, file.name);
+            }}
+          />
         );
 
       default:

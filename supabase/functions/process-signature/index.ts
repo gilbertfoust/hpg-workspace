@@ -13,7 +13,7 @@ serve(async (req) => {
   }
 
   try {
-    const { token, signature_data } = await req.json();
+    const { token, signature_data, signature_placement, signer_caption } = await req.json();
 
     if (!token || !signature_data) {
       return new Response(
@@ -75,7 +75,12 @@ serve(async (req) => {
     const pdfBytes = await pdfData.arrayBuffer();
     const pdfDoc = await PDFDocument.load(pdfBytes);
     const pages = pdfDoc.getPages();
-    const lastPage = pages[pages.length - 1];
+    const pageIndex =
+      typeof signature_placement?.pageIndex === "number"
+        ? Math.max(0, Math.min(pages.length - 1, signature_placement.pageIndex))
+        : pages.length - 1;
+    const targetPage = pages[pageIndex];
+    const { height: pageHeight } = targetPage.getSize();
 
     // Decode signature image from data URL
     const signatureBase64 = signature_data.split(",")[1];
@@ -84,14 +89,19 @@ serve(async (req) => {
     );
     const signatureImage = await pdfDoc.embedPng(signatureBytes);
 
-    // Scale signature to fit
-    const sigWidth = 200;
-    const sigHeight = (signatureImage.height / signatureImage.width) * sigWidth;
+    const sigWidth = signature_placement?.width ?? 200;
+    const sigHeight =
+      signature_placement?.height ??
+      (signatureImage.height / signatureImage.width) * sigWidth;
+    const sigX = signature_placement?.x ?? 50;
+    const sigY =
+      signature_placement?.y != null
+        ? pageHeight - signature_placement.y - sigHeight
+        : 80;
 
-    // Place signature at bottom of last page
-    lastPage.drawImage(signatureImage, {
-      x: 50,
-      y: 80,
+    targetPage.drawImage(signatureImage, {
+      x: sigX,
+      y: sigY,
       width: sigWidth,
       height: sigHeight,
     });
@@ -103,16 +113,16 @@ serve(async (req) => {
       month: "long",
       day: "numeric",
     });
-    lastPage.drawText(
-      `Signed by ${signingRequest.signer_name} on ${signedDate}`,
-      {
-        x: 50,
-        y: 60,
-        size: 10,
-        font,
-        color: rgb(0.3, 0.3, 0.3),
-      }
-    );
+    const caption =
+      signer_caption ||
+      `Signed by ${signingRequest.signer_name} on ${signedDate}`;
+    targetPage.drawText(caption, {
+      x: sigX,
+      y: Math.max(20, sigY - 14),
+      size: 10,
+      font,
+      color: rgb(0.3, 0.3, 0.3),
+    });
 
     const signedPdfBytes = await pdfDoc.save();
 

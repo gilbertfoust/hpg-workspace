@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -17,34 +17,70 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Loader2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { useNGOs } from "@/hooks/useNGOs";
+import { invokeAdminFunction, isNgoPortalRole } from "@/lib/invokeAdminFunction";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
-
-const ALL_ROLES = [
-  { value: "super_admin", label: "Super Admin" },
-  { value: "admin_pm", label: "Admin PM" },
-  { value: "executive_secretariat", label: "Executive Secretariat" },
-  { value: "ngo_coordinator", label: "NGO Coordinator" },
-  { value: "department_lead", label: "Department Lead" },
-  { value: "staff_member", label: "Staff Member" },
-  { value: "external_ngo", label: "External NGO Portal" },
-];
+import { ADMIN_ASSIGNABLE_ROLES } from "@/lib/accessControl";
 
 interface CreateUserDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
+const formatNgoLabel = (legalName: string, commonName?: string | null) =>
+  commonName ? `${commonName} (${legalName})` : legalName;
+
+const isAssignableNgoStatus = (status: string) => {
+  const normalized = status.toLowerCase();
+  return ["active", "onboarding", "prospect", "at_risk"].includes(normalized);
+};
+
 export default function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState("staff_member");
+  const [ngoId, setNgoId] = useState("");
+  const [isPrimary, setIsPrimary] = useState(false);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { data: ngos = [], isLoading: ngosLoading } = useNGOs();
+
+  const requiresNgo = isNgoPortalRole(role);
+
+  useEffect(() => {
+    if (!open) {
+      setFullName("");
+      setEmail("");
+      setPassword("");
+      setRole("staff_member");
+      setNgoId("");
+      setIsPrimary(false);
+    }
+  }, [open]);
+
+  useEffect(() => {
+    if (!requiresNgo) {
+      setNgoId("");
+      setIsPrimary(false);
+    }
+  }, [requiresNgo]);
+
+  const ngoOptions = useMemo(
+    () =>
+      ngos
+        .filter((ngo) => isAssignableNgoStatus(ngo.status))
+        .sort((a, b) =>
+          formatNgoLabel(a.legal_name, a.common_name).localeCompare(
+            formatNgoLabel(b.legal_name, b.common_name),
+          ),
+        ),
+    [ngos],
+  );
 
   const handleCreate = async () => {
     if (!fullName || !email || !password) {
@@ -55,26 +91,32 @@ export default function CreateUserDialog({ open, onOpenChange }: CreateUserDialo
       toast({ variant: "destructive", title: "Password must be at least 8 characters" });
       return;
     }
+    if (requiresNgo && !ngoId) {
+      toast({ variant: "destructive", title: "NGO is required for portal users" });
+      return;
+    }
 
     setLoading(true);
     try {
-      const { data, error } = await supabase!.functions.invoke("admin-create-user", {
-        body: { email, password, full_name: fullName, role },
+      await invokeAdminFunction("admin-create-user", {
+        email,
+        password,
+        full_name: fullName,
+        role,
+        ...(requiresNgo ? { ngo_id: ngoId, is_primary: isPrimary } : {}),
       });
-
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
 
       toast({ title: "User created", description: `${fullName} has been added.` });
       queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
       queryClient.invalidateQueries({ queryKey: ["profiles"] });
-      setFullName("");
-      setEmail("");
-      setPassword("");
-      setRole("staff_member");
+      queryClient.invalidateQueries({ queryKey: ["contacts"] });
       onOpenChange(false);
-    } catch (err: any) {
-      toast({ variant: "destructive", title: "Failed to create user", description: err.message });
+    } catch (err) {
+      toast({
+        variant: "destructive",
+        title: "Failed to create user",
+        description: err instanceof Error ? err.message : "Please try again.",
+      });
     } finally {
       setLoading(false);
     }
@@ -86,7 +128,7 @@ export default function CreateUserDialog({ open, onOpenChange }: CreateUserDialo
         <DialogHeader>
           <DialogTitle>Create New User</DialogTitle>
           <DialogDescription>
-            Add a new user to the system. They will be able to sign in immediately.
+            Add a new user to the system. NGO portal users must be linked to an NGO.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
@@ -126,14 +168,45 @@ export default function CreateUserDialog({ open, onOpenChange }: CreateUserDialo
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {ALL_ROLES.map((r) => (
-                  <SelectItem key={r.value} value={r.value}>
-                    {r.label}
+                {ADMIN_ASSIGNABLE_ROLES.map((entry) => (
+                  <SelectItem key={entry.value} value={entry.value}>
+                    {entry.label}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
+
+          {requiresNgo && (
+            <>
+              <div className="space-y-2">
+                <Label>Assigned NGO</Label>
+                <Select value={ngoId} onValueChange={setNgoId} disabled={ngosLoading || loading}>
+                  <SelectTrigger>
+                    <SelectValue placeholder={ngosLoading ? "Loading NGOs..." : "Select NGO"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ngoOptions.map((ngo) => (
+                      <SelectItem key={ngo.id} value={ngo.id}>
+                        {formatNgoLabel(ngo.legal_name, ngo.common_name)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="create-primary-contact"
+                  checked={isPrimary}
+                  onCheckedChange={(checked) => setIsPrimary(Boolean(checked))}
+                  disabled={loading}
+                />
+                <Label htmlFor="create-primary-contact" className="font-normal">
+                  Mark as primary contact
+                </Label>
+              </div>
+            </>
+          )}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
