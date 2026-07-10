@@ -44,3 +44,8 @@ verify_jwt = false
 # AGENT_OS_WORKER_SECRET. The function itself requires either that secret or
 # a verified internal-user JWT before it can inspect or process the queue.
 verify_jwt = false
+
+[functions.process-agent-os-trello-sync]
+# The Trello worker uses the same internal-user or dedicated worker-secret
+# authentication pattern and remains dry-run unless both live gates are set.
+verify_jwt = false
