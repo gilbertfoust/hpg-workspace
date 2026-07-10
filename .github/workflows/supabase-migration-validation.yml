@@ -6,6 +6,7 @@ on:
     paths:
       - 'supabase/migrations/**'
       - 'supabase/functions/**'
+      - 'supabase/tests/**'
       - 'supabase/config.toml'
       - '.github/workflows/supabase-migration-validation.yml'
   workflow_dispatch:
@@ -49,6 +50,16 @@ jobs:
           set -o pipefail
           npx supabase db reset --local 2>&1 | tee supabase-reset.log
 
+      - name: Run Agent OS activation fee smoke test
+        id: activation-fee-smoke-test
+        shell: bash
+        run: |
+          set -o pipefail
+          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" \
+            -v ON_ERROR_STOP=1 \
+            -f supabase/tests/agent_os_activation_fee_smoke.sql \
+            2>&1 | tee activation-fee-smoke.log
+
       - name: Run database lint
         id: database-lint
         shell: bash
@@ -64,6 +75,7 @@ jobs:
           path: |
             supabase-start.log
             supabase-reset.log
+            activation-fee-smoke.log
             supabase-lint.log
           if-no-files-found: ignore
           retention-days: 7
