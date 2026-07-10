@@ -98,6 +98,8 @@ jobs:
             deno check supabase/functions/process-agent-os-communications/index.ts
             echo "Checking process-agent-os-trello-sync"
             deno check supabase/functions/process-agent-os-trello-sync/index.ts
+            echo "Checking agent-os-external-form"
+            deno check supabase/functions/agent-os-external-form/index.ts
           } 2>&1 | tee deno-check.log
 
       - name: Upload Deno diagnostics
