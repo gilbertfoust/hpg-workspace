@@ -26,20 +26,40 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: npm
 
       - name: Install dependencies
         run: npm install
 
-      - name: Start local Supabase stack
-        run: npx supabase start
+      - name: Start minimal local Supabase stack
+        shell: bash
+        run: |
+          set -euo pipefail
+          EXCLUDED_SERVICES="studio,imgproxy,logflare,vector,supavisor,realtime,storage-api,edge-runtime,inbucket,pgadmin-schema-diff,migra"
+          if ! npx supabase start -x "$EXCLUDED_SERVICES" > supabase-start.log 2>&1; then
+            echo "Supabase start failed. Showing the final diagnostic lines:"
+            tail -n 200 supabase-start.log
+            exit 1
+          fi
+          tail -n 40 supabase-start.log
 
       - name: Rebuild database from migrations
-        run: npx supabase db reset --local
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! npx supabase db reset --local > supabase-reset.log 2>&1; then
+            echo "Migration rebuild failed. Showing the final diagnostic lines:"
+            tail -n 250 supabase-reset.log
+            exit 1
+          fi
+          tail -n 80 supabase-reset.log
 
       - name: Run database lint
-        run: npx supabase db lint --local --level warning
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx supabase db lint --local --level warning
 
       - name: Show local service status
         if: always()
