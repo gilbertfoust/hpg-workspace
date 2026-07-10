@@ -17,7 +17,7 @@ concurrency:
 jobs:
   validate-migrations:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 35
 
     steps:
       - name: Checkout repository
@@ -30,36 +30,42 @@ jobs:
           cache: npm
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
-      - name: Start minimal local Supabase stack
+      - name: Start local Supabase stack
+        id: supabase-start
         shell: bash
         run: |
-          set -euo pipefail
-          EXCLUDED_SERVICES="studio,imgproxy,logflare,vector,supavisor,realtime,storage-api,edge-runtime,inbucket,pgadmin-schema-diff,migra"
-          if ! npx supabase start -x "$EXCLUDED_SERVICES" > supabase-start.log 2>&1; then
-            echo "Supabase start failed. Showing the final diagnostic lines:"
-            tail -n 200 supabase-start.log
-            exit 1
-          fi
-          tail -n 40 supabase-start.log
+          set -o pipefail
+          # Exclude only services supported consistently across current CLI releases.
+          EXCLUDED_SERVICES="studio,imgproxy,logflare,vector,supavisor"
+          npx supabase start -x "$EXCLUDED_SERVICES" 2>&1 | tee supabase-start.log
 
       - name: Rebuild database from migrations
+        id: database-reset
         shell: bash
         run: |
-          set -euo pipefail
-          if ! npx supabase db reset --local > supabase-reset.log 2>&1; then
-            echo "Migration rebuild failed. Showing the final diagnostic lines:"
-            tail -n 250 supabase-reset.log
-            exit 1
-          fi
-          tail -n 80 supabase-reset.log
+          set -o pipefail
+          npx supabase db reset --local 2>&1 | tee supabase-reset.log
 
       - name: Run database lint
+        id: database-lint
         shell: bash
         run: |
-          set -euo pipefail
-          npx supabase db lint --local --level warning
+          set -o pipefail
+          npx supabase db lint --local --level warning 2>&1 | tee supabase-lint.log
+
+      - name: Upload Supabase validation diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: supabase-validation-diagnostics
+          path: |
+            supabase-start.log
+            supabase-reset.log
+            supabase-lint.log
+          if-no-files-found: ignore
+          retention-days: 7
 
       - name: Show local service status
         if: always()
@@ -83,6 +89,22 @@ jobs:
           deno-version: v2.x
 
       - name: Type-check Agent OS workers
+        id: deno-check
+        shell: bash
         run: |
-          deno check supabase/functions/process-agent-os-communications/index.ts
-          deno check supabase/functions/process-agent-os-trello-sync/index.ts
+          set -o pipefail
+          {
+            echo "Checking process-agent-os-communications"
+            deno check supabase/functions/process-agent-os-communications/index.ts
+            echo "Checking process-agent-os-trello-sync"
+            deno check supabase/functions/process-agent-os-trello-sync/index.ts
+          } 2>&1 | tee deno-check.log
+
+      - name: Upload Deno diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: agent-os-deno-diagnostics
+          path: deno-check.log
+          if-no-files-found: ignore
+          retention-days: 7
