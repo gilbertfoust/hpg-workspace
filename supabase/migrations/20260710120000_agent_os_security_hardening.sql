@@ -50,22 +50,18 @@ create policy "Super admins can read Agent OS case counters"
 alter table public.volunteer_applications enable row level security;
 alter table public.sponsorship_applications enable row level security;
 alter table public.board_applications enable row level security;
-alter table public.hr_email_outbox enable row level security;
 
 revoke all on public.volunteer_applications from anon, authenticated;
 revoke all on public.sponsorship_applications from anon, authenticated;
 revoke all on public.board_applications from anon, authenticated;
-revoke all on public.hr_email_outbox from anon, authenticated;
 
 grant select, update on public.volunteer_applications to authenticated;
 grant select, update on public.sponsorship_applications to authenticated;
 grant select, update on public.board_applications to authenticated;
-grant select on public.hr_email_outbox to authenticated;
 
 grant all on public.volunteer_applications to service_role;
 grant all on public.sponsorship_applications to service_role;
 grant all on public.board_applications to service_role;
-grant all on public.hr_email_outbox to service_role;
 
 drop policy if exists "Internal users can read volunteer applications" on public.volunteer_applications;
 create policy "Internal users can read volunteer applications"
@@ -97,7 +93,16 @@ create policy "Internal users can update board applications"
   on public.board_applications for update to authenticated
   using (public.is_internal_user()) with check (public.is_internal_user());
 
-drop policy if exists "Internal users can read HR email outbox" on public.hr_email_outbox;
-create policy "Internal users can read HR email outbox"
-  on public.hr_email_outbox for select to authenticated
-  using (public.is_internal_user());
+-- The HR email outbox exists in deployed environments but is optional during a
+-- clean migration replay. Harden it only when the table is present.
+do $$
+begin
+  if to_regclass('public.hr_email_outbox') is not null then
+    execute 'alter table public.hr_email_outbox enable row level security';
+    execute 'revoke all on public.hr_email_outbox from anon, authenticated';
+    execute 'grant select on public.hr_email_outbox to authenticated';
+    execute 'grant all on public.hr_email_outbox to service_role';
+    execute 'drop policy if exists "Internal users can read HR email outbox" on public.hr_email_outbox';
+    execute 'create policy "Internal users can read HR email outbox" on public.hr_email_outbox for select to authenticated using (public.is_internal_user())';
+  end if;
+end $$;
