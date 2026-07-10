@@ -82,5 +82,7 @@ jobs:
         with:
           deno-version: v2.x
 
-      - name: Type-check Agent OS communication worker
-        run: deno check supabase/functions/process-agent-os-communications/index.ts
+      - name: Type-check Agent OS workers
+        run: |
+          deno check supabase/functions/process-agent-os-communications/index.ts
+          deno check supabase/functions/process-agent-os-trello-sync/index.ts
