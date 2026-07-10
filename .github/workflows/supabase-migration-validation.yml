@@ -40,7 +40,7 @@ jobs:
           set -o pipefail
           # Database migration validation does not need Studio, Storage,
           # Realtime, Edge Runtime, mail capture, analytics, or pooler services.
-          EXCLUDED_SERVICES="studio,imgproxy,inbucket,storage-api,realtime,edge-runtime,logflare,vector,supavisor"
+          EXCLUDED_SERVICES="studio,imgproxy,mailpit,storage-api,realtime,edge-runtime,logflare,vector,supavisor"
           npx supabase start -x "$EXCLUDED_SERVICES" 2>&1 | tee supabase-start.log
 
       - name: Rebuild database from migrations
