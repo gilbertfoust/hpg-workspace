@@ -3,7 +3,9 @@ import { MainLayout } from "@/components/layout/MainLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ReportingTable } from "@/components/finance/ReportingTable";
+import { AgentOSFinanceVerificationPanel } from "@/components/ngo/AgentOSFinanceVerificationPanel";
 import { useFinanceHubSnapshot } from "@/hooks/useFinanceHubSnapshot";
+import { useAgentOSCases } from "@/hooks/useAgentOSCases";
 import { useUserRole } from "@/hooks/useUserRole";
 import { canReadFinanceLedger } from "@/lib/financePermissions";
 import { FinanceUnauthorized } from "@/components/finance/accounting/FinanceUnauthorized";
@@ -16,6 +18,7 @@ const FinancialHub = () => {
   const navigate = useNavigate();
   const { role } = useUserRole();
   const { data: snapshot, isLoading } = useFinanceHubSnapshot();
+  const agentCases = useAgentOSCases({ limit: 100 });
 
   if (!canReadFinanceLedger(role)) {
     return (
@@ -84,6 +87,10 @@ const FinancialHub = () => {
             ) : null}
           </CardContent>
         </Card>
+
+        {!agentCases.error && agentCases.data?.runtimeReady && (
+          <AgentOSFinanceVerificationPanel cases={agentCases.data.cases} />
+        )}
 
         <div>
           <h2 className="text-sm font-semibold mb-3 text-muted-foreground uppercase tracking-wide">HPG Accounting</h2>
