@@ -32,13 +32,14 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Start local Supabase stack
+      - name: Start minimal local Supabase stack
         id: supabase-start
         shell: bash
         run: |
           set -o pipefail
-          # Exclude only services supported consistently across current CLI releases.
-          EXCLUDED_SERVICES="studio,imgproxy,logflare,vector,supavisor"
+          # Database migration validation does not need Studio, Storage,
+          # Realtime, Edge Runtime, mail capture, analytics, or pooler services.
+          EXCLUDED_SERVICES="studio,imgproxy,inbucket,storage-api,realtime,edge-runtime,logflare,vector,supavisor"
           npx supabase start -x "$EXCLUDED_SERVICES" 2>&1 | tee supabase-start.log
 
       - name: Rebuild database from migrations
