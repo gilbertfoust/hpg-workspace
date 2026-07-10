@@ -36,6 +36,8 @@ declare
   v_template_name text;
   v_country text;
   v_fee_value text;
+  v_agreement_acknowledged boolean;
+  v_accuracy_confirmed boolean;
 begin
   select name into v_template_name
   from public.form_templates
@@ -45,7 +47,7 @@ begin
     return new;
   end if;
 
-  -- Drafts may be incomplete. Validation applies when the form is submitted.
+  -- Drafts may be incomplete. Validation applies only when the form is submitted.
   if lower(coalesce(new.submission_status, new.status, 'draft')) not in ('submitted','complete','completed') then
     return new;
   end if;
@@ -55,11 +57,13 @@ begin
     raise exception 'The international NGO activation fee must be exactly $100 USD';
   end if;
 
-  if coalesce((new.payload_json->>'agreement_acknowledgment')::boolean, false) is not true then
+  v_agreement_acknowledged := lower(coalesce(new.payload_json->>'agreement_acknowledgment','false')) = 'true';
+  if not v_agreement_acknowledged then
     raise exception 'The signed-agreement acknowledgment is required';
   end if;
 
-  if coalesce((new.payload_json->>'accuracy_confirmation')::boolean, false) is not true then
+  v_accuracy_confirmed := lower(coalesce(new.payload_json->>'accuracy_confirmation','false')) = 'true';
+  if not v_accuracy_confirmed then
     raise exception 'The accuracy and authorization certification is required';
   end if;
 
@@ -69,14 +73,16 @@ begin
 
   if new.ngo_id is not null then
     select country into v_country from public.ngos where id = new.ngo_id;
-    if public.agent_os_is_us_country(v_country) then
-      raise exception 'A U.S. NGO cannot use the International NGO Activation Fee Form';
-    end if;
   else
     v_country := new.payload_json->>'country';
-    if public.agent_os_is_us_country(v_country) then
-      raise exception 'A U.S. NGO cannot use the International NGO Activation Fee Form';
-    end if;
+  end if;
+
+  if nullif(btrim(coalesce(v_country,'')), '') is null then
+    raise exception 'Country is required for international activation fee routing';
+  end if;
+
+  if public.agent_os_is_us_country(v_country) then
+    raise exception 'A U.S. NGO cannot use the International NGO Activation Fee Form';
   end if;
 
   new.intake_status := 'new';
@@ -88,9 +94,18 @@ begin
 end;
 $$;
 
+-- PostgreSQL does not permit INSERT OR UPDATE OF column-list in one trigger.
+-- Keep insert and column-specific update triggers separate.
 drop trigger if exists form_submissions_validate_international_activation_fee on public.form_submissions;
-create trigger form_submissions_validate_international_activation_fee
-before insert or update of payload_json, submission_status, status on public.form_submissions
+drop trigger if exists form_submissions_validate_international_activation_fee_insert on public.form_submissions;
+drop trigger if exists form_submissions_validate_international_activation_fee_update on public.form_submissions;
+
+create trigger form_submissions_validate_international_activation_fee_insert
+before insert on public.form_submissions
+for each row execute function public.agent_os_validate_activation_fee_submission();
+
+create trigger form_submissions_validate_international_activation_fee_update
+before update of payload_json, submission_status, status on public.form_submissions
 for each row execute function public.agent_os_validate_activation_fee_submission();
 
 create or replace function public.agent_os_after_activation_fee_submission()
@@ -125,9 +140,16 @@ end;
 $$;
 
 drop trigger if exists form_submissions_after_international_activation_fee on public.form_submissions;
-create trigger form_submissions_after_international_activation_fee
-after insert or update of submission_status, status on public.form_submissions
+drop trigger if exists form_submissions_after_international_activation_fee_insert on public.form_submissions;
+drop trigger if exists form_submissions_after_international_activation_fee_update on public.form_submissions;
+
+create trigger form_submissions_after_international_activation_fee_insert
+after insert on public.form_submissions
+for each row execute function public.agent_os_after_activation_fee_submission();
+
+create trigger form_submissions_after_international_activation_fee_update
+after update of submission_status, status on public.form_submissions
 for each row execute function public.agent_os_after_activation_fee_submission();
 
 comment on function public.agent_os_validate_activation_fee_submission()
-  is 'Rejects incorrect amount or U.S.-NGO use of the dedicated international $100 activation form and routes valid submissions to Finance.';
+  is 'Rejects an incorrect amount or U.S.-NGO use of the dedicated international $100 activation form and routes valid submissions to Finance.';
