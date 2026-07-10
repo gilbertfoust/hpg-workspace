@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Construction, ArrowRight, History } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import HPGAssistant from "@/pages/HPGAssistant";
+import { AgentOSQueuePanel } from "@/components/ngo/AgentOSQueuePanel";
+import { useAgentOSCases } from "@/hooks/useAgentOSCases";
 
 interface ModulePlaceholderProps {
   title: string;
@@ -53,6 +55,8 @@ export function ModulePlaceholder({ title, description, features = [], links = [
 
 export function NGOCoordinationModule() {
   const navigate = useNavigate();
+  const agentCases = useAgentOSCases({ limit: 25 });
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap justify-end gap-2 px-4 pt-4 lg:px-6">
@@ -61,6 +65,11 @@ export function NGOCoordinationModule() {
           <History className="mr-2 h-4 w-4" /> Packet History
         </Button>
       </div>
+      {!agentCases.error && (
+        <div className="px-4 lg:px-6">
+          <AgentOSQueuePanel data={agentCases.data} isLoading={agentCases.isLoading} />
+        </div>
+      )}
       <HPGAssistant />
     </div>
   );
