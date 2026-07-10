@@ -69,7 +69,11 @@ async function invokeExternalForm(body: Record<string, unknown>) {
 }
 
 export default function ExternalAgentOSForm() {
-  const { token } = useParams<{ token: string }>();
+  const { token: routeToken } = useParams<{ token: string }>();
+  const pathToken = typeof window !== "undefined"
+    ? window.location.pathname.split("/").filter(Boolean)[1]
+    : undefined;
+  const token = routeToken || pathToken;
   const [state, setState] = useState<PageState>("loading");
   const [response, setResponse] = useState<ExternalFormResponse | null>(null);
   const [values, setValues] = useState<Record<string, unknown>>({});
