@@ -81,6 +81,73 @@ begin
   end if;
 end $$;
 
+-- Replacing an unsent invitation must cancel its queued communication so an
+-- expired/revoked link cannot be delivered later.
+do $$
+declare
+  v_case public.case_registry;
+  v_invitation_id uuid := gen_random_uuid();
+  v_communication_status text;
+begin
+  select * into v_case
+  from public.case_registry
+  where reference_number = 'TEST-INT-NGO-0001';
+
+  insert into public.agent_os_external_form_invitations (
+    id,
+    token_hash,
+    case_registry_id,
+    form_template_id,
+    recipient_email,
+    status,
+    expires_at
+  ) values (
+    v_invitation_id,
+    repeat('a', 64),
+    v_case.id,
+    v_case.activation_fee_form_template_id,
+    'international@example.invalid',
+    'pending',
+    now() + interval '14 days'
+  );
+
+  insert into public.communication_queue (
+    idempotency_key,
+    case_registry_id,
+    communication_type,
+    authority_level,
+    channel,
+    recipient_address,
+    subject,
+    body,
+    status,
+    source_context
+  ) values (
+    'TEST-INVITATION-COMMUNICATION',
+    v_case.id,
+    'international_activation_fee_form',
+    'automatic',
+    'email',
+    'international@example.invalid',
+    'Test international activation invitation',
+    'Test secure form link',
+    'pending',
+    jsonb_build_object('invitation_id', v_invitation_id)
+  );
+
+  update public.agent_os_external_form_invitations
+  set status = 'revoked', revoked_at = now()
+  where id = v_invitation_id;
+
+  select status into v_communication_status
+  from public.communication_queue
+  where idempotency_key = 'TEST-INVITATION-COMMUNICATION';
+
+  if v_communication_status <> 'cancelled' then
+    raise exception 'Revoked invitation communication should be cancelled, received %', v_communication_status;
+  end if;
+end $$;
+
 -- The confirmation letter must remain blocked before Finance verification.
 do $$
 declare
