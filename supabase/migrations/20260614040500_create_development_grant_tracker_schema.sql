@@ -1,5 +1,10 @@
 -- Production grant tracker foundation for Development.
 -- Creates the tables expected by the Grants module and adds storage for STW alignment/draft results.
+--
+-- Historical compatibility: early HPG migrations created narrower versions of
+-- grant_sources, grant_opportunities, and grant_applications. CREATE TABLE IF
+-- NOT EXISTS does not add missing columns or constraints, so this migration
+-- explicitly normalizes those tables before starter data and hardening run.
 
 create table if not exists public.grant_sources (
   id uuid primary key default gen_random_uuid(),
@@ -15,6 +20,16 @@ create table if not exists public.grant_sources (
   updated_at timestamptz not null default now(),
   unique (name)
 );
+
+alter table public.grant_sources
+  add column if not exists source_type text not null default 'manual',
+  add column if not exists base_url text,
+  add column if not exists api_url text,
+  add column if not exists notes text,
+  add column if not exists last_checked_at timestamptz;
+
+create unique index if not exists grant_sources_name_unique
+  on public.grant_sources(name);
 
 create table if not exists public.grant_opportunities (
   id uuid primary key default gen_random_uuid(),
@@ -43,6 +58,21 @@ create table if not exists public.grant_opportunities (
   unique (source_id, external_id)
 );
 
+alter table public.grant_opportunities
+  add column if not exists external_id text,
+  add column if not exists funder_name text,
+  add column if not exists eligibility_summary text,
+  add column if not exists keywords text[] not null default '{}',
+  add column if not exists currency text not null default 'USD',
+  add column if not exists open_date date,
+  add column if not exists close_date date,
+  add column if not exists source_payload jsonb,
+  add column if not exists last_synced_at timestamptz;
+
+create unique index if not exists grant_opportunities_source_external_unique
+  on public.grant_opportunities(source_id, external_id)
+  where external_id is not null;
+
 create table if not exists public.grant_applications (
   id uuid primary key default gen_random_uuid(),
   opportunity_id uuid references public.grant_opportunities(id) on delete set null,
@@ -63,6 +93,12 @@ create table if not exists public.grant_applications (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table public.grant_applications
+  add column if not exists currency text not null default 'USD',
+  add column if not exists source_match_score numeric,
+  add column if not exists fit_notes text,
+  add column if not exists due_date date;
 
 create table if not exists public.grant_alignments (
   id uuid primary key default gen_random_uuid(),
