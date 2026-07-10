@@ -38,3 +38,9 @@ verify_jwt = false
 
 [functions.receive-volunteer-application]
 verify_jwt = false
+
+[functions.process-agent-os-communications]
+# Gateway JWT verification is disabled so a scheduler may authenticate with
+# AGENT_OS_WORKER_SECRET. The function itself requires either that secret or
+# a verified internal-user JWT before it can inspect or process the queue.
+verify_jwt = false
