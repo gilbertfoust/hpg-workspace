@@ -14,6 +14,8 @@ const internalRoles = new Set([
   "executive_secretariat",
 ]);
 
+type SupabaseAdmin = any;
+
 type TrelloQueueRecord = {
   id: string;
   case_registry_id: string | null;
@@ -57,33 +59,24 @@ function retryDelayMinutes(attempts: number) {
 }
 
 function text(value: unknown, max = 16000) {
-  if (value === null || value === undefined) return "";
-  const result = String(value).trim();
+  const result = String(value ?? "").trim();
   return result.length > max ? result.slice(0, max) : result;
 }
 
-async function requireAuthorizedCaller(
-  req: Request,
-  supabase: ReturnType<typeof createClient>,
-) {
+async function requireAuthorizedCaller(req: Request, supabase: SupabaseAdmin) {
   const configuredWorkerSecret = Deno.env.get("AGENT_OS_WORKER_SECRET") || "";
   const suppliedWorkerSecret = req.headers.get("x-agent-os-worker-secret") || "";
 
-  if (
-    configuredWorkerSecret &&
-    suppliedWorkerSecret &&
-    suppliedWorkerSecret === configuredWorkerSecret
-  ) {
-    return { allowed: true, mode: "worker_secret" as const, userId: null };
+  if (configuredWorkerSecret && suppliedWorkerSecret === configuredWorkerSecret) {
+    return { allowed: true as const, mode: "worker_secret" as const, userId: null };
   }
 
-  const authorization = req.headers.get("Authorization") || "";
-  const token = authorization.replace(/^Bearer\s+/i, "").trim();
-  if (!token) return { allowed: false, status: 401, reason: "Authentication required." };
+  const token = (req.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "").trim();
+  if (!token) return { allowed: false as const, status: 401, reason: "Authentication required." };
 
   const { data: userData, error: userError } = await supabase.auth.getUser(token);
   if (userError || !userData.user) {
-    return { allowed: false, status: 401, reason: "Authentication could not be verified." };
+    return { allowed: false as const, status: 401, reason: "Authentication could not be verified." };
   }
 
   const { data: profile, error: profileError } = await supabase
@@ -93,15 +86,15 @@ async function requireAuthorizedCaller(
     .maybeSingle();
 
   if (profileError) throw profileError;
-  if (!profile || !internalRoles.has(profile.role)) {
-    return { allowed: false, status: 403, reason: "Internal staff access is required." };
+  if (!profile || !internalRoles.has(String(profile.role))) {
+    return { allowed: false as const, status: 403, reason: "Internal staff access is required." };
   }
 
-  return { allowed: true, mode: "internal_user" as const, userId: userData.user.id };
+  return { allowed: true as const, mode: "internal_user" as const, userId: userData.user.id };
 }
 
 async function updateQueue(
-  supabase: ReturnType<typeof createClient>,
+  supabase: SupabaseAdmin,
   id: string,
   values: Record<string, unknown>,
 ) {
@@ -114,12 +107,11 @@ async function updateQueue(
       updated_at: new Date().toISOString(),
     })
     .eq("id", id);
-
   if (error) throw error;
 }
 
 async function recordRun(
-  supabase: ReturnType<typeof createClient>,
+  supabase: SupabaseAdmin,
   item: TrelloQueueRecord,
   status: string,
   resultSummary: string,
@@ -154,12 +146,11 @@ async function recordRun(
     },
     { onConflict: "run_key" },
   );
-
   if (error) console.error("Could not record Trello Agent OS run", error.message);
 }
 
 async function findRoute(
-  supabase: ReturnType<typeof createClient>,
+  supabase: SupabaseAdmin,
   item: TrelloQueueRecord,
 ): Promise<TrelloRoute | null> {
   const requestedRoute = item.route_key || text(item.payload?.route_key, 200);
@@ -177,7 +168,6 @@ async function findRoute(
 
   const departmentModule = text(item.payload?.department_module, 120);
   const caseType = text(item.payload?.case_type, 120);
-
   if (!departmentModule) return null;
 
   let query = supabase
@@ -190,7 +180,6 @@ async function findRoute(
     .limit(1);
 
   if (caseType) query = query.or(`case_type.eq.${caseType},case_type.is.null`);
-
   const { data, error } = await query.maybeSingle();
   if (error) throw error;
   return data as TrelloRoute | null;
@@ -212,12 +201,11 @@ async function trelloRequest(
     body: params.toString(),
   });
 
-  const payload = await response.json().catch(() => ({}));
+  const payload = await response.json().catch(() => ({} as Record<string, unknown>));
   if (!response.ok) {
     const detail = text(payload?.message || payload?.error || "Trello rejected the request.", 300);
     throw new Error(`Trello request failed (${response.status}): ${detail}`);
   }
-
   return payload as Record<string, unknown>;
 }
 
@@ -279,13 +267,15 @@ async function updateCard(
   if (description) params.set("desc", description);
   if (listId) params.set("idList", listId);
   if (typeof closed === "boolean") params.set("closed", closed ? "true" : "false");
-  if ([...params.keys()].length === 0) throw new Error("No supported Trello card update fields were provided.");
+  if ([...params.keys()].length === 0) {
+    throw new Error("No supported Trello card update fields were provided.");
+  }
 
   return await trelloRequest(`/cards/${encodeURIComponent(cardId)}`, "PUT", params, key, token);
 }
 
 async function persistExternalCard(
-  supabase: ReturnType<typeof createClient>,
+  supabase: SupabaseAdmin,
   item: TrelloQueueRecord,
   cardId: string | null,
   cardUrl: string | null,
@@ -299,7 +289,6 @@ async function persistExternalCard(
         trello_board_id: route?.board_id || null,
         trello_list_id: route?.list_id || null,
         trello_card_id: cardId,
-        metadata: item.payload?.case_metadata || undefined,
       })
       .eq("id", item.case_registry_id);
     if (error) throw error;
@@ -338,11 +327,13 @@ Deno.serve(async (req) => {
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     if (!supabaseUrl || !serviceRoleKey) return jsonResponse({ error: "Server configuration missing." }, 500);
 
-    const supabase = createClient(supabaseUrl, serviceRoleKey, { auth: { persistSession: false } });
+    const supabase = createClient(supabaseUrl, serviceRoleKey, {
+      auth: { persistSession: false },
+    }) as SupabaseAdmin;
     const caller = await requireAuthorizedCaller(req, supabase);
     if (!caller.allowed) return jsonResponse({ error: caller.reason }, caller.status);
 
-    const body = await req.json().catch(() => ({}));
+    const body = await req.json().catch(() => ({} as Record<string, unknown>));
     const limit = safeLimit(body.limit);
     const liveRequested = body.live === true;
     const liveEnabled = Deno.env.get("AGENT_OS_TRELLO_LIVE") === "true";
@@ -395,7 +386,12 @@ Deno.serve(async (req) => {
             status: "blocked",
             error_message: "An approved Trello route mapping is required before card creation.",
           });
-          await recordRun(supabase, item, "blocked", "Trello operation blocked because no active route mapping was found.");
+          await recordRun(
+            supabase,
+            item,
+            "blocked",
+            "Trello operation blocked because no active route mapping was found.",
+          );
           processed.push({ id: item.id, status: "blocked", attempt: item.attempts });
           continue;
         }
@@ -444,7 +440,12 @@ Deno.serve(async (req) => {
       }
     }
 
-    return jsonResponse({ mode: "live", worker_id: workerId, claimed_count: claimed?.length || 0, processed });
+    return jsonResponse({
+      mode: "live",
+      worker_id: workerId,
+      claimed_count: claimed?.length || 0,
+      processed,
+    });
   } catch (error) {
     return jsonResponse({ error: error instanceof Error ? error.message : "Unknown error" }, 500);
   }
