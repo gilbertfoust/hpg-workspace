@@ -33,14 +33,15 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Start minimal local Supabase stack
+      - name: Start database-only Supabase stack
         id: supabase-start
         shell: bash
         run: |
           set -o pipefail
-          # Database migration validation does not need Studio, Storage,
-          # Realtime, Edge Runtime, mail capture, analytics, or pooler services.
-          EXCLUDED_SERVICES="studio,imgproxy,mailpit,storage-api,realtime,edge-runtime,logflare,vector,supavisor"
+          # Full application services are unnecessary for migration replay,
+          # database smoke tests, and SQL linting. Keeping only Postgres makes
+          # the validation job faster and more reliable on hosted runners.
+          EXCLUDED_SERVICES="studio,imgproxy,mailpit,storage-api,realtime,edge-runtime,logflare,vector,supavisor,gotrue,kong,postgres-meta,postgrest"
           npx supabase start -x "$EXCLUDED_SERVICES" 2>&1 | tee supabase-start.log
 
       - name: Rebuild database from migrations
