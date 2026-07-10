@@ -7,6 +7,7 @@ import { useNavigate } from "react-router-dom";
 import HPGAssistant from "@/pages/HPGAssistant";
 import { AgentOSQueuePanel } from "@/components/ngo/AgentOSQueuePanel";
 import { AgentOSOperationsPanel } from "@/components/ngo/AgentOSOperationsPanel";
+import { AgentOSFinanceVerificationPanel } from "@/components/ngo/AgentOSFinanceVerificationPanel";
 import { useAgentOSCases } from "@/hooks/useAgentOSCases";
 import { useAgentOSOperations } from "@/hooks/useAgentOSOperations";
 
@@ -68,6 +69,11 @@ export function NGOCoordinationModule() {
           <History className="mr-2 h-4 w-4" /> Packet History
         </Button>
       </div>
+      {!agentCases.error && agentCases.data?.runtimeReady && (
+        <div className="px-4 lg:px-6">
+          <AgentOSFinanceVerificationPanel cases={agentCases.data.cases} />
+        </div>
+      )}
       {!agentCases.error && (
         <div className="px-4 lg:px-6">
           <AgentOSQueuePanel data={agentCases.data} isLoading={agentCases.isLoading} />
