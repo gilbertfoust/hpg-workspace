@@ -171,6 +171,37 @@ begin
   end;
 end $$;
 
+-- An authenticated user without Finance authority must not be able to verify
+-- a payment. Restore the service role after the expected rejection.
+do $$
+declare
+  v_case_id uuid;
+begin
+  select id into v_case_id
+  from public.case_registry
+  where reference_number = 'TEST-INT-NGO-0001';
+
+  perform set_config('request.jwt.claim.role', 'authenticated', true);
+  perform set_config('request.jwt.claim.sub', gen_random_uuid()::text, true);
+
+  begin
+    perform public.agent_os_verify_activation_fee(
+      v_case_id,
+      'UNAUTHORIZED-REFERENCE',
+      now()
+    );
+    raise exception 'Expected Finance authority gate to reject the verification';
+  exception
+    when others then
+      if position('HPG Finance authority is required' in sqlerrm) = 0 then
+        raise;
+      end if;
+  end;
+
+  perform set_config('request.jwt.claim.role', 'service_role', true);
+  perform set_config('request.jwt.claim.sub', '', true);
+end $$;
+
 select public.agent_os_verify_activation_fee(
   id,
   'TEST-PAYMENT-REFERENCE',
