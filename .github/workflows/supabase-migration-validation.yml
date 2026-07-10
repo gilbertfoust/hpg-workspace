@@ -1,0 +1,50 @@
+name: Supabase Migration Validation
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'supabase/migrations/**'
+      - 'supabase/functions/**'
+      - 'supabase/config.toml'
+      - '.github/workflows/supabase-migration-validation.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: supabase-migrations-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate-migrations:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Start local Supabase stack
+        run: npx supabase start
+
+      - name: Rebuild database from migrations
+        run: npx supabase db reset --local
+
+      - name: Run database lint
+        run: npx supabase db lint --local --level warning
+
+      - name: Show local service status
+        if: always()
+        run: npx supabase status || true
+
+      - name: Stop local Supabase stack
+        if: always()
+        run: npx supabase stop --no-backup || true
