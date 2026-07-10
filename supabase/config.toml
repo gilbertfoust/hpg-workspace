@@ -49,3 +49,9 @@ verify_jwt = false
 # The Trello worker uses the same internal-user or dedicated worker-secret
 # authentication pattern and remains dry-run unless both live gates are set.
 verify_jwt = false
+
+[functions.agent-os-external-form]
+# Public invitation links are authenticated by a one-time, expiring token.
+# The function stores only a SHA-256 token hash. Invitation creation still
+# requires an internal-user JWT or AGENT_OS_WORKER_SECRET.
+verify_jwt = false
