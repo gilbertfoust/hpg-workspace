@@ -1,17 +1,42 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { format } from "date-fns";
-import { AlertTriangle, Bot, CheckCircle2, CircleAlert, DatabaseZap } from "lucide-react";
+import {
+  AlertTriangle,
+  Bot,
+  CheckCircle2,
+  CircleAlert,
+  DatabaseZap,
+  Loader2,
+  MailPlus,
+  ShieldCheck,
+} from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import type { AgentOSCaseQueueResult, AgentOSRiskLevel } from "@/hooks/useAgentOSCases";
+import type { AgentOSCase, AgentOSCaseQueueResult, AgentOSRiskLevel } from "@/hooks/useAgentOSCases";
+import { useCreateInternationalActivationInvitation } from "@/hooks/useAgentOSActivationFee";
+import { useToast } from "@/hooks/use-toast";
 
 interface AgentOSQueuePanelProps {
   data?: AgentOSCaseQueueResult;
   isLoading: boolean;
 }
+
+const postAgreementStages = new Set([
+  "agreement_signed",
+  "onboarding_fee_form_sent",
+  "onboarding_fee_payment_pending",
+  "payment_received_verified",
+  "confirmation_letter_issued",
+  "activation_processed",
+  "transferred_to_ngo_coordination",
+  "onboarding_in_progress",
+  "active_sponsored_ngo",
+  "ongoing_monitoring",
+]);
 
 const titleCase = (value: string) =>
   value.replace(/_/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
@@ -22,6 +47,114 @@ const riskVariant = (risk: AgentOSRiskLevel): "default" | "secondary" | "destruc
   if (risk === "moderate") return "secondary";
   return "outline";
 };
+
+const invitationEligible = (item: AgentOSCase) =>
+  item.case_type === "sponsorship" &&
+  item.jurisdiction_class === "international" &&
+  postAgreementStages.has(item.workflow_stage) &&
+  !item.activation_fee_form_sent_at &&
+  !item.activation_fee_verified_at;
+
+function ActivationFeeCell({ item }: { item: AgentOSCase }) {
+  const { toast } = useToast();
+  const invitation = useCreateInternationalActivationInvitation();
+  const [submittingCaseId, setSubmittingCaseId] = useState<string | null>(null);
+
+  if (item.case_type !== "sponsorship") {
+    return <span className="text-xs text-muted-foreground">Not applicable</span>;
+  }
+
+  if (!item.jurisdiction_class) {
+    return <Badge variant="outline">Jurisdiction pending</Badge>;
+  }
+
+  if (item.activation_fee_verified_at) {
+    return (
+      <div className="space-y-1">
+        <Badge className="gap-1"><ShieldCheck className="h-3 w-3" />Finance verified</Badge>
+        <p className="text-xs text-muted-foreground">
+          {format(new Date(item.activation_fee_verified_at), "MMM d, yyyy")}
+        </p>
+      </div>
+    );
+  }
+
+  if (item.jurisdiction_class === "us_domestic") {
+    return (
+      <div className="space-y-1">
+        <Badge variant="secondary">U.S. form only</Badge>
+        <p className="max-w-[190px] text-xs text-muted-foreground">
+          Existing U.S. NGO onboarding fee process
+        </p>
+      </div>
+    );
+  }
+
+  if (item.activation_fee_form_sent_at) {
+    return (
+      <div className="space-y-1">
+        <Badge variant="secondary" className="gap-1"><MailPlus className="h-3 w-3" />$100 form sent</Badge>
+        <p className="text-xs text-muted-foreground">
+          {format(new Date(item.activation_fee_form_sent_at), "MMM d, yyyy")}
+        </p>
+      </div>
+    );
+  }
+
+  if (!postAgreementStages.has(item.workflow_stage)) {
+    return (
+      <div className="space-y-1">
+        <Badge variant="outline">International · $100</Badge>
+        <p className="max-w-[190px] text-xs text-muted-foreground">
+          Available after the agreement is fully signed
+        </p>
+      </div>
+    );
+  }
+
+  const isSubmitting = invitation.isPending && submittingCaseId === item.id;
+  const disabled = !invitationEligible(item) || !item.primary_email || invitation.isPending;
+
+  const queueInvitation = async () => {
+    setSubmittingCaseId(item.id);
+    try {
+      const result = await invitation.mutateAsync({
+        caseId: item.id,
+        recipientEmail: item.primary_email,
+        recipientName: item.person_name || item.organization_name,
+        expiresInDays: 14,
+      });
+      toast({
+        title: "Secure international form queued",
+        description: `${result.case_reference}: the $100 USD form invitation is in the controlled communication queue. It is not marked sent until delivery succeeds.`,
+      });
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Invitation not queued",
+        description: error instanceof Error ? error.message : "The secure form invitation could not be created.",
+      });
+    } finally {
+      setSubmittingCaseId(null);
+    }
+  };
+
+  return (
+    <div className="space-y-2">
+      <Badge variant="outline">International · $100 USD</Badge>
+      <Button size="sm" variant="outline" disabled={disabled} onClick={queueInvitation}>
+        {isSubmitting ? (
+          <><Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />Queueing...</>
+        ) : (
+          <><MailPlus className="mr-2 h-3.5 w-3.5" />Queue secure form</>
+        )}
+      </Button>
+      {!item.primary_email && (
+        <p className="max-w-[190px] text-xs text-destructive">Recipient email required</p>
+      )}
+    </div>
+  );
+}
 
 export function AgentOSQueuePanel({ data, isLoading }: AgentOSQueuePanelProps) {
   const cases = data?.cases || [];
@@ -36,9 +169,7 @@ export function AgentOSQueuePanel({ data, isLoading }: AgentOSQueuePanelProps) {
     return { urgent, risk, unmatched, approvals };
   }, [cases]);
 
-  if (isLoading) {
-    return <Skeleton className="h-64 w-full" />;
-  }
+  if (isLoading) return <Skeleton className="h-64 w-full" />;
 
   if (data && !data.runtimeReady) {
     return (
@@ -62,7 +193,7 @@ export function AgentOSQueuePanel({ data, isLoading }: AgentOSQueuePanelProps) {
               Nia Okafor — Agent OS Case Queue
             </CardTitle>
             <p className="mt-1 text-sm text-muted-foreground">
-              Permanent cases, unmatched intake, approval gates, risks, and next actions for NGO Coordination.
+              Permanent cases, approval gates, risks, next actions, and controlled NGO activation-fee routing.
             </p>
           </div>
           <Badge variant="secondary">{cases.length} active cases</Badge>
@@ -111,6 +242,7 @@ export function AgentOSQueuePanel({ data, isLoading }: AgentOSQueuePanelProps) {
                   <TableHead>Risk</TableHead>
                   <TableHead>Confidence</TableHead>
                   <TableHead>Next Action</TableHead>
+                  <TableHead>Activation Fee</TableHead>
                   <TableHead>Updated</TableHead>
                 </TableRow>
               </TableHeader>
@@ -141,6 +273,7 @@ export function AgentOSQueuePanel({ data, isLoading }: AgentOSQueuePanelProps) {
                     <TableCell className="max-w-[320px]">
                       <p className="truncate">{item.next_action || item.unmatched_reason || "No next action recorded"}</p>
                     </TableCell>
+                    <TableCell className="min-w-[220px]"><ActivationFeeCell item={item} /></TableCell>
                     <TableCell className="whitespace-nowrap text-sm text-muted-foreground">
                       {format(new Date(item.updated_at), "MMM d, h:mm a")}
                     </TableCell>

@@ -13,6 +13,7 @@ export type AgentOSRiskLevel =
   | "insufficient_information";
 
 export type AgentOSMatchConfidence = "high" | "moderate" | "low" | "unknown";
+export type AgentOSJurisdictionClass = "us_domestic" | "international" | null;
 
 export interface AgentOSCase {
   id: string;
@@ -37,6 +38,15 @@ export interface AgentOSCase {
   next_action: string | null;
   due_at: string | null;
   unmatched_reason: string | null;
+  applicant_country: string | null;
+  jurisdiction_class: AgentOSJurisdictionClass;
+  activation_fee_policy_key: string | null;
+  activation_fee_amount_cents: number | null;
+  activation_fee_currency: string | null;
+  activation_fee_form_sent_at: string | null;
+  activation_fee_verified_at: string | null;
+  activation_fee_payment_reference: string | null;
+  metadata: Record<string, unknown> | null;
   updated_at: string;
   created_at: string;
 }
@@ -79,7 +89,7 @@ export function useAgentOSCases(filters: AgentOSCaseFilters = {}) {
       let query = client
         .from("case_registry" as never)
         .select(
-          "id, reference_number, case_type, ngo_id, person_name, organization_name, primary_email, department_id, subdepartment_function, owner_user_id, supervisor_user_id, workflow_stage, status, priority, risk_level, match_confidence, approval_required, drive_folder_url, trello_card_id, next_action, due_at, unmatched_reason, updated_at, created_at" as never,
+          "id, reference_number, case_type, ngo_id, person_name, organization_name, primary_email, department_id, subdepartment_function, owner_user_id, supervisor_user_id, workflow_stage, status, priority, risk_level, match_confidence, approval_required, drive_folder_url, trello_card_id, next_action, due_at, unmatched_reason, applicant_country, jurisdiction_class, activation_fee_policy_key, activation_fee_amount_cents, activation_fee_currency, activation_fee_form_sent_at, activation_fee_verified_at, activation_fee_payment_reference, metadata, updated_at, created_at" as never,
         )
         .is("archived_at" as never, null)
         .order("updated_at" as never, { ascending: false })
