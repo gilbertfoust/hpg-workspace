@@ -6,7 +6,9 @@ import { Construction, ArrowRight, History } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import HPGAssistant from "@/pages/HPGAssistant";
 import { AgentOSQueuePanel } from "@/components/ngo/AgentOSQueuePanel";
+import { AgentOSOperationsPanel } from "@/components/ngo/AgentOSOperationsPanel";
 import { useAgentOSCases } from "@/hooks/useAgentOSCases";
+import { useAgentOSOperations } from "@/hooks/useAgentOSOperations";
 
 interface ModulePlaceholderProps {
   title: string;
@@ -56,6 +58,7 @@ export function ModulePlaceholder({ title, description, features = [], links = [
 export function NGOCoordinationModule() {
   const navigate = useNavigate();
   const agentCases = useAgentOSCases({ limit: 25 });
+  const operations = useAgentOSOperations(50);
 
   return (
     <div className="space-y-4">
@@ -68,6 +71,11 @@ export function NGOCoordinationModule() {
       {!agentCases.error && (
         <div className="px-4 lg:px-6">
           <AgentOSQueuePanel data={agentCases.data} isLoading={agentCases.isLoading} />
+        </div>
+      )}
+      {!operations.error && (
+        <div className="px-4 lg:px-6">
+          <AgentOSOperationsPanel data={operations.data} isLoading={operations.isLoading} />
         </div>
       )}
       <HPGAssistant />
