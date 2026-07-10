@@ -1,5 +1,29 @@
 -- NGO portal request forms are separate from internal departmental forms.
 -- NGO users submit these to NGO Coordination first; staff can later route them internally.
+--
+-- Historical repair: the companion seed migration uses the portal-routing
+-- columns below. They existed in production but were absent from the tracked
+-- migration sequence, causing fresh migration replays to fail.
+
+alter table public.form_templates
+  add column if not exists form_audience text not null default 'staff',
+  add column if not exists intake_module public.module_type not null default 'ngo_coordination'::public.module_type,
+  add column if not exists audience text not null default 'staff',
+  add column if not exists portal_visible boolean not null default false,
+  add column if not exists triage_required boolean not null default false;
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint
+    where conname = 'form_templates_form_audience_check'
+      and conrelid = 'public.form_templates'::regclass
+  ) then
+    alter table public.form_templates
+      add constraint form_templates_form_audience_check
+      check (form_audience in ('staff', 'ngo_portal'));
+  end if;
+end $$;
 
 create table if not exists public.ngo_request_templates (
   id uuid primary key default gen_random_uuid(),

@@ -38,3 +38,20 @@ verify_jwt = false
 
 [functions.receive-volunteer-application]
 verify_jwt = false
+
+[functions.process-agent-os-communications]
+# Gateway JWT verification is disabled so a scheduler may authenticate with
+# AGENT_OS_WORKER_SECRET. The function itself requires either that secret or
+# a verified internal-user JWT before it can inspect or process the queue.
+verify_jwt = false
+
+[functions.process-agent-os-trello-sync]
+# The Trello worker uses the same internal-user or dedicated worker-secret
+# authentication pattern and remains dry-run unless both live gates are set.
+verify_jwt = false
+
+[functions.agent-os-external-form]
+# Public invitation links are authenticated by a one-time, expiring token.
+# The function stores only a SHA-256 token hash. Invitation creation still
+# requires an internal-user JWT or AGENT_OS_WORKER_SECRET.
+verify_jwt = false

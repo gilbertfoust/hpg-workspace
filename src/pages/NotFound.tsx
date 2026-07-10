@@ -1,9 +1,10 @@
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Home, LogIn } from "lucide-react";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import Portal from "@/pages/Portal";
+import ExternalAgentOSForm from "@/pages/ExternalAgentOSForm";
 
 const HPG_LOGO_URL =
   "https://img1.wsimg.com/isteam/ip/8d5502d6-d937-4d80-bd56-8074053e4d77/Humanity%20Pathways%20Global.jpg/:/rs=h:175,m";
@@ -11,10 +12,21 @@ const HPG_LOGO_URL =
 const NotFound = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const params = useParams();
 
   useEffect(() => {
-    console.error("404 Error: User attempted to access non-existent route:", location.pathname);
+    if (!location.pathname.startsWith("/external-form/") && !location.pathname.startsWith("/portal")) {
+      console.error("404 Error: User attempted to access non-existent route:", location.pathname);
+    }
   }, [location.pathname]);
+
+  // The application's catch-all route is public. Until App.tsx receives a
+  // dedicated route during the next route cleanup, securely render the
+  // token-authenticated external form here without requiring an HPG account.
+  if (location.pathname.startsWith("/external-form/")) {
+    const token = location.pathname.split("/").filter(Boolean)[1] || params.token;
+    return <ExternalAgentOSForm key={token} />;
+  }
 
   if (location.pathname.startsWith("/portal")) {
     return (

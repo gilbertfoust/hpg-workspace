@@ -1,0 +1,126 @@
+name: Supabase Migration Validation
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'supabase/migrations/**'
+      - 'supabase/functions/**'
+      - 'supabase/tests/**'
+      - 'supabase/config.toml'
+      - '.github/workflows/supabase-migration-validation.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: supabase-migrations-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate-migrations:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Start database-only Supabase stack
+        id: supabase-start
+        shell: bash
+        run: |
+          set -o pipefail
+          # Full application services are unnecessary for migration replay,
+          # database smoke tests, and SQL linting. Keeping only Postgres makes
+          # the validation job faster and more reliable on hosted runners.
+          EXCLUDED_SERVICES="studio,imgproxy,mailpit,storage-api,realtime,edge-runtime,logflare,vector,supavisor,gotrue,kong,postgres-meta,postgrest"
+          npx supabase start -x "$EXCLUDED_SERVICES" 2>&1 | tee supabase-start.log
+
+      - name: Rebuild database from migrations
+        id: database-reset
+        shell: bash
+        run: |
+          set -o pipefail
+          npx supabase db reset --local 2>&1 | tee supabase-reset.log
+
+      - name: Run Agent OS activation fee smoke test
+        id: activation-fee-smoke-test
+        shell: bash
+        run: |
+          set -o pipefail
+          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" \
+            -v ON_ERROR_STOP=1 \
+            -f supabase/tests/agent_os_activation_fee_smoke.sql \
+            2>&1 | tee activation-fee-smoke.log
+
+      - name: Run database lint
+        id: database-lint
+        shell: bash
+        run: |
+          set -o pipefail
+          npx supabase db lint --local --level warning 2>&1 | tee supabase-lint.log
+
+      - name: Upload Supabase validation diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: supabase-validation-diagnostics
+          path: |
+            supabase-start.log
+            supabase-reset.log
+            activation-fee-smoke.log
+            supabase-lint.log
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Show local service status
+        if: always()
+        run: npx supabase status || true
+
+      - name: Stop local Supabase stack
+        if: always()
+        run: npx supabase stop --no-backup || true
+
+  check-edge-functions:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Type-check Agent OS workers
+        id: deno-check
+        shell: bash
+        run: |
+          set -o pipefail
+          {
+            echo "Checking process-agent-os-communications"
+            deno check supabase/functions/process-agent-os-communications/index.ts
+            echo "Checking process-agent-os-trello-sync"
+            deno check supabase/functions/process-agent-os-trello-sync/index.ts
+            echo "Checking agent-os-external-form"
+            deno check supabase/functions/agent-os-external-form/index.ts
+          } 2>&1 | tee deno-check.log
+
+      - name: Upload Deno diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: agent-os-deno-diagnostics
+          path: deno-check.log
+          if-no-files-found: ignore
+          retention-days: 7
