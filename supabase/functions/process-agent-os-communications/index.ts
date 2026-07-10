@@ -14,6 +14,8 @@ const internalRoles = new Set([
   "executive_secretariat",
 ]);
 
+type SupabaseAdmin = any;
+
 type CommunicationRecord = {
   id: string;
   case_registry_id: string | null;
@@ -49,10 +51,7 @@ function retryDelayMinutes(attempts: number) {
   return attempts <= 1 ? 5 : 15;
 }
 
-async function requireAuthorizedCaller(
-  req: Request,
-  supabase: ReturnType<typeof createClient>,
-) {
+async function requireAuthorizedCaller(req: Request, supabase: SupabaseAdmin) {
   const configuredWorkerSecret = Deno.env.get("AGENT_OS_WORKER_SECRET") || "";
   const suppliedWorkerSecret = req.headers.get("x-agent-os-worker-secret") || "";
 
@@ -83,7 +82,7 @@ async function requireAuthorizedCaller(
     .maybeSingle();
 
   if (profileError) throw profileError;
-  if (!profile || !internalRoles.has(profile.role)) {
+  if (!profile || !internalRoles.has(String(profile.role))) {
     return { allowed: false, status: 403, reason: "Internal staff access is required." };
   }
 
@@ -91,7 +90,7 @@ async function requireAuthorizedCaller(
 }
 
 async function recordRun(
-  supabase: ReturnType<typeof createClient>,
+  supabase: SupabaseAdmin,
   communication: CommunicationRecord,
   status: string,
   resultSummary: string,
@@ -133,7 +132,7 @@ async function recordRun(
 }
 
 async function updateCommunication(
-  supabase: ReturnType<typeof createClient>,
+  supabase: SupabaseAdmin,
   id: string,
   values: Record<string, unknown>,
 ) {
@@ -176,7 +175,7 @@ async function sendEmail(
     }),
   });
 
-  const payload = await response.json().catch(() => ({}));
+  const payload = await response.json().catch(() => ({} as Record<string, unknown>));
   if (!response.ok) {
     const detail = typeof payload?.message === "string" ? payload.message : "Provider rejected the request.";
     throw new Error(`Email delivery failed (${response.status}): ${detail.slice(0, 240)}`);
@@ -199,14 +198,14 @@ Deno.serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, serviceRoleKey, {
       auth: { persistSession: false },
-    });
+    }) as SupabaseAdmin;
 
     const caller = await requireAuthorizedCaller(req, supabase);
     if (!caller.allowed) {
       return jsonResponse({ error: caller.reason }, caller.status);
     }
 
-    const body = await req.json().catch(() => ({}));
+    const body = await req.json().catch(() => ({} as Record<string, unknown>));
     const limit = safeLimit(body.limit);
     const liveRequested = body.live === true;
     const liveEnabled = Deno.env.get("AGENT_OS_COMMUNICATIONS_LIVE") === "true";
