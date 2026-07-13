@@ -537,10 +537,13 @@ export interface FinanceBankReconciliationItem {
 }
 
 // Budgets
+export type FinanceBudgetStatus = "draft" | "pending_approval" | "approved" | "rejected" | "active" | "closed";
 export interface FinanceBudget {
   id: string; name: string; fiscal_year: number; scope_type: string;
   department_id: string | null; ngo_id: string | null; fund_id: string | null;
-  grant_application_id: string | null; status: string; memo: string | null; created_at: string;
+  grant_application_id: string | null; status: FinanceBudgetStatus; memo: string | null; created_at: string;
+  created_by_user_id?: string | null; work_item_id?: string | null; submitted_at?: string | null;
+  reviewed_by_user_id?: string | null; reviewed_at?: string | null; rejected_reason?: string | null;
   lines?: FinanceBudgetLine[];
 }
 export interface FinanceBudgetLine {

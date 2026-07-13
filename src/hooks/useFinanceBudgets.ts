@@ -1,7 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getSupabaseNotConfiguredError, supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/contexts/AuthContext";
 import type { FinanceBudget, FinanceBudgetLine, FinanceBudgetLineInput } from "@/types/financeAccounting";
 
 const ensureSupabase = () => { if (!supabase) throw getSupabaseNotConfiguredError(); };
@@ -25,27 +24,59 @@ export const useFinanceBudgets = () => useQuery({
 });
 
 export const useSaveFinanceBudget = () => {
-  const qc = useQueryClient(); const { toast } = useToast(); const { user } = useAuth();
+  const qc = useQueryClient(); const { toast } = useToast();
   return useMutation({
     mutationFn: async ({ id, header, lines }: { id?: string; header: Partial<FinanceBudget>; lines?: FinanceBudgetLineInput[] }) => {
       ensureSupabase();
-      if (id) {
-        const { data, error } = await supabase.from("finance_budgets" as never).update(header as never).eq("id" as never, id as never).select().single();
-        if (error) throw error;
-        if (lines) {
-          await supabase.from("finance_budget_lines" as never).delete().eq("budget_id" as never, id as never);
-          if (lines.length) await supabase.from("finance_budget_lines" as never).insert(lines.map((l) => ({ ...l, budget_id: id })) as never);
-        }
-        return data;
-      }
-      const { data, error } = await supabase.from("finance_budgets" as never).insert({ ...header, created_by_user_id: user?.id ?? null } as never).select().single();
+      const { data, error } = await supabase.rpc("save_finance_budget" as never, {
+        _budget_id: id ?? null,
+        _header: header,
+        _lines: lines ?? null,
+      } as never);
       if (error) throw error;
-      const budgetId = (data as FinanceBudget).id;
-      if (lines?.length) await supabase.from("finance_budget_lines" as never).insert(lines.map((l) => ({ ...l, budget_id: budgetId })) as never);
-      return data;
+      return data as unknown as FinanceBudget;
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["finance-budgets"] }); toast({ title: "Budget saved" }); },
     onError: (e: Error) => toast({ variant: "destructive", title: "Could not save budget", description: e.message }),
+  });
+};
+
+const invalidateBudgetWorkflow = (qc: ReturnType<typeof useQueryClient>) => {
+  void qc.invalidateQueries({ queryKey: ["finance-budgets"] });
+  void qc.invalidateQueries({ queryKey: ["finance-workflow-events"] });
+  void qc.invalidateQueries({ queryKey: ["finance-hub-snapshot"] });
+  void qc.invalidateQueries({ queryKey: ["work-items"] });
+};
+
+export const useSubmitFinanceBudget = () => {
+  const qc = useQueryClient(); const { toast } = useToast();
+  return useMutation({
+    mutationFn: async (budgetId: string) => {
+      ensureSupabase();
+      const { data, error } = await supabase.rpc("submit_finance_budget" as never, { _budget_id: budgetId } as never);
+      if (error) throw error;
+      return data as unknown as FinanceBudget;
+    },
+    onSuccess: () => { invalidateBudgetWorkflow(qc); toast({ title: "Budget submitted for approval" }); },
+    onError: (e: Error) => toast({ variant: "destructive", title: "Could not submit budget", description: e.message }),
+  });
+};
+
+export const useReviewFinanceBudget = () => {
+  const qc = useQueryClient(); const { toast } = useToast();
+  return useMutation({
+    mutationFn: async ({ id, decision, reason }: { id: string; decision: "approved" | "rejected"; reason?: string }) => {
+      ensureSupabase();
+      const { data, error } = await supabase.rpc("review_finance_budget" as never, {
+        _budget_id: id,
+        _decision: decision,
+        _reason: reason ?? null,
+      } as never);
+      if (error) throw error;
+      return data as unknown as FinanceBudget;
+    },
+    onSuccess: (_, variables) => { invalidateBudgetWorkflow(qc); toast({ title: `Budget ${variables.decision}` }); },
+    onError: (e: Error) => toast({ variant: "destructive", title: "Could not review budget", description: e.message }),
   });
 };
 

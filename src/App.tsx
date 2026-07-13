@@ -30,6 +30,7 @@ import NGOCoordination from "./pages/NGOCoordination";
 import ITDashboard from "./pages/ITDashboard";
 import SignDocument from "./pages/SignDocument";
 import FinancialHub from "./pages/FinancialHub";
+import FinanceOperationsPage from "./pages/FinanceOperationsPage";
 import FinanceChartOfAccountsPage from "./pages/FinanceChartOfAccountsPage";
 import FinanceJournalEntriesPage from "./pages/FinanceJournalEntriesPage";
 import FinanceBankAccountsPage from "./pages/FinanceBankAccountsPage";
@@ -235,6 +236,7 @@ const App = () => {
 
                 {/* Financial Hub */}
                 <Route path="/financial-hub" element={<P><FinancialHub /></P>} />
+                <Route path="/financial-hub/operations" element={<P><FinanceOperationsPage /></P>} />
                 <Route path="/financial-hub/accounting/chart-of-accounts" element={<P><FinanceChartOfAccountsPage /></P>} />
                 <Route path="/financial-hub/accounting/journal-entries" element={<P><FinanceJournalEntriesPage /></P>} />
                 <Route path="/financial-hub/accounting/bank-accounts" element={<P><FinanceBankAccountsPage /></P>} />

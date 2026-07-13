@@ -8,8 +8,10 @@
     "build": "vite build",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
+    "lint:finance": "eslint src/App.tsx src/types/financeAccounting.ts src/hooks/useFinanceBudgets.ts src/hooks/useFinanceCompliance.ts src/hooks/useFinanceHubSnapshot.ts src/hooks/useFinanceOperations.ts src/hooks/usePurchaseRequests.ts src/pages/FinanceBudgetsPage.tsx src/pages/FinanceOperationsPage.tsx src/pages/FinanceReportsPage.tsx src/pages/FinancialHub.tsx src/modules/procurement/pages/PurchaseRequests.tsx",
     "preview": "vite preview",
-    "verify": "npm run build && npx tsc --noEmit && npm run lint"
+    "verify": "npm run build && npx tsc --noEmit && npm run lint",
+    "verify:finance": "npm run build && npx tsc --noEmit && npm run lint:finance && node scripts/finance/verify-finance-hub.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
