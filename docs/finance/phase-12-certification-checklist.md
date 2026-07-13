@@ -2,6 +2,19 @@
 
 Use this checklist after `npx supabase db push` against the linked HPG project.
 
+## Readiness summary
+
+- [x] Implementation complete for Phases 0–12 and Finance Operations
+- [x] `npm run verify:finance` passes (build, typecheck, scoped lint, static contracts)
+- [x] Expense, purchase, and budget workflows use authority-checked RPCs
+- [x] Workflow submissions create work items and durable notification events
+- [x] Finance staff authority is scoped to the Finance department
+- [x] All ten Finance CSV exports are audit-logged before download
+- [ ] Forward migration applied to the linked project
+- [ ] Post-deployment SQL and role-based checks below completed
+
+Repository implementation is 100% complete. The unchecked items are deployment certification steps and must not be represented as passed until they run against the target database.
+
 ## Phase 1 — Atomic posting
 - [ ] Balanced legacy transaction posts via `post_transaction` RPC
 - [ ] Unbalanced legacy transaction rejected
@@ -55,10 +68,26 @@ Use this checklist after `npx supabase db push` against the linked HPG project.
 - [ ] Year-end package generates trial balance + statements bundle
 
 ## Phase 12 — Production certification
-- [ ] `npm run build` passes
+- [x] `npm run build` passes
+- [x] `npx tsc --noEmit` passes
+- [x] `npm run lint:finance` passes
+- [x] `node scripts/finance/verify-finance-hub.mjs` passes
 - [ ] `scripts/finance/test_atomic_posting.sql` validation queries pass
+- [ ] `scripts/finance/test_operational_workflows.sql` validation queries pass
 - [ ] Finance staff can complete workflow without developer intervention
 - [ ] No fake production financial data (demo seeds only when tables empty)
+
+## Finance Operations (post-deployment)
+
+- [ ] Internal requestor can save and submit an expense request
+- [ ] Expense submission creates a Finance work item and Slack/email outbox event
+- [ ] Non-Finance staff cannot prepare a budget or review an approval
+- [ ] Finance staff can atomically save and submit a budget
+- [ ] Finance manager can approve/reject expense, purchase, and budget requests
+- [ ] Approved expense can be marked paid only with a payment reference
+- [ ] Direct Data API status updates are denied
+- [ ] Anonymous role cannot execute protected Finance RPCs
+- [ ] Notification dispatcher marks queued events sent or failed
 
 ## Accounting scenarios (manual QA)
 1. Unrestricted donation receipt and post

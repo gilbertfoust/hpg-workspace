@@ -1,7 +1,9 @@
 # Finance Hub / QuickBooks-Style Accounting — Implementation Map
 
-**Branch:** `dashboard-local-buildout`  
-**Bundle:** Phases 31–45  
+**Branch:** `codex/finance-hub-100`
+
+**Bundle:** Phases 31–45 plus Finance Operations completion
+
 **Principle:** Build HPG-internal double-entry ledger in new `finance_*` tables. Legacy `accounts` / `transactions` / `journal_entries` remain for per-NGO ledger experiments; new buildout does not depend on QuickBooks API.
 
 ## Existing assets (inspected)
@@ -39,6 +41,7 @@ Phases 31–45 add organization-wide accounting tables separate from legacy ledg
 | 43 | — | Dashboard + Finance Hub integration |
 | 44 | RLS refinements | Permission guards |
 | 45 | — | Hardening + docs |
+| Completion | `finance_expense_requests`, `finance_workflow_events`; expense/purchase/budget workflow RPCs; department-scoped authority | Unified operations queue, work-item automation, Slack/email outbox, audited exports |
 
 ## Accounting rules (enforced in DB)
 

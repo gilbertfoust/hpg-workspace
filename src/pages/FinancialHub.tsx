@@ -11,7 +11,7 @@ import { canReadFinanceLedger } from "@/lib/financePermissions";
 import { FinanceUnauthorized } from "@/components/finance/accounting/FinanceUnauthorized";
 import {
   DollarSign, Building, FileCheck, ArrowRight, BookOpen, Scale, Receipt, BarChart3, ShieldCheck,
-  BookOpenCheck, Landmark, Paperclip, FileStack, Wallet, TrendingUp, PieChart, Target, Loader2,
+  Bell, BookOpenCheck, ClipboardCheck, Landmark, Paperclip, FileStack, Wallet, TrendingUp, PieChart, Target, Loader2,
 } from "lucide-react";
 
 const FinancialHub = () => {
@@ -77,6 +77,8 @@ const FinancialHub = () => {
                 <Metric label="Unreconciled banks" value={snapshot.unreconciledBanks} tone={snapshot.unreconciledBanks > 0 ? "warning" : "default"} onClick={() => navigate("/financial-hub/accounting/reconciliation")} />
                 <Metric label="Open finance tasks" value={snapshot.openWorkItems} onClick={() => navigate("/work-items")} />
                 <Metric label="Draft journal entries" value={snapshot.draftEntries} onClick={() => navigate("/financial-hub/accounting/journal-entries")} />
+                <Metric label="Pending approvals" value={snapshot.pendingExpenseRequests + snapshot.pendingPurchaseRequests + snapshot.pendingBudgetApprovals} tone={snapshot.pendingExpenseRequests + snapshot.pendingPurchaseRequests + snapshot.pendingBudgetApprovals > 0 ? "warning" : "default"} onClick={() => navigate("/financial-hub/operations")} />
+                <Metric label="Queued notifications" value={snapshot.queuedNotifications} tone={snapshot.queuedNotifications > 0 ? "warning" : "default"} onClick={() => navigate("/financial-hub/operations")} />
                 <div className="rounded-lg border p-3 sm:col-span-2">
                   <p className="text-xs text-muted-foreground">Data readiness</p>
                   <Badge className="mt-2" variant={snapshot.dataReadiness === "ready" ? "default" : snapshot.dataReadiness === "partial" ? "secondary" : "outline"}>
@@ -85,6 +87,19 @@ const FinancialHub = () => {
                 </div>
               </div>
             ) : null}
+          </CardContent>
+        </Card>
+
+        <Card className="cursor-pointer border-primary/30 bg-primary/5 hover:border-primary/60 transition-colors" onClick={() => navigate("/financial-hub/operations")}>
+          <CardContent className="p-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-start gap-3">
+              <div className="rounded-full bg-primary/10 p-2"><ClipboardCheck className="h-5 w-5 text-primary" /></div>
+              <div>
+                <p className="font-semibold">Finance Operations</p>
+                <p className="text-sm text-muted-foreground">Expense requests, purchase approvals, budgets, work items, and notification delivery in one queue.</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 text-sm font-medium text-primary"><Bell className="h-4 w-4" />Open operations <ArrowRight className="h-4 w-4" /></div>
           </CardContent>
         </Card>
 

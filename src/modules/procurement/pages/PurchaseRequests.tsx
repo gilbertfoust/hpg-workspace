@@ -10,9 +10,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { usePurchaseRequests } from "@/hooks/usePurchaseRequests";
+import { useFinanceAccessCapabilities } from "@/hooks/useFinanceOperations";
 import { useNGOs } from "@/hooks/useNGOs";
 import { useAuth } from "@/contexts/AuthContext";
-import { PR_STATUSES } from "@/modules/procurement/types";
 import { Plus, DollarSign, Calendar } from "lucide-react";
 import { format } from "date-fns";
 
@@ -26,6 +26,7 @@ const STATUS_COLORS: Record<string, string> = {
 
 export default function PurchaseRequests() {
   const { data: prs, isLoading, create, updateStatus } = usePurchaseRequests();
+  const { data: financeAccess } = useFinanceAccessCapabilities();
   const { data: ngos } = useNGOs();
   const { user } = useAuth();
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -34,7 +35,7 @@ export default function PurchaseRequests() {
   const handleCreate = () => {
     if (!form.title || !form.ngo_id) return;
     create.mutate(
-      { title: form.title, ngo_id: form.ngo_id, description: form.description || undefined, estimated_amount: form.estimated_amount ? Number(form.estimated_amount) : undefined, priority: form.priority, needed_by: form.needed_by || undefined, requested_by_user_id: user?.id },
+      { title: form.title, ngo_id: form.ngo_id, description: form.description || undefined, estimated_amount: form.estimated_amount ? Number(form.estimated_amount) : undefined, priority: form.priority, needed_by: form.needed_by || undefined },
       { onSuccess: () => { setDialogOpen(false); setForm({ title: "", ngo_id: "", description: "", estimated_amount: "", priority: "medium", needed_by: "" }); } }
     );
   };
@@ -48,7 +49,7 @@ export default function PurchaseRequests() {
             <p className="text-muted-foreground">Submit and track purchase requests for approval</p>
           </div>
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogTrigger asChild><Button><Plus className="h-4 w-4 mr-2" />New Request</Button></DialogTrigger>
+            <DialogTrigger asChild><Button disabled={!financeAccess?.can_submit_requests}><Plus className="h-4 w-4 mr-2" />New Request</Button></DialogTrigger>
             <DialogContent>
               <DialogHeader><DialogTitle>New Purchase Request</DialogTitle></DialogHeader>
               <div className="space-y-4">
@@ -76,7 +77,7 @@ export default function PurchaseRequests() {
                 </div>
                 <div><Label>Needed By</Label><Input type="date" value={form.needed_by} onChange={e => setForm(f => ({ ...f, needed_by: e.target.value }))} /></div>
                 <div><Label>Description</Label><Textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} /></div>
-                <Button onClick={handleCreate} disabled={!form.title || !form.ngo_id || create.isPending} className="w-full">Submit Request</Button>
+                <Button onClick={handleCreate} disabled={!form.title || !form.ngo_id || create.isPending} className="w-full">Save Draft</Button>
               </div>
             </DialogContent>
           </Dialog>
@@ -108,18 +109,21 @@ export default function PurchaseRequests() {
                         {pr.needed_by && <p className="text-xs text-muted-foreground flex items-center gap-1"><Calendar className="h-3 w-3" />Need by {format(new Date(pr.needed_by), "MMM d")}</p>}
                       </div>
                     </TableCell>
-                    <TableCell className="text-sm">{(pr as any).ngos?.common_name || (pr as any).ngos?.legal_name}</TableCell>
+                    <TableCell className="text-sm">{pr.ngos?.common_name || pr.ngos?.legal_name}</TableCell>
                     <TableCell>{pr.estimated_amount ? <span className="flex items-center gap-1 text-sm"><DollarSign className="h-3 w-3" />{pr.estimated_amount.toLocaleString()}</span> : "—"}</TableCell>
                     <TableCell><Badge variant={pr.priority === "high" ? "destructive" : "outline"}>{pr.priority}</Badge></TableCell>
                     <TableCell><Badge className={STATUS_COLORS[pr.status] ?? ""}>{pr.status.replace(/_/g, " ")}</Badge></TableCell>
                     <TableCell>
-                      {pr.status === "draft" && (
+                      {pr.status === "draft" && pr.requested_by_user_id === user?.id && (
                         <Button size="sm" variant="outline" onClick={() => updateStatus.mutate({ id: pr.id, status: "pending_approval" })}>Submit</Button>
                       )}
-                      {pr.status === "pending_approval" && (
+                      {pr.status === "pending_approval" && financeAccess?.can_review && (
                         <div className="flex gap-1">
-                          <Button size="sm" variant="default" onClick={() => updateStatus.mutate({ id: pr.id, status: "approved", approved_by_user_id: user?.id })}>Approve</Button>
-                          <Button size="sm" variant="destructive" onClick={() => updateStatus.mutate({ id: pr.id, status: "rejected" })}>Reject</Button>
+                          <Button size="sm" variant="default" onClick={() => updateStatus.mutate({ id: pr.id, status: "approved" })}>Approve</Button>
+                          <Button size="sm" variant="destructive" onClick={() => {
+                            const reason = window.prompt("Why is this purchase request being rejected?");
+                            if (reason?.trim()) updateStatus.mutate({ id: pr.id, status: "rejected", rejected_reason: reason.trim() });
+                          }}>Reject</Button>
                         </div>
                       )}
                     </TableCell>

@@ -8,6 +8,10 @@ export interface FinanceHubSnapshot {
   unreconciledBanks: number;
   cashAccounts: number;
   draftEntries: number;
+  pendingExpenseRequests: number;
+  pendingPurchaseRequests: number;
+  pendingBudgetApprovals: number;
+  queuedNotifications: number;
   dataReadiness: "ready" | "partial" | "setup";
 }
 
@@ -22,6 +26,10 @@ export const useFinanceHubSnapshot = () => useQuery({
       { data: openBills },
       { data: recons },
       { data: postedEntries },
+      { count: pendingExpenseRequests },
+      { count: pendingPurchaseRequests },
+      { count: pendingBudgetApprovals },
+      { count: queuedNotifications },
     ] = await Promise.all([
       supabase.from("work_items").select("id", { count: "exact", head: true }).eq("module", "finance").is("archived_at", null),
       supabase.from("finance_journal_entries" as never).select("id", { count: "exact", head: true }).eq("status" as never, "draft" as never),
@@ -29,6 +37,10 @@ export const useFinanceHubSnapshot = () => useQuery({
       supabase.from("finance_bills" as never).select("id, total_amount, amount_paid, due_date").in("status" as never, ["approved", "partially_paid"] as never),
       supabase.from("finance_bank_reconciliations" as never).select("bank_account_id, status"),
       supabase.from("finance_journal_entries" as never).select("id").eq("status" as never, "posted" as never).limit(1),
+      supabase.from("finance_expense_requests" as never).select("id", { count: "exact", head: true }).eq("status" as never, "submitted" as never),
+      supabase.from("purchase_requests").select("id", { count: "exact", head: true }).eq("status", "pending_approval"),
+      supabase.from("finance_budgets" as never).select("id", { count: "exact", head: true }).eq("status" as never, "pending_approval" as never),
+      supabase.from("finance_workflow_events" as never).select("id", { count: "exact", head: true }).eq("notification_status" as never, "queued" as never),
     ]);
 
     let missingReceipts = 0;
@@ -65,6 +77,10 @@ export const useFinanceHubSnapshot = () => useQuery({
       unreconciledBanks,
       cashAccounts: activeBanks,
       draftEntries: draftEntries ?? 0,
+      pendingExpenseRequests: pendingExpenseRequests ?? 0,
+      pendingPurchaseRequests: pendingPurchaseRequests ?? 0,
+      pendingBudgetApprovals: pendingBudgetApprovals ?? 0,
+      queuedNotifications: queuedNotifications ?? 0,
       dataReadiness,
     };
   },

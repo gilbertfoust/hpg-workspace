@@ -156,10 +156,11 @@ export const useFinanceYearEndPackages = () =>
 
 export const logFinanceExport = async (reportType: string, filters: Record<string, unknown> = {}) => {
   if (!supabase) return;
-  await supabase.rpc("log_finance_export" as never, {
+  const { error } = await supabase.rpc("log_finance_export" as never, {
     _report_type: reportType,
     _filters: filters,
   } as never);
+  if (error) throw error;
 };
 
 export const useSaveFinanceReportSnapshot = () => {
