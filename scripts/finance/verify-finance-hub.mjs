@@ -16,6 +16,7 @@ const monthlyAuthorityMigration = read("supabase/migrations/20260714122500_finan
 const openingEvidenceMigration = read("supabase/migrations/20260714123500_finance_opening_balance_source_evidence.sql");
 const cashFlowMigration = read("supabase/migrations/20260714125500_finance_cash_flow_tie_out.sql");
 const nonprofitStatementsMigration = read("supabase/migrations/20260714130500_finance_nonprofit_statement_rollforward.sql");
+const receiptResolutionMigration = read("supabase/migrations/20260714131500_finance_receipt_draft_resolution.sql");
 const app = read("src/App.tsx");
 const hub = read("src/pages/FinancialHub.tsx");
 const operations = read("src/pages/FinanceOperationsPage.tsx");
@@ -23,6 +24,7 @@ const reports = read("src/pages/FinanceReportsPage.tsx");
 const purchaseHook = read("src/hooks/usePurchaseRequests.ts");
 const budgetHook = read("src/hooks/useFinanceBudgets.ts");
 const transactionPage = read("src/pages/FinanceTransactionsPage.tsx");
+const transactionHook = read("src/hooks/useFinanceTransactions.ts");
 const reconciliationPage = read("src/pages/FinanceReconciliationPage.tsx");
 const fiscalPeriodsPage = read("src/pages/FinanceFiscalPeriodsPage.tsx");
 const openingBalancesPage = read("src/pages/FinanceOpeningBalancesPage.tsx");
@@ -68,6 +70,8 @@ const accountingContracts = [
   [cashFlowMigration, "finance_opening_balance"],
   [nonprofitStatementsMigration, "statement_is_balanced"],
   [nonprofitStatementsMigration, "pass_through_expenses"],
+  [receiptResolutionMigration, "dismiss_finance_receipt_draft"],
+  [receiptResolutionMigration, "Receipt draft dismissed"],
 ];
 
 for (const [source, contract] of accountingContracts) {
@@ -82,6 +86,8 @@ assert.ok(purchaseHook.includes('rpc("review_purchase_request"'), "Purchase appr
 assert.ok(budgetHook.includes('rpc("save_finance_budget"'), "Budget saves must be atomic");
 assert.ok(budgetHook.includes('rpc("review_finance_budget"'), "Budget approvals must use the authority-checked RPC");
 assert.ok(transactionPage.includes("receipt"), "Transaction entry must expose receipt evidence");
+assert.ok(transactionPage.includes("handleDismissReceipt"), "Receipt inbox must resolve unreadable drafts");
+assert.ok(transactionHook.includes('rpc("dismiss_finance_receipt_draft"'), "Receipt dismissal must use the audited RPC");
 assert.ok(reconciliationPage.includes("Statement"), "Reconciliation must expose bank statement imports");
 assert.ok(fiscalPeriodsPage.includes("Close readiness"), "Fiscal periods must expose hard close readiness");
 assert.ok(openingBalancesPage.includes("Post balanced opening journal"), "Opening balances must post into the ledger");
