@@ -6,90 +6,94 @@ const ensureSupabase = () => {
   if (!supabase) throw getSupabaseNotConfiguredError();
 };
 
-export const useFinanceStatementOfFinancialPosition = (asOfDate: string, entityScope?: string | null) =>
+export const useFinanceStatementOfFinancialPosition = (asOfDate: string, ngoId?: string | null) =>
   useQuery({
-    queryKey: ["finance-sofp", asOfDate, entityScope],
+    queryKey: ["finance-sofp", asOfDate, ngoId ?? "all"],
     enabled: !!supabase && !!asOfDate,
     queryFn: async () => {
       ensureSupabase();
       const { data, error } = await supabase.rpc("finance_statement_of_financial_position" as never, {
         _as_of_date: asOfDate,
-        _entity_scope: entityScope ?? null,
+        _ngo_id: ngoId ?? null,
       } as never);
       if (error) throw error;
       return data as Record<string, unknown>;
     },
   });
 
-export const useFinanceStatementOfActivities = (startDate: string, endDate: string, entityScope?: string | null) =>
+export const useFinanceStatementOfActivities = (startDate: string, endDate: string, ngoId?: string | null) =>
   useQuery({
-    queryKey: ["finance-soa", startDate, endDate, entityScope],
+    queryKey: ["finance-soa", startDate, endDate, ngoId ?? "all"],
     enabled: !!supabase && !!startDate && !!endDate,
     queryFn: async () => {
       ensureSupabase();
       const { data, error } = await supabase.rpc("finance_statement_of_activities" as never, {
         _start_date: startDate,
         _end_date: endDate,
-        _entity_scope: entityScope ?? null,
+        _ngo_id: ngoId ?? null,
       } as never);
       if (error) throw error;
       return data as Record<string, unknown>;
     },
   });
 
-export const useFinanceStatementOfCashFlows = (startDate: string, endDate: string) =>
+export const useFinanceStatementOfCashFlows = (startDate: string, endDate: string, ngoId?: string | null) =>
   useQuery({
-    queryKey: ["finance-scf", startDate, endDate],
+    queryKey: ["finance-scf", startDate, endDate, ngoId ?? "all"],
     enabled: !!supabase && !!startDate && !!endDate,
     queryFn: async () => {
       ensureSupabase();
       const { data, error } = await supabase.rpc("finance_statement_of_cash_flows" as never, {
         _start_date: startDate,
         _end_date: endDate,
+        _ngo_id: ngoId ?? null,
       } as never);
       if (error) throw error;
       return data as Record<string, unknown>;
     },
   });
 
-export const useFinanceTrialBalanceValidation = (startDate: string, endDate: string) =>
+export const useFinanceTrialBalanceValidation = (startDate: string, endDate: string, ngoId?: string | null) =>
   useQuery({
-    queryKey: ["finance-tb-validation", startDate, endDate],
+    queryKey: ["finance-tb-validation", startDate, endDate, ngoId ?? "all"],
     enabled: !!supabase && !!startDate && !!endDate,
     queryFn: async () => {
       ensureSupabase();
       const { data, error } = await supabase.rpc("finance_validate_trial_balance" as never, {
         _start_date: startDate,
         _end_date: endDate,
+        _ngo_id: ngoId ?? null,
       } as never);
       if (error) throw error;
       return data as { total_debit: number; total_credit: number; is_balanced: boolean };
     },
   });
 
-export const useFinanceFunctionalExpenseReport = (startDate: string, endDate: string) =>
+export const useFinanceFunctionalExpenseReport = (startDate: string, endDate: string, ngoId?: string | null) =>
   useQuery({
-    queryKey: ["finance-functional-expense", startDate, endDate],
+    queryKey: ["finance-functional-expense", startDate, endDate, ngoId ?? "all"],
     enabled: !!supabase && !!startDate && !!endDate,
     queryFn: async () => {
       ensureSupabase();
       const { data, error } = await supabase.rpc("finance_functional_expense_report" as never, {
         _start_date: startDate,
         _end_date: endDate,
+        _ngo_id: ngoId ?? null,
       } as never);
       if (error) throw error;
       return data as Record<string, number>;
     },
   });
 
-export const useFinanceRestrictedFundReport = (asOfDate: string) =>
+export const useFinanceRestrictedFundReport = (asOfDate: string, ngoId?: string | null) =>
   useQuery({
-    queryKey: ["finance-restricted-funds", asOfDate],
+    queryKey: ["finance-restricted-funds", asOfDate, ngoId ?? "all"],
     enabled: !!supabase && !!asOfDate,
     queryFn: async () => {
       ensureSupabase();
       const { data, error } = await supabase.rpc("finance_restricted_fund_report" as never, {
         _as_of_date: asOfDate,
+        _ngo_id: ngoId ?? null,
       } as never);
       if (error) throw error;
       return data as { funds: Array<Record<string, unknown>>; as_of_date: string };
@@ -122,10 +126,11 @@ export const useGenerateYearEndPackage = () => {
   const qc = useQueryClient();
   const { toast } = useToast();
   return useMutation({
-    mutationFn: async ({ fiscalYear, label }: { fiscalYear: number; label?: string }) => {
+    mutationFn: async ({ fiscalYear, ngoId, label }: { fiscalYear: number; ngoId?: string | null; label?: string }) => {
       ensureSupabase();
       const { data, error } = await supabase.rpc("generate_finance_year_end_package" as never, {
         _fiscal_year: fiscalYear,
+        _ngo_id: ngoId ?? null,
         _label: label ?? null,
       } as never);
       if (error) throw error;
@@ -139,16 +144,20 @@ export const useGenerateYearEndPackage = () => {
   });
 };
 
-export const useFinanceYearEndPackages = () =>
+export const useFinanceYearEndPackages = (ngoId?: string | null) =>
   useQuery({
-    queryKey: ["finance-year-end-packages"],
+    queryKey: ["finance-year-end-packages", ngoId ?? "hpg"],
     enabled: !!supabase,
     queryFn: async () => {
       ensureSupabase();
-      const { data, error } = await supabase
+      let query = supabase
         .from("finance_year_end_packages" as never)
         .select("*")
         .order("fiscal_year", { ascending: false });
+      query = ngoId
+        ? query.eq("ngo_id" as never, ngoId as never)
+        : query.is("ngo_id" as never, null);
+      const { data, error } = await query;
       if (error) throw error;
       return data || [];
     },

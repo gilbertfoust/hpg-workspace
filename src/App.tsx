@@ -47,17 +47,6 @@ import FinanceAccountsReceivablePage from "./pages/FinanceAccountsReceivablePage
 import FinanceCompliancePage from "./pages/FinanceCompliancePage";
 import FinanceFiscalSponsorshipPage from "./pages/FinanceFiscalSponsorshipPage";
 import FinanceOpeningBalancesPage from "./pages/FinanceOpeningBalancesPage";
-import NGOFinancialOverview from "./pages/NGOFinancialOverview";
-import PeriodDetail from "./pages/PeriodDetail";
-import AccountsPage from "./pages/AccountsPage";
-import TransactionsPage from "./pages/TransactionsPage";
-import NewTransactionPage from "./pages/NewTransactionPage";
-import GeneralLedgerPage from "./pages/GeneralLedgerPage";
-import TrialBalancePage from "./pages/TrialBalancePage";
-import ComplianceDashboard from "./pages/ComplianceDashboard";
-import StatementsPage from "./pages/StatementsPage";
-import PackagesPage from "./pages/PackagesPage";
-import CloseYearPage from "./pages/CloseYearPage";
 import IntakeDashboard from "./pages/IntakeDashboard";
 import IntakeReviewPage from "./pages/IntakeReviewPage";
 import CostCentersPage from "./pages/CostCentersPage";
@@ -67,23 +56,7 @@ import ChargebacksPage from "./pages/ChargebacksPage";
 import UsageReportsPage from "./pages/UsageReportsPage";
 import DepartmentForms from "./pages/DepartmentForms";
 import AutomationsDashboard from "./pages/AutomationsDashboard";
-import JournalEntryWorkspace from "./pages/JournalEntryWorkspace";
-import GeneralLedgerOverview from "./pages/GeneralLedgerOverview";
-import AccountLedgerDetail from "./pages/AccountLedgerDetail";
-import TrialBalanceWorksheet from "./pages/TrialBalanceWorksheet";
-import ProfitAndLoss from "./pages/ProfitAndLoss";
-import BalanceSheetPage from "./pages/BalanceSheetPage";
-import CashFlowStatement from "./pages/CashFlowStatement";
 import CashFlowForecastPage from "./pages/CashFlowForecastPage";
-import BankReconciliationPage from "./pages/BankReconciliationPage";
-import PeriodComparisonPage from "./pages/PeriodComparisonPage";
-import InvoicesPage from "./pages/InvoicesPage";
-import AgedReceivablesPage from "./pages/AgedReceivablesPage";
-import BillsPage from "./pages/BillsPage";
-import AgedPayablesPage from "./pages/AgedPayablesPage";
-import RecurringTransactionsPage from "./pages/RecurringTransactionsPage";
-import TaxLiabilityPage from "./pages/TaxLiabilityPage";
-import OpeningBalancesPage from "./pages/OpeningBalancesPage";
 import MyQueue from "./pages/MyQueue";
 import DeptQueue from "./pages/DeptQueue";
 import HRDashboard from "./pages/HRDashboard";
@@ -254,43 +227,43 @@ const App = () => {
                 <Route path="/financial-hub/accounting/compliance" element={<P><FinanceCompliancePage /></P>} />
                 <Route path="/financial-hub/accounting/fiscal-sponsorship" element={<P><FinanceFiscalSponsorshipPage /></P>} />
                 <Route path="/financial-hub/accounting/opening-balances" element={<P><FinanceOpeningBalancesPage /></P>} />
-                <Route path="/financial-hub/ngo/:ngoId" element={<P><NGOFinancialOverview /></P>} />
-                <Route path="/financial-hub/ngo/:ngoId/period/:periodId" element={<P><PeriodDetail /></P>} />
-                <Route path="/financial-hub/accounts" element={<P><AccountsPage /></P>} />
-                <Route path="/financial-hub/transactions" element={<P><TransactionsPage /></P>} />
-                <Route path="/financial-hub/transactions/new" element={<P><NewTransactionPage /></P>} />
-                <Route path="/financial-hub/ledger" element={<P><GeneralLedgerPage /></P>} />
-                <Route path="/financial-hub/trial-balance" element={<P><TrialBalancePage /></P>} />
+                <Route path="/financial-hub/ngo/:ngoId" element={<Navigate to="/financial-hub/accounting/reports" replace />} />
+                <Route path="/financial-hub/ngo/:ngoId/period/:periodId" element={<Navigate to="/financial-hub/accounting/reports" replace />} />
+                <Route path="/financial-hub/accounts" element={<Navigate to="/financial-hub/accounting/chart-of-accounts" replace />} />
+                <Route path="/financial-hub/transactions" element={<Navigate to="/financial-hub/accounting/journal-entries" replace />} />
+                <Route path="/financial-hub/transactions/new" element={<Navigate to="/financial-hub/accounting/journal-entries" replace />} />
+                <Route path="/financial-hub/ledger" element={<Navigate to="/financial-hub/accounting/reports" replace />} />
+                <Route path="/financial-hub/trial-balance" element={<Navigate to="/financial-hub/accounting/reports" replace />} />
                 <Route path="/financial-hub/intake" element={<P><IntakeDashboard /></P>} />
                 <Route path="/financial-hub/intake/review/:intakeId" element={<P><IntakeReviewPage /></P>} />
-                <Route path="/financial-hub/compliance" element={<P><ComplianceDashboard /></P>} />
-                <Route path="/financial-hub/compliance/statements" element={<P><StatementsPage /></P>} />
-                <Route path="/financial-hub/compliance/packages" element={<P><PackagesPage /></P>} />
-                <Route path="/financial-hub/compliance/close-year" element={<P><CloseYearPage /></P>} />
+                <Route path="/financial-hub/compliance" element={<Navigate to="/financial-hub/accounting/compliance" replace />} />
+                <Route path="/financial-hub/compliance/statements" element={<Navigate to="/financial-hub/accounting/reports" replace />} />
+                <Route path="/financial-hub/compliance/packages" element={<Navigate to="/financial-hub/accounting/compliance" replace />} />
+                <Route path="/financial-hub/compliance/close-year" element={<Navigate to="/financial-hub/accounting/compliance" replace />} />
                 <Route path="/financial-hub/compliance/policies" element={<P><PolicyRegistryPage /></P>} />
                 <Route path="/financial-hub/cost-centers" element={<P><CostCentersPage /></P>} />
                 <Route path="/financial-hub/usage" element={<P><UsageEntriesPage /></P>} />
                 <Route path="/financial-hub/allocations" element={<P><AllocationsPage /></P>} />
                 <Route path="/financial-hub/chargebacks" element={<P><ChargebacksPage /></P>} />
                 <Route path="/financial-hub/usage/reports" element={<P><UsageReportsPage /></P>} />
-                <Route path="/financial-hub/journal" element={<P><JournalEntryWorkspace /></P>} />
-                <Route path="/financial-hub/general-ledger" element={<P><GeneralLedgerOverview /></P>} />
-                <Route path="/financial-hub/general-ledger/account/:accountId" element={<P><AccountLedgerDetail /></P>} />
-                <Route path="/financial-hub/trial-balance-worksheet" element={<P><TrialBalanceWorksheet /></P>} />
-                <Route path="/financial-hub/reports/profit-and-loss" element={<P><ProfitAndLoss /></P>} />
-                <Route path="/financial-hub/reports/balance-sheet" element={<P><BalanceSheetPage /></P>} />
-                <Route path="/financial-hub/reports/cash-flow-statement" element={<P><CashFlowStatement /></P>} />
+                <Route path="/financial-hub/journal" element={<Navigate to="/financial-hub/accounting/journal-entries" replace />} />
+                <Route path="/financial-hub/general-ledger" element={<Navigate to="/financial-hub/accounting/reports" replace />} />
+                <Route path="/financial-hub/general-ledger/account/:accountId" element={<Navigate to="/financial-hub/accounting/reports" replace />} />
+                <Route path="/financial-hub/trial-balance-worksheet" element={<Navigate to="/financial-hub/accounting/reports" replace />} />
+                <Route path="/financial-hub/reports/profit-and-loss" element={<Navigate to="/financial-hub/accounting/reports" replace />} />
+                <Route path="/financial-hub/reports/balance-sheet" element={<Navigate to="/financial-hub/accounting/reports" replace />} />
+                <Route path="/financial-hub/reports/cash-flow-statement" element={<Navigate to="/financial-hub/accounting/reports" replace />} />
                 <Route path="/financial-hub/cash-flow-forecast" element={<P><CashFlowForecastPage /></P>} />
                 <Route path="/financial-hub/cash-flow-forecast/:forecastId" element={<P><CashFlowForecastPage /></P>} />
-                <Route path="/financial-hub/reconciliation" element={<P><BankReconciliationPage /></P>} />
-                <Route path="/financial-hub/reports/period-comparison" element={<P><PeriodComparisonPage /></P>} />
-                <Route path="/financial-hub/invoices" element={<P><InvoicesPage /></P>} />
-                <Route path="/financial-hub/reports/aged-receivables" element={<P><AgedReceivablesPage /></P>} />
-                <Route path="/financial-hub/bills" element={<P><BillsPage /></P>} />
-                <Route path="/financial-hub/reports/aged-payables" element={<P><AgedPayablesPage /></P>} />
-                <Route path="/financial-hub/recurring-transactions" element={<P><RecurringTransactionsPage /></P>} />
-                <Route path="/financial-hub/reports/tax-liability" element={<P><TaxLiabilityPage /></P>} />
-                <Route path="/financial-hub/opening-balances" element={<P><OpeningBalancesPage /></P>} />
+                <Route path="/financial-hub/reconciliation" element={<Navigate to="/financial-hub/accounting/reconciliation" replace />} />
+                <Route path="/financial-hub/reports/period-comparison" element={<Navigate to="/financial-hub/accounting/reports" replace />} />
+                <Route path="/financial-hub/invoices" element={<Navigate to="/financial-hub/accounting/accounts-receivable" replace />} />
+                <Route path="/financial-hub/reports/aged-receivables" element={<Navigate to="/financial-hub/accounting/reports" replace />} />
+                <Route path="/financial-hub/bills" element={<Navigate to="/financial-hub/accounting/accounts-payable" replace />} />
+                <Route path="/financial-hub/reports/aged-payables" element={<Navigate to="/financial-hub/accounting/reports" replace />} />
+                <Route path="/financial-hub/recurring-transactions" element={<Navigate to="/financial-hub/accounting/journal-entries" replace />} />
+                <Route path="/financial-hub/reports/tax-liability" element={<Navigate to="/financial-hub/accounting/reports" replace />} />
+                <Route path="/financial-hub/opening-balances" element={<Navigate to="/financial-hub/accounting/opening-balances" replace />} />
 
                 {/* Department Forms */}
                 <Route path="/department-forms" element={<P><DepartmentForms /></P>} />

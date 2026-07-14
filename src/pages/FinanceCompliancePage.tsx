@@ -17,26 +17,31 @@ import { exportToCsv } from "@/hooks/useFinanceReports";
 import { logFinanceExport } from "@/hooks/useFinanceCompliance";
 import { hasFinancePermission } from "@/lib/financePermissions";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useWorkspaceNgo } from "@/hooks/useWorkspaceNgo";
 
 const fmt = (n: number) => n.toLocaleString(undefined, { style: "currency", currency: "USD" });
 const yearStart = `${new Date().getFullYear()}-01-01`;
 const today = new Date().toISOString().slice(0, 10);
 
 const FinanceCompliancePage = () => {
+  const { selectedNgo, selectedNgoId } = useWorkspaceNgo();
   const { role } = useUserRole();
   const canManage = hasFinancePermission(role, "edit_settings");
   const [startDate, setStartDate] = useState(yearStart);
   const [endDate, setEndDate] = useState(today);
   const [fiscalYear, setFiscalYear] = useState(new Date().getFullYear());
 
-  const { data: tbValidation } = useFinanceTrialBalanceValidation(startDate, endDate);
-  const { data: functional } = useFinanceFunctionalExpenseReport(startDate, endDate);
-  const { data: restricted } = useFinanceRestrictedFundReport(endDate);
-  const { data: packages = [] } = useFinanceYearEndPackages();
+  const { data: tbValidation } = useFinanceTrialBalanceValidation(startDate, endDate, selectedNgoId);
+  const { data: functional } = useFinanceFunctionalExpenseReport(startDate, endDate, selectedNgoId);
+  const { data: restricted } = useFinanceRestrictedFundReport(endDate, selectedNgoId);
+  const { data: packages = [] } = useFinanceYearEndPackages(selectedNgoId);
   const generatePackage = useGenerateYearEndPackage();
 
   return (
-    <MainLayout title="Compliance & Year-End" subtitle="Functional expenses, restricted funds, trial balance validation, and audit packages">
+    <MainLayout
+      title="Compliance & Year-End"
+      subtitle={`Functional expenses, restricted funds, validation, and audit packages for ${selectedNgo?.common_name || selectedNgo?.legal_name || "HPG operating"}`}
+    >
       <Card className="mb-4">
         <CardContent className="pt-6 flex flex-wrap gap-4 items-end">
           <div><Label>Start</Label><Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="w-40" /></div>
@@ -95,7 +100,7 @@ const FinanceCompliancePage = () => {
             <Card>
               <CardContent className="pt-6 flex gap-3 items-end">
                 <div><Label>Fiscal year</Label><Input type="number" value={fiscalYear} onChange={(e) => setFiscalYear(Number(e.target.value))} className="w-32" /></div>
-                <Button onClick={() => generatePackage.mutate({ fiscalYear })}>Generate audit package</Button>
+                <Button onClick={() => generatePackage.mutate({ fiscalYear, ngoId: selectedNgoId })}>Generate audit package</Button>
               </CardContent>
             </Card>
           )}

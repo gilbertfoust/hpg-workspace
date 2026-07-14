@@ -17,32 +17,37 @@ import { useFinanceAccounts } from "@/hooks/useFinanceAccounts";
 import { useFinanceDeposits } from "@/hooks/useFinanceDeposits";
 import { FINANCE_DEPOSIT_SOURCE_LABELS } from "@/types/financeAccounting";
 import { toast } from "sonner";
+import { useWorkspaceNgo } from "@/hooks/useWorkspaceNgo";
 
 const fmt = (n: number) => n.toLocaleString(undefined, { style: "currency", currency: "USD" });
 const yearStart = `${new Date().getFullYear()}-01-01`;
 const today = new Date().toISOString().slice(0, 10);
 
 const FinanceReportsPage = () => {
+  const { selectedNgo, selectedNgoId } = useWorkspaceNgo();
   const [startDate, setStartDate] = useState(yearStart);
   const [endDate, setEndDate] = useState(today);
   const [includeDrafts, setIncludeDrafts] = useState(false);
   const [glAccountId, setGlAccountId] = useState<string>("");
 
-  const filters = useMemo(() => ({ startDate, endDate, includeDrafts }), [startDate, endDate, includeDrafts]);
+  const filters = useMemo(
+    () => ({ startDate, endDate, includeDrafts, ngoId: selectedNgoId }),
+    [endDate, includeDrafts, selectedNgoId, startDate],
+  );
   const { data: trialBalance = [], isLoading: tbLoading } = useFinanceTrialBalance(filters);
   const { data: pl } = useFinanceStatementOfActivity(filters);
   const { data: bs } = useFinanceBalanceSheet(filters);
   const { data: fundBalance = [] } = useFinanceFundBalanceSummary(filters);
   const { data: glLines = [] } = useFinanceGeneralLedger({ ...filters, accountId: glAccountId || undefined });
-  const { data: apAging = [] } = useFinanceApAging();
-  const { data: missingReceipts = [] } = useFinanceMissingReceiptsReport();
-  const { data: deposits = [] } = useFinanceDeposits();
+  const { data: apAging = [] } = useFinanceApAging(selectedNgoId);
+  const { data: missingReceipts = [] } = useFinanceMissingReceiptsReport(selectedNgoId);
+  const { data: deposits = [] } = useFinanceDeposits(selectedNgoId);
   const { data: accounts = [] } = useFinanceAccounts();
-  const { data: cashFlow } = useFinanceStatementOfCashFlows(startDate, endDate);
-  const { data: tbValidation } = useFinanceTrialBalanceValidation(startDate, endDate);
-  const { data: sofp } = useFinanceStatementOfFinancialPosition(endDate);
-  const { data: soa } = useFinanceStatementOfActivities(startDate, endDate);
-  const { data: arAging = [] } = useFinanceArAging();
+  const { data: cashFlow } = useFinanceStatementOfCashFlows(startDate, endDate, selectedNgoId);
+  const { data: tbValidation } = useFinanceTrialBalanceValidation(startDate, endDate, selectedNgoId);
+  const { data: sofp } = useFinanceStatementOfFinancialPosition(endDate, selectedNgoId);
+  const { data: soa } = useFinanceStatementOfActivities(startDate, endDate, selectedNgoId);
+  const { data: arAging = [] } = useFinanceArAging(selectedNgoId);
   const saveSnapshot = useSaveFinanceReportSnapshot();
 
   const postedDeposits = deposits.filter((d) => d.status === "posted");
@@ -64,7 +69,10 @@ const FinanceReportsPage = () => {
   };
 
   return (
-    <MainLayout title="Financial Reports" subtitle="Official reports use posted journal entries unless drafts toggle is on">
+    <MainLayout
+      title="Financial Reports"
+      subtitle={`Official posted-ledger reports for ${selectedNgo?.common_name || selectedNgo?.legal_name || "All HPG"}`}
+    >
       <Card className="mb-6">
         <CardContent className="pt-6 flex flex-wrap gap-4 items-end">
           <div className="space-y-2"><Label>Start date</Label><Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="w-40" /></div>

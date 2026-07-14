@@ -7,17 +7,21 @@ const ensureSupabase = () => {
   if (!supabase) throw getSupabaseNotConfiguredError();
 };
 
-export const useFinanceFiscalPeriods = () =>
+export const useFinanceFiscalPeriods = (ngoId?: string | null) =>
   useQuery({
-    queryKey: ["finance-fiscal-periods"],
+    queryKey: ["finance-fiscal-periods", ngoId ?? "hpg"],
     enabled: !!supabase,
     queryFn: async (): Promise<FinanceFiscalPeriod[]> => {
       ensureSupabase();
-      const { data, error } = await supabase
+      let query = supabase
         .from("finance_fiscal_periods" as never)
         .select("*")
         .order("fiscal_year", { ascending: false })
         .order("start_date", { ascending: true });
+      query = ngoId
+        ? query.eq("ngo_id" as never, ngoId as never)
+        : query.is("ngo_id" as never, null);
+      const { data, error } = await query;
       if (error) throw error;
       return (data || []) as FinanceFiscalPeriod[];
     },
