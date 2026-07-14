@@ -7,12 +7,24 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const read = (path) => readFileSync(resolve(root, path), "utf8");
 
 const migration = read("supabase/migrations/20260713204701_finance_hub_production_completion.sql");
+const entityMigration = read("supabase/migrations/20260714093542_finance_entity_ledger_authority.sql");
+const expenseMigration = read("supabase/migrations/20260714100203_finance_atomic_expense_transactions.sql");
+const receiptMigration = read("supabase/migrations/20260714104500_finance_receipt_intelligence.sql");
+const bankMigration = read("supabase/migrations/20260714111500_finance_bank_statement_reconciliation.sql");
+const closeMigration = read("supabase/migrations/20260714121500_finance_close_migration_and_year_end.sql");
+const monthlyAuthorityMigration = read("supabase/migrations/20260714122500_finance_monthly_posting_period_authority.sql");
+const openingEvidenceMigration = read("supabase/migrations/20260714123500_finance_opening_balance_source_evidence.sql");
 const app = read("src/App.tsx");
 const hub = read("src/pages/FinancialHub.tsx");
 const operations = read("src/pages/FinanceOperationsPage.tsx");
 const reports = read("src/pages/FinanceReportsPage.tsx");
 const purchaseHook = read("src/hooks/usePurchaseRequests.ts");
 const budgetHook = read("src/hooks/useFinanceBudgets.ts");
+const transactionPage = read("src/pages/FinanceTransactionsPage.tsx");
+const reconciliationPage = read("src/pages/FinanceReconciliationPage.tsx");
+const fiscalPeriodsPage = read("src/pages/FinanceFiscalPeriodsPage.tsx");
+const openingBalancesPage = read("src/pages/FinanceOpeningBalancesPage.tsx");
+const compliancePage = read("src/pages/FinanceCompliancePage.tsx");
 
 const requiredMigrationContracts = [
   "CREATE TABLE IF NOT EXISTS public.finance_expense_requests",
@@ -39,6 +51,23 @@ for (const contract of requiredMigrationContracts) {
   assert.ok(migration.includes(contract), `Missing migration contract: ${contract}`);
 }
 
+const accountingContracts = [
+  [entityMigration, "finance_validate_journal_entity_scope"],
+  [expenseMigration, "create_and_post_finance_expense_transaction"],
+  [receiptMigration, "post_finance_receipt_draft"],
+  [bankMigration, "import_finance_bank_statement"],
+  [bankMigration, "finalize_finance_bank_reconciliation"],
+  [closeMigration, "finance_period_close_readiness"],
+  [closeMigration, "finalize_finance_year_end"],
+  [monthlyAuthorityMigration, "period.period_type = 'month'"],
+  [openingEvidenceMigration, "import_finance_opening_balances_with_source"],
+  [openingEvidenceMigration, "Source CSV for posted opening balances"],
+];
+
+for (const [source, contract] of accountingContracts) {
+  assert.ok(source.includes(contract), `Missing accounting contract: ${contract}`);
+}
+
 assert.match(app, /path="\/financial-hub\/operations"/);
 assert.ok(hub.includes("Finance Operations"), "Finance Hub must expose the operational queue");
 assert.ok(operations.includes("Approval queue"), "Operations page must contain a unified approval queue");
@@ -46,6 +75,11 @@ assert.ok(operations.includes("Notification outbox"), "Operations page must expo
 assert.ok(purchaseHook.includes('rpc("review_purchase_request"'), "Purchase approvals must use the authority-checked RPC");
 assert.ok(budgetHook.includes('rpc("save_finance_budget"'), "Budget saves must be atomic");
 assert.ok(budgetHook.includes('rpc("review_finance_budget"'), "Budget approvals must use the authority-checked RPC");
+assert.ok(transactionPage.includes("receipt"), "Transaction entry must expose receipt evidence");
+assert.ok(reconciliationPage.includes("Statement"), "Reconciliation must expose bank statement imports");
+assert.ok(fiscalPeriodsPage.includes("Close readiness"), "Fiscal periods must expose hard close readiness");
+assert.ok(openingBalancesPage.includes("Post balanced opening journal"), "Opening balances must post into the ledger");
+assert.ok(compliancePage.includes("Finalize & lock year"), "Compliance must expose year-end finalization");
 
 const reportCards = reports.match(/<ReportCard title=/g) ?? [];
 const auditedExports = reports.match(/exportWithAudit\(/g) ?? [];
@@ -54,4 +88,4 @@ assert.equal(auditedExports.length, 10, "Every report card must use the audited 
 assert.equal((reports.match(/exportToCsv\(/g) ?? []).length, 1, "CSV downloads must only occur inside exportWithAudit");
 
 console.log("Finance Hub static contracts: PASS");
-console.log("  3 workflow types · 10 report exports · RLS + RPC authority checks");
+console.log("  NGO ledger · atomic expenses · receipt AI · bank reconciliation · hard close · 10 audited reports");
