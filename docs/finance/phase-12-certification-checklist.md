@@ -12,6 +12,7 @@
 - [x] Locked month rejects posting even when its quarter/year rollup is open
 - [x] Atomic expense commits payment, journal, and receipt evidence together
 - [x] Receipt hash duplicate detection, extraction draft, review, and posting tested
+- [x] Unreadable/mistaken receipt drafts can be dismissed only with a reason; source document and audit evidence are retained
 - [x] Cross-NGO bank match rejected
 - [x] Statement transactions tie to beginning/ending balances
 - [x] Reconciliation requires every statement row resolved and zero difference
