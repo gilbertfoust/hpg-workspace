@@ -211,6 +211,30 @@ export const useRetryFinanceReceiptDraft = () => {
   });
 };
 
+export const useDismissFinanceReceiptDraft = () => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async ({ draftId, reason }: { draftId: string; reason: string }) => {
+      const client = ensureSupabase();
+      const { error } = await client.rpc("dismiss_finance_receipt_draft" as never, {
+        _receipt_draft_id: draftId,
+        _reason: reason,
+      } as never);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["finance-receipt-drafts"] });
+      queryClient.invalidateQueries({ queryKey: ["finance-period-close-readiness"] });
+      toast({ title: "Receipt draft dismissed", description: "The source document and dismissal reason remain in the audit record." });
+    },
+    onError: (error: Error) => {
+      toast({ variant: "destructive", title: "Receipt draft not dismissed", description: error.message });
+    },
+  });
+};
+
 export const useFinanceExpenseTransactions = (ngoId?: string | null) => useQuery({
   queryKey: ["finance-expense-transactions", ngoId ?? "all"],
   enabled: !!supabase,

@@ -1,8 +1,6 @@
 # Finance Hub / QuickBooks-Style Accounting — Implementation Map
 
-**Branch:** `codex/finance-hub-100`
-
-**Bundle:** Phases 31–45 plus Finance Operations completion
+**Bundle:** Finance Operations plus NGO ledger, receipt intelligence, bank reconciliation, and accounting close
 
 **Principle:** Build HPG-internal double-entry ledger in new `finance_*` tables. Legacy `accounts` / `transactions` / `journal_entries` remain for per-NGO ledger experiments; new buildout does not depend on QuickBooks API.
 
@@ -41,7 +39,12 @@ Phases 31–45 add organization-wide accounting tables separate from legacy ledg
 | 43 | — | Dashboard + Finance Hub integration |
 | 44 | RLS refinements | Permission guards |
 | 45 | — | Hardening + docs |
-| Completion | `finance_expense_requests`, `finance_workflow_events`; expense/purchase/budget workflow RPCs; department-scoped authority | Unified operations queue, work-item automation, Slack/email outbox, audited exports |
+| Operations | `finance_expense_requests`, `finance_workflow_events`; expense/purchase/budget workflow RPCs; department-scoped authority | Unified operations queue, work-item automation, Slack/email outbox |
+| Entity authority | NGO headers on journals and fiscal periods; single-entity validation; NGO-aware statements | Workspace NGO selector shared across Finance, Development, and modules |
+| Atomic transactions | One RPC commits payment, balanced journal, receipt document, and links | Expense transaction entry with method, account, reference, and receipt |
+| Receipt intelligence | `finance_receipt_drafts`; hash duplicate detection; review/post RPC; extraction Edge Function | Upload → extract → review → post workflow |
+| Bank/card feeds | `finance_bank_statement_imports`, `finance_bank_statement_transactions`; matching and reconciliation RPCs | CSV import, suggestions, matching, ignored rows, reconciliation |
+| Close and migration | opening source evidence, close readiness snapshots, `finance_year_end_closes`; monthly posting authority | Opening-balance CSV, period review/close/lock, immutable year-end packages |
 
 ## Accounting rules (enforced in DB)
 
@@ -50,6 +53,10 @@ Phases 31–45 add organization-wide accounting tables separate from legacy ledg
 3. Funds carry restriction type for nonprofit reporting.
 4. Lines tie to NGO, fund, department, document, grant, work item as optional dimensions.
 5. All mutations log to `finance_audit_events` where practical.
+6. Monthly periods are the only posting periods; quarter/year records are reporting rollups.
+7. Opening balances are staged, balanced, source-attached, and posted as one journal.
+8. Period and year close actions are rejected until their database readiness checks pass.
+9. Finalized reconciliations and year-end packages are immutable evidence.
 
 ## Permission model (Phase 31 baseline → Phase 44 refine)
 
@@ -57,7 +64,9 @@ Phases 31–45 add organization-wide accounting tables separate from legacy ledg
 - **Read (internal):** internal staff (department scoping in Phase 44)
 - **No access:** NGO portal roles
 
-## Deployment
+## Production deployment
 
-- Migrations written locally; `supabase db push` only when explicitly instructed.
-- No QuickBooks / Plaid integration in this bundle.
+- All Finance migrations through the close/lock hardening bundle are active in the connected HPG project.
+- Receipt extraction is deployed as the authenticated `extract-finance-receipt` Edge Function.
+- Bank connectivity is statement-CSV based; Plaid or another aggregator is optional, not required for ledger operation.
+- The prior system is needed only for a cutover export and historical archive after accountant sign-off.

@@ -1,6 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getSupabaseNotConfiguredError, supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import type {
+  FinanceYearEndClose,
+  FinanceYearEndCloseReadiness,
+  FinanceYearEndPackage,
+} from "@/types/financeAccounting";
 
 const ensureSupabase = () => {
   if (!supabase) throw getSupabaseNotConfiguredError();
@@ -159,9 +164,91 @@ export const useFinanceYearEndPackages = (ngoId?: string | null) =>
         : query.is("ngo_id" as never, null);
       const { data, error } = await query;
       if (error) throw error;
-      return data || [];
+      return (data || []) as unknown as FinanceYearEndPackage[];
     },
   });
+
+export const useFinanceYearEndCloses = (ngoId?: string | null) =>
+  useQuery({
+    queryKey: ["finance-year-end-closes", ngoId ?? "hpg"],
+    enabled: !!supabase,
+    queryFn: async (): Promise<FinanceYearEndClose[]> => {
+      ensureSupabase();
+      let query = supabase
+        .from("finance_year_end_closes" as never)
+        .select("*")
+        .order("fiscal_year", { ascending: false });
+      query = ngoId
+        ? query.eq("ngo_id" as never, ngoId as never)
+        : query.is("ngo_id" as never, null);
+      const { data, error } = await query;
+      if (error) throw error;
+      return (data || []) as unknown as FinanceYearEndClose[];
+    },
+  });
+
+export const useFinanceYearEndCloseReadiness = (fiscalYear: number, ngoId?: string | null) =>
+  useQuery({
+    queryKey: ["finance-year-end-close-readiness", fiscalYear, ngoId ?? "hpg"],
+    enabled: !!supabase && Number.isInteger(fiscalYear),
+    queryFn: async (): Promise<FinanceYearEndCloseReadiness> => {
+      ensureSupabase();
+      const { data, error } = await supabase.rpc("finance_year_end_close_readiness" as never, {
+        _fiscal_year: fiscalYear,
+        _ngo_id: ngoId ?? null,
+      } as never);
+      if (error) throw error;
+      return data as unknown as FinanceYearEndCloseReadiness;
+    },
+  });
+
+export const useFinalizeFinanceYearEnd = () => {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+  return useMutation({
+    mutationFn: async ({ fiscalYear, ngoId }: { fiscalYear: number; ngoId?: string | null }): Promise<FinanceYearEndClose> => {
+      ensureSupabase();
+      const { data, error } = await supabase.rpc("finalize_finance_year_end" as never, {
+        _fiscal_year: fiscalYear,
+        _ngo_id: ngoId ?? null,
+      } as never);
+      if (error) throw error;
+      return data as unknown as FinanceYearEndClose;
+    },
+    onSuccess: (_, input) => {
+      qc.invalidateQueries({ queryKey: ["finance-year-end-closes"] });
+      qc.invalidateQueries({ queryKey: ["finance-year-end-packages"] });
+      qc.invalidateQueries({ queryKey: ["finance-fiscal-periods"] });
+      qc.invalidateQueries({ queryKey: ["finance-year-end-close-readiness", input.fiscalYear] });
+      toast({ title: "Fiscal year finalized", description: "All periods are locked and the audit package is immutable." });
+    },
+    onError: (e: Error) => toast({ variant: "destructive", title: "Fiscal year not finalized", description: e.message }),
+  });
+};
+
+export const useReopenFinanceYearEnd = () => {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+  return useMutation({
+    mutationFn: async ({ fiscalYear, ngoId, reason }: { fiscalYear: number; ngoId?: string | null; reason: string }): Promise<FinanceYearEndClose> => {
+      ensureSupabase();
+      const { data, error } = await supabase.rpc("reopen_finance_year_end" as never, {
+        _fiscal_year: fiscalYear,
+        _ngo_id: ngoId ?? null,
+        _reason: reason,
+      } as never);
+      if (error) throw error;
+      return data as unknown as FinanceYearEndClose;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["finance-year-end-closes"] });
+      qc.invalidateQueries({ queryKey: ["finance-fiscal-periods"] });
+      qc.invalidateQueries({ queryKey: ["finance-year-end-close-readiness"] });
+      toast({ title: "Fiscal year reopened", description: "The prior audit package remains locked as historical evidence." });
+    },
+    onError: (e: Error) => toast({ variant: "destructive", title: "Fiscal year not reopened", description: e.message }),
+  });
+};
 
 export const logFinanceExport = async (reportType: string, filters: Record<string, unknown> = {}) => {
   if (!supabase) return;

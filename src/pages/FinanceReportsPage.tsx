@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Download } from "lucide-react";
+import { Loader2, Download, Printer } from "lucide-react";
 import {
   exportToCsv, useFinanceApAging, useFinanceBalanceSheet, useFinanceFundBalanceSummary,
   useFinanceGeneralLedger, useFinanceMissingReceiptsReport, useFinanceStatementOfActivity, useFinanceTrialBalance,
@@ -29,6 +29,7 @@ const FinanceReportsPage = () => {
   const [endDate, setEndDate] = useState(today);
   const [includeDrafts, setIncludeDrafts] = useState(false);
   const [glAccountId, setGlAccountId] = useState<string>("");
+  const [activeReport, setActiveReport] = useState("trial-balance");
 
   const filters = useMemo(
     () => ({ startDate, endDate, includeDrafts, ngoId: selectedNgoId }),
@@ -51,6 +52,16 @@ const FinanceReportsPage = () => {
   const saveSnapshot = useSaveFinanceReportSnapshot();
 
   const postedDeposits = deposits.filter((d) => d.status === "posted");
+  const positionAssets = (sofp?.assets as Array<{ code: string; name: string; balance: number }> | undefined) ?? [];
+  const positionLiabilities = (sofp?.liabilities as Array<{ code: string; name: string; balance: number }> | undefined) ?? [];
+  const cashFlowRows: Array<[string, number]> = cashFlow ? [
+    ["Operating activities", Number(cashFlow.operating_cash_flow)],
+    ["Investing activities", Number(cashFlow.investing_cash_flow)],
+    ["Financing activities", Number(cashFlow.financing_cash_flow)],
+    ["Net change in cash", Number(cashFlow.net_change_in_cash)],
+    ["Beginning cash", Number(cashFlow.beginning_cash_balance)],
+    ["Ending cash", Number(cashFlow.ending_cash_balance)],
+  ] : [];
 
   const exportWithAudit = async (
     reportType: string,
@@ -63,6 +74,17 @@ const FinanceReportsPage = () => {
       exportToCsv(filename, headers, rows);
     } catch (error) {
       toast.error("Export canceled because the audit event could not be recorded", {
+        description: error instanceof Error ? error.message : "Unknown export error",
+      });
+    }
+  };
+
+  const printWithAudit = async () => {
+    try {
+      await logFinanceExport(`${activeReport.replace(/-/g, "_")}_print`, { ...filters, accountId: glAccountId || null });
+      window.print();
+    } catch (error) {
+      toast.error("Print canceled because the audit event could not be recorded", {
         description: error instanceof Error ? error.message : "Unknown export error",
       });
     }
@@ -83,10 +105,13 @@ const FinanceReportsPage = () => {
               TB {tbValidation.is_balanced ? "balanced" : "unbalanced"}
             </span>
           )}
+          <Button variant="outline" onClick={printWithAudit}>
+            <Printer className="h-4 w-4 mr-1" />Print / Save PDF
+          </Button>
         </CardContent>
       </Card>
 
-      <Tabs defaultValue="trial-balance">
+      <Tabs value={activeReport} onValueChange={setActiveReport}>
         <TabsList className="flex flex-wrap h-auto gap-1">
           <TabsTrigger value="trial-balance">Trial Balance</TabsTrigger>
           <TabsTrigger value="pl">Statement of Activity</TabsTrigger>
@@ -116,9 +141,14 @@ const FinanceReportsPage = () => {
             soa ? [
               ["Revenue without restrictions", Number(soa.revenue_without_restrictions)],
               ["Revenue with restrictions", Number(soa.revenue_with_restrictions)],
+              ["Net assets released", Number(soa.net_assets_released)],
+              ["Total revenue", Number(soa.total_revenue)],
               ["Program expenses", Number(soa.program_expenses)],
               ["Management & general", Number(soa.management_general_expenses)],
               ["Fundraising", Number(soa.fundraising_expenses)],
+              ["Pass-through expenses", Number(soa.pass_through_expenses)],
+              ["Other expenses", Number(soa.other_expenses)],
+              ["Total expenses", Number(soa.total_expenses)],
               ["Change in net assets", Number(soa.change_in_net_assets)],
             ] : [])}
             extraAction={soa ? () => saveSnapshot.mutate({ reportType: "statement_of_activities", label: `SOA ${startDate}–${endDate}`, filters: { startDate, endDate }, data: soa as Record<string, unknown> }) : undefined}
@@ -129,12 +159,18 @@ const FinanceReportsPage = () => {
                   ["Revenue without donor restrictions", soa.revenue_without_restrictions],
                   ["Revenue with donor restrictions", soa.revenue_with_restrictions],
                   ["Net assets released", soa.net_assets_released],
+                  ["Total revenue", soa.total_revenue],
                   ["Program expenses", soa.program_expenses],
                   ["Management & general", soa.management_general_expenses],
                   ["Fundraising expenses", soa.fundraising_expenses],
+                  ["Pass-through expenses", soa.pass_through_expenses],
+                  ["Other expenses", soa.other_expenses],
+                  ["Total expenses", soa.total_expenses],
                   ["Change in net assets", soa.change_in_net_assets],
                 ].map(([label, val]) => (
-                  <div key={String(label)} className="flex justify-between"><span>{label}</span><span>{fmt(Number(val))}</span></div>
+                  <div key={String(label)} className={`flex justify-between ${String(label).startsWith("Total") || label === "Change in net assets" ? "font-semibold border-t pt-2" : ""}`}>
+                    <span>{label}</span><span>{fmt(Number(val))}</span>
+                  </div>
                 ))}
               </div>
             ) : (
@@ -156,6 +192,10 @@ const FinanceReportsPage = () => {
             "statement-of-financial-position.csv",
             ["Metric", "Amount"],
             sofp ? [
+              ...positionAssets.map((account) => [`Asset: ${account.code} — ${account.name}`, Number(account.balance)]),
+              ["Total assets", Number(sofp.total_assets)],
+              ...positionLiabilities.map((account) => [`Liability: ${account.code} — ${account.name}`, Number(account.balance)]),
+              ["Total liabilities", Number(sofp.total_liabilities)],
               ["Net assets without donor restrictions", Number(sofp.net_assets_without_restrictions)],
               ["Net assets with donor restrictions", Number(sofp.net_assets_with_restrictions)],
               ["Total net assets", Number(sofp.total_net_assets)],
@@ -166,9 +206,21 @@ const FinanceReportsPage = () => {
           )}>
             {sofp ? (
               <div className="space-y-4 text-sm">
-                <div><h4 className="font-medium">Net assets without donor restrictions</h4><p>{fmt(Number(sofp.net_assets_without_restrictions))}</p></div>
-                <div><h4 className="font-medium">Net assets with donor restrictions</h4><p>{fmt(Number(sofp.net_assets_with_restrictions))}</p></div>
-                <div><h4 className="font-medium">Total net assets</h4><p className="font-semibold">{fmt(Number(sofp.total_net_assets))}</p></div>
+                <StatementSection title="Assets" rows={positionAssets} totalLabel="Total assets" total={Number(sofp.total_assets)} />
+                <StatementSection title="Liabilities" rows={positionLiabilities} totalLabel="Total liabilities" total={Number(sofp.total_liabilities)} />
+                <div className="border-t pt-3 space-y-2">
+                  <h4 className="font-medium">Net assets</h4>
+                  <div className="flex justify-between"><span>Without donor restrictions</span><span>{fmt(Number(sofp.net_assets_without_restrictions))}</span></div>
+                  <div className="flex justify-between"><span>With donor restrictions</span><span>{fmt(Number(sofp.net_assets_with_restrictions))}</span></div>
+                  <div className="flex justify-between font-semibold border-t pt-2"><span>Total net assets</span><span>{fmt(Number(sofp.total_net_assets))}</span></div>
+                </div>
+                <div className="flex justify-between font-semibold border-t-2 pt-3">
+                  <span>Total liabilities and net assets</span>
+                  <span>{fmt(Number(sofp.total_liabilities_and_net_assets))}</span>
+                </div>
+                <p className={sofp.statement_is_balanced ? "text-green-600" : "text-destructive"}>
+                  {sofp.statement_is_balanced ? "Statement balances." : `Statement is out of balance by ${fmt(Number(sofp.statement_difference))}.`}
+                </p>
               </div>
             ) : (
               (["asset", "liability", "equity"] as const).map((section) => (
@@ -186,13 +238,18 @@ const FinanceReportsPage = () => {
             "statement_of_cash_flows",
             "statement-of-cash-flows.csv",
             ["Metric", "Amount"],
-            cashFlow ? Object.entries(cashFlow).filter(([key]) => !key.includes("date")).map(([key, value]) => [key.replace(/_/g, " "), Number(value)]) : [],
+            cashFlowRows,
           )}>
             {cashFlow && (
               <div className="space-y-2 text-sm">
-                {Object.entries(cashFlow).filter(([k]) => !k.includes("date")).map(([k, v]) => (
-                  <div key={k} className="flex justify-between"><span className="capitalize">{k.replace(/_/g, " ")}</span><span>{fmt(Number(v))}</span></div>
+                {cashFlowRows.map(([label, amount]) => (
+                  <div key={label} className={`flex justify-between ${label === "Net change in cash" || label === "Ending cash" ? "font-semibold border-t pt-2" : ""}`}>
+                    <span>{label}</span><span>{fmt(amount)}</span>
+                  </div>
                 ))}
+                <p className={cashFlow.cash_flow_ties ? "text-green-600" : "text-destructive"}>
+                  {cashFlow.cash_flow_ties ? "Cash flow ties to the change in cash." : "Cash flow does not tie — review classifications."}
+                </p>
               </div>
             )}
           </ReportCard>
@@ -294,6 +351,27 @@ const FinanceReportsPage = () => {
     </MainLayout>
   );
 };
+
+function StatementSection({ title, rows, totalLabel, total }: {
+  title: string;
+  rows: Array<{ code: string; name: string; balance: number }>;
+  totalLabel: string;
+  total: number;
+}) {
+  return (
+    <div className="space-y-2">
+      <h4 className="font-medium">{title}</h4>
+      {rows.map((row) => (
+        <div key={`${row.code}-${row.name}`} className="flex justify-between gap-4">
+          <span>{row.code} — {row.name}</span>
+          <span>{fmt(Number(row.balance))}</span>
+        </div>
+      ))}
+      {!rows.length && <p className="text-muted-foreground">No balances.</p>}
+      <div className="flex justify-between font-semibold border-t pt-2"><span>{totalLabel}</span><span>{fmt(total)}</span></div>
+    </div>
+  );
+}
 
 function ReportCard({ title, children, loading, onExport, extraAction }: {
   title: string; children: React.ReactNode; loading?: boolean; onExport?: () => void; extraAction?: () => void;

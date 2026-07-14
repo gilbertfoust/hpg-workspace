@@ -1,72 +1,81 @@
 # Finance Hub Production Readiness
 
-**Implementation status:** 100%
+**Accounting MVP status:** 100% implemented and deployed to the connected HPG Supabase project
 
-**Verification command:** `npm run verify:finance`
+**Repository gate:** `npm run verify:finance`
 
-**Activation:** merge, apply the forward migration, then run the two read-only SQL verification scripts.
+**Transactional database gates:**
 
-## Completed capability
+- `scripts/finance/test_atomic_posting.sql`
+- `scripts/finance/test_bank_statement_reconciliation.sql`
+- `scripts/finance/test_close_and_year_end.sql`
 
-The Financial Hub now provides one operational control plane for:
+## What “100%” means
 
-- expense requests from draft through submission, approval/rejection, and payment;
-- purchase requests with requestor-only submission and Finance-manager approval;
-- atomic budget preparation, submission, and approval;
-- automatic Finance work-item creation for every submitted workflow;
-- durable Slack/email notification events with queued, sent, skipped, and failed states;
-- a unified approval queue and visible notification outbox;
-- database-enforced Finance authority, scoped to the Finance department;
-- audited CSV exports for all ten Finance reports.
+HPG can operate its NGO bookkeeping and nonprofit financial reporting from this workspace without buying QuickBooks for the core general-ledger workflow. The live system now covers:
 
-## Authority matrix
+- workspace-wide NGO selection sourced from the canonical NGO directory;
+- one authoritative, NGO-scoped double-entry ledger;
+- atomic expenses, payments, bills, deposits, journals, reversals, and voids;
+- receipt upload, SHA-256 duplicate detection, AI/OCR draft extraction, account suggestions, human review, and atomic posting;
+- bank, cash, and credit-card registers;
+- CSV statement import, automatic same-NGO ledger matching, evidence-backed reconciliation, and zero-difference finalization;
+- balanced opening-balance CSV migration whose source file is retained and whose rows become a posted journal;
+- monthly posting authority, hard period-close readiness, locking, and reasoned reopen controls;
+- immutable year-end packages and audited year reopen/revision history;
+- trial balance, general ledger, Statement of Activities, Statement of Financial Position, Statement of Cash Flows, functional expenses, restricted funds, budget vs. actual, AP/AR aging, deposits, and missing-receipt reporting;
+- audited CSV, JSON, print, and Save-as-PDF output paths;
+- role-checked operational approvals, work items, and notification outbox records.
 
-| Action | Internal requestor | Finance staff | Finance manager | Auditor / board |
-|---|---:|---:|---:|---:|
-| Submit own expense or purchase request | Yes | Yes | Yes | No |
-| Read own expense requests | Yes | Yes | Yes | No |
-| Prepare and submit budgets | No | Yes | Yes | No |
-| Approve or reject requests and budgets | No | No | Yes | No |
-| Mark an approved expense paid | No | No | Yes | No |
-| Read the accounting ledger | Yes | Yes | Yes | Yes |
-| View the notification outbox | No | Yes | Yes | No |
+This status does not mean the application is a payroll processor, tax/1099 e-filing service, ACH originator, or direct bank-data aggregator. Those are external services rather than ledger requirements. Bank/card data enters through institution CSV exports in this release. A CPA should approve HPG’s chart-of-accounts mappings, opening balances, fiscal policies, and filed statements before the first production close.
 
-Client-side controls improve usability, but the RPCs and row-level security policies are the source of truth. A generic staff role outside the Finance department no longer inherits Finance write access.
+## Accounting guarantees
 
-## Workflow guarantees
+1. Ordinary journals belong to exactly one selected NGO.
+2. Every posted journal has at least two lines and equal debits and credits.
+3. A posting resolves to an open **monthly** period; an open quarter or year cannot bypass a locked month.
+4. Posted activity is immutable; corrections use voids or reversing entries.
+5. Expense posting, payment state, journal lines, and receipt evidence commit in one database transaction.
+6. Receipt extraction never posts autonomously; Finance confirms the draft and accounts.
+7. Bank matches cannot cross NGOs, finalized reconciliations require zero difference, and finalized evidence is locked.
+8. A period cannot close with an unbalanced trial balance, draft journals, unresolved receipts, missing expense evidence, unreconciled bank/card accounts, unresolved statements, open prerequisite months, or unposted opening balances.
+9. Opening balances require a balanced CSV, retained source evidence, and one posted journal.
+10. Finalizing a fiscal year requires all months closed, locks all period rollups, and locks the generated package. Reopening preserves the old package and requires a reason.
+11. The Statement of Cash Flows classifies actual cash movements and must tie beginning cash plus net change to ending cash; non-cash AP accruals are not double-counted.
+12. The Statement of Financial Position rolls cumulative activity into donor-restricted/unrestricted net assets and exposes its accounting-equation difference and balance status.
+13. Unreadable or mistaken receipt drafts can be dismissed with a required reason; the source document remains rejected/auditable while the resolved draft no longer blocks close.
 
-1. Direct Data API writes to expense requests, purchase requests, budgets, and budget lines are revoked.
-2. State changes run through security-definer RPCs that validate the signed-in user and the current state.
-3. Submitting a request creates a Finance `work_items` record and queues configured Slack/email events in the same database transaction.
-4. Approval, rejection, and payment update the work item, Finance audit trail, and notification outbox atomically.
-5. Notification records are an outbox, not a claim of delivery. A dispatcher must mark each event `sent` or `failed`.
-6. CSV generation is canceled if its export audit record cannot be written.
+## Release and verification evidence
 
-## Release procedure
+The connected production schema was migrated incrementally and tested inside rollback-only transactions on July 14, 2026. Tests confirmed:
 
-1. Merge the Finance completion pull request.
-2. Apply migrations with the standard linked-project deployment workflow: `npx supabase db push`.
-3. Run `scripts/finance/test_atomic_posting.sql`.
-4. Run `scripts/finance/test_operational_workflows.sql`.
-5. Confirm the Finance route in `department_notification_routes` points to the intended Slack channel and email recipients.
-6. Confirm the notification dispatcher is running and drains `finance_workflow_events`.
-7. Complete the role-based and accounting-scenario checks in `phase-12-certification-checklist.md`.
+- same-NGO posting and cross-NGO rejection;
+- balanced atomic expense and receipt posting;
+- receipt duplicate detection and review-before-post;
+- bank statement tie-out, matching, reconciliation, and immutable finalization;
+- unbalanced opening import rejection;
+- opening balances posted to the live ledger with source evidence;
+- draft-journal and unposted-opening-balance close blockers;
+- locked-month posting rejection, including the overlapping-quarter bypass test;
+- sequential monthly close, year-end finalization, locked package creation, and controlled reopen.
 
-## Verification evidence
+The production security/performance advisor reports no error or warning for the new close, opening-balance, year-end, receipt-draft, statement-import, or reconciliation tables after hardening. Security-definer RPC notices are intentional: every exposed mutation performs its own signed-in role check and anonymous execution is revoked.
 
-`npm run verify:finance` performs all repository-level release checks:
+## Go-live procedure
 
-- production Vite build;
-- TypeScript typecheck;
-- scoped ESLint over the Finance completion surface;
-- static assertions covering the route, three workflows, protected RPC contracts, RLS, notification outbox, atomic budget save, and all ten audited exports.
+1. Confirm each NGO profile and fiscal calendar.
+2. Have the accountant approve the chart of accounts and nonprofit classifications.
+3. Export the cutover trial balance from the prior system using the opening-balance CSV template.
+4. Import, review, and post the balanced opening journal for each NGO.
+5. Add every bank/card account and import the first statement.
+6. Reconcile through the cutover date.
+7. Run all three transactional database gates and `npm run verify:finance`.
+8. Complete one accountant-led parallel close, compare every statement, and sign the certification checklist.
+9. Make HPG Finance the system of record and retain the prior-system archive read-only.
 
-On 2026-07-13, the completion migration also compiled successfully against the connected HPG PostgreSQL schema inside a rollback-only transaction. A follow-up query confirmed that neither new table persisted.
+## External operating dependencies
 
-The repository-wide `npm run lint` still reports legacy errors outside this change. Those errors are not suppressed or included in the Finance-specific gate.
-
-## Connected-database gates
-
-The connected database's tracked migration history currently ends at the June 30 HR email migrations, while the repository contains later July migrations. Review the complete pending migration set before using `supabase db push`; do not assume this Finance migration is the only pending change.
-
-The live Supabase security advisor also reports that `profiles`, `ngos`, `transaction_number_counters`, and `hr_email_outbox` have RLS disabled. `profiles` and `ngos` already have policies, but those policies are not active until RLS is enabled. This completion migration does not change those shared tables because enabling RLS without first validating all application access paths can cause a workspace-wide outage. Resolve that security gate in a separate, explicitly approved migration.
+- The receipt extraction Edge Function and its AI gateway secret must remain active.
+- The Finance notification dispatcher must drain `finance_workflow_events` if Slack/email delivery is desired.
+- Institution statement CSVs must be downloaded and uploaded until a bank-data provider is added.
+- Backups, user offboarding, MFA, and periodic access reviews remain workspace operations responsibilities.

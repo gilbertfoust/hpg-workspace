@@ -637,6 +637,11 @@ export interface FinanceFiscalPeriod {
   closed_at: string | null;
   locked_at: string | null;
   reopen_reason: string | null;
+  opening_balance_journal_entry_id: string | null;
+  opening_balance_source_document_id: string | null;
+  opening_balance_source_sha256: string | null;
+  close_readiness_snapshot: FinancePeriodCloseReadiness | null;
+  close_check_completed_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -650,6 +655,68 @@ export interface FinanceOpeningBalance {
   debit: number;
   credit: number;
   memo: string | null;
+}
+
+export interface FinancePeriodCloseReadiness {
+  period_id: string;
+  ngo_id: string | null;
+  label: string;
+  start_date: string;
+  end_date: string;
+  status: FinancePeriodStatus;
+  is_ready: boolean;
+  blockers: string[];
+  trial_balance: {
+    total_debit: number;
+    total_credit: number;
+    is_balanced: boolean;
+    ngo_id: string | null;
+  };
+  pending_journals: number;
+  unresolved_receipts: number;
+  unsupported_expenses: number;
+  unreconciled_bank_accounts: number;
+  unresolved_statement_imports: number;
+  dependent_open_periods: number;
+  staged_opening_balances: number;
+  checked_at: string;
+}
+
+export interface FinanceYearEndCloseReadiness {
+  fiscal_year: number;
+  ngo_id: string | null;
+  year_period_id: string;
+  is_ready: boolean;
+  open_months: number;
+  period_readiness: FinancePeriodCloseReadiness;
+  blockers: string[];
+  checked_at: string;
+}
+
+export interface FinanceYearEndPackage {
+  id: string;
+  ngo_id: string | null;
+  fiscal_year: number;
+  label: string;
+  status: "draft" | "final" | "locked";
+  fiscal_period_id: string | null;
+  package_json: Record<string, unknown>;
+  locked_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface FinanceYearEndClose {
+  id: string;
+  ngo_id: string | null;
+  fiscal_year: number;
+  fiscal_period_id: string;
+  package_id: string;
+  status: "finalized" | "reopened";
+  readiness_snapshot: FinanceYearEndCloseReadiness;
+  finalized_at: string | null;
+  reopened_at: string | null;
+  reopen_reason: string | null;
 }
 
 // AR (Phase 7)
