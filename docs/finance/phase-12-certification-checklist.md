@@ -24,7 +24,7 @@
 - [x] Year-end finalization locks all rollups and an immutable reporting package
 - [x] Fiscal-year and period reopen require a reason and preserve the prior package
 - [x] Ten report screens support audited CSV output
-- [x] Statement of Financial Position renders and exports assets, liabilities, and net assets
+- [x] Statement of Financial Position renders/exports assets, liabilities, and restricted/unrestricted net assets, including current activity under the soft-close model
 - [x] Statement of Cash Flows classifies actual cash movements and ties beginning to ending cash without double-counting AP accruals
 - [x] Official reports support audited print / Save-as-PDF output
 - [x] Year-end packages support audited JSON download
