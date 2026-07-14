@@ -127,13 +127,25 @@ export const useFinanceFundBalanceSummary = (filters: FinanceReportFilters) => u
   },
 });
 
-export const useFinanceApAging = () => useQuery({
-  queryKey: ["finance-report-ap-aging"],
+export const useFinanceApAging = (ngoId?: string | null) => useQuery({
+  queryKey: ["finance-report-ap-aging", ngoId ?? "all"],
   enabled: !!supabase,
   queryFn: async () => {
     ensureSupabase();
-    const { data, error } = await supabase.from("finance_bills" as never).select("bill_number, vendor_id, due_date, total_amount, amount_paid, status")
+    let billIds: string[] | null = null;
+    if (ngoId) {
+      const { data: scopedLines, error: lineError } = await supabase
+        .from("finance_bill_lines" as never)
+        .select("bill_id")
+        .eq("ngo_id" as never, ngoId as never);
+      if (lineError) throw lineError;
+      billIds = [...new Set((scopedLines || []).map((line: { bill_id: string }) => line.bill_id))];
+      if (!billIds.length) return [];
+    }
+    let query = supabase.from("finance_bills" as never).select("bill_number, vendor_id, due_date, total_amount, amount_paid, status")
       .in("status" as never, ["approved", "partially_paid"] as never);
+    if (billIds) query = query.in("id" as never, billIds as never);
+    const { data, error } = await query;
     if (error) throw error;
     const today = new Date();
     return (data || []).map((b: { bill_number: string; due_date: string | null; total_amount: number; amount_paid: number; status: string }) => {
@@ -144,12 +156,14 @@ export const useFinanceApAging = () => useQuery({
   },
 });
 
-export const useFinanceMissingReceiptsReport = () => useQuery({
-  queryKey: ["finance-report-missing-receipts"],
+export const useFinanceMissingReceiptsReport = (ngoId?: string | null) => useQuery({
+  queryKey: ["finance-report-missing-receipts", ngoId ?? "all"],
   enabled: !!supabase,
   queryFn: async () => {
     ensureSupabase();
-    const { data: entries } = await supabase.from("finance_journal_entries" as never).select("id, entry_number, entry_date, memo, status").eq("status" as never, "posted" as never);
+    let query = supabase.from("finance_journal_entries" as never).select("id, entry_number, entry_date, memo, status").eq("status" as never, "posted" as never);
+    if (ngoId) query = query.eq("ngo_id" as never, ngoId as never);
+    const { data: entries } = await query;
     if (!entries?.length) return [];
     const results = await Promise.all(
       (entries as { id: string }[]).map(async (e) => {
