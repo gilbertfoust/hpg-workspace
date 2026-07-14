@@ -237,6 +237,8 @@ export const FINANCE_FUND_TYPE_LABELS: Record<FinanceFundType, string> = {
 
 export interface FinanceBankAccount {
   id: string;
+  ngo_id: string;
+  account_kind: "bank" | "credit_card" | "cash";
   account_name: string;
   institution_name: string | null;
   last_four: string | null;
@@ -251,6 +253,8 @@ export interface FinanceBankAccount {
 }
 
 export type FinanceBankAccountInput = {
+  ngo_id: string;
+  account_kind: "bank" | "credit_card" | "cash";
   account_name: string;
   institution_name?: string | null;
   last_four?: string | null;
@@ -550,14 +554,57 @@ export interface FinanceAdminFeeCalculation {
 // Reconciliation
 export type FinanceReconciliationStatus = "in_progress" | "finalized" | "voided";
 export interface FinanceBankReconciliation {
-  id: string; bank_account_id: string; statement_start_date: string; statement_end_date: string;
+  id: string; ngo_id: string; bank_account_id: string; statement_import_id: string | null;
+  statement_start_date: string; statement_end_date: string;
   beginning_balance: number; ending_balance: number; cleared_balance: number; difference: number;
   book_balance?: number | null;
   status: FinanceReconciliationStatus; exception_notes: string | null; finalized_at: string | null; created_at: string;
 }
 export interface FinanceBankReconciliationItem {
   id: string; reconciliation_id: string; journal_line_id: string | null;
+  statement_transaction_id: string | null;
   transaction_date: string | null; description: string | null; amount: number; is_cleared: boolean; locked_at: string | null;
+}
+
+export type FinanceBankStatementImportStatus = "matching" | "reconciling" | "reconciled" | "voided";
+export type FinanceBankStatementMatchStatus = "unmatched" | "suggested" | "matched" | "ignored" | "reconciled";
+
+export interface FinanceBankStatementImport {
+  id: string;
+  ngo_id: string;
+  bank_account_id: string;
+  document_id: string;
+  content_sha256: string;
+  file_name: string;
+  statement_start_date: string;
+  statement_end_date: string;
+  beginning_balance: number;
+  ending_balance: number;
+  transaction_total: number;
+  statement_variance: number;
+  row_count: number;
+  status: FinanceBankStatementImportStatus;
+  imported_at: string;
+}
+
+export interface FinanceBankStatementTransaction {
+  id: string;
+  import_id: string;
+  ngo_id: string;
+  bank_account_id: string;
+  row_number: number;
+  source_transaction_id: string | null;
+  transaction_date: string;
+  posted_date: string | null;
+  description: string;
+  amount: number;
+  currency: string;
+  reference_number: string | null;
+  match_status: FinanceBankStatementMatchStatus;
+  suggested_journal_line_id: string | null;
+  matched_journal_line_id: string | null;
+  match_confidence: number | null;
+  ignore_reason: string | null;
 }
 
 // Budgets
