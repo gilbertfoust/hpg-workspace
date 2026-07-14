@@ -15,6 +15,7 @@ const closeMigration = read("supabase/migrations/20260714121500_finance_close_mi
 const monthlyAuthorityMigration = read("supabase/migrations/20260714122500_finance_monthly_posting_period_authority.sql");
 const openingEvidenceMigration = read("supabase/migrations/20260714123500_finance_opening_balance_source_evidence.sql");
 const cashFlowMigration = read("supabase/migrations/20260714125500_finance_cash_flow_tie_out.sql");
+const nonprofitStatementsMigration = read("supabase/migrations/20260714130500_finance_nonprofit_statement_rollforward.sql");
 const app = read("src/App.tsx");
 const hub = read("src/pages/FinancialHub.tsx");
 const operations = read("src/pages/FinanceOperationsPage.tsx");
@@ -65,6 +66,8 @@ const accountingContracts = [
   [openingEvidenceMigration, "Source CSV for posted opening balances"],
   [cashFlowMigration, "cash_flow_ties"],
   [cashFlowMigration, "finance_opening_balance"],
+  [nonprofitStatementsMigration, "statement_is_balanced"],
+  [nonprofitStatementsMigration, "pass_through_expenses"],
 ];
 
 for (const [source, contract] of accountingContracts) {
