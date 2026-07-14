@@ -24,7 +24,9 @@ interface FinanceBankAccountDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   bankAccount?: FinanceBankAccount | null;
-  cashGlAccounts: FinanceAccount[];
+  ngoId: string;
+  entityName: string;
+  ledgerAccounts: FinanceAccount[];
   onSave: (input: FinanceBankAccountInput) => Promise<void>;
   isSaving?: boolean;
 }
@@ -33,11 +35,14 @@ export function FinanceBankAccountDialog({
   open,
   onOpenChange,
   bankAccount,
-  cashGlAccounts,
+  ngoId,
+  entityName,
+  ledgerAccounts,
   onSave,
   isSaving,
 }: FinanceBankAccountDialogProps) {
   const [accountName, setAccountName] = useState("");
+  const [accountKind, setAccountKind] = useState<FinanceBankAccountInput["account_kind"]>("bank");
   const [institutionName, setInstitutionName] = useState("");
   const [lastFour, setLastFour] = useState("");
   const [linkedAccountId, setLinkedAccountId] = useState("none");
@@ -48,6 +53,7 @@ export function FinanceBankAccountDialog({
   useEffect(() => {
     if (!open) return;
     if (bankAccount) {
+      setAccountKind(bankAccount.account_kind);
       setAccountName(bankAccount.account_name);
       setInstitutionName(bankAccount.institution_name || "");
       setLastFour(bankAccount.last_four || "");
@@ -56,19 +62,26 @@ export function FinanceBankAccountDialog({
       setOpeningBalanceDate(bankAccount.opening_balance_date);
       setIsActive(bankAccount.is_active);
     } else {
+      setAccountKind("bank");
       setAccountName("");
       setInstitutionName("");
       setLastFour("");
-      setLinkedAccountId(cashGlAccounts[0]?.id ?? "none");
+      setLinkedAccountId(ledgerAccounts.find((account) => account.account_type === "asset")?.id ?? "none");
       setOpeningBalance("0");
       setOpeningBalanceDate(new Date().toISOString().slice(0, 10));
       setIsActive(true);
     }
-  }, [open, bankAccount, cashGlAccounts]);
+  }, [open, bankAccount, ledgerAccounts]);
+
+  const eligibleAccounts = ledgerAccounts.filter((account) => (
+    accountKind === "credit_card" ? account.account_type === "liability" : account.account_type === "asset"
+  ));
 
   const handleSubmit = async () => {
     if (linkedAccountId === "none") return;
     await onSave({
+      ngo_id: ngoId,
+      account_kind: accountKind,
       account_name: accountName.trim(),
       institution_name: institutionName.trim() || null,
       last_four: lastFour.trim() || null,
@@ -88,6 +101,28 @@ export function FinanceBankAccountDialog({
         </DialogHeader>
 
         <div className="grid gap-4 py-2">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Entity</Label>
+              <Input value={entityName} readOnly className="bg-muted/40" />
+            </div>
+            <div className="space-y-2">
+              <Label>Account type</Label>
+              <Select value={accountKind} onValueChange={(value) => {
+                const kind = value as FinanceBankAccountInput["account_kind"];
+                setAccountKind(kind);
+                const next = ledgerAccounts.find((account) => kind === "credit_card" ? account.account_type === "liability" : account.account_type === "asset");
+                setLinkedAccountId(next?.id ?? "none");
+              }}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="bank">Bank account</SelectItem>
+                  <SelectItem value="credit_card">Credit card</SelectItem>
+                  <SelectItem value="cash">Cash account</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
           <div className="space-y-2">
             <Label htmlFor="bank-name">Account name *</Label>
             <Input
@@ -121,14 +156,14 @@ export function FinanceBankAccountDialog({
           </div>
 
           <div className="space-y-2">
-            <Label>Linked GL cash account *</Label>
+            <Label>Linked GL {accountKind === "credit_card" ? "liability" : "cash"} account *</Label>
             <Select value={linkedAccountId} onValueChange={setLinkedAccountId}>
               <SelectTrigger>
                 <SelectValue placeholder="Select chart of accounts cash/bank account" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="none">Select account</SelectItem>
-                {cashGlAccounts.map((account) => (
+                {eligibleAccounts.map((account) => (
                   <SelectItem key={account.id} value={account.id}>
                     {account.code} — {account.name}
                   </SelectItem>

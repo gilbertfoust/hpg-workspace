@@ -91,7 +91,7 @@ const FinanceAccountsPayablePage = () => {
   );
   const { data: accounts = [] } = useFinanceAccounts();
   const { data: funds = [] } = useFinanceFunds();
-  const { data: bankAccounts = [] } = useFinanceBankAccounts();
+  const { data: bankAccounts = [] } = useFinanceBankAccounts({ ngoId: selectedNgoId });
   const { data: referenceData } = useFinanceBillReferenceData();
 
   const createVendor = useCreateFinanceVendor();

@@ -28,7 +28,7 @@ const FinancePaymentsPage = () => {
   const [readOnly, setReadOnly] = useState(false);
 
   const { data: payments = [], isLoading, error } = useFinancePayments(undefined, selectedNgoId);
-  const { data: bankAccounts = [] } = useFinanceBankAccounts();
+  const { data: bankAccounts = [] } = useFinanceBankAccounts({ ngoId: selectedNgoId });
   const { data: accounts = [] } = useFinanceAccounts();
   const { data: funds = [] } = useFinanceFunds();
   const { data: bills = [] } = useFinanceBills("all");
