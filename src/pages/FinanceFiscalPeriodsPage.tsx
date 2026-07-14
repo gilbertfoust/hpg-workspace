@@ -14,11 +14,13 @@ import {
 } from "@/hooks/useFinanceFiscalPeriods";
 import { hasFinancePermission } from "@/lib/financePermissions";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useWorkspaceNgo } from "@/hooks/useWorkspaceNgo";
 
 const FinanceFiscalPeriodsPage = () => {
+  const { selectedNgo, selectedNgoId } = useWorkspaceNgo();
   const { role } = useUserRole();
   const canManage = hasFinancePermission(role, "edit_settings");
-  const { data: periods = [], isLoading } = useFinanceFiscalPeriods();
+  const { data: periods = [], isLoading } = useFinanceFiscalPeriods(selectedNgoId);
   const closePeriod = useCloseFinanceFiscalPeriod();
   const lockPeriod = useLockFinanceFiscalPeriod();
   const reopenPeriod = useReopenFinanceFiscalPeriod();
@@ -29,7 +31,10 @@ const FinanceFiscalPeriodsPage = () => {
     status === "open" ? "default" : status === "closed" ? "secondary" : "destructive";
 
   return (
-    <MainLayout title="Fiscal Periods" subtitle="Open, close, lock, and reopen organization-wide accounting periods">
+    <MainLayout
+      title="Fiscal Periods"
+      subtitle={`Open, close, lock, and reopen periods for ${selectedNgo?.common_name || selectedNgo?.legal_name || "HPG operating"}`}
+    >
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Period controls</CardTitle>
