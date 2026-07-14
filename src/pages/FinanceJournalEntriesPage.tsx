@@ -39,6 +39,7 @@ import { FINANCE_JOURNAL_STATUS_LABELS } from "@/types/financeAccounting";
 import { computeJournalTotals } from "@/types/financeAccounting";
 import { useUserRole } from "@/hooks/useUserRole";
 import { hasFinancePermission } from "@/lib/financePermissions";
+import { useWorkspaceNgo } from "@/hooks/useWorkspaceNgo";
 
 const statusVariant = (status: FinanceJournalEntryStatus): "default" | "secondary" | "destructive" | "outline" => {
   switch (status) {
@@ -58,6 +59,7 @@ const formatMoney = (value: number) =>
   value.toLocaleString(undefined, { style: "currency", currency: "USD" });
 
 const FinanceJournalEntriesPage = () => {
+  const { ngos, selectedNgo, selectedNgoId } = useWorkspaceNgo();
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [viewEntry, setViewEntry] = useState<FinanceJournalEntryWithLines | null>(null);
@@ -69,7 +71,7 @@ const FinanceJournalEntriesPage = () => {
   const [reversalMemo, setReversalMemo] = useState("");
   const [auditEntryId, setAuditEntryId] = useState<string | null>(null);
 
-  const { data: entries = [], isLoading, error } = useFinanceJournalEntries();
+  const { data: entries = [], isLoading, error } = useFinanceJournalEntries(selectedNgoId);
   const { data: accounts = [] } = useFinanceAccounts();
   const { data: funds = [] } = useFinanceFunds();
   const { data: referenceData } = useFinanceJournalReferenceData();
@@ -83,6 +85,10 @@ const FinanceJournalEntriesPage = () => {
   const { role } = useUserRole();
   const canPost = hasFinancePermission(role, "post_journal");
   const canVoid = hasFinancePermission(role, "void_transaction");
+  const scopeName = selectedNgo?.common_name || selectedNgo?.legal_name || "All HPG";
+  const dialogNgoId = viewEntry?.ngo_id ?? selectedNgoId;
+  const dialogNgo = dialogNgoId ? ngos.find((ngo) => ngo.id === dialogNgoId) : null;
+  const dialogScopeName = dialogNgo?.common_name || dialogNgo?.legal_name || (dialogNgoId ? "Selected NGO" : "HPG operating");
 
   const filteredEntries = useMemo(() => {
     if (statusFilter === "all") return entries;
@@ -142,7 +148,7 @@ const FinanceJournalEntriesPage = () => {
   return (
     <MainLayout
       title="Journal Entries"
-      subtitle="Double-entry journal — draft, post, void, and reverse with audit trail"
+      subtitle={`Double-entry journal for ${scopeName} — draft, post, void, and reverse with audit trail`}
     >
       <div className="space-y-6">
         <Card>
@@ -319,6 +325,8 @@ const FinanceJournalEntriesPage = () => {
         readOnly={readOnly}
         accounts={accounts}
         funds={funds}
+        ngoId={dialogNgoId}
+        ngoName={dialogScopeName}
         referenceData={referenceData}
         onSave={handleSave}
         isSaving={isSaving}
