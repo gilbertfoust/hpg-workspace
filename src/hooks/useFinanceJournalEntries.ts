@@ -31,18 +31,20 @@ const mapEntryWithTotals = (
   };
 };
 
-export const useFinanceJournalEntries = () => {
+export const useFinanceJournalEntries = (ngoId?: string | null) => {
   return useQuery({
-    queryKey: ["finance-journal-entries"],
+    queryKey: ["finance-journal-entries", ngoId ?? "all"],
     enabled: !!supabase,
     queryFn: async (): Promise<FinanceJournalEntryWithLines[]> => {
       ensureSupabase();
 
-      const { data: entries, error: entryError } = await supabase
+      let entryQuery = supabase
         .from("finance_journal_entries" as never)
         .select("*")
         .order("entry_date", { ascending: false })
         .order("created_at", { ascending: false });
+      if (ngoId) entryQuery = entryQuery.eq("ngo_id" as never, ngoId as never);
+      const { data: entries, error: entryError } = await entryQuery;
 
       if (entryError) throw entryError;
       if (!entries?.length) return [];
@@ -187,6 +189,7 @@ export const useSaveFinanceJournalEntry = () => {
         _source_type: null,
         _source_id: null,
         _fiscal_period_id: input.fiscal_period_id ?? null,
+        _ngo_id: input.ngo_id,
         _lines: lines.map((line) => ({
           account_id: line.account_id,
           debit: line.debit,
@@ -346,13 +349,11 @@ export const useFinanceJournalReferenceData = () => {
       ensureSupabase();
 
       const [
-        { data: ngos, error: ngoError },
         { data: departments, error: deptError },
         { data: grants, error: grantError },
         { data: workItems, error: workError },
         { data: documents, error: docError },
       ] = await Promise.all([
-        supabase.from("ngos").select("id, legal_name, common_name").order("legal_name", { ascending: true }).limit(200),
         supabase.from("org_units").select("id, department_name").order("department_name", { ascending: true }),
         supabase
           .from("grant_applications")
@@ -371,14 +372,12 @@ export const useFinanceJournalReferenceData = () => {
           .limit(100),
       ]);
 
-      if (ngoError) throw ngoError;
       if (deptError) throw deptError;
       if (grantError) throw grantError;
       if (workError) throw workError;
       if (docError) throw docError;
 
       return {
-        ngos: ngos || [],
         departments: departments || [],
         grants: grants || [],
         workItems: workItems || [],
