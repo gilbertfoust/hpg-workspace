@@ -14,6 +14,7 @@ import { useVoidFinancePayment } from "@/hooks/useFinancePayments";
 import {
   type FinanceReceiptDraft,
   useAnalyzeFinanceReceipt,
+  useDismissFinanceReceiptDraft,
   useFinanceExpenseTransactions,
   useFinanceReceiptDrafts,
   usePostFinanceExpenseTransaction,
@@ -40,6 +41,7 @@ const FinanceTransactionsPage = () => {
   const { data: receiptDrafts = [], isLoading: receiptDraftsLoading } = useFinanceReceiptDrafts(selectedNgoId);
   const analyzeReceipt = useAnalyzeFinanceReceipt();
   const retryReceipt = useRetryFinanceReceiptDraft();
+  const dismissReceipt = useDismissFinanceReceiptDraft();
   const postTransaction = usePostFinanceExpenseTransaction();
   const voidTransaction = useVoidFinancePayment();
 
@@ -159,6 +161,12 @@ const FinanceTransactionsPage = () => {
     voidTransaction.mutate({ id, reason: reason.trim() });
   };
 
+  const handleDismissReceipt = (draft: FinanceReceiptDraft) => {
+    const reason = window.prompt(`Why should ${draft.merchant_name || draft.document?.file_name || "this receipt"} be dismissed?`);
+    if (!reason?.trim()) return;
+    dismissReceipt.mutate({ draftId: draft.id, reason: reason.trim() });
+  };
+
   const entityName = selectedNgo?.common_name || selectedNgo?.legal_name || "All HPG";
   const formReady = Boolean(
     selectedNgoId
@@ -254,11 +262,17 @@ const FinanceTransactionsPage = () => {
                           <td className="p-3 text-right font-medium">{draft.total_amount === null ? "—" : money(draft.total_amount)}</td>
                           <td className="p-3 text-right">
                             {draft.status === "failed" ? (
-                              <Button variant="outline" size="sm" disabled={retryReceipt.isPending} onClick={() => retryReceipt.mutate(draft.id)}>
-                                <RotateCcw className="mr-1 h-3 w-3" />Retry
-                              </Button>
+                              <div className="flex justify-end gap-1">
+                                <Button variant="outline" size="sm" disabled={retryReceipt.isPending} onClick={() => retryReceipt.mutate(draft.id)}>
+                                  <RotateCcw className="mr-1 h-3 w-3" />Retry
+                                </Button>
+                                <Button variant="ghost" size="sm" disabled={dismissReceipt.isPending} onClick={() => handleDismissReceipt(draft)}>Dismiss</Button>
+                              </div>
                             ) : canReview ? (
-                              <Button variant="outline" size="sm" onClick={() => reviewReceiptDraft(draft)}>Review</Button>
+                              <div className="flex justify-end gap-1">
+                                <Button variant="outline" size="sm" onClick={() => reviewReceiptDraft(draft)}>Review</Button>
+                                <Button variant="ghost" size="sm" disabled={dismissReceipt.isPending} onClick={() => handleDismissReceipt(draft)}>Dismiss</Button>
+                              </div>
                             ) : draft.status === "posted" ? (
                               <Badge variant="outline"><CheckCircle2 className="mr-1 h-3 w-3" />Posted</Badge>
                             ) : null}
