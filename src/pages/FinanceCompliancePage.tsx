@@ -51,6 +51,12 @@ const FinanceCompliancePage = () => {
   const finalizeYear = useFinalizeFinanceYearEnd();
   const reopenFiscalYear = useReopenFinanceYearEnd();
   const currentClose = closes.find((close) => close.fiscal_year === fiscalYear);
+  const functionalRows: Array<[string, number]> = functional ? [
+    ["Program", Number(functional.program)],
+    ["Management & general", Number(functional.management_general)],
+    ["Fundraising", Number(functional.fundraising)],
+    ["Pass-through", Number(functional.pass_through)],
+  ] : [];
 
   const downloadPackage = async (pkg: FinanceYearEndPackage) => {
     try {
@@ -108,18 +114,21 @@ const FinanceCompliancePage = () => {
           <Card>
             <CardHeader className="flex flex-row justify-between">
               <CardTitle className="text-base">Form 990 functional expense summary</CardTitle>
-              <Button variant="outline" size="sm" onClick={() => {
+              <Button variant="outline" size="sm" onClick={async () => {
                 if (!functional) return;
-                exportToCsv("functional-expenses.csv", ["Category", "Amount"], [
-                  ["Program", functional.program], ["Management & General", functional.management_general],
-                  ["Fundraising", functional.fundraising], ["Pass-through", functional.pass_through],
-                ]);
-                logFinanceExport("functional_expense", { startDate, endDate });
+                try {
+                  await logFinanceExport("functional_expense", { startDate, endDate, ngoId: selectedNgoId });
+                  exportToCsv("functional-expenses.csv", ["Category", "Amount"], functionalRows);
+                } catch (error) {
+                  toast.error("Export canceled because the audit event could not be recorded", {
+                    description: error instanceof Error ? error.message : "Unknown export error",
+                  });
+                }
               }}>Export CSV</Button>
             </CardHeader>
             <CardContent className="space-y-2">
-              {functional && Object.entries(functional).filter(([k]) => !k.includes("date")).map(([k, v]) => (
-                <div key={k} className="flex justify-between text-sm"><span className="capitalize">{k.replace(/_/g, " ")}</span><span>{fmt(Number(v))}</span></div>
+              {functionalRows.map(([label, amount]) => (
+                <div key={label} className="flex justify-between text-sm"><span>{label}</span><span>{fmt(amount)}</span></div>
               ))}
             </CardContent>
           </Card>
