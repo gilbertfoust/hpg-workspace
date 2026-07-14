@@ -213,6 +213,12 @@ BEGIN
     SELECT 1 FROM public.finance_year_end_packages
     WHERE id = close_row.package_id AND status = 'locked' AND package_json ? 'close_readiness'
   ) THEN RAISE EXCEPTION 'Immutable year-end package was not created'; END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM public.finance_year_end_packages
+    WHERE id = close_row.package_id
+      AND (package_json #>> '{statement_of_financial_position,statement_is_balanced}')::boolean
+      AND (package_json #>> '{statement_of_cash_flows,cash_flow_ties}')::boolean
+  ) THEN RAISE EXCEPTION 'Locked package contains statements that do not tie'; END IF;
   IF EXISTS (
     SELECT 1 FROM public.finance_fiscal_periods
     WHERE ngo_id = ngo_id_value AND fiscal_year = 2025 AND status <> 'locked'
