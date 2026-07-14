@@ -49,6 +49,7 @@ Phases 31–45 add organization-wide accounting tables separate from legacy ledg
 | Atomic receivables | invoice issue, receipt, write-off, and void/reversal RPCs; AR control account | Live AR workspace whose subledger posts to and ties with the general ledger |
 | Integrity graph | `finance_accounting_integrity`, snapshots, expense-to-payment settlement | Parent/child tie-outs on the hub and hard-close screen |
 | Safe automation | recurring rules/occurrences, connections, sync runs, payment intents, integration outbox | Reviewable recurring drafts and visible provider delivery state |
+| Certified cutover | parallel-close comparisons, go-live certification, readiness and activation RPCs | Evidence-backed per-NGO command center and system-of-record switch |
 
 ## Accounting rules (enforced in DB)
 
@@ -65,6 +66,8 @@ Phases 31–45 add organization-wide accounting tables separate from legacy ledg
 11. Completed AP, AR, deposit, payment, and expense forms must be linked to posted journals.
 12. AR/AP subledgers and financial statements must tie to their parent control accounts and general ledger before close.
 13. Recurring rules generate drafts; external provider queues cannot bypass settlement or posting controls.
+14. System-of-record activation requires a matched prior-system close, reconciled banks, opening-balance evidence or zero-start attestation, operating-control review, and signed accountant evidence.
+15. Activation repeats every readiness check atomically; emergency suspension requires a reason and is audited.
 
 ## Permission model (Phase 31 baseline → Phase 44 refine)
 

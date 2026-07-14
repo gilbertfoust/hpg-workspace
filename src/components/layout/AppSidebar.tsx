@@ -369,6 +369,7 @@ export function AppSidebar() {
                                       <NavItem to="/financial-hub/accounting/budgets" icon={<PieChart className="w-3.5 h-3.5" />} label="Budgets" />
                                       <NavItem to="/financial-hub/accounting/accounts-receivable" icon={<FileText className="w-3.5 h-3.5" />} label="Accounts Receivable" />
                                       <NavItem to="/financial-hub/accounting/automation" icon={<Zap className="w-3.5 h-3.5" />} label="Automation & Connections" />
+                                      <NavItem to="/financial-hub/accounting/go-live" icon={<Rocket className="w-3.5 h-3.5" />} label="Accounting Go-Live" />
                                       <NavItem to="/financial-hub/accounting/reports" icon={<BarChart3 className="w-3.5 h-3.5" />} label="Financial Reports" />
                                       <NavItem to="/financial-hub/accounting/fiscal-periods" icon={<Activity className="w-3.5 h-3.5" />} label="Fiscal Periods" />
                                       <NavItem to="/financial-hub/accounting/compliance" icon={<ShieldCheck className="w-3.5 h-3.5" />} label="Compliance" />

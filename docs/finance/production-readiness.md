@@ -2,7 +2,7 @@
 
 **QuickBooks-replacement accounting MVP:** implemented and deployed to the connected HPG Supabase project
 
-**Operational cutover status:** requires the per-NGO accountant sign-off and parallel close listed below
+**Operational cutover software:** implemented; each NGO activates separately after its real accountant sign-off and matched parallel close
 
 **Repository gate:** `npm run verify:finance`
 
@@ -36,6 +36,7 @@ HPG can operate its NGO bookkeeping and nonprofit financial reporting from this 
 - period close blocked by failed parent/child tie-outs, even when an individual source form balances;
 - recurring rules that generate balanced draft journals for review;
 - provider-neutral bank-feed and payment-intent queues with idempotent durable outbox records.
+- a per-NGO cutover command center that compares nine prior-system totals, retains source exports and signed accountant evidence, verifies bank/opening/operating controls, and atomically activates HPG Finance as the system of record.
 
 This status does not mean the application itself is a payroll processor, tax/1099 e-filing service, ACH originator, or bank-data aggregator. Those functions require external providers. Bank/card data can enter through institution CSV exports now; the connection/outbox foundation is ready for a selected provider adapter. A CPA should approve HPG’s chart-of-accounts mappings, opening balances, fiscal policies, and filed statements before the first production close.
 
@@ -59,6 +60,9 @@ This status does not mean the application itself is a payroll processor, tax/109
 16. An expense request can be settled only by selecting the exact posted payment for the same NGO, amount, and approved budget account.
 17. AR and AP subledgers must tie to their control accounts; completed source forms must have posted ledger links; parent statements must tie before close.
 18. Recurring automation creates drafts, not silently posted entries. Provider work is idempotently queued and cannot mark a ledger payment posted before confirmed settlement.
+19. A prior-system parallel close stores HPG totals, prior totals, and every variance; approval rechecks the current ledger so a stale match cannot pass.
+20. An NGO cannot become live until its banks are reconciled through cutover, opening path is evidenced, operating controls are certified, and signed accountant evidence is attached.
+21. System-of-record activation reruns all gates in one transaction. Emergency suspension requires a reason and remains auditable.
 
 ## Release and verification evidence
 
@@ -79,20 +83,22 @@ The connected production schema was migrated incrementally and tested inside rol
 - atomic AR issuance, partial receipt, write-off, and full control-account tie-out;
 - recurring draft generation and durable provider outbox creation;
 - all seven accounting-ecosystem integrity checks passing together.
+- rejection of mismatched parallel closes and incomplete activation packages;
+- successful activation only after all nine go-live gates pass.
 
 The production security/performance advisor reports no error or warning for the new close, opening-balance, year-end, receipt-draft, statement-import, or reconciliation tables after hardening. Security-definer RPC notices are intentional: every exposed mutation performs its own signed-in role check and anonymous execution is revoked.
 
 ## Go-live procedure
 
-1. Confirm each NGO profile and fiscal calendar.
-2. Have the accountant approve the chart of accounts and nonprofit classifications.
-3. Export the cutover trial balance from the prior system using the opening-balance CSV template.
-4. Import, review, and post the balanced opening journal for each NGO.
-5. Add every bank/card account and import the first statement.
-6. Reconcile through the cutover date.
-7. Run all transactional database gates and `npm run verify:finance`.
-8. Complete one accountant-led parallel close, compare every statement, and sign the certification checklist.
-9. Make HPG Finance the system of record and retain the prior-system archive read-only.
+1. Select the NGO and open **Financial Hub → Accounting Go-Live**.
+2. Export the prior-system close, attach it, and enter the nine comparison totals.
+3. Resolve any displayed variance and approve the matched close.
+4. Confirm the chart, funds, AP/AR, access, receipts, and historical archive controls.
+5. Import/post opening balances or attest that a new NGO starts at zero.
+6. Reconcile every active bank/card through the cutover date.
+7. Attach the accountant’s signed attestation and save the package.
+8. Run all transactional database gates and `npm run verify:finance`.
+9. Activate HPG Finance as the system of record. The database rejects activation if anything changed or is incomplete.
 
 ## External operating dependencies
 
