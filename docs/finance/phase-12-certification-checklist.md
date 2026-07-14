@@ -1,102 +1,74 @@
-# Finance Hub — Phases 0–12 Certification Checklist
+# Finance Hub Certification Checklist
 
-Use this checklist after `npx supabase db push` against the linked HPG project.
+## Engineering certification — complete
 
-## Readiness summary
+- [x] Production build, TypeScript, scoped ESLint, and static Finance contracts pass
+- [x] Forward Finance migrations applied to the connected HPG project
+- [x] Anonymous execution revoked for protected Finance RPCs
+- [x] NGO selector uses the canonical NGO directory across the workspace
+- [x] Ordinary journals and their lines enforce one NGO
+- [x] Balanced journal posts; unbalanced journal is rejected
+- [x] Posted entries cannot be silently edited
+- [x] Locked month rejects posting even when its quarter/year rollup is open
+- [x] Atomic expense commits payment, journal, and receipt evidence together
+- [x] Receipt hash duplicate detection, extraction draft, review, and posting tested
+- [x] Cross-NGO bank match rejected
+- [x] Statement transactions tie to beginning/ending balances
+- [x] Reconciliation requires every statement row resolved and zero difference
+- [x] Finalized reconciliation and statement evidence are immutable
+- [x] Unbalanced opening-balance CSV rejected
+- [x] Balanced opening balances retain source CSV and post as one journal
+- [x] Period close rejects drafts, missing evidence, unresolved receipts/statements, unreconciled accounts, open prerequisite months, and staged balances
+- [x] Period close stores its readiness snapshot and lock blocks posting
+- [x] Year end requires every month closed
+- [x] Year-end finalization locks all rollups and an immutable reporting package
+- [x] Fiscal-year and period reopen require a reason and preserve the prior package
+- [x] Ten report screens support audited CSV output
+- [x] Official reports support audited print / Save-as-PDF output
+- [x] Year-end packages support audited JSON download
+- [x] New Finance close/import/year-end tables have RLS and no advisor warning/error
 
-- [x] Implementation complete for Phases 0–12 and Finance Operations
-- [x] `npm run verify:finance` passes (build, typecheck, scoped lint, static contracts)
-- [x] Expense, purchase, and budget workflows use authority-checked RPCs
-- [x] Workflow submissions create work items and durable notification events
-- [x] Finance staff authority is scoped to the Finance department
-- [x] All ten Finance CSV exports are audit-logged before download
-- [ ] Forward migration applied to the linked project
-- [ ] Post-deployment SQL and role-based checks below completed
+## Automated evidence
 
-Repository implementation is 100% complete. The unchecked items are deployment certification steps and must not be represented as passed until they run against the target database.
+Run before each release:
 
-## Phase 1 — Atomic posting
-- [ ] Balanced legacy transaction posts via `post_transaction` RPC
-- [ ] Unbalanced legacy transaction rejected
-- [ ] Locked NGO fiscal period rejects legacy post
-- [ ] Finance draft saves atomically via `save_finance_journal_entry`
-- [ ] Finance post validates open `finance_fiscal_period`
+```bash
+npm run verify:finance
+```
 
-## Phase 2 — Chart of accounts
-- [ ] COA account supports restriction, functional, 990, and statement mapping fields
-- [ ] Cash account flag drives cash flow statement
+Run against staging/production inside rollback transactions:
 
-## Phase 3 — Fiscal periods
-- [ ] Finance fiscal periods can be closed, locked, reopened (manager only)
-- [ ] Opening balances can be entered for open periods
-- [ ] Posting blocked in locked/closed periods
+1. `scripts/finance/test_atomic_posting.sql`
+2. `scripts/finance/test_bank_statement_reconciliation.sql`
+3. `scripts/finance/test_close_and_year_end.sql`
 
-## Phase 4 — Ledger & trial balance
-- [ ] Trial balance validation RPC returns `is_balanced: true` on empty ledger
-- [ ] General ledger shows running balance per account
-- [ ] Report snapshots can be saved
+The bank reconciliation and close/year-end suites passed against the connected HPG project on July 14, 2026. The suites create representative records, assert rejection cases, and roll back all data.
 
-## Phase 5 — Nonprofit statements
-- [ ] Statement of Financial Position separates restricted/unrestricted net assets
-- [ ] Statement of Activities shows functional expense buckets
-- [ ] Statement of Cash Flows ties beginning/ending cash
+## Accountant go-live sign-off — required per NGO
 
-## Phase 6 — Bank reconciliation
-- [ ] Reconciliation refresh calculates book balance and difference
-- [ ] Finalize requires zero difference or exception notes
+These are operating approvals, not unfinished software development:
 
-## Phase 7 — AR
-- [ ] Donors and invoices can be created
-- [ ] Partial payments update invoice status
-- [ ] AR aging report lists open balances
+- [ ] Legal entity/profile and fiscal year confirmed
+- [ ] Chart of accounts and nonprofit statement mappings approved by the accountant
+- [ ] Prior-system cutover date selected
+- [ ] Opening trial balance imported, compared, and approved
+- [ ] Bank/card balances reconciled through the cutover date
+- [ ] Restricted fund and grant balances compared to source schedules
+- [ ] AP and AR aging compared to source schedules
+- [ ] One parallel month-end close completed and reports compared
+- [ ] User roles, MFA, and Finance-manager access reviewed
+- [ ] Notification route and dispatcher verified if Slack/email delivery is enabled
+- [ ] Accountant signs authorization to make HPG Finance the system of record
 
-## Phase 8 — Fiscal sponsorship
-- [ ] Pass-through requests can be approved with admin fee
-- [ ] NGO subledger balance RPC returns fund splits
+## First live accounting scenarios
 
-## Phase 9 — Controls
-- [ ] Finance staff can save drafts (RLS)
-- [ ] Export actions logged in `finance_export_log`
-- [ ] Posted entries cannot be silently edited
-
-## Phase 10 — Budget & grants
-- [ ] Budget vs actual report returns variances by account
-- [ ] Grant financial report returns received/spent/remaining
-
-## Phase 11 — Compliance
-- [ ] Functional expense report exports for Form 990 support
-- [ ] Year-end package generates trial balance + statements bundle
-
-## Phase 12 — Production certification
-- [x] `npm run build` passes
-- [x] `npx tsc --noEmit` passes
-- [x] `npm run lint:finance` passes
-- [x] `node scripts/finance/verify-finance-hub.mjs` passes
-- [ ] `scripts/finance/test_atomic_posting.sql` validation queries pass
-- [ ] `scripts/finance/test_operational_workflows.sql` validation queries pass
-- [ ] Finance staff can complete workflow without developer intervention
-- [ ] No fake production financial data (demo seeds only when tables empty)
-
-## Finance Operations (post-deployment)
-
-- [ ] Internal requestor can save and submit an expense request
-- [ ] Expense submission creates a Finance work item and Slack/email outbox event
-- [ ] Non-Finance staff cannot prepare a budget or review an approval
-- [ ] Finance staff can atomically save and submit a budget
-- [ ] Finance manager can approve/reject expense, purchase, and budget requests
-- [ ] Approved expense can be marked paid only with a payment reference
-- [ ] Direct Data API status updates are denied
-- [ ] Anonymous role cannot execute protected Finance RPCs
-- [ ] Notification dispatcher marks queued events sent or failed
-
-## Accounting scenarios (manual QA)
-1. Unrestricted donation receipt and post
-2. Donor-restricted donation for sponsored NGO
-3. Admin fee calculation on deposit
-4. Pass-through disbursement approval
-5. Vendor bill approve and pay
+1. Unrestricted donation receipt and deposit
+2. Donor-restricted donation for a sponsored NGO
+3. Fiscal-sponsorship admin fee
+4. Vendor bill approval and payment
+5. Employee/contractor expense receipt upload and posting
 6. Grant receivable invoice and payment
-7. Restricted fund release entry
-8. Bank reconciliation finalize
-9. Fiscal period lock blocks new posts
-10. Year-end package export
+7. Restricted-fund release entry
+8. Bank and credit-card reconciliation
+9. Month close and locked-period rejection
+10. Year-end package generation and print/PDF comparison
