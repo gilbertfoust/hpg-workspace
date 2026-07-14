@@ -9,7 +9,7 @@ import { DevelopmentFundersOpportunities } from "@/components/development/Develo
 import { useDevelopmentFunders } from "@/hooks/useDevelopmentFunders";
 import { useDevelopmentOpportunities } from "@/hooks/useDevelopmentOpportunities";
 import { useDevelopmentProposals } from "@/hooks/useDevelopmentProposals";
-import { useNGOs } from "@/hooks/useNGOs";
+import { useWorkspaceNgo } from "@/hooks/useWorkspaceNgo";
 import type { DevelopmentPipelineItem, DevelopmentPipelineStage } from "@/components/development/types";
 import type { DevelopmentOpportunityWithFunder } from "@/hooks/useDevelopmentOpportunities";
 
@@ -32,7 +32,7 @@ export default function DevelopmentDashboard() {
   const { data: funders } = useDevelopmentFunders();
   const { data: opportunities } = useDevelopmentOpportunities();
   const { data: proposals } = useDevelopmentProposals();
-  const { data: ngos } = useNGOs();
+  const { ngos, selectedNgo, selectedNgoId } = useWorkspaceNgo();
   const [selectedItem, setSelectedItem] = useState<DevelopmentPipelineItem | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
@@ -46,7 +46,7 @@ export default function DevelopmentDashboard() {
 
   const ngoMap = useMemo(() => {
     const map = new Map<string, { name: string; bundle?: string | null }>();
-    ngos?.forEach((ngo) => {
+    ngos.forEach((ngo) => {
       map.set(ngo.id, {
         name: ngo.common_name || ngo.legal_name,
         bundle: ngo.bundle,
@@ -55,11 +55,16 @@ export default function DevelopmentDashboard() {
     return map;
   }, [ngos]);
 
+  const scopedProposals = useMemo(
+    () => selectedNgoId ? proposals?.filter((proposal) => proposal.ngo_id === selectedNgoId) : proposals,
+    [proposals, selectedNgoId],
+  );
+
   const pipelineItems = useMemo(() => {
     const items: DevelopmentPipelineItem[] = [];
     const linkedOpportunityIds = new Set<string>();
 
-    proposals?.forEach((proposal) => {
+    scopedProposals?.forEach((proposal) => {
       const opportunity = proposal.opportunity || null;
       if (proposal.grant_opportunity_id) {
         linkedOpportunityIds.add(proposal.grant_opportunity_id);
@@ -124,7 +129,7 @@ export default function DevelopmentDashboard() {
     });
 
     return items;
-  }, [funderMap, ngoMap, opportunities, proposals]);
+  }, [funderMap, ngoMap, opportunities, scopedProposals]);
 
   const kpis = useMemo(() => {
     const activeOpportunities =
@@ -132,23 +137,23 @@ export default function DevelopmentDashboard() {
         const status = opportunity.status?.toLowerCase() || "";
         return !["declined", "closed"].includes(status);
       }).length || 0;
-    const draftingProposals = proposals?.filter((proposal) => proposal.phase === "Drafting").length || 0;
+    const draftingProposals = scopedProposals?.filter((proposal) => proposal.phase === "Drafting").length || 0;
 
     const today = new Date();
     const quarterStartMonth = Math.floor(today.getMonth() / 3) * 3;
     const quarterStart = new Date(today.getFullYear(), quarterStartMonth, 1);
 
     const submittedThisQuarter =
-      proposals?.filter((proposal) => {
+      scopedProposals?.filter((proposal) => {
         if (!proposal.submitted_at) return false;
         return new Date(proposal.submitted_at) >= quarterStart;
       }).length || 0;
 
-    const awarded = proposals?.filter((proposal) => proposal.phase === "Awarded").length || 0;
-    const declined = proposals?.filter((proposal) => proposal.phase === "Declined").length || 0;
+    const awarded = scopedProposals?.filter((proposal) => proposal.phase === "Awarded").length || 0;
+    const declined = scopedProposals?.filter((proposal) => proposal.phase === "Declined").length || 0;
 
     return { activeOpportunities, draftingProposals, submittedThisQuarter, awarded, declined };
-  }, [opportunities, proposals]);
+  }, [opportunities, scopedProposals]);
 
   const openDrawer = (item: DevelopmentPipelineItem) => {
     setSelectedItem(item);
@@ -158,7 +163,7 @@ export default function DevelopmentDashboard() {
   return (
     <MainLayout
       title="Development"
-      subtitle="Track grant opportunities, proposals, and fundraising work items."
+      subtitle={`Track grant opportunities and proposals for ${selectedNgo?.common_name || selectedNgo?.legal_name || "All HPG"}.`}
       actions={<Badge variant="secondary">{pipelineItems.length} pipeline items</Badge>}
     >
       <div className="space-y-6">
