@@ -29,18 +29,18 @@ import { computeJournalTotals } from "@/types/financeAccounting";
 import type { FinanceJournalEntryInput } from "@/types/financeAccounting";
 
 type ReferenceData = {
-  ngos: { id: string; legal_name: string; common_name: string | null }[];
   departments: { id: string; department_name: string }[];
   grants: { id: string; title: string; stage: string | null }[];
   workItems: { id: string; title: string; status: string | null }[];
   documents: { id: string; file_name: string }[];
 };
 
-const emptyLine = (): FinanceJournalLineInput => ({
+const emptyLine = (ngoId: string | null = null): FinanceJournalLineInput => ({
   account_id: "",
   debit: 0,
   credit: 0,
   memo: "",
+  ngo_id: ngoId,
 });
 
 interface FinanceJournalEntryDialogProps {
@@ -50,6 +50,8 @@ interface FinanceJournalEntryDialogProps {
   readOnly?: boolean;
   accounts: FinanceAccount[];
   funds: FinanceFund[];
+  ngoId: string | null;
+  ngoName: string;
   referenceData?: ReferenceData;
   onSave: (input: FinanceJournalEntryInput) => Promise<void>;
   isSaving?: boolean;
@@ -65,13 +67,15 @@ export function FinanceJournalEntryDialog({
   readOnly = false,
   accounts,
   funds,
+  ngoId,
+  ngoName,
   referenceData,
   onSave,
   isSaving,
 }: FinanceJournalEntryDialogProps) {
   const [entryDate, setEntryDate] = useState(new Date().toISOString().slice(0, 10));
   const [memo, setMemo] = useState("");
-  const [lines, setLines] = useState<FinanceJournalLineInput[]>([emptyLine(), emptyLine()]);
+  const [lines, setLines] = useState<FinanceJournalLineInput[]>([emptyLine(ngoId), emptyLine(ngoId)]);
 
   useEffect(() => {
     if (!open) return;
@@ -95,14 +99,14 @@ export function FinanceJournalEntryDialog({
               work_item_id: line.work_item_id,
               line_number: line.line_number,
             }))
-          : [emptyLine(), emptyLine()]
+          : [emptyLine(entry.ngo_id), emptyLine(entry.ngo_id)]
       );
     } else {
       setEntryDate(new Date().toISOString().slice(0, 10));
       setMemo("");
-      setLines([emptyLine(), emptyLine()]);
+      setLines([emptyLine(ngoId), emptyLine(ngoId)]);
     }
-  }, [open, entry]);
+  }, [entry, ngoId, open]);
 
   const totals = useMemo(() => computeJournalTotals(lines), [lines]);
   const accountOptions = useMemo(
@@ -114,7 +118,7 @@ export function FinanceJournalEntryDialog({
     setLines((prev) => prev.map((line, i) => (i === index ? { ...line, ...patch } : line)));
   };
 
-  const addLine = () => setLines((prev) => [...prev, emptyLine()]);
+  const addLine = () => setLines((prev) => [...prev, emptyLine(entry?.ngo_id ?? ngoId)]);
 
   const removeLine = (index: number) => {
     setLines((prev) => (prev.length <= 2 ? prev : prev.filter((_, i) => i !== index)));
@@ -131,6 +135,7 @@ export function FinanceJournalEntryDialog({
 
   const handleSubmit = async () => {
     await onSave({
+      ngo_id: entry?.ngo_id ?? ngoId,
       entry_date: entryDate,
       memo: memo.trim() || null,
       lines,
@@ -139,7 +144,6 @@ export function FinanceJournalEntryDialog({
   };
 
   const ref = referenceData ?? {
-    ngos: [],
     departments: [],
     grants: [],
     workItems: [],
@@ -160,7 +164,7 @@ export function FinanceJournalEntryDialog({
         </DialogHeader>
 
         <div className="grid gap-4 py-2">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label htmlFor="je-date">Entry date</Label>
               <Input
@@ -170,6 +174,10 @@ export function FinanceJournalEntryDialog({
                 onChange={(e) => setEntryDate(e.target.value)}
                 disabled={readOnly}
               />
+            </div>
+            <div className="space-y-2">
+              <Label>Entity</Label>
+              <Input value={ngoName} disabled />
             </div>
             {entry && (
               <div className="space-y-2">
@@ -210,7 +218,6 @@ export function FinanceJournalEntryDialog({
                     <th className="p-2 w-24">Debit</th>
                     <th className="p-2 w-24">Credit</th>
                     <th className="p-2 min-w-[120px]">Fund</th>
-                    <th className="p-2 min-w-[120px]">NGO</th>
                     <th className="p-2 min-w-[120px]">Dept</th>
                     <th className="p-2 min-w-[100px]">Memo</th>
                     {!readOnly && <th className="p-2 w-10" />}
@@ -274,25 +281,6 @@ export function FinanceJournalEntryDialog({
                             {funds.map((fund) => (
                               <SelectItem key={fund.id} value={fund.id}>
                                 {fund.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </td>
-                      <td className="p-2">
-                        <Select
-                          value={line.ngo_id || "none"}
-                          onValueChange={(v) => updateLine(index, { ngo_id: v === "none" ? null : v })}
-                          disabled={readOnly}
-                        >
-                          <SelectTrigger className="h-9">
-                            <SelectValue placeholder="—" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="none">—</SelectItem>
-                            {ref.ngos.map((ngo) => (
-                              <SelectItem key={ngo.id} value={ngo.id}>
-                                {ngo.common_name || ngo.legal_name}
                               </SelectItem>
                             ))}
                           </SelectContent>
