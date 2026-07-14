@@ -38,6 +38,7 @@ import FinanceBankAccountsPage from "./pages/FinanceBankAccountsPage";
 import FinanceReceiptsPage from "./pages/FinanceReceiptsPage";
 import FinanceAccountsPayablePage from "./pages/FinanceAccountsPayablePage";
 import FinancePaymentsPage from "./pages/FinancePaymentsPage";
+import FinanceTransactionsPage from "./pages/FinanceTransactionsPage";
 import FinanceDepositsPage from "./pages/FinanceDepositsPage";
 import FinanceReconciliationPage from "./pages/FinanceReconciliationPage";
 import FinanceBudgetsPage from "./pages/FinanceBudgetsPage";
@@ -214,6 +215,7 @@ const App = () => {
                 <Route path="/financial-hub/operations" element={<P><FinanceOperationsPage /></P>} />
                 <Route path="/financial-hub/accounting/chart-of-accounts" element={<P><FinanceChartOfAccountsPage /></P>} />
                 <Route path="/financial-hub/accounting/journal-entries" element={<P><FinanceJournalEntriesPage /></P>} />
+                <Route path="/financial-hub/accounting/transactions" element={<P><FinanceTransactionsPage /></P>} />
                 <Route path="/financial-hub/accounting/bank-accounts" element={<P><FinanceBankAccountsPage /></P>} />
                 <Route path="/financial-hub/accounting/receipts" element={<P><FinanceReceiptsPage /></P>} />
                 <Route path="/financial-hub/accounting/accounts-payable" element={<P><FinanceAccountsPayablePage /></P>} />
@@ -230,8 +232,8 @@ const App = () => {
                 <Route path="/financial-hub/ngo/:ngoId" element={<Navigate to="/financial-hub/accounting/reports" replace />} />
                 <Route path="/financial-hub/ngo/:ngoId/period/:periodId" element={<Navigate to="/financial-hub/accounting/reports" replace />} />
                 <Route path="/financial-hub/accounts" element={<Navigate to="/financial-hub/accounting/chart-of-accounts" replace />} />
-                <Route path="/financial-hub/transactions" element={<Navigate to="/financial-hub/accounting/journal-entries" replace />} />
-                <Route path="/financial-hub/transactions/new" element={<Navigate to="/financial-hub/accounting/journal-entries" replace />} />
+                <Route path="/financial-hub/transactions" element={<Navigate to="/financial-hub/accounting/transactions" replace />} />
+                <Route path="/financial-hub/transactions/new" element={<Navigate to="/financial-hub/accounting/transactions" replace />} />
                 <Route path="/financial-hub/ledger" element={<Navigate to="/financial-hub/accounting/reports" replace />} />
                 <Route path="/financial-hub/trial-balance" element={<Navigate to="/financial-hub/accounting/reports" replace />} />
                 <Route path="/financial-hub/intake" element={<P><IntakeDashboard /></P>} />
