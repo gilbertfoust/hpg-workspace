@@ -130,7 +130,7 @@ export function ITModule() {
 }
 
 export function FinanceModule() {
-  return <ModulePlaceholder title="Finance" description="Double-entry accounting and financial operations" links={[{ label: "Financial Hub", path: "/financial-hub" }, { label: "Operations", path: "/financial-hub/operations" }, { label: "Chart of Accounts", path: "/financial-hub/accounting/chart-of-accounts" }, { label: "Journal Entries", path: "/financial-hub/accounting/journal-entries" }, { label: "Financial Reports", path: "/financial-hub/accounting/reports" }, { label: "Compliance", path: "/financial-hub/accounting/compliance" }]} />;
+  return <ModulePlaceholder title="Finance" description="Double-entry accounting and financial operations" links={[{ label: "Financial Hub", path: "/financial-hub" }, { label: "Transactions", path: "/financial-hub/accounting/transactions" }, { label: "Operations", path: "/financial-hub/operations" }, { label: "Chart of Accounts", path: "/financial-hub/accounting/chart-of-accounts" }, { label: "Journal Entries", path: "/financial-hub/accounting/journal-entries" }, { label: "Financial Reports", path: "/financial-hub/accounting/reports" }, { label: "Compliance", path: "/financial-hub/accounting/compliance" }]} />;
 }
 
 export function LegalModule() {
