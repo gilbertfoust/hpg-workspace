@@ -14,6 +14,7 @@ const bankMigration = read("supabase/migrations/20260714111500_finance_bank_stat
 const closeMigration = read("supabase/migrations/20260714121500_finance_close_migration_and_year_end.sql");
 const monthlyAuthorityMigration = read("supabase/migrations/20260714122500_finance_monthly_posting_period_authority.sql");
 const openingEvidenceMigration = read("supabase/migrations/20260714123500_finance_opening_balance_source_evidence.sql");
+const cashFlowMigration = read("supabase/migrations/20260714125500_finance_cash_flow_tie_out.sql");
 const app = read("src/App.tsx");
 const hub = read("src/pages/FinancialHub.tsx");
 const operations = read("src/pages/FinanceOperationsPage.tsx");
@@ -62,6 +63,8 @@ const accountingContracts = [
   [monthlyAuthorityMigration, "period.period_type = 'month'"],
   [openingEvidenceMigration, "import_finance_opening_balances_with_source"],
   [openingEvidenceMigration, "Source CSV for posted opening balances"],
+  [cashFlowMigration, "cash_flow_ties"],
+  [cashFlowMigration, "finance_opening_balance"],
 ];
 
 for (const [source, contract] of accountingContracts) {
@@ -80,6 +83,8 @@ assert.ok(reconciliationPage.includes("Statement"), "Reconciliation must expose 
 assert.ok(fiscalPeriodsPage.includes("Close readiness"), "Fiscal periods must expose hard close readiness");
 assert.ok(openingBalancesPage.includes("Post balanced opening journal"), "Opening balances must post into the ledger");
 assert.ok(compliancePage.includes("Finalize & lock year"), "Compliance must expose year-end finalization");
+assert.ok(reports.includes("Total liabilities and net assets"), "Statement of Financial Position must render complete totals");
+assert.ok(reports.includes("Cash flow ties to the change in cash"), "Statement of Cash Flows must expose its tie-out");
 
 const reportCards = reports.match(/<ReportCard title=/g) ?? [];
 const auditedExports = reports.match(/exportWithAudit\(/g) ?? [];
