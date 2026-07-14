@@ -52,6 +52,8 @@ const FinanceReportsPage = () => {
   const saveSnapshot = useSaveFinanceReportSnapshot();
 
   const postedDeposits = deposits.filter((d) => d.status === "posted");
+  const positionAssets = (sofp?.assets as Array<{ code: string; name: string; balance: number }> | undefined) ?? [];
+  const positionLiabilities = (sofp?.liabilities as Array<{ code: string; name: string; balance: number }> | undefined) ?? [];
 
   const exportWithAudit = async (
     reportType: string,
@@ -171,6 +173,10 @@ const FinanceReportsPage = () => {
             "statement-of-financial-position.csv",
             ["Metric", "Amount"],
             sofp ? [
+              ...positionAssets.map((account) => [`Asset: ${account.code} — ${account.name}`, Number(account.balance)]),
+              ["Total assets", Number(sofp.total_assets)],
+              ...positionLiabilities.map((account) => [`Liability: ${account.code} — ${account.name}`, Number(account.balance)]),
+              ["Total liabilities", Number(sofp.total_liabilities)],
               ["Net assets without donor restrictions", Number(sofp.net_assets_without_restrictions)],
               ["Net assets with donor restrictions", Number(sofp.net_assets_with_restrictions)],
               ["Total net assets", Number(sofp.total_net_assets)],
@@ -181,9 +187,18 @@ const FinanceReportsPage = () => {
           )}>
             {sofp ? (
               <div className="space-y-4 text-sm">
-                <div><h4 className="font-medium">Net assets without donor restrictions</h4><p>{fmt(Number(sofp.net_assets_without_restrictions))}</p></div>
-                <div><h4 className="font-medium">Net assets with donor restrictions</h4><p>{fmt(Number(sofp.net_assets_with_restrictions))}</p></div>
-                <div><h4 className="font-medium">Total net assets</h4><p className="font-semibold">{fmt(Number(sofp.total_net_assets))}</p></div>
+                <StatementSection title="Assets" rows={positionAssets} totalLabel="Total assets" total={Number(sofp.total_assets)} />
+                <StatementSection title="Liabilities" rows={positionLiabilities} totalLabel="Total liabilities" total={Number(sofp.total_liabilities)} />
+                <div className="border-t pt-3 space-y-2">
+                  <h4 className="font-medium">Net assets</h4>
+                  <div className="flex justify-between"><span>Without donor restrictions</span><span>{fmt(Number(sofp.net_assets_without_restrictions))}</span></div>
+                  <div className="flex justify-between"><span>With donor restrictions</span><span>{fmt(Number(sofp.net_assets_with_restrictions))}</span></div>
+                  <div className="flex justify-between font-semibold border-t pt-2"><span>Total net assets</span><span>{fmt(Number(sofp.total_net_assets))}</span></div>
+                </div>
+                <div className="flex justify-between font-semibold border-t-2 pt-3">
+                  <span>Total liabilities and net assets</span>
+                  <span>{fmt(Number(sofp.total_liabilities) + Number(sofp.total_net_assets))}</span>
+                </div>
               </div>
             ) : (
               (["asset", "liability", "equity"] as const).map((section) => (
@@ -309,6 +324,27 @@ const FinanceReportsPage = () => {
     </MainLayout>
   );
 };
+
+function StatementSection({ title, rows, totalLabel, total }: {
+  title: string;
+  rows: Array<{ code: string; name: string; balance: number }>;
+  totalLabel: string;
+  total: number;
+}) {
+  return (
+    <div className="space-y-2">
+      <h4 className="font-medium">{title}</h4>
+      {rows.map((row) => (
+        <div key={`${row.code}-${row.name}`} className="flex justify-between gap-4">
+          <span>{row.code} — {row.name}</span>
+          <span>{fmt(Number(row.balance))}</span>
+        </div>
+      ))}
+      {!rows.length && <p className="text-muted-foreground">No balances.</p>}
+      <div className="flex justify-between font-semibold border-t pt-2"><span>{totalLabel}</span><span>{fmt(total)}</span></div>
+    </div>
+  );
+}
 
 function ReportCard({ title, children, loading, onExport, extraAction }: {
   title: string; children: React.ReactNode; loading?: boolean; onExport?: () => void; extraAction?: () => void;
