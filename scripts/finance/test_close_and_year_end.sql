@@ -20,6 +20,8 @@ DECLARE
   draft_entry public.finance_journal_entries;
   readiness jsonb;
   cash_flow jsonb;
+  financial_position jsonb;
+  activities jsonb;
   close_row public.finance_year_end_closes;
   unbalanced_rejected boolean := false;
   staged_close_rejected boolean := false;
@@ -127,6 +129,23 @@ BEGIN
      OR (cash_flow->>'operating_cash_flow')::numeric <> -100
      OR (cash_flow->>'net_change_in_cash')::numeric <> -100 THEN
     RAISE EXCEPTION 'Statement of Cash Flows did not tie or double-counted accrual activity: %', cash_flow;
+  END IF;
+
+  financial_position := public.finance_statement_of_financial_position('2025-01-31', ngo_id_value);
+  IF NOT (financial_position->>'statement_is_balanced')::boolean
+     OR (financial_position->>'total_assets')::numeric <> 900
+     OR (financial_position->>'total_liabilities')::numeric <> 0
+     OR (financial_position->>'net_assets_without_restrictions')::numeric <> 900
+     OR (financial_position->>'total_net_assets')::numeric <> 900 THEN
+    RAISE EXCEPTION 'Statement of Financial Position did not roll current activity into net assets: %', financial_position;
+  END IF;
+
+  activities := public.finance_statement_of_activities('2025-01-01', '2025-01-31', ngo_id_value);
+  IF (activities->>'total_revenue')::numeric <> 0
+     OR (activities->>'management_general_expenses')::numeric <> 100
+     OR (activities->>'total_expenses')::numeric <> 100
+     OR (activities->>'change_in_net_assets')::numeric <> -100 THEN
+    RAISE EXCEPTION 'Statement of Activities totals are incomplete: %', activities;
   END IF;
 
   INSERT INTO public.finance_journal_entries (
