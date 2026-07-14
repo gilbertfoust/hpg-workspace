@@ -15,13 +15,13 @@ import {
   useCalculateAdminFee, useFinanceAdminFeeRules, useFinanceDeposits, usePostFinanceDeposit, useSaveAdminFeeRule, useSaveFinanceDeposit,
 } from "@/hooks/useFinanceDeposits";
 import { FINANCE_DEPOSIT_SOURCE_LABELS, type FinanceDepositInput, type FinanceDepositLineInput, type FinanceDepositSource } from "@/types/financeAccounting";
-import { useQuery } from "@tanstack/react-query";
-import { ensureSupabase } from "@/integrations/supabase/client";
+import { useWorkspaceNgo } from "@/hooks/useWorkspaceNgo";
 
 const fmt = (n: number) => n.toLocaleString(undefined, { style: "currency", currency: "USD" });
 
 const FinanceDepositsPage = () => {
-  const { data: deposits = [], isLoading } = useFinanceDeposits();
+  const { selectedNgo, selectedNgoId } = useWorkspaceNgo();
+  const { data: deposits = [], isLoading } = useFinanceDeposits(selectedNgoId);
   const { data: bankAccounts = [] } = useFinanceBankAccounts();
   const { data: accounts = [] } = useFinanceAccounts();
   const { data: funds = [] } = useFinanceFunds();
@@ -33,7 +33,6 @@ const FinanceDepositsPage = () => {
   const [depositDate, setDepositDate] = useState(new Date().toISOString().slice(0, 10));
   const [sourceType, setSourceType] = useState<FinanceDepositSource>("donation");
   const [bankId, setBankId] = useState("none");
-  const [ngoId, setNgoId] = useState("none");
   const [grossAmount, setGrossAmount] = useState("");
   const [feeOverride, setFeeOverride] = useState("");
   const [revenueAccountId, setRevenueAccountId] = useState("none");
@@ -41,38 +40,34 @@ const FinanceDepositsPage = () => {
   const [defaultFeePct, setDefaultFeePct] = useState("10");
 
   const gross = Number(grossAmount) || 0;
-  const { data: feeCalc } = useCalculateAdminFee(gross, ngoId === "none" ? null : ngoId, null);
+  const { data: feeCalc } = useCalculateAdminFee(gross, selectedNgoId, null);
   const appliedFee = feeOverride ? Number(feeOverride) : (feeCalc?.suggested_fee ?? 0);
   const passThrough = gross - appliedFee;
 
   const revenueAccounts = useMemo(() => accounts.filter((a) => a.account_type === "revenue"), [accounts]);
 
-  const { data: ngos = [] } = useQuery({
-    queryKey: ["deposit-ngos"],
-    queryFn: async () => { const s = ensureSupabase(); const { data } = await s.from("ngos").select("id, legal_name, common_name").order("legal_name"); return data || []; },
-  });
-
   const handleCreateDeposit = async () => {
-    if (bankId === "none" || gross <= 0) return;
+    if (!selectedNgoId || bankId === "none" || gross <= 0) return;
     const lines: FinanceDepositLineInput[] = [];
     const adminFeeAcct = accounts.find((a) => a.code === "4300")?.id;
     const passAcct = revenueAccountId !== "none" ? revenueAccountId : revenueAccounts[0]?.id;
     if (!passAcct) return;
 
-    if (sourceType === "admin_fee" || (ngoId !== "none" && appliedFee > 0)) {
+    if (sourceType === "admin_fee" || appliedFee > 0) {
       if (appliedFee > 0 && adminFeeAcct) {
-        lines.push({ revenue_account_id: adminFeeAcct, amount: appliedFee, ngo_id: ngoId === "none" ? null : ngoId, memo: "HPG admin fee", line_number: 1 });
+        lines.push({ revenue_account_id: adminFeeAcct, amount: appliedFee, ngo_id: selectedNgoId, memo: "HPG admin fee", line_number: 1 });
       }
       if (passThrough > 0) {
-        lines.push({ revenue_account_id: passAcct, amount: passThrough, ngo_id: ngoId === "none" ? null : ngoId, fund_id: null, memo: "Pass-through amount", line_number: lines.length + 1 });
+        lines.push({ revenue_account_id: passAcct, amount: passThrough, ngo_id: selectedNgoId, fund_id: null, memo: "Pass-through amount", line_number: lines.length + 1 });
       }
     } else {
-      lines.push({ revenue_account_id: passAcct, amount: gross, ngo_id: ngoId === "none" ? null : ngoId, line_number: 1 });
+      lines.push({ revenue_account_id: passAcct, amount: gross, ngo_id: selectedNgoId, line_number: 1 });
     }
 
     const input: FinanceDepositInput = {
       deposit_date: depositDate, source_type: sourceType, bank_account_id: bankId,
-      memo: memo.trim() || null, restriction_notes: ngoId !== "none" ? "Sponsored NGO deposit" : null, lines,
+      ngo_id: selectedNgoId,
+      memo: memo.trim() || null, restriction_notes: "NGO deposit", lines,
     };
     const dep = await saveDeposit.mutateAsync({ input });
     if (dep?.id) await postDeposit.mutateAsync(dep.id);
@@ -89,7 +84,7 @@ const FinanceDepositsPage = () => {
   };
 
   return (
-    <MainLayout title="Deposits & Revenue" subtitle="Incoming money with nonprofit revenue classification and fiscal sponsorship admin fee split">
+    <MainLayout title="Deposits & Revenue" subtitle={`Incoming money and revenue classification for ${selectedNgo?.common_name || selectedNgo?.legal_name || "All HPG"}`}>
       <Tabs defaultValue="deposits">
         <TabsList>
           <TabsTrigger value="deposits"><TrendingUp className="h-4 w-4 mr-1" />Deposits</TabsTrigger>
@@ -115,20 +110,14 @@ const FinanceDepositsPage = () => {
                   <SelectContent><SelectItem value="none">Select</SelectItem>{bankAccounts.map((b) => <SelectItem key={b.id} value={b.id}>{b.account_name}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2"><Label>Sponsored NGO (optional)</Label>
-                <Select value={ngoId} onValueChange={setNgoId}><SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent><SelectItem value="none">None</SelectItem>{ngos.map((n: { id: string; common_name: string | null; legal_name: string }) => (
-                    <SelectItem key={n.id} value={n.id}>{n.common_name || n.legal_name}</SelectItem>
-                  ))}</SelectContent>
-                </Select>
-              </div>
+              <div className="space-y-2"><Label>Entity</Label><Input value={selectedNgo?.common_name || selectedNgo?.legal_name || "Select an NGO in the workspace header"} readOnly className="bg-muted/40" /></div>
               <div className="space-y-2"><Label>Gross amount</Label><Input type="number" step="0.01" value={grossAmount} onChange={(e) => setGrossAmount(e.target.value)} /></div>
               <div className="space-y-2"><Label>Revenue account</Label>
                 <Select value={revenueAccountId} onValueChange={setRevenueAccountId}><SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent><SelectItem value="none">Default</SelectItem>{revenueAccounts.map((a) => <SelectItem key={a.id} value={a.id}>{a.code} — {a.name}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
-              {ngoId !== "none" && gross > 0 && (
+              {selectedNgoId && gross > 0 && (
                 <div className="md:col-span-2 rounded-md border p-4 bg-muted/30 space-y-2">
                   <p className="text-sm font-medium">Suggested admin fee split</p>
                   <p className="text-sm">Fee ({feeCalc?.fee_percentage ?? 10}%): {fmt(appliedFee)} · Pass-through: {fmt(passThrough)}</p>
@@ -136,7 +125,7 @@ const FinanceDepositsPage = () => {
                 </div>
               )}
               <div className="md:col-span-2 space-y-2"><Label>Memo</Label><Input value={memo} onChange={(e) => setMemo(e.target.value)} /></div>
-              <div className="md:col-span-2"><Button onClick={handleCreateDeposit} disabled={saveDeposit.isPending || postDeposit.isPending || bankId === "none" || gross <= 0}>
+              <div className="md:col-span-2"><Button onClick={handleCreateDeposit} disabled={!selectedNgoId || saveDeposit.isPending || postDeposit.isPending || bankId === "none" || gross <= 0}>
                 {saveDeposit.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <CheckCircle className="h-4 w-4 mr-2" />}Save & post deposit
               </Button></div>
             </CardContent>

@@ -359,10 +359,11 @@ export function AppSidebar() {
                                       <NavItem to="/financial-hub/operations" icon={<ClipboardList className="w-3.5 h-3.5" />} label="Operations" />
                                       <NavItem to="/financial-hub/accounting/chart-of-accounts" icon={<Layers className="w-3.5 h-3.5" />} label="Chart of Accounts" />
                                       <NavItem to="/financial-hub/accounting/journal-entries" icon={<FileText className="w-3.5 h-3.5" />} label="Journal Entries" />
+                                      <NavItem to="/financial-hub/accounting/transactions" icon={<ClipboardList className="w-3.5 h-3.5" />} label="Transactions" />
                                       <NavItem to="/financial-hub/accounting/bank-accounts" icon={<DollarSign className="w-3.5 h-3.5" />} label="Bank Accounts" />
                                       <NavItem to="/financial-hub/accounting/receipts" icon={<FileText className="w-3.5 h-3.5" />} label="Receipts" />
                                       <NavItem to="/financial-hub/accounting/accounts-payable" icon={<ClipboardList className="w-3.5 h-3.5" />} label="Accounts Payable" />
-                                      <NavItem to="/financial-hub/accounting/payments" icon={<DollarSign className="w-3.5 h-3.5" />} label="Payments" />
+                                      <NavItem to="/financial-hub/accounting/payments" icon={<DollarSign className="w-3.5 h-3.5" />} label="Disbursements" />
                                       <NavItem to="/financial-hub/accounting/deposits" icon={<TrendingUp className="w-3.5 h-3.5" />} label="Deposits" />
                                       <NavItem to="/financial-hub/accounting/reconciliation" icon={<ShieldCheck className="w-3.5 h-3.5" />} label="Reconciliation" />
                                       <NavItem to="/financial-hub/accounting/budgets" icon={<PieChart className="w-3.5 h-3.5" />} label="Budgets" />

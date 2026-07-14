@@ -8,9 +8,9 @@ const ensureSupabase = () => {
   if (!supabase) throw getSupabaseNotConfiguredError();
 };
 
-export const useFinancePayments = (statusFilter?: FinancePaymentStatus | "all") => {
+export const useFinancePayments = (statusFilter?: FinancePaymentStatus | "all", ngoId?: string | null) => {
   return useQuery({
-    queryKey: ["finance-payments", statusFilter ?? "all"],
+    queryKey: ["finance-payments", statusFilter ?? "all", ngoId ?? "all"],
     enabled: !!supabase,
     queryFn: async (): Promise<FinancePayment[]> => {
       ensureSupabase();
@@ -18,6 +18,7 @@ export const useFinancePayments = (statusFilter?: FinancePaymentStatus | "all") 
       if (statusFilter && statusFilter !== "all") {
         query = query.eq("status" as never, statusFilter as never);
       }
+      if (ngoId) query = query.eq("ngo_id" as never, ngoId as never);
       const { data, error } = await query;
       if (error) throw error;
       if (!data?.length) return [];
@@ -63,6 +64,9 @@ export const useSaveFinancePayment = () => {
         fund_id: input.fund_id || null,
         grant_application_id: input.grant_application_id || null,
         expense_account_id: input.expense_account_id || null,
+        payment_account_id: input.payment_account_id || null,
+        payment_method: input.payment_method || null,
+        reference_number: input.reference_number?.trim() || null,
         memo: input.memo?.trim() || null,
         document_id: input.document_id || null,
         approval_notes: input.approval_notes?.trim() || null,
@@ -148,6 +152,9 @@ export const useVoidFinancePayment = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["finance-payments"] });
+      queryClient.invalidateQueries({ queryKey: ["finance-expense-transactions"] });
+      queryClient.invalidateQueries({ queryKey: ["finance-journal-entries"] });
+      queryClient.invalidateQueries({ queryKey: ["finance-receipt-coverage"] });
       toast({ title: "Payment voided" });
     },
     onError: (error: Error) => {

@@ -40,9 +40,9 @@ const enrichBills = (
   }));
 };
 
-export const useFinanceBills = (statusFilter?: FinanceBillStatus | "all") => {
+export const useFinanceBills = (statusFilter?: FinanceBillStatus | "all", ngoId?: string | null) => {
   return useQuery({
-    queryKey: ["finance-bills", statusFilter ?? "all"],
+    queryKey: ["finance-bills", statusFilter ?? "all", ngoId ?? "all"],
     enabled: !!supabase,
     queryFn: async (): Promise<FinanceBill[]> => {
       ensureSupabase();
@@ -56,6 +56,7 @@ export const useFinanceBills = (statusFilter?: FinanceBillStatus | "all") => {
       if (statusFilter && statusFilter !== "all") {
         query = query.eq("status" as never, statusFilter as never);
       }
+      if (ngoId) query = query.eq("ngo_id" as never, ngoId as never);
 
       const { data: bills, error } = await query;
       if (error) throw error;
@@ -118,6 +119,7 @@ export const useSaveFinanceBill = () => {
             terms: input.terms?.trim() || null,
             memo: input.memo?.trim() || null,
             document_id: input.document_id || null,
+            ngo_id: input.ngo_id,
           } as never)
           .eq("id" as never, id as never)
           .select()
@@ -156,6 +158,7 @@ export const useSaveFinanceBill = () => {
           terms: input.terms?.trim() || null,
           memo: input.memo?.trim() || null,
           document_id: input.document_id || null,
+          ngo_id: input.ngo_id,
           status: "draft",
           created_by_user_id: user?.id ?? null,
           bill_number: "",

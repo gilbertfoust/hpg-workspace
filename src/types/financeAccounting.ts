@@ -360,6 +360,7 @@ export type FinanceBillLineInput = {
 
 export interface FinanceBill {
   id: string;
+  ngo_id: string | null;
   vendor_id: string;
   bill_number: string;
   bill_date: string;
@@ -384,6 +385,7 @@ export interface FinanceBill {
 }
 
 export type FinanceBillInput = {
+  ngo_id: string | null;
   vendor_id: string;
   bill_date: string;
   due_date?: string | null;
@@ -427,6 +429,7 @@ export type FinancePaymentType =
   | "internal_transfer";
 
 export type FinancePaymentStatus = "draft" | "pending_approval" | "posted" | "voided";
+export type FinancePaymentMethod = "cash" | "check" | "ach" | "debit_card" | "credit_card" | "wire" | "other";
 
 export interface FinancePayment {
   id: string;
@@ -443,12 +446,16 @@ export interface FinancePayment {
   fund_id: string | null;
   grant_application_id: string | null;
   expense_account_id: string | null;
+  payment_account_id: string | null;
+  payment_method: FinancePaymentMethod | null;
+  reference_number: string | null;
   memo: string | null;
   document_id: string | null;
   approval_notes: string | null;
   approved_by_user_id: string | null;
   approved_at: string | null;
   journal_entry_id: string | null;
+  reversal_journal_entry_id: string | null;
   voided_at: string | null;
   void_reason: string | null;
   created_by_user_id: string | null;
@@ -470,6 +477,9 @@ export type FinancePaymentInput = {
   fund_id?: string | null;
   grant_application_id?: string | null;
   expense_account_id?: string | null;
+  payment_account_id?: string | null;
+  payment_method?: FinancePaymentMethod | null;
+  reference_number?: string | null;
   memo?: string | null;
   document_id?: string | null;
   approval_notes?: string | null;
@@ -490,6 +500,16 @@ export const FINANCE_PAYMENT_STATUS_LABELS: Record<FinancePaymentStatus, string>
   voided: "Voided",
 };
 
+export const FINANCE_PAYMENT_METHOD_LABELS: Record<FinancePaymentMethod, string> = {
+  cash: "Cash",
+  check: "Check",
+  ach: "ACH / bank transfer",
+  debit_card: "Debit card",
+  credit_card: "Credit card",
+  wire: "Wire transfer",
+  other: "Other",
+};
+
 // Deposits
 export type FinanceDepositSource = "donation" | "grant_award" | "program_revenue" | "admin_fee" | "reimbursement_refund" | "other_income";
 export type FinanceDepositStatus = "draft" | "pending_approval" | "posted" | "voided";
@@ -502,12 +522,14 @@ export interface FinanceDepositLine {
 export type FinanceDepositLineInput = Omit<FinanceDepositLine, "id" | "deposit_id"> & { id?: string };
 export interface FinanceDeposit {
   id: string; deposit_number: string; deposit_date: string; source_type: FinanceDepositSource;
+  ngo_id: string | null;
   bank_account_id: string; total_amount: number; status: FinanceDepositStatus;
   memo: string | null; document_id: string | null; restriction_notes: string | null;
   journal_entry_id: string | null; created_at: string; updated_at: string; lines?: FinanceDepositLine[];
 }
 export type FinanceDepositInput = {
   deposit_date: string; source_type: FinanceDepositSource; bank_account_id: string;
+  ngo_id: string | null;
   memo?: string | null; document_id?: string | null; restriction_notes?: string | null; lines: FinanceDepositLineInput[];
 };
 export const FINANCE_DEPOSIT_SOURCE_LABELS: Record<FinanceDepositSource, string> = {

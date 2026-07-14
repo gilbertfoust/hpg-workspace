@@ -55,6 +55,7 @@ import type {
   FinanceVendorInput,
 } from "@/types/financeAccounting";
 import { FINANCE_BILL_STATUS_LABELS } from "@/types/financeAccounting";
+import { useWorkspaceNgo } from "@/hooks/useWorkspaceNgo";
 
 const formatMoney = (value: number) =>
   value.toLocaleString(undefined, { style: "currency", currency: "USD" });
@@ -74,6 +75,7 @@ const billStatusVariant = (status: FinanceBillStatus): "default" | "secondary" |
 };
 
 const FinanceAccountsPayablePage = () => {
+  const { selectedNgo, selectedNgoId } = useWorkspaceNgo();
   const [billStatusFilter, setBillStatusFilter] = useState<string>("all");
   const [vendorDialogOpen, setVendorDialogOpen] = useState(false);
   const [editingVendor, setEditingVendor] = useState<FinanceVendor | null>(null);
@@ -84,7 +86,8 @@ const FinanceAccountsPayablePage = () => {
 
   const { data: vendors = [], isLoading: vendorsLoading, error: vendorsError } = useFinanceVendors({ includeInactive: true });
   const { data: bills = [], isLoading: billsLoading, error: billsError } = useFinanceBills(
-    billStatusFilter === "all" ? "all" : (billStatusFilter as FinanceBillStatus)
+    billStatusFilter === "all" ? "all" : (billStatusFilter as FinanceBillStatus),
+    selectedNgoId,
   );
   const { data: accounts = [] } = useFinanceAccounts();
   const { data: funds = [] } = useFinanceFunds();
@@ -139,7 +142,7 @@ const FinanceAccountsPayablePage = () => {
   };
 
   const handleBillSave = async (input: FinanceBillInput) => {
-    await saveBill.mutateAsync({ id: viewBill?.id, input });
+    await saveBill.mutateAsync({ id: viewBill?.id, input: { ...input, ngo_id: selectedNgoId } });
   };
 
   const handlePay = async (input: { amount: number; bankAccountId: string; paymentDate: string; memo?: string }) => {
@@ -156,7 +159,7 @@ const FinanceAccountsPayablePage = () => {
   return (
     <MainLayout
       title="Accounts Payable"
-      subtitle="Vendors, bills, approval workflow, and payments with double-entry posting"
+      subtitle={`Vendors, bills, approvals, and payments for ${selectedNgo?.common_name || selectedNgo?.legal_name || "All HPG"}`}
     >
       <div className="space-y-6">
         <div className="grid gap-4 md:grid-cols-2">
@@ -195,7 +198,7 @@ const FinanceAccountsPayablePage = () => {
                     Draft → submit for approval → approve (debits expense, credits AP) → pay (debits AP, credits bank).
                   </CardDescription>
                 </div>
-                <Button onClick={openCreateBill} disabled={vendors.filter((v) => v.is_active).length === 0}>
+                <Button onClick={openCreateBill} disabled={!selectedNgoId || vendors.filter((v) => v.is_active).length === 0}>
                   <Plus className="h-4 w-4 mr-2" />
                   New bill
                 </Button>
@@ -445,6 +448,8 @@ const FinanceAccountsPayablePage = () => {
         vendors={vendors.filter((v) => v.is_active)}
         expenseAccounts={expenseAccounts}
         funds={funds}
+        ngoId={selectedNgoId}
+        ngoName={selectedNgo?.common_name || selectedNgo?.legal_name || "All HPG"}
         referenceData={referenceData}
         onSave={handleBillSave}
         isSaving={saveBill.isPending}

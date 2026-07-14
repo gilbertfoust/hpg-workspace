@@ -30,10 +30,11 @@ const FinancialHub = () => {
   const accountingLinks = [
     { label: "Chart of Accounts", path: "/financial-hub/accounting/chart-of-accounts", icon: BookOpen },
     { label: "Journal Entries", path: "/financial-hub/accounting/journal-entries", icon: BookOpenCheck },
+    { label: "Transactions", path: "/financial-hub/accounting/transactions", icon: Receipt },
     { label: "Bank Accounts", path: "/financial-hub/accounting/bank-accounts", icon: Landmark },
     { label: "Receipts", path: "/financial-hub/accounting/receipts", icon: Paperclip },
     { label: "Accounts Payable", path: "/financial-hub/accounting/accounts-payable", icon: FileStack },
-    { label: "Payments", path: "/financial-hub/accounting/payments", icon: Wallet },
+    { label: "Payments & Disbursements", path: "/financial-hub/accounting/payments", icon: Wallet },
     { label: "Deposits", path: "/financial-hub/accounting/deposits", icon: TrendingUp },
     { label: "Reconciliation", path: "/financial-hub/accounting/reconciliation", icon: Scale },
     { label: "Budgets", path: "/financial-hub/accounting/budgets", icon: Target },
