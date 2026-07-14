@@ -86,7 +86,11 @@ const ensureSupabase = () => {
   }
 };
 
-export const useNGOs = () => {
+interface UseNGOsOptions {
+  enabled?: boolean;
+}
+
+export const useNGOs = (options: UseNGOsOptions = {}) => {
   return useQuery({
     queryKey: ['ngos'],
     queryFn: async () => {
@@ -99,6 +103,7 @@ export const useNGOs = () => {
       if (error) throw error;
       return data as NGO[];
     },
+    enabled: options.enabled ?? true,
   });
 };
 
@@ -144,25 +149,25 @@ export const useCreateNGO = () => {
       
       if (error) throw error;
 
-      const d = data as any;
+      const createdNgo = data as unknown as NGO;
       const { error: auditError } = await supabase
         .from('audit_log')
         .insert({
           actor_user_id: user?.id,
           action_type: 'create',
           entity_type: 'ngo',
-          entity_id: d.id,
+          entity_id: createdNgo.id,
           before_json: null,
           after_json: {
-            legal_name: d.legal_name,
-            status: d.status,
+            legal_name: createdNgo.legal_name,
+            status: createdNgo.status,
           },
         });
 
       if (auditError) {
         console.error('Failed to write audit log', auditError);
       }
-      return d as NGO;
+      return createdNgo;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ngos'] });
@@ -197,7 +202,7 @@ export const useUpdateNGO = () => {
       ensureSupabase();
       const { data, error } = await supabase
         .from('ngos')
-        .update(input as any)
+        .update(input as never)
         .eq('id', id)
         .select()
         .single();
@@ -251,7 +256,7 @@ export const useNGOStats = () => {
       
       if (error) throw error;
       
-      const rows = data as any[];
+      const rows = (data ?? []) as unknown as Array<Pick<NGO, 'status'>>;
       const stats = {
         total: rows.length,
         active: rows.filter(n => n.status === 'active').length,

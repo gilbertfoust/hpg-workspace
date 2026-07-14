@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { WorkspaceNgoProvider } from "@/contexts/WorkspaceNgoContext";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 
@@ -188,7 +189,8 @@ const App = () => {
           <ErrorBoundary>
             {/* IMPORTANT for GitHub Pages */}
             <BrowserRouter basename={import.meta.env.BASE_URL}>
-              <Routes>
+              <WorkspaceNgoProvider>
+                <Routes>
                 {/* Auth */}
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/auth/callback" element={<AuthCallback />} />
@@ -387,7 +389,8 @@ const App = () => {
 
                 {/* Catch-all */}
                 <Route path="*" element={<NotFound />} />
-              </Routes>
+                </Routes>
+              </WorkspaceNgoProvider>
             </BrowserRouter>
           </ErrorBoundary>
         </TooltipProvider>
