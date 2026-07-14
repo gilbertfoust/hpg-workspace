@@ -18,6 +18,8 @@ DECLARE
   accrual_entry public.finance_journal_entries;
   cash_payment_entry public.finance_journal_entries;
   draft_entry public.finance_journal_entries;
+  receipt_document public.documents;
+  failed_receipt public.finance_receipt_drafts;
   readiness jsonb;
   cash_flow jsonb;
   financial_position jsonb;
@@ -146,6 +148,37 @@ BEGIN
      OR (activities->>'total_expenses')::numeric <> 100
      OR (activities->>'change_in_net_assets')::numeric <> -100 THEN
     RAISE EXCEPTION 'Statement of Activities totals are incomplete: %', activities;
+  END IF;
+
+  INSERT INTO public.documents (
+    ngo_id, file_path, file_name, file_type, file_size, category,
+    uploaded_by_user_id, review_status, title
+  ) VALUES (
+    ngo_id_value,
+    'internal/finance/receipts/' || ngo_id_value::text || '/unreadable-smoke.jpg',
+    'unreadable-smoke.jpg', 'image/jpeg', 128, 'finance',
+    manager_id, 'pending', 'Unreadable close smoke receipt'
+  ) RETURNING * INTO receipt_document;
+  INSERT INTO public.finance_receipt_drafts (
+    ngo_id, document_id, content_sha256, status, transaction_date,
+    error_message, created_by_user_id
+  ) VALUES (
+    ngo_id_value, receipt_document.id, repeat('d', 64), 'failed', '2025-01-15',
+    'Deliberate unreadable smoke receipt', manager_id
+  ) RETURNING * INTO failed_receipt;
+  readiness := public.finance_period_close_readiness(january_period.id);
+  IF (readiness->>'unresolved_receipts')::integer <> 1 THEN
+    RAISE EXCEPTION 'Failed receipt did not block close readiness';
+  END IF;
+  PERFORM public.dismiss_finance_receipt_draft(failed_receipt.id, 'Mistaken test upload');
+  readiness := public.finance_period_close_readiness(january_period.id);
+  IF (readiness->>'unresolved_receipts')::integer <> 0 OR EXISTS (
+    SELECT 1 FROM public.finance_receipt_drafts WHERE id = failed_receipt.id
+  ) OR NOT EXISTS (
+    SELECT 1 FROM public.documents
+    WHERE id = receipt_document.id AND review_status = 'rejected'
+  ) THEN
+    RAISE EXCEPTION 'Dismissed receipt did not preserve evidence and clear close readiness';
   END IF;
 
   INSERT INTO public.finance_journal_entries (
