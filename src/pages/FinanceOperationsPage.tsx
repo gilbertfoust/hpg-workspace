@@ -21,8 +21,8 @@ import {
   useSaveFinanceExpenseRequest,
   useSubmitFinanceExpenseRequest,
 } from "@/hooks/useFinanceOperations";
-import { useNGOs } from "@/hooks/useNGOs";
 import { usePurchaseRequests } from "@/hooks/usePurchaseRequests";
+import { useWorkspaceNgo } from "@/hooks/useWorkspaceNgo";
 import { ArrowRight, Bell, Check, CircleDollarSign, FileCheck, Plus, Send, ShoppingCart, Wallet, X } from "lucide-react";
 
 const money = (amount: number, currency = "USD") =>
@@ -57,12 +57,14 @@ const initialExpenseForm = {
 const FinanceOperationsPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { ngos, selectedNgo, selectedNgoId } = useWorkspaceNgo();
   const { data: access } = useFinanceAccessCapabilities();
   const { data: expenses = [], isLoading: expensesLoading } = useFinanceExpenseRequests();
-  const { data: purchases = [], updateStatus: updatePurchaseStatus } = usePurchaseRequests();
+  const { data: purchases = [], updateStatus: updatePurchaseStatus } = usePurchaseRequests(
+    selectedNgoId ? { ngo_id: selectedNgoId } : undefined,
+  );
   const { data: budgets = [] } = useFinanceBudgets();
   const { data: workflowEvents = [] } = useFinanceWorkflowEvents();
-  const { data: ngos = [] } = useNGOs();
   const saveExpense = useSaveFinanceExpenseRequest();
   const submitExpense = useSubmitFinanceExpenseRequest();
   const reviewExpense = useReviewFinanceExpenseRequest();
@@ -71,9 +73,18 @@ const FinanceOperationsPage = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [expenseForm, setExpenseForm] = useState(initialExpenseForm);
 
+  const scopedExpenses = useMemo(
+    () => selectedNgoId ? expenses.filter((item) => item.ngo_id === selectedNgoId) : expenses,
+    [expenses, selectedNgoId],
+  );
+  const scopedBudgets = useMemo(
+    () => selectedNgoId ? budgets.filter((item) => item.ngo_id === selectedNgoId) : budgets,
+    [budgets, selectedNgoId],
+  );
+
   const approvalQueue = useMemo<ApprovalItem[]>(() => {
     const rows: ApprovalItem[] = [
-      ...expenses.filter((item) => item.status === "submitted").map((item) => ({
+      ...scopedExpenses.filter((item) => item.status === "submitted").map((item) => ({
         id: item.id,
         kind: "Expense" as const,
         label: `${item.request_number} · ${item.payee_name}`,
@@ -89,7 +100,7 @@ const FinanceOperationsPage = () => {
         workItemId: item.work_item_id ?? null,
         submittedAt: item.submitted_at ?? null,
       })),
-      ...budgets.filter((item) => item.status === "pending_approval").map((item) => ({
+      ...scopedBudgets.filter((item) => item.status === "pending_approval").map((item) => ({
         id: item.id,
         kind: "Budget" as const,
         label: `${item.name} · FY${item.fiscal_year}`,
@@ -99,10 +110,10 @@ const FinanceOperationsPage = () => {
       })),
     ];
     return rows.sort((a, b) => (a.submittedAt ?? "").localeCompare(b.submittedAt ?? ""));
-  }, [budgets, expenses, purchases]);
+  }, [purchases, scopedBudgets, scopedExpenses]);
 
   const queuedNotifications = workflowEvents.filter((event) => event.notification_status === "queued").length;
-  const ownDrafts = expenses.filter((item) => item.requester_user_id === user?.id && item.status === "draft").length;
+  const ownDrafts = scopedExpenses.filter((item) => item.requester_user_id === user?.id && item.status === "draft").length;
 
   const createExpense = async () => {
     await saveExpense.mutateAsync({
@@ -117,8 +128,15 @@ const FinanceOperationsPage = () => {
         currency_code: "USD",
       },
     });
-    setExpenseForm(initialExpenseForm);
+    setExpenseForm({ ...initialExpenseForm, ngoId: selectedNgoId ?? "none" });
     setDialogOpen(false);
+  };
+
+  const handleExpenseDialogChange = (open: boolean) => {
+    setDialogOpen(open);
+    if (open) {
+      setExpenseForm((form) => ({ ...form, ngoId: selectedNgoId ?? "none" }));
+    }
   };
 
   const reject = (kind: ApprovalItem["kind"], id: string) => {
@@ -136,13 +154,16 @@ const FinanceOperationsPage = () => {
   };
 
   return (
-    <MainLayout title="Finance Operations" subtitle="Expense, purchase, and budget requests with database-enforced approvals">
+    <MainLayout
+      title="Finance Operations"
+      subtitle={`Expense, purchase, and budget requests for ${selectedNgo?.common_name || selectedNgo?.legal_name || "All HPG"}`}
+    >
       <div className="space-y-6">
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <MetricCard label="Pending approvals" value={approvalQueue.length} icon={FileCheck} />
           <MetricCard label="My expense drafts" value={ownDrafts} icon={Wallet} />
           <MetricCard label="Queued notifications" value={queuedNotifications} icon={Bell} />
-          <MetricCard label="Open expense requests" value={expenses.filter((item) => !["paid", "canceled"].includes(item.status)).length} icon={CircleDollarSign} />
+          <MetricCard label="Open expense requests" value={scopedExpenses.filter((item) => !["paid", "canceled"].includes(item.status)).length} icon={CircleDollarSign} />
         </div>
 
         <div className="grid gap-3 md:grid-cols-3">
@@ -204,7 +225,7 @@ const FinanceOperationsPage = () => {
         <Card>
           <CardHeader className="flex flex-row items-start justify-between gap-4">
             <div><CardTitle className="text-base">Expense requests</CardTitle><CardDescription>Draft, submit, approve, and record payment without leaving the hub.</CardDescription></div>
-            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <Dialog open={dialogOpen} onOpenChange={handleExpenseDialogChange}>
               <DialogTrigger asChild><Button disabled={!access?.can_submit_requests}><Plus className="h-4 w-4 mr-1" />New expense</Button></DialogTrigger>
               <DialogContent className="max-w-xl">
                 <DialogHeader><DialogTitle>New expense request</DialogTitle></DialogHeader>
@@ -238,9 +259,9 @@ const FinanceOperationsPage = () => {
               <TableBody>
                 {expensesLoading ? (
                   <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Loading expense requests…</TableCell></TableRow>
-                ) : !expenses.length ? (
+                ) : !scopedExpenses.length ? (
                   <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">No expense requests yet.</TableCell></TableRow>
-                ) : expenses.map((expense) => (
+                ) : scopedExpenses.map((expense) => (
                   <TableRow key={expense.id}>
                     <TableCell><p className="font-mono text-xs">{expense.request_number}</p><p className="text-xs text-muted-foreground">{expense.expense_date}</p></TableCell>
                     <TableCell><p className="font-medium">{expense.payee_name}</p><p className="text-xs text-muted-foreground max-w-xs truncate">{expense.business_purpose}</p></TableCell>
