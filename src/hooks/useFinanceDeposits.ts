@@ -14,21 +14,19 @@ export const useFinanceDeposits = (ngoId?: string | null) => useQuery({
   enabled: !!supabase,
   queryFn: async (): Promise<FinanceDeposit[]> => {
     ensureSupabase();
-    const { data: deps, error } = await supabase.from("finance_deposits" as never).select("*").order("deposit_date", { ascending: false });
+    let depositQuery = supabase.from("finance_deposits" as never).select("*").order("deposit_date", { ascending: false });
+    if (ngoId) depositQuery = depositQuery.eq("ngo_id" as never, ngoId as never);
+    const { data: deps, error } = await depositQuery;
     if (error) throw error;
     if (!deps?.length) return [];
     const ids = deps.map((d: FinanceDeposit) => d.id);
-    let lineQuery = supabase.from("finance_deposit_lines" as never).select("*").in("deposit_id" as never, ids as never);
-    if (ngoId) lineQuery = lineQuery.eq("ngo_id" as never, ngoId as never);
-    const { data: lines, error: le } = await lineQuery;
+    const { data: lines, error: le } = await supabase.from("finance_deposit_lines" as never).select("*").in("deposit_id" as never, ids as never);
     if (le) throw le;
     const byDep = new Map<string, FinanceDepositLine[]>();
     (lines || []).forEach((l: FinanceDepositLine) => {
       const b = byDep.get(l.deposit_id) || []; b.push({ ...l, amount: Number(l.amount) }); byDep.set(l.deposit_id, b);
     });
-    return (deps as FinanceDeposit[])
-      .filter((deposit) => !ngoId || byDep.has(deposit.id))
-      .map((d) => ({ ...d, total_amount: Number(d.total_amount), lines: byDep.get(d.id) || [] }));
+    return (deps as FinanceDeposit[]).map((d) => ({ ...d, total_amount: Number(d.total_amount), lines: byDep.get(d.id) || [] }));
   },
 });
 
@@ -40,6 +38,7 @@ export const useSaveFinanceDeposit = () => {
       const lines = normalizeLines(input.lines);
       const header = {
         deposit_date: input.deposit_date, source_type: input.source_type, bank_account_id: input.bank_account_id,
+        ngo_id: input.ngo_id,
         memo: input.memo?.trim() || null, document_id: input.document_id || null, restriction_notes: input.restriction_notes?.trim() || null,
       };
       if (id) {
