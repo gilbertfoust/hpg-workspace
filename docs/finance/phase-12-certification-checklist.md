@@ -30,6 +30,15 @@
 - [x] Official reports support audited print / Save-as-PDF output
 - [x] Year-end packages support audited JSON download
 - [x] New Finance close/import/year-end tables have RLS and no advisor warning/error
+- [x] Budgets can create or reuse accounts and activate them in the selected NGO ledger
+- [x] Budget actuals reject cross-NGO activity and honor the requested reporting dates
+- [x] Invoice issue, receipt, write-off, and void/reversal are atomic general-ledger transactions
+- [x] Approved expenses can be settled only to an exact posted ledger payment
+- [x] AR and AP subledgers tie to their parent control accounts
+- [x] Completed economic source forms are checked for posted journal links
+- [x] Statement of Financial Position and cash flow parent tie-outs block period close
+- [x] Recurring rules generate reviewable draft journals only
+- [x] Provider bank/payment requests use idempotent durable outbox records
 
 ## Automated evidence
 
@@ -44,6 +53,8 @@ Run against staging/production inside rollback transactions:
 1. `scripts/finance/test_atomic_posting.sql`
 2. `scripts/finance/test_bank_statement_reconciliation.sql`
 3. `scripts/finance/test_close_and_year_end.sql`
+4. `scripts/finance/test_operational_workflows.sql`
+5. `scripts/finance/test_living_accounting_ecosystem.sql`
 
 The bank reconciliation and close/year-end suites passed against the connected HPG project on July 14, 2026. The suites create representative records, assert rejection cases, and roll back all data.
 

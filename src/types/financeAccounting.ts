@@ -32,6 +32,11 @@ export interface FinanceAccount {
   updated_at: string;
 }
 
+export interface FinanceNgoAccount extends FinanceAccount {
+  activation_source_type: string;
+  activated_at: string;
+}
+
 export type FinanceAccountInput = {
   code: string;
   name: string;
@@ -620,7 +625,23 @@ export interface FinanceBudget {
 export interface FinanceBudgetLine {
   id: string; budget_id: string; account_id: string; period_month: number; amount: number; memo: string | null;
 }
-export type FinanceBudgetLineInput = { account_id: string; period_month: number; amount: number; memo?: string | null };
+export type FinanceBudgetLineInput = {
+  account_id?: string;
+  account_code?: string;
+  account_name?: string;
+  account_type?: FinanceAccountType;
+  account_subtype?: string | null;
+  normal_balance?: FinanceNormalBalance;
+  parent_account_id?: string | null;
+  entity_scope?: FinanceEntityScope;
+  revenue_restriction_class?: FinanceRevenueRestrictionClass | null;
+  expense_functional_class?: FinanceExpenseFunctionalClass | null;
+  form_990_line?: string | null;
+  financial_statement_line?: string | null;
+  period_month: number;
+  amount: number;
+  memo?: string | null;
+};
 
 // Fiscal periods (Phase 3)
 export type FinancePeriodStatus = "open" | "closed" | "locked";
@@ -679,6 +700,29 @@ export interface FinancePeriodCloseReadiness {
   unresolved_statement_imports: number;
   dependent_open_periods: number;
   staged_opening_balances: number;
+  ecosystem_integrity?: FinanceAccountingIntegrity | null;
+  checked_at: string;
+}
+
+export interface FinanceIntegrityCheck {
+  key: string;
+  label: string;
+  parent: string;
+  child: string;
+  parent_amount?: number;
+  child_amount?: number;
+  difference: number;
+  is_balanced: boolean;
+  blocking: boolean;
+}
+
+export interface FinanceAccountingIntegrity {
+  ngo_id: string;
+  start_date: string;
+  end_date: string;
+  is_balanced: boolean;
+  checks: FinanceIntegrityCheck[];
+  blocking_failures: string[];
   checked_at: string;
 }
 
@@ -747,6 +791,49 @@ export interface FinanceInvoice {
   amount_paid: number;
   amount_written_off: number;
   memo: string | null;
+  receivable_account_id: string | null;
+  journal_entry_id: string | null;
+  document_id: string | null;
+  issued_at: string | null;
+  voided_at: string | null;
+  void_reason: string | null;
+  lines?: FinanceInvoiceLine[];
+}
+
+export interface FinanceInvoiceLine {
+  id: string;
+  invoice_id: string;
+  account_id: string;
+  description: string;
+  amount: number;
+  fund_id: string | null;
+  ngo_id: string;
+  line_number: number;
+}
+
+export type FinanceInvoiceLineInput = {
+  account_id?: string;
+  account_code?: string;
+  account_name?: string;
+  account_type?: "revenue";
+  account_subtype?: string | null;
+  revenue_restriction_class?: FinanceRevenueRestrictionClass | null;
+  description: string;
+  amount: number;
+  fund_id?: string | null;
+};
+
+export interface FinanceInvoicePayment {
+  id: string;
+  invoice_id: string;
+  ngo_id: string;
+  payment_date: string;
+  amount: number;
+  payment_method: string | null;
+  bank_account_id: string;
+  journal_entry_id: string;
+  memo: string | null;
+  document_id: string | null;
 }
 
 export const FINANCE_ENTITY_SCOPE_LABELS: Record<FinanceEntityScope, string> = {

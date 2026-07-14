@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getSupabaseNotConfiguredError, supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import type { FinanceAccount, FinanceAccountInput } from "@/types/financeAccounting";
+import type { FinanceAccount, FinanceAccountInput, FinanceNgoAccount } from "@/types/financeAccounting";
 import { STARTER_FINANCE_ACCOUNTS } from "@/types/financeAccounting";
 
 const ensureSupabase = () => {
@@ -24,6 +24,21 @@ export const useFinanceAccounts = (options?: { includeInactive?: boolean }) => {
     },
   });
 };
+
+export const useFinanceNgoAccounts = (ngoId?: string | null, options?: { includeInactive?: boolean }) =>
+  useQuery({
+    queryKey: ["finance-ngo-accounts", ngoId ?? "none", options?.includeInactive ?? false],
+    enabled: !!supabase && !!ngoId,
+    queryFn: async (): Promise<FinanceNgoAccount[]> => {
+      ensureSupabase();
+      const { data, error } = await supabase.rpc("finance_ngo_account_catalog" as never, {
+        _ngo_id: ngoId,
+        _include_inactive: options?.includeInactive ?? false,
+      } as never);
+      if (error) throw error;
+      return (data || []) as FinanceNgoAccount[];
+    },
+  });
 
 export const useFinanceAccountUsage = (accountIds: string[]) => {
   return useQuery({

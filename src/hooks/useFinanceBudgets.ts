@@ -5,12 +5,14 @@ import type { FinanceBudget, FinanceBudgetLine, FinanceBudgetLineInput } from "@
 
 const ensureSupabase = () => { if (!supabase) throw getSupabaseNotConfiguredError(); };
 
-export const useFinanceBudgets = () => useQuery({
-  queryKey: ["finance-budgets"],
+export const useFinanceBudgets = (ngoId?: string | null) => useQuery({
+  queryKey: ["finance-budgets", ngoId ?? "all"],
   enabled: !!supabase,
   queryFn: async (): Promise<FinanceBudget[]> => {
     ensureSupabase();
-    const { data, error } = await supabase.from("finance_budgets" as never).select("*").order("fiscal_year", { ascending: false });
+    let query = supabase.from("finance_budgets" as never).select("*").order("fiscal_year", { ascending: false });
+    if (ngoId) query = query.eq("ngo_id" as never, ngoId as never);
+    const { data, error } = await query;
     if (error) throw error;
     if (!data?.length) return [];
     const ids = data.map((b: FinanceBudget) => b.id);
@@ -36,7 +38,12 @@ export const useSaveFinanceBudget = () => {
       if (error) throw error;
       return data as unknown as FinanceBudget;
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["finance-budgets"] }); toast({ title: "Budget saved" }); },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["finance-budgets"] });
+      qc.invalidateQueries({ queryKey: ["finance-ngo-accounts"] });
+      qc.invalidateQueries({ queryKey: ["finance-accounting-integrity"] });
+      toast({ title: "Budget saved" });
+    },
     onError: (e: Error) => toast({ variant: "destructive", title: "Could not save budget", description: e.message }),
   });
 };

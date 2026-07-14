@@ -42,6 +42,8 @@ export interface FinanceExpenseRequest {
   rejected_reason: string | null;
   paid_at: string | null;
   payment_reference: string | null;
+  finance_payment_id: string | null;
+  journal_entry_id: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -82,6 +84,9 @@ const invalidateFinanceOperations = (queryClient: ReturnType<typeof useQueryClie
   void queryClient.invalidateQueries({ queryKey: ["purchase_requests"] });
   void queryClient.invalidateQueries({ queryKey: ["finance-budgets"] });
   void queryClient.invalidateQueries({ queryKey: ["work-items"] });
+  void queryClient.invalidateQueries({ queryKey: ["finance-payments"] });
+  void queryClient.invalidateQueries({ queryKey: ["finance-journal-entries"] });
+  void queryClient.invalidateQueries({ queryKey: ["finance-accounting-integrity"] });
 };
 
 export const useFinanceAccessCapabilities = () =>
@@ -187,21 +192,22 @@ export const useReviewFinanceExpenseRequest = () => {
   });
 };
 
-export const useMarkFinanceExpensePaid = () => {
+export const useSettleFinanceExpenseRequest = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, paymentReference }: { id: string; paymentReference: string }) => {
+    mutationFn: async ({ id, paymentId, paymentReference }: { id: string; paymentId: string; paymentReference?: string }) => {
       const client = ensureSupabase();
-      const { data, error } = await client.rpc("mark_finance_expense_request_paid" as never, {
+      const { data, error } = await client.rpc("settle_finance_expense_request" as never, {
         _request_id: id,
-        _payment_reference: paymentReference,
+        _payment_id: paymentId,
+        _payment_reference: paymentReference?.trim() || null,
       } as never);
       if (error) throw error;
       return data as unknown as FinanceExpenseRequest;
     },
     onSuccess: () => {
       invalidateFinanceOperations(queryClient);
-      toast.success("Expense request marked paid");
+      toast.success("Expense request tied to its posted ledger payment");
     },
     onError: (error: Error) => toast.error(error.message),
   });
