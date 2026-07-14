@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Download } from "lucide-react";
+import { Loader2, Download, Printer } from "lucide-react";
 import {
   exportToCsv, useFinanceApAging, useFinanceBalanceSheet, useFinanceFundBalanceSummary,
   useFinanceGeneralLedger, useFinanceMissingReceiptsReport, useFinanceStatementOfActivity, useFinanceTrialBalance,
@@ -29,6 +29,7 @@ const FinanceReportsPage = () => {
   const [endDate, setEndDate] = useState(today);
   const [includeDrafts, setIncludeDrafts] = useState(false);
   const [glAccountId, setGlAccountId] = useState<string>("");
+  const [activeReport, setActiveReport] = useState("trial-balance");
 
   const filters = useMemo(
     () => ({ startDate, endDate, includeDrafts, ngoId: selectedNgoId }),
@@ -68,6 +69,17 @@ const FinanceReportsPage = () => {
     }
   };
 
+  const printWithAudit = async () => {
+    try {
+      await logFinanceExport(`${activeReport.replace(/-/g, "_")}_print`, { ...filters, accountId: glAccountId || null });
+      window.print();
+    } catch (error) {
+      toast.error("Print canceled because the audit event could not be recorded", {
+        description: error instanceof Error ? error.message : "Unknown export error",
+      });
+    }
+  };
+
   return (
     <MainLayout
       title="Financial Reports"
@@ -83,10 +95,13 @@ const FinanceReportsPage = () => {
               TB {tbValidation.is_balanced ? "balanced" : "unbalanced"}
             </span>
           )}
+          <Button variant="outline" onClick={printWithAudit}>
+            <Printer className="h-4 w-4 mr-1" />Print / Save PDF
+          </Button>
         </CardContent>
       </Card>
 
-      <Tabs defaultValue="trial-balance">
+      <Tabs value={activeReport} onValueChange={setActiveReport}>
         <TabsList className="flex flex-wrap h-auto gap-1">
           <TabsTrigger value="trial-balance">Trial Balance</TabsTrigger>
           <TabsTrigger value="pl">Statement of Activity</TabsTrigger>
