@@ -19,31 +19,35 @@ export const useFinanceDonors = () =>
     },
   });
 
-export const useFinanceInvoices = () =>
+export const useFinanceInvoices = (ngoId?: string | null) =>
   useQuery({
-    queryKey: ["finance-invoices"],
+    queryKey: ["finance-invoices", ngoId ?? "all"],
     enabled: !!supabase,
     queryFn: async (): Promise<FinanceInvoice[]> => {
       ensureSupabase();
-      const { data, error } = await supabase
+      let query = supabase
         .from("finance_invoices" as never)
         .select("*")
         .order("invoice_date", { ascending: false });
+      if (ngoId) query = query.eq("ngo_id" as never, ngoId as never);
+      const { data, error } = await query;
       if (error) throw error;
       return (data || []) as FinanceInvoice[];
     },
   });
 
-export const useFinanceArAging = () =>
+export const useFinanceArAging = (ngoId?: string | null) =>
   useQuery({
-    queryKey: ["finance-ar-aging"],
+    queryKey: ["finance-ar-aging", ngoId ?? "all"],
     enabled: !!supabase,
     queryFn: async () => {
       ensureSupabase();
-      const { data, error } = await supabase
+      let query = supabase
         .from("finance_invoices" as never)
-        .select("invoice_number, customer_name, due_date, total, amount_paid, amount_written_off, status")
+        .select("invoice_number, customer_name, due_date, total, amount_paid, amount_written_off, status, ngo_id")
         .in("status" as never, ["sent", "partial"] as never);
+      if (ngoId) query = query.eq("ngo_id" as never, ngoId as never);
+      const { data, error } = await query;
       if (error) throw error;
       const today = new Date();
       return (data || []).map((inv: FinanceInvoice) => {
@@ -87,6 +91,7 @@ export const useCreateFinanceInvoice = () => {
       invoice_date: string;
       due_date?: string | null;
       total: number;
+      ngo_id?: string | null;
       memo?: string | null;
     }) => {
       ensureSupabase();
