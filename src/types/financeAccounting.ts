@@ -99,6 +99,7 @@ export type FinanceJournalEntryStatus =
 
 export interface FinanceJournalEntry {
   id: string;
+  ngo_id: string | null;
   entry_number: string;
   entry_date: string;
   memo: string | null;
@@ -152,6 +153,7 @@ export type FinanceJournalLineInput = {
 };
 
 export type FinanceJournalEntryInput = {
+  ngo_id: string | null;
   entry_date: string;
   memo?: string | null;
   status?: FinanceJournalEntryStatus;
@@ -555,6 +557,7 @@ export type FinanceBudgetLineInput = { account_id: string; period_month: number;
 export type FinancePeriodStatus = "open" | "closed" | "locked";
 export interface FinanceFiscalPeriod {
   id: string;
+  ngo_id: string | null;
   label: string;
   fiscal_year: number;
   period_number: number | null;
