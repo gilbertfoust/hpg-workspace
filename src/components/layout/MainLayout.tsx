@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useCurrentProfile } from "@/hooks/useProfiles";
 import { useUserRole } from "@/hooks/useUserRole";
 import { UserIdentityChip } from "@/components/layout/UserIdentityChip";
+import { WorkspaceNgoSelector } from "@/components/layout/WorkspaceNgoSelector";
 
 interface MainLayoutProps {
   children: ReactNode;
@@ -65,6 +66,7 @@ export function MainLayout({ children, title, subtitle, actions }: MainLayoutPro
           </div>
           
           <div className="flex items-center gap-2">
+            <WorkspaceNgoSelector className="w-10 px-0 xl:w-[240px] xl:px-3" />
             <UserIdentityChip
               fullName={profile?.full_name ?? user?.user_metadata?.full_name}
               email={profile?.email ?? user?.email}
