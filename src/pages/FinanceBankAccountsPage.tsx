@@ -15,24 +15,26 @@ import {
   useUpdateFinanceBankAccount,
 } from "@/hooks/useFinanceBankAccounts";
 import type { FinanceBankAccount, FinanceBankAccountInput } from "@/types/financeAccounting";
+import { useWorkspaceNgo } from "@/hooks/useWorkspaceNgo";
 
 const formatMoney = (value: number) =>
   value.toLocaleString(undefined, { style: "currency", currency: "USD" });
 
 const FinanceBankAccountsPage = () => {
+  const { selectedNgo, selectedNgoId } = useWorkspaceNgo();
   const [includeInactive, setIncludeInactive] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingAccount, setEditingAccount] = useState<FinanceBankAccount | null>(null);
 
-  const { data: bankAccounts = [], isLoading, error } = useFinanceBankAccounts({ includeInactive });
+  const { data: bankAccounts = [], isLoading, error } = useFinanceBankAccounts({ includeInactive, ngoId: selectedNgoId });
   const { data: glAccounts = [] } = useFinanceAccounts();
 
-  const cashGlAccounts = useMemo(
+  const eligibleGlAccounts = useMemo(
     () =>
       glAccounts.filter(
         (account) =>
-          account.account_type === "asset" &&
-          (account.account_subtype === "cash" || account.code.startsWith("10"))
+          (account.account_type === "asset" && (account.account_subtype === "cash" || account.code.startsWith("10")))
+          || (account.account_type === "liability" && account.account_subtype === "credit_card")
       ),
     [glAccounts]
   );
@@ -42,6 +44,7 @@ const FinanceBankAccountsPage = () => {
   const deactivateBankAccount = useDeactivateFinanceBankAccount();
 
   const openCreate = () => {
+    if (!selectedNgoId) return;
     setEditingAccount(null);
     setDialogOpen(true);
   };
@@ -52,6 +55,7 @@ const FinanceBankAccountsPage = () => {
   };
 
   const handleSave = async (input: FinanceBankAccountInput) => {
+    if (!selectedNgoId) return;
     if (editingAccount) {
       await updateBankAccount.mutateAsync({ id: editingAccount.id, ...input });
     } else {
@@ -64,7 +68,7 @@ const FinanceBankAccountsPage = () => {
   return (
     <MainLayout
       title="Bank Accounts"
-      subtitle="Cash and bank register — manual entry only (no Plaid connection yet)"
+      subtitle="NGO-scoped bank, cash, and credit-card registers connected to the live general ledger"
     >
       <div className="space-y-6">
         <Card>
@@ -72,22 +76,26 @@ const FinanceBankAccountsPage = () => {
             <div>
               <CardTitle className="flex items-center gap-2 text-base">
                 <Landmark className="h-4 w-4" />
-                HPG Bank & Cash Accounts
+                {selectedNgo?.common_name || selectedNgo?.legal_name || "Select an NGO"} bank and card accounts
               </CardTitle>
               <CardDescription>
                 Link operational bank accounts to GL cash accounts. Current ledger balance reflects opening balance
                 plus all posted journal activity on the linked account.
               </CardDescription>
             </div>
-            <Button onClick={openCreate} disabled={cashGlAccounts.length === 0}>
+            <Button onClick={openCreate} disabled={!selectedNgoId || eligibleGlAccounts.length === 0}>
               <Plus className="h-4 w-4 mr-2" />
               Add bank account
             </Button>
           </CardHeader>
           <CardContent className="space-y-4">
-            {cashGlAccounts.length === 0 && (
+            {!selectedNgoId ? (
+              <p className="text-sm text-amber-700 rounded-md border border-amber-200 bg-amber-50 p-3">
+                Select an NGO in the workspace header before configuring its financial accounts.
+              </p>
+            ) : eligibleGlAccounts.length === 0 && (
               <p className="text-sm text-amber-600 rounded-md border border-amber-200 bg-amber-50 p-3">
-                Add a Cash / Bank asset account in Chart of Accounts before creating bank accounts.
+                Add a cash asset or credit-card liability in Chart of Accounts before creating a register.
               </p>
             )}
 
@@ -108,7 +116,7 @@ const FinanceBankAccountsPage = () => {
               </p>
             ) : bankAccounts.length === 0 ? (
               <div className="rounded-md border border-dashed p-8 text-center text-sm text-muted-foreground">
-                No bank accounts configured. Add accounts manually — no live banking connection yet.
+                No bank or card accounts configured for this NGO yet.
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -173,7 +181,9 @@ const FinanceBankAccountsPage = () => {
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         bankAccount={editingAccount}
-        cashGlAccounts={cashGlAccounts.length > 0 ? cashGlAccounts : glAccounts.filter((a) => a.account_type === "asset")}
+        ngoId={selectedNgoId || ""}
+        entityName={selectedNgo?.common_name || selectedNgo?.legal_name || "No NGO selected"}
+        ledgerAccounts={eligibleGlAccounts}
         onSave={handleSave}
         isSaving={isSaving}
       />
