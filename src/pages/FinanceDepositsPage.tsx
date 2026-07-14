@@ -22,7 +22,7 @@ const fmt = (n: number) => n.toLocaleString(undefined, { style: "currency", curr
 const FinanceDepositsPage = () => {
   const { selectedNgo, selectedNgoId } = useWorkspaceNgo();
   const { data: deposits = [], isLoading } = useFinanceDeposits(selectedNgoId);
-  const { data: bankAccounts = [] } = useFinanceBankAccounts();
+  const { data: bankAccounts = [] } = useFinanceBankAccounts({ ngoId: selectedNgoId });
   const { data: accounts = [] } = useFinanceAccounts();
   const { data: funds = [] } = useFinanceFunds();
   const { data: rules = [] } = useFinanceAdminFeeRules();
