@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,13 +14,15 @@ import {
 import { useFinanceAccounts } from "@/hooks/useFinanceAccounts";
 import { hasFinancePermission } from "@/lib/financePermissions";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useWorkspaceNgo } from "@/hooks/useWorkspaceNgo";
 
 const fmt = (n: number) => n.toLocaleString(undefined, { style: "currency", currency: "USD" });
 
 const FinanceOpeningBalancesPage = () => {
+  const { selectedNgo, selectedNgoId } = useWorkspaceNgo();
   const { role } = useUserRole();
   const canManage = hasFinancePermission(role, "edit_settings");
-  const { data: periods = [] } = useFinanceFiscalPeriods();
+  const { data: periods = [] } = useFinanceFiscalPeriods(selectedNgoId);
   const { data: accounts = [] } = useFinanceAccounts();
   const [periodId, setPeriodId] = useState("");
   const { data: balances = [] } = useFinanceOpeningBalances(periodId || undefined);
@@ -30,11 +32,18 @@ const FinanceOpeningBalancesPage = () => {
   const [debit, setDebit] = useState(0);
   const [credit, setCredit] = useState(0);
 
+  useEffect(() => {
+    setPeriodId("");
+  }, [selectedNgoId]);
+
   const selectedPeriod = periods.find((p) => p.id === periodId);
   const accountMap = new Map(accounts.map((a) => [a.id, a]));
 
   return (
-    <MainLayout title="Opening Balances" subtitle="Beginning balances by fiscal period and account">
+    <MainLayout
+      title="Opening Balances"
+      subtitle={`Beginning balances for ${selectedNgo?.common_name || selectedNgo?.legal_name || "HPG operating"}`}
+    >
       <Card className="mb-4">
         <CardContent className="pt-6">
           <Label>Fiscal period</Label>
@@ -75,6 +84,7 @@ const FinanceOpeningBalancesPage = () => {
                 account_id: accountId,
                 debit,
                 credit,
+                ngo_id: selectedNgoId,
               }, { onSuccess: () => { setDebit(0); setCredit(0); setAccountId("none"); } })}
             >
               Save
