@@ -17,15 +17,17 @@ import type { FinancePayment, FinancePaymentInput } from "@/types/financeAccount
 import { FINANCE_PAYMENT_STATUS_LABELS, FINANCE_PAYMENT_TYPE_LABELS } from "@/types/financeAccounting";
 import { useQuery } from "@tanstack/react-query";
 import { ensureSupabase } from "@/integrations/supabase/client";
+import { useWorkspaceNgo } from "@/hooks/useWorkspaceNgo";
 
 const fmt = (n: number) => n.toLocaleString(undefined, { style: "currency", currency: "USD" });
 
 const FinancePaymentsPage = () => {
+  const { selectedNgo, selectedNgoId } = useWorkspaceNgo();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [viewPayment, setViewPayment] = useState<FinancePayment | null>(null);
   const [readOnly, setReadOnly] = useState(false);
 
-  const { data: payments = [], isLoading, error } = useFinancePayments();
+  const { data: payments = [], isLoading, error } = useFinancePayments(undefined, selectedNgoId);
   const { data: bankAccounts = [] } = useFinanceBankAccounts();
   const { data: accounts = [] } = useFinanceAccounts();
   const { data: funds = [] } = useFinanceFunds();
@@ -35,11 +37,8 @@ const FinancePaymentsPage = () => {
     queryKey: ["finance-payment-ref"],
     queryFn: async () => {
       const supabase = ensureSupabase();
-      const [{ data: ngos }, { data: grants }] = await Promise.all([
-        supabase.from("ngos").select("id, legal_name, common_name").order("legal_name").limit(200),
-        supabase.from("grant_applications").select("id, title").order("created_at", { ascending: false }).limit(100),
-      ]);
-      return { ngos: ngos || [], grants: grants || [] };
+      const { data: grants } = await supabase.from("grant_applications").select("id, title").order("created_at", { ascending: false }).limit(100);
+      return { grants: grants || [] };
     },
   });
 
@@ -57,18 +56,18 @@ const FinancePaymentsPage = () => {
   const openView = (p: FinancePayment) => { setViewPayment(p); setReadOnly(true); setDialogOpen(true); };
 
   const handleSave = async (input: FinancePaymentInput) => {
-    await savePayment.mutateAsync({ id: viewPayment?.id, input });
+    await savePayment.mutateAsync({ id: viewPayment?.id, input: { ...input, ngo_id: selectedNgoId } });
   };
 
   return (
-    <MainLayout title="Payments & Disbursements" subtitle="Reimbursements, NGO pass-through, grant disbursements, and internal transfers">
+    <MainLayout title="Payments & Disbursements" subtitle={`Reimbursements, pass-throughs, and transfers for ${selectedNgo?.common_name || selectedNgo?.legal_name || "All HPG"}`}>
       <Card>
         <CardHeader className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
           <div>
             <CardTitle className="flex items-center gap-2 text-base"><Wallet className="h-4 w-4" />Finance payments</CardTitle>
             <CardDescription>Posting creates balanced journal entries with audit trail. Vendor bill payments link to AP bills.</CardDescription>
           </div>
-          <Button onClick={openCreate}><Plus className="h-4 w-4 mr-2" />New payment</Button>
+          <Button onClick={openCreate} disabled={!selectedNgoId}><Plus className="h-4 w-4 mr-2" />New payment</Button>
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -129,8 +128,9 @@ const FinancePaymentsPage = () => {
         bankAccounts={bankAccounts}
         expenseAccounts={expenseAccounts}
         funds={funds}
+        ngoId={selectedNgoId}
+        ngoName={selectedNgo?.common_name || selectedNgo?.legal_name || "All HPG"}
         openBills={openBills}
-        ngos={refData?.ngos ?? []}
         grants={refData?.grants ?? []}
         onSave={handleSave}
         isSaving={savePayment.isPending}
