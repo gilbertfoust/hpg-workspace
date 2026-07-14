@@ -9,8 +9,8 @@ const ensureSupabase = () => { if (!supabase) throw getSupabaseNotConfiguredErro
 const normalizeLines = (lines: FinanceDepositLineInput[]) =>
   lines.filter((l) => l.revenue_account_id && l.amount > 0).map((l, i) => ({ ...l, amount: Number(l.amount), line_number: i + 1 }));
 
-export const useFinanceDeposits = () => useQuery({
-  queryKey: ["finance-deposits"],
+export const useFinanceDeposits = (ngoId?: string | null) => useQuery({
+  queryKey: ["finance-deposits", ngoId ?? "all"],
   enabled: !!supabase,
   queryFn: async (): Promise<FinanceDeposit[]> => {
     ensureSupabase();
@@ -18,13 +18,17 @@ export const useFinanceDeposits = () => useQuery({
     if (error) throw error;
     if (!deps?.length) return [];
     const ids = deps.map((d: FinanceDeposit) => d.id);
-    const { data: lines, error: le } = await supabase.from("finance_deposit_lines" as never).select("*").in("deposit_id" as never, ids as never);
+    let lineQuery = supabase.from("finance_deposit_lines" as never).select("*").in("deposit_id" as never, ids as never);
+    if (ngoId) lineQuery = lineQuery.eq("ngo_id" as never, ngoId as never);
+    const { data: lines, error: le } = await lineQuery;
     if (le) throw le;
     const byDep = new Map<string, FinanceDepositLine[]>();
     (lines || []).forEach((l: FinanceDepositLine) => {
       const b = byDep.get(l.deposit_id) || []; b.push({ ...l, amount: Number(l.amount) }); byDep.set(l.deposit_id, b);
     });
-    return (deps as FinanceDeposit[]).map((d) => ({ ...d, total_amount: Number(d.total_amount), lines: byDep.get(d.id) || [] }));
+    return (deps as FinanceDeposit[])
+      .filter((deposit) => !ngoId || byDep.has(deposit.id))
+      .map((d) => ({ ...d, total_amount: Number(d.total_amount), lines: byDep.get(d.id) || [] }));
   },
 });
 
