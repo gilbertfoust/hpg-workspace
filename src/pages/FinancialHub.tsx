@@ -12,7 +12,7 @@ import { canReadFinanceLedger } from "@/lib/financePermissions";
 import { FinanceUnauthorized } from "@/components/finance/accounting/FinanceUnauthorized";
 import {
   DollarSign, Building, FileCheck, ArrowRight, BookOpen, Scale, Receipt, ShieldCheck,
-  Bell, BookOpenCheck, ClipboardCheck, Landmark, Paperclip, FileStack, Wallet, TrendingUp, PieChart, Target, Loader2, CheckCircle2, XCircle, Zap,
+  Bell, BookOpenCheck, ClipboardCheck, Landmark, Paperclip, FileStack, Wallet, TrendingUp, PieChart, Target, Loader2, CheckCircle2, XCircle, Zap, Rocket,
 } from "lucide-react";
 
 const FinancialHub = () => {
@@ -53,6 +53,7 @@ const FinancialHub = () => {
     { label: "Opening Balances", path: "/financial-hub/accounting/opening-balances", icon: Scale },
     { label: "Accounts Receivable", path: "/financial-hub/accounting/accounts-receivable", icon: Receipt },
     { label: "Automation & Connections", path: "/financial-hub/accounting/automation", icon: Zap },
+    { label: "Accounting Go-Live", path: "/financial-hub/accounting/go-live", icon: Rocket },
     { label: "Fiscal Sponsorship", path: "/financial-hub/accounting/fiscal-sponsorship", icon: Building },
     { label: "Reports", path: "/financial-hub/accounting/reports", icon: PieChart },
     { label: "Compliance", path: "/financial-hub/accounting/compliance", icon: FileCheck },

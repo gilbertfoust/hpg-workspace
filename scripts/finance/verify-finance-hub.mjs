@@ -21,6 +21,9 @@ const ngoAccountMigration = read("supabase/migrations/20260714132500_finance_ngo
 const arMigration = read("supabase/migrations/20260714133500_finance_ar_atomic_ledger.sql");
 const integrityMigration = read("supabase/migrations/20260714134500_finance_integrity_graph.sql");
 const automationMigration = read("supabase/migrations/20260714135500_finance_recurring_and_integration_foundation.sql");
+const goLiveMigration = read("supabase/migrations/20260714141500_finance_go_live_certification.sql");
+const goLiveGuardMigration = read("supabase/migrations/20260714142500_finance_go_live_current_comparison_guard.sql");
+const goLiveHardeningMigration = read("supabase/migrations/20260714143500_finance_go_live_advisor_hardening.sql");
 const app = read("src/App.tsx");
 const hub = read("src/pages/FinancialHub.tsx");
 const operations = read("src/pages/FinanceOperationsPage.tsx");
@@ -37,6 +40,8 @@ const budgetPage = read("src/pages/FinanceBudgetsPage.tsx");
 const receivablesPage = read("src/pages/FinanceAccountsReceivablePage.tsx");
 const invoiceHook = read("src/hooks/useFinanceInvoices.ts");
 const automationPage = read("src/pages/FinanceAutomationPage.tsx");
+const goLivePage = read("src/pages/FinanceGoLivePage.tsx");
+const goLiveHook = read("src/hooks/useFinanceGoLive.ts");
 
 const requiredMigrationContracts = [
   "CREATE TABLE IF NOT EXISTS public.finance_expense_requests",
@@ -94,6 +99,17 @@ const accountingContracts = [
   [automationMigration, "generate_due_finance_recurring_drafts"],
   [automationMigration, "finance_integration_outbox"],
   [automationMigration, "queue_finance_payment_intent"],
+  [goLiveMigration, "finance_parallel_close_comparisons"],
+  [goLiveMigration, "finance_cutover_system_metrics"],
+  [goLiveMigration, "approve_finance_parallel_close"],
+  [goLiveMigration, "finance_go_live_readiness"],
+  [goLiveMigration, "activate_finance_system_of_record"],
+  [goLiveMigration, "Every active bank is reconciled through cutover"],
+  [goLiveGuardMigration, "finance_parallel_close_is_current"],
+  [goLiveGuardMigration, "Approved comparison is missing or stale; run it again"],
+  [goLiveGuardMigration, "finance_go_live_readiness_without_current_comparison"],
+  [goLiveHardeningMigration, "idx_fin_go_live_parallel_close"],
+  [goLiveHardeningMigration, "FROM PUBLIC, anon, authenticated"],
 ];
 
 for (const [source, contract] of accountingContracts) {
@@ -102,6 +118,7 @@ for (const [source, contract] of accountingContracts) {
 
 assert.match(app, /path="\/financial-hub\/operations"/);
 assert.match(app, /path="\/financial-hub\/accounting\/automation"/);
+assert.match(app, /path="\/financial-hub\/accounting\/go-live"/);
 assert.ok(hub.includes("Finance Operations"), "Finance Hub must expose the operational queue");
 assert.ok(hub.includes("Living accounting ecosystem"), "Finance Hub must expose parent/child accounting integrity");
 assert.ok(operations.includes("Approval queue"), "Operations page must contain a unified approval queue");
@@ -116,6 +133,9 @@ assert.ok(invoiceHook.includes('rpc("record_finance_invoice_payment"'), "AR rece
 assert.ok(receivablesPage.includes("Issue & post"), "AR must expose ledger-backed invoice issuance");
 assert.ok(automationPage.includes("Recurring journal rules"), "Finance automation must expose reviewable recurring drafts");
 assert.ok(automationPage.includes("Integration outbox"), "Finance automation must expose durable provider delivery state");
+assert.ok(goLivePage.includes("Parallel close comparison"), "Go-live must compare prior-system and HPG totals");
+assert.ok(goLivePage.includes("Activate system of record"), "Go-live must expose the guarded activation action");
+assert.ok(goLiveHook.includes('rpc("activate_finance_system_of_record"'), "System-of-record activation must use the guarded RPC");
 assert.ok(transactionPage.includes("receipt"), "Transaction entry must expose receipt evidence");
 assert.ok(transactionPage.includes("handleDismissReceipt"), "Receipt inbox must resolve unreadable drafts");
 assert.ok(transactionHook.includes('rpc("dismiss_finance_receipt_draft"'), "Receipt dismissal must use the audited RPC");
@@ -133,4 +153,4 @@ assert.equal(auditedExports.length, 10, "Every report card must use the audited 
 assert.equal((reports.match(/exportToCsv\(/g) ?? []).length, 1, "CSV downloads must only occur inside exportWithAudit");
 
 console.log("Finance Hub static contracts: PASS");
-console.log("  NGO account ecosystem · atomic AP/AR · receipt AI · integrity graph · automation outbox · hard close · 10 audited reports");
+console.log("  NGO account ecosystem · atomic AP/AR · receipt AI · integrity graph · certified cutover · hard close · 10 audited reports");

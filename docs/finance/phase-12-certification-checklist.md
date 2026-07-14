@@ -39,6 +39,13 @@
 - [x] Statement of Financial Position and cash flow parent tie-outs block period close
 - [x] Recurring rules generate reviewable draft journals only
 - [x] Provider bank/payment requests use idempotent durable outbox records
+- [x] Parallel close compares nine prior-system totals against live HPG reports and stores every variance
+- [x] A mismatched parallel close cannot be approved
+- [x] Active banks must be reconciled through the selected cutover date
+- [x] Opening balances require posted source evidence or an explicit new-zero-balance attestation
+- [x] Accountant identity, attestation, and signed evidence are retained with the cutover package
+- [x] System-of-record activation atomically rechecks every gate and is audit logged
+- [x] Emergency system-of-record suspension requires a reason and preserves the certification history
 
 ## Automated evidence
 
@@ -55,12 +62,13 @@ Run against staging/production inside rollback transactions:
 3. `scripts/finance/test_close_and_year_end.sql`
 4. `scripts/finance/test_operational_workflows.sql`
 5. `scripts/finance/test_living_accounting_ecosystem.sql`
+6. `scripts/finance/test_go_live_certification.sql`
 
 The bank reconciliation and close/year-end suites passed against the connected HPG project on July 14, 2026. The suites create representative records, assert rejection cases, and roll back all data.
 
 ## Accountant go-live sign-off — required per NGO
 
-These are operating approvals, not unfinished software development:
+These are operating approvals, not unfinished software development. Complete and attach them in **Financial Hub → Accounting Go-Live**:
 
 - [ ] Legal entity/profile and fiscal year confirmed
 - [ ] Chart of accounts and nonprofit statement mappings approved by the accountant
