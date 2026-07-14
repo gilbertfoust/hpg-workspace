@@ -7,9 +7,9 @@ const ensureSupabase = () => {
   if (!supabase) throw getSupabaseNotConfiguredError();
 };
 
-export const useFinanceBankAccounts = (options?: { includeInactive?: boolean }) => {
+export const useFinanceBankAccounts = (options?: { includeInactive?: boolean; ngoId?: string | null }) => {
   return useQuery({
-    queryKey: ["finance-bank-accounts", options?.includeInactive ?? false],
+    queryKey: ["finance-bank-accounts", options?.includeInactive ?? false, options?.ngoId ?? "all"],
     enabled: !!supabase,
     queryFn: async (): Promise<FinanceBankAccount[]> => {
       ensureSupabase();
@@ -21,6 +21,9 @@ export const useFinanceBankAccounts = (options?: { includeInactive?: boolean }) 
 
       if (!options?.includeInactive) {
         query = query.eq("is_active" as never, true as never);
+      }
+      if (options?.ngoId) {
+        query = query.eq("ngo_id" as never, options.ngoId as never);
       }
 
       const { data: bankAccounts, error } = await query;
@@ -71,6 +74,8 @@ export const useCreateFinanceBankAccount = () => {
       const { data, error } = await supabase
         .from("finance_bank_accounts" as never)
         .insert({
+          ngo_id: input.ngo_id,
+          account_kind: input.account_kind,
           account_name: input.account_name.trim(),
           institution_name: input.institution_name?.trim() || null,
           last_four: input.last_four?.trim() || null,
@@ -102,6 +107,8 @@ export const useUpdateFinanceBankAccount = () => {
     mutationFn: async ({ id, ...input }: Partial<FinanceBankAccountInput> & { id: string }) => {
       ensureSupabase();
       const payload: Record<string, unknown> = {};
+      if (input.ngo_id !== undefined) payload.ngo_id = input.ngo_id;
+      if (input.account_kind !== undefined) payload.account_kind = input.account_kind;
       if (input.account_name !== undefined) payload.account_name = input.account_name.trim();
       if (input.institution_name !== undefined) payload.institution_name = input.institution_name?.trim() || null;
       if (input.last_four !== undefined) payload.last_four = input.last_four?.trim() || null;
