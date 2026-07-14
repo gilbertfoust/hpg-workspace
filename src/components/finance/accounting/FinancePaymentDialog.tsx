@@ -18,8 +18,9 @@ interface FinancePaymentDialogProps {
   bankAccounts: FinanceBankAccount[];
   expenseAccounts: FinanceAccount[];
   funds: FinanceFund[];
+  ngoId: string | null;
+  ngoName: string;
   openBills: FinanceBill[];
-  ngos: { id: string; legal_name: string; common_name: string | null }[];
   grants: { id: string; title: string }[];
   onSave: (input: FinancePaymentInput) => Promise<void>;
   isSaving?: boolean;
@@ -27,7 +28,7 @@ interface FinancePaymentDialogProps {
 
 export function FinancePaymentDialog({
   open, onOpenChange, payment, readOnly = false, bankAccounts, expenseAccounts, funds,
-  openBills, ngos, grants, onSave, isSaving,
+  ngoId: workspaceNgoId, ngoName, openBills, grants, onSave, isSaving,
 }: FinancePaymentDialogProps) {
   const [paymentType, setPaymentType] = useState<FinancePaymentType>("reimbursement");
   const [paymentDate, setPaymentDate] = useState(new Date().toISOString().slice(0, 10));
@@ -67,14 +68,14 @@ export function FinancePaymentDialog({
       setTargetBankAccountId("none");
       setBillId("none");
       setPayeeName("");
-      setNgoId("none");
+      setNgoId(workspaceNgoId ?? "none");
       setFundId("none");
       setGrantId("none");
       setExpenseAccountId("none");
       setMemo("");
       setApprovalNotes("");
     }
-  }, [open, payment, bankAccounts]);
+  }, [open, payment, bankAccounts, workspaceNgoId]);
 
   const handleSubmit = async () => {
     await onSave({
@@ -95,7 +96,6 @@ export function FinancePaymentDialog({
     onOpenChange(false);
   };
 
-  const needsNgo = paymentType === "ngo_disbursement" || paymentType === "grant_pass_through";
   const needsExpense = paymentType === "reimbursement";
   const needsBill = paymentType === "vendor_bill";
   const needsTargetBank = paymentType === "internal_transfer";
@@ -117,6 +117,10 @@ export function FinancePaymentDialog({
                 ))}
               </SelectContent>
             </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>Entity</Label>
+            <Input value={ngoName} readOnly className="bg-muted/40" />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -156,35 +160,19 @@ export function FinancePaymentDialog({
               </Select>
             </div>
           )}
-          {needsNgo && (
-            <>
-              <div className="space-y-2">
-                <Label>Sponsored NGO *</Label>
-                <Select value={ngoId} onValueChange={setNgoId} disabled={readOnly}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Select NGO</SelectItem>
-                    {ngos.map((n) => (
-                      <SelectItem key={n.id} value={n.id}>{n.common_name || n.legal_name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              {paymentType === "grant_pass_through" && (
-                <div className="space-y-2">
-                  <Label>Grant application</Label>
-                  <Select value={grantId} onValueChange={setGrantId} disabled={readOnly}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">Optional</SelectItem>
-                      {grants.map((g) => (
-                        <SelectItem key={g.id} value={g.id}>{g.title}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-            </>
+          {paymentType === "grant_pass_through" && (
+            <div className="space-y-2">
+              <Label>Grant application</Label>
+              <Select value={grantId} onValueChange={setGrantId} disabled={readOnly}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Optional</SelectItem>
+                  {grants.map((g) => (
+                    <SelectItem key={g.id} value={g.id}>{g.title}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           )}
           <div className="space-y-2">
             <Label>{needsTargetBank ? "From bank account" : "Bank account"}</Label>
