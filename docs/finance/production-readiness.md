@@ -42,6 +42,7 @@ This status does not mean the application is a payroll processor, tax/1099 e-fil
 9. Opening balances require a balanced CSV, retained source evidence, and one posted journal.
 10. Finalizing a fiscal year requires all months closed, locks all period rollups, and locks the generated package. Reopening preserves the old package and requires a reason.
 11. The Statement of Cash Flows classifies actual cash movements and must tie beginning cash plus net change to ending cash; non-cash AP accruals are not double-counted.
+12. The Statement of Financial Position rolls cumulative activity into donor-restricted/unrestricted net assets and exposes its accounting-equation difference and balance status.
 
 ## Release and verification evidence
 
