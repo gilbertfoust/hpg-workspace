@@ -27,10 +27,11 @@ type ReferenceData = {
   documents: { id: string; file_name: string }[];
 };
 
-const emptyLine = (): FinanceBillLineInput => ({
+const emptyLine = (ngoId: string | null): FinanceBillLineInput => ({
   expense_account_id: "",
   amount: 0,
   memo: "",
+  ngo_id: ngoId,
 });
 
 interface FinanceBillDialogProps {
@@ -41,6 +42,8 @@ interface FinanceBillDialogProps {
   vendors: FinanceVendor[];
   expenseAccounts: FinanceAccount[];
   funds: FinanceFund[];
+  ngoId: string | null;
+  ngoName: string;
   referenceData?: ReferenceData;
   onSave: (input: FinanceBillInput) => Promise<void>;
   isSaving?: boolean;
@@ -57,6 +60,8 @@ export function FinanceBillDialog({
   vendors,
   expenseAccounts,
   funds,
+  ngoId,
+  ngoName,
   referenceData,
   onSave,
   isSaving,
@@ -67,7 +72,7 @@ export function FinanceBillDialog({
   const [terms, setTerms] = useState("");
   const [memo, setMemo] = useState("");
   const [documentId, setDocumentId] = useState("none");
-  const [lines, setLines] = useState<FinanceBillLineInput[]>([emptyLine()]);
+  const [lines, setLines] = useState<FinanceBillLineInput[]>([emptyLine(ngoId)]);
 
   useEffect(() => {
     if (!open) return;
@@ -91,7 +96,7 @@ export function FinanceBillDialog({
               grant_application_id: line.grant_application_id,
               line_number: line.line_number,
             }))
-          : [emptyLine()]
+          : [emptyLine(ngoId)]
       );
     } else {
       setVendorId(vendors[0]?.id ?? "none");
@@ -100,9 +105,9 @@ export function FinanceBillDialog({
       setTerms("");
       setMemo("");
       setDocumentId("none");
-      setLines([emptyLine()]);
+      setLines([emptyLine(ngoId)]);
     }
-  }, [open, bill, vendors]);
+  }, [open, bill, vendors, ngoId]);
 
   const total = useMemo(
     () => lines.reduce((sum, line) => sum + (Number(line.amount) || 0), 0),
@@ -118,6 +123,7 @@ export function FinanceBillDialog({
   const handleSubmit = async () => {
     if (vendorId === "none") return;
     await onSave({
+      ngo_id: ngoId,
       vendor_id: vendorId,
       bill_date: billDate,
       due_date: dueDate || null,
@@ -144,6 +150,10 @@ export function FinanceBillDialog({
 
         <div className="grid gap-4 py-2">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Entity</Label>
+              <Input value={ngoName} readOnly className="bg-muted/40" />
+            </div>
             <div className="space-y-2">
               <Label>Vendor *</Label>
               <Select value={vendorId} onValueChange={setVendorId} disabled={readOnly}>
@@ -200,7 +210,7 @@ export function FinanceBillDialog({
             <div className="flex items-center justify-between">
               <Label>Expense lines</Label>
               {!readOnly && (
-                <Button type="button" variant="outline" size="sm" onClick={() => setLines((prev) => [...prev, emptyLine()])}>
+                <Button type="button" variant="outline" size="sm" onClick={() => setLines((prev) => [...prev, emptyLine(ngoId)])}>
                   <Plus className="h-4 w-4 mr-1" />
                   Add line
                 </Button>
@@ -213,7 +223,6 @@ export function FinanceBillDialog({
                     <th className="p-2 min-w-[180px]">Expense account</th>
                     <th className="p-2 w-28">Amount</th>
                     <th className="p-2 min-w-[100px]">Fund</th>
-                    <th className="p-2 min-w-[100px]">NGO</th>
                     <th className="p-2 min-w-[100px]">Dept</th>
                     <th className="p-2 min-w-[80px]">Memo</th>
                     {!readOnly && <th className="p-2 w-10" />}
@@ -269,21 +278,6 @@ export function FinanceBillDialog({
                       </td>
                       <td className="p-2">
                         <Select
-                          value={line.ngo_id || "none"}
-                          onValueChange={(v) => updateLine(index, { ngo_id: v === "none" ? null : v })}
-                          disabled={readOnly}
-                        >
-                          <SelectTrigger className="h-9"><SelectValue placeholder="—" /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="none">—</SelectItem>
-                            {ref.ngos.map((ngo) => (
-                              <SelectItem key={ngo.id} value={ngo.id}>{ngo.common_name || ngo.legal_name}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </td>
-                      <td className="p-2">
-                        <Select
                           value={line.department_id || "none"}
                           onValueChange={(v) => updateLine(index, { department_id: v === "none" ? null : v })}
                           disabled={readOnly}
@@ -325,7 +319,7 @@ export function FinanceBillDialog({
                 <tfoot>
                   <tr className="bg-muted/30 font-medium">
                     <td className="p-2 text-right">Total</td>
-                    <td className="p-2" colSpan={readOnly ? 5 : 6}>{formatMoney(total)}</td>
+                    <td className="p-2" colSpan={readOnly ? 4 : 5}>{formatMoney(total)}</td>
                   </tr>
                 </tfoot>
               </table>
