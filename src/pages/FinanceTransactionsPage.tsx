@@ -12,15 +12,19 @@ import { useFinanceAccounts } from "@/hooks/useFinanceAccounts";
 import { useFinanceFunds } from "@/hooks/useFinanceFunds";
 import { useVoidFinancePayment } from "@/hooks/useFinancePayments";
 import {
+  type FinanceReceiptDraft,
+  useAnalyzeFinanceReceipt,
   useFinanceExpenseTransactions,
+  useFinanceReceiptDrafts,
   usePostFinanceExpenseTransaction,
+  useRetryFinanceReceiptDraft,
 } from "@/hooks/useFinanceTransactions";
 import { useWorkspaceNgo } from "@/hooks/useWorkspaceNgo";
 import {
   FINANCE_PAYMENT_METHOD_LABELS,
   type FinancePaymentMethod,
 } from "@/types/financeAccounting";
-import { Ban, BookOpenCheck, CheckCircle2, FileUp, Loader2, Receipt, Send, WalletCards } from "lucide-react";
+import { AlertTriangle, Ban, BookOpenCheck, CheckCircle2, FileSearch, FileUp, Loader2, Receipt, RotateCcw, Send, Sparkles, WalletCards } from "lucide-react";
 
 const today = () => new Date().toISOString().slice(0, 10);
 const money = (amount: number) => amount.toLocaleString(undefined, { style: "currency", currency: "USD" });
@@ -33,6 +37,9 @@ const FinanceTransactionsPage = () => {
   const { data: accounts = [], isLoading: accountsLoading } = useFinanceAccounts();
   const { data: funds = [] } = useFinanceFunds();
   const { data: transactions = [], isLoading: transactionsLoading } = useFinanceExpenseTransactions(selectedNgoId);
+  const { data: receiptDrafts = [], isLoading: receiptDraftsLoading } = useFinanceReceiptDrafts(selectedNgoId);
+  const analyzeReceipt = useAnalyzeFinanceReceipt();
+  const retryReceipt = useRetryFinanceReceiptDraft();
   const postTransaction = usePostFinanceExpenseTransaction();
   const voidTransaction = useVoidFinancePayment();
 
@@ -47,6 +54,9 @@ const FinanceTransactionsPage = () => {
   const [memo, setMemo] = useState("");
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
   const [fileInputKey, setFileInputKey] = useState(0);
+  const [scanFile, setScanFile] = useState<File | null>(null);
+  const [scanInputKey, setScanInputKey] = useState(0);
+  const [selectedReceiptDraftId, setSelectedReceiptDraftId] = useState<string | null>(null);
 
   const expenseAccounts = useMemo(
     () => accounts.filter((account) => account.account_type === "expense"),
@@ -76,7 +86,39 @@ const FinanceTransactionsPage = () => {
 
   useEffect(() => {
     setFundId("none");
+    setSelectedReceiptDraftId(null);
+    setScanFile(null);
+    setScanInputKey((key) => key + 1);
   }, [selectedNgoId]);
+
+  const reviewReceiptDraft = (draft: FinanceReceiptDraft) => {
+    setSelectedReceiptDraftId(draft.id);
+    if (draft.transaction_date) setPaymentDate(draft.transaction_date);
+    if (draft.merchant_name) setPayeeName(draft.merchant_name);
+    if (draft.total_amount && draft.total_amount > 0) setAmount(draft.total_amount.toFixed(2));
+    if (draft.suggested_expense_account_id) setExpenseAccountId(draft.suggested_expense_account_id);
+    if (draft.payment_method) setPaymentMethod(draft.payment_method);
+    if (draft.suggested_payment_account_id) setPaymentAccountId(draft.suggested_payment_account_id);
+    setReferenceNumber(draft.reference_number || "");
+    setMemo(draft.memo || "");
+    setReceiptFile(null);
+    setFileInputKey((key) => key + 1);
+    globalThis.document?.getElementById("expense-transaction-form")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  const handleAnalyzeReceipt = async () => {
+    if (!selectedNgoId || !scanFile) return;
+    try {
+      const result = await analyzeReceipt.mutateAsync({ ngoId: selectedNgoId, file: scanFile });
+      setScanFile(null);
+      setScanInputKey((key) => key + 1);
+      if (result.draft.status === "ready" || result.draft.status === "needs_review") {
+        reviewReceiptDraft(result.draft);
+      }
+    } catch {
+      // The mutation surfaces the actionable error and preserves the draft for retry.
+    }
+  };
 
   const clearForm = () => {
     setPaymentDate(today());
@@ -86,6 +128,7 @@ const FinanceTransactionsPage = () => {
     setFundId("none");
     setMemo("");
     setReceiptFile(null);
+    setSelectedReceiptDraftId(null);
     setFileInputKey((key) => key + 1);
   };
 
@@ -105,6 +148,7 @@ const FinanceTransactionsPage = () => {
       reference_number: referenceNumber,
       fund_id: fundId === "none" ? null : fundId,
       receipt: receiptFile,
+      receipt_draft_id: selectedReceiptDraftId,
     });
     clearForm();
   };
@@ -141,12 +185,108 @@ const FinanceTransactionsPage = () => {
 
         <Card>
           <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base"><Sparkles className="h-4 w-4" />Receipt intelligence</CardTitle>
+            <CardDescription>
+              Upload a receipt and the system reads it, detects exact duplicates, suggests the transaction and accounts, then waits for Finance to review it.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-5">
+            <div className="flex flex-col gap-3 rounded-md border border-dashed p-4 md:flex-row md:items-end">
+              <div className="flex-1 space-y-2">
+                <Label htmlFor="receipt-scan">Receipt image or PDF</Label>
+                <Input
+                  key={scanInputKey}
+                  id="receipt-scan"
+                  type="file"
+                  accept="image/*,application/pdf"
+                  disabled={!selectedNgoId || analyzeReceipt.isPending}
+                  onChange={(event) => setScanFile(event.target.files?.[0] ?? null)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  {scanFile ? `${scanFile.name} · ${(scanFile.size / 1024 / 1024).toFixed(2)} MB` : "The receipt stays private in the selected NGO’s finance folder. Maximum 15 MB."}
+                </p>
+              </div>
+              <Button type="button" disabled={!selectedNgoId || !scanFile || analyzeReceipt.isPending} onClick={handleAnalyzeReceipt}>
+                {analyzeReceipt.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileSearch className="mr-2 h-4 w-4" />}
+                {analyzeReceipt.isPending ? "Reading receipt…" : "Analyze receipt"}
+              </Button>
+            </div>
+
+            {receiptDraftsLoading ? (
+              <div className="flex justify-center py-6"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
+            ) : !receiptDrafts.length ? (
+              <div className="rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">
+                No analyzed receipts for this NGO yet.
+              </div>
+            ) : (
+              <div className="overflow-x-auto rounded-md border">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b bg-muted/40 text-left text-muted-foreground">
+                      <th className="p-3">Receipt</th><th className="p-3">Status</th><th className="p-3">Date</th>
+                      <th className="p-3">Suggested account</th><th className="p-3">Confidence</th>
+                      <th className="p-3 text-right">Total</th><th className="p-3 text-right">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {receiptDrafts.map((draft) => {
+                      const canReview = draft.status === "ready" || draft.status === "needs_review" || draft.status === "failed";
+                      return (
+                        <tr key={draft.id} className="border-b last:border-0">
+                          <td className="p-3">
+                            <p className="font-medium">{draft.merchant_name || draft.document?.file_name || "Unread receipt"}</p>
+                            <p className="max-w-56 truncate text-xs text-muted-foreground">{draft.memo || draft.error_message || "Awaiting transaction details"}</p>
+                          </td>
+                          <td className="p-3">
+                            <Badge variant={draft.status === "ready" || draft.status === "posted" ? "default" : draft.status === "failed" ? "destructive" : "secondary"}>
+                              {(draft.status === "queued" || draft.status === "processing") && <Loader2 className="mr-1 h-3 w-3 animate-spin" />}
+                              {draft.status.replace("_", " ")}
+                            </Badge>
+                            {!!draft.needs_review_reasons?.length && (
+                              <p className="mt-1 flex max-w-64 items-start gap-1 text-xs text-amber-700">
+                                <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" />{draft.needs_review_reasons[0]}
+                              </p>
+                            )}
+                          </td>
+                          <td className="p-3">{draft.transaction_date || "—"}</td>
+                          <td className="p-3">{accountMap.get(draft.suggested_expense_account_id || "")?.name || "Needs selection"}</td>
+                          <td className="p-3">{draft.confidence === null ? "—" : `${Math.round(draft.confidence * 100)}%`}</td>
+                          <td className="p-3 text-right font-medium">{draft.total_amount === null ? "—" : money(draft.total_amount)}</td>
+                          <td className="p-3 text-right">
+                            {draft.status === "failed" ? (
+                              <Button variant="outline" size="sm" disabled={retryReceipt.isPending} onClick={() => retryReceipt.mutate(draft.id)}>
+                                <RotateCcw className="mr-1 h-3 w-3" />Retry
+                              </Button>
+                            ) : canReview ? (
+                              <Button variant="outline" size="sm" onClick={() => reviewReceiptDraft(draft)}>Review</Button>
+                            ) : draft.status === "posted" ? (
+                              <Badge variant="outline"><CheckCircle2 className="mr-1 h-3 w-3" />Posted</Badge>
+                            ) : null}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card id="expense-transaction-form">
+          <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base"><WalletCards className="h-4 w-4" />New expense transaction</CardTitle>
             <CardDescription>
               One submission creates the payment record, attaches the receipt, posts both sides of the journal entry, and updates reports immediately.
             </CardDescription>
           </CardHeader>
           <CardContent>
+            {selectedReceiptDraftId && (
+              <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-md border border-emerald-500/40 bg-emerald-500/5 p-3 text-sm">
+                <span className="flex items-center gap-2"><Receipt className="h-4 w-4 text-emerald-700" />An analyzed receipt is attached. Confirm every field before posting.</span>
+                <Button type="button" variant="ghost" size="sm" onClick={() => setSelectedReceiptDraftId(null)}>Detach draft</Button>
+              </div>
+            )}
             <form className="space-y-5" onSubmit={handleSubmit}>
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                 <div className="space-y-2">
@@ -225,10 +365,15 @@ const FinanceTransactionsPage = () => {
                       id="transaction-receipt"
                       type="file"
                       accept="image/*,application/pdf"
+                      disabled={Boolean(selectedReceiptDraftId)}
                       onChange={(event) => setReceiptFile(event.target.files?.[0] ?? null)}
                     />
                     <p className="mt-2 text-xs text-muted-foreground">
-                      {receiptFile ? `${receiptFile.name} · ${(receiptFile.size / 1024 / 1024).toFixed(2)} MB` : "PDF or image, up to 15 MB. Missing receipts remain visible in the receipt report."}
+                      {selectedReceiptDraftId
+                        ? "Using the private receipt from the analyzed draft above."
+                        : receiptFile
+                          ? `${receiptFile.name} · ${(receiptFile.size / 1024 / 1024).toFixed(2)} MB`
+                          : "PDF or image, up to 15 MB. Missing receipts remain visible in the receipt report."}
                     </p>
                   </div>
                 </div>
@@ -240,7 +385,7 @@ const FinanceTransactionsPage = () => {
                 </div>
                 <Button type="submit" disabled={!formReady || postTransaction.isPending}>
                   {postTransaction.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
-                  Post transaction
+                  {selectedReceiptDraftId ? "Review & post transaction" : "Post transaction"}
                 </Button>
               </div>
             </form>
