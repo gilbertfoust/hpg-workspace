@@ -54,6 +54,14 @@ const FinanceReportsPage = () => {
   const postedDeposits = deposits.filter((d) => d.status === "posted");
   const positionAssets = (sofp?.assets as Array<{ code: string; name: string; balance: number }> | undefined) ?? [];
   const positionLiabilities = (sofp?.liabilities as Array<{ code: string; name: string; balance: number }> | undefined) ?? [];
+  const cashFlowRows: Array<[string, number]> = cashFlow ? [
+    ["Operating activities", Number(cashFlow.operating_cash_flow)],
+    ["Investing activities", Number(cashFlow.investing_cash_flow)],
+    ["Financing activities", Number(cashFlow.financing_cash_flow)],
+    ["Net change in cash", Number(cashFlow.net_change_in_cash)],
+    ["Beginning cash", Number(cashFlow.beginning_cash_balance)],
+    ["Ending cash", Number(cashFlow.ending_cash_balance)],
+  ] : [];
 
   const exportWithAudit = async (
     reportType: string,
@@ -216,13 +224,18 @@ const FinanceReportsPage = () => {
             "statement_of_cash_flows",
             "statement-of-cash-flows.csv",
             ["Metric", "Amount"],
-            cashFlow ? Object.entries(cashFlow).filter(([key]) => !key.includes("date")).map(([key, value]) => [key.replace(/_/g, " "), Number(value)]) : [],
+            cashFlowRows,
           )}>
             {cashFlow && (
               <div className="space-y-2 text-sm">
-                {Object.entries(cashFlow).filter(([k]) => !k.includes("date")).map(([k, v]) => (
-                  <div key={k} className="flex justify-between"><span className="capitalize">{k.replace(/_/g, " ")}</span><span>{fmt(Number(v))}</span></div>
+                {cashFlowRows.map(([label, amount]) => (
+                  <div key={label} className={`flex justify-between ${label === "Net change in cash" || label === "Ending cash" ? "font-semibold border-t pt-2" : ""}`}>
+                    <span>{label}</span><span>{fmt(amount)}</span>
+                  </div>
                 ))}
+                <p className={cashFlow.cash_flow_ties ? "text-green-600" : "text-destructive"}>
+                  {cashFlow.cash_flow_ties ? "Cash flow ties to the change in cash." : "Cash flow does not tie — review classifications."}
+                </p>
               </div>
             )}
           </ReportCard>
