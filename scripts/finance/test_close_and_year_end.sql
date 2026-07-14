@@ -12,9 +12,14 @@ DECLARE
   year_period public.finance_fiscal_periods;
   asset_account_id uuid;
   equity_account_id uuid;
+  expense_account_id uuid;
+  payable_account_id uuid;
   opening_entry public.finance_journal_entries;
+  accrual_entry public.finance_journal_entries;
+  cash_payment_entry public.finance_journal_entries;
   draft_entry public.finance_journal_entries;
   readiness jsonb;
+  cash_flow jsonb;
   close_row public.finance_year_end_closes;
   unbalanced_rejected boolean := false;
   staged_close_rejected boolean := false;
@@ -40,7 +45,10 @@ BEGIN
     AND period_type = 'month' AND period_number = 1;
   SELECT id INTO asset_account_id FROM public.finance_accounts WHERE code = '1000' AND is_active;
   SELECT id INTO equity_account_id FROM public.finance_accounts WHERE code = '3000' AND is_active;
-  IF january_period.id IS NULL OR asset_account_id IS NULL OR equity_account_id IS NULL THEN
+  SELECT id INTO expense_account_id FROM public.finance_accounts WHERE code = '5500' AND is_active;
+  SELECT id INTO payable_account_id FROM public.finance_accounts WHERE code = '2000' AND is_active;
+  IF january_period.id IS NULL OR asset_account_id IS NULL OR equity_account_id IS NULL
+     OR expense_account_id IS NULL OR payable_account_id IS NULL THEN
     RAISE EXCEPTION 'Required fiscal period or standard accounts are missing';
   END IF;
 
@@ -84,6 +92,41 @@ BEGIN
   END IF;
   IF NOT (public.finance_validate_trial_balance('2025-01-01', '2025-01-31', ngo_id_value)->>'is_balanced')::boolean THEN
     RAISE EXCEPTION 'Opening balance journal is not balanced';
+  END IF;
+
+  -- Accrual has no cash movement; its later AP payment must count exactly once
+  -- in operating cash flow and tie beginning to ending cash.
+  INSERT INTO public.finance_journal_entries (
+    entry_date, memo, source_type, status, created_by_user_id, ngo_id
+  ) VALUES (
+    '2025-01-10', 'Cash-flow accrual', 'cash_flow_smoke_accrual', 'draft', manager_id, ngo_id_value
+  ) RETURNING * INTO accrual_entry;
+  INSERT INTO public.finance_journal_lines (
+    journal_entry_id, account_id, debit, credit, memo, ngo_id, line_number
+  ) VALUES
+    (accrual_entry.id, expense_account_id, 100, 0, 'Accrued expense', ngo_id_value, 1),
+    (accrual_entry.id, payable_account_id, 0, 100, 'Accrued payable', ngo_id_value, 2);
+  accrual_entry := public.post_finance_journal_entry(accrual_entry.id);
+
+  INSERT INTO public.finance_journal_entries (
+    entry_date, memo, source_type, status, created_by_user_id, ngo_id
+  ) VALUES (
+    '2025-01-12', 'Cash-flow AP payment', 'cash_flow_smoke_payment', 'draft', manager_id, ngo_id_value
+  ) RETURNING * INTO cash_payment_entry;
+  INSERT INTO public.finance_journal_lines (
+    journal_entry_id, account_id, debit, credit, memo, ngo_id, line_number
+  ) VALUES
+    (cash_payment_entry.id, payable_account_id, 100, 0, 'Pay accrued expense', ngo_id_value, 1),
+    (cash_payment_entry.id, asset_account_id, 0, 100, 'Cash payment', ngo_id_value, 2);
+  cash_payment_entry := public.post_finance_journal_entry(cash_payment_entry.id);
+
+  cash_flow := public.finance_statement_of_cash_flows('2025-01-01', '2025-01-31', ngo_id_value);
+  IF NOT (cash_flow->>'cash_flow_ties')::boolean
+     OR (cash_flow->>'beginning_cash_balance')::numeric <> 1000
+     OR (cash_flow->>'ending_cash_balance')::numeric <> 900
+     OR (cash_flow->>'operating_cash_flow')::numeric <> -100
+     OR (cash_flow->>'net_change_in_cash')::numeric <> -100 THEN
+    RAISE EXCEPTION 'Statement of Cash Flows did not tie or double-counted accrual activity: %', cash_flow;
   END IF;
 
   INSERT INTO public.finance_journal_entries (
