@@ -17,7 +17,7 @@ import {
 import { hasFinancePermission } from "@/lib/financePermissions";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useWorkspaceNgo } from "@/hooks/useWorkspaceNgo";
-import { RefreshCw, ShieldCheck } from "lucide-react";
+import { CheckCircle2, RefreshCw, ShieldCheck, XCircle } from "lucide-react";
 
 const FinanceFiscalPeriodsPage = () => {
   const { selectedNgo, selectedNgoId } = useWorkspaceNgo();
@@ -125,6 +125,30 @@ const FinanceFiscalPeriodsPage = () => {
                   <ControlCount label="Unposted opening rows" value={readiness.staged_opening_balances} />
                   <ControlCount label="Trial balance" value={readiness.trial_balance.is_balanced ? 0 : 1} />
                 </div>
+                {readiness.ecosystem_integrity ? (
+                  <div className="space-y-2">
+                    <div>
+                      <p className="text-sm font-medium">Parent and child tie-outs</p>
+                      <p className="text-xs text-muted-foreground">The period cannot close when a source schedule, control account, or parent statement disagrees.</p>
+                    </div>
+                    <div className="rounded-md border divide-y">
+                      {readiness.ecosystem_integrity.checks.map((check) => (
+                        <div key={check.key} className="p-3 flex items-start justify-between gap-4 text-sm">
+                          <div className="flex items-start gap-2">
+                            {check.is_balanced ? <CheckCircle2 className="h-4 w-4 mt-0.5 text-emerald-600 shrink-0" /> : <XCircle className="h-4 w-4 mt-0.5 text-destructive shrink-0" />}
+                            <div>
+                              <p className="font-medium">{check.label}</p>
+                              <p className="text-xs text-muted-foreground">{humanize(check.child)} → {humanize(check.parent)}</p>
+                            </div>
+                          </div>
+                          <Badge variant={check.is_balanced ? "secondary" : "destructive"}>
+                            {check.is_balanced ? "Tied" : `Difference ${Number(check.difference).toLocaleString()}`}
+                          </Badge>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
               </>
             )}
             <div className="flex gap-2 justify-end">
@@ -170,5 +194,7 @@ const ControlCount = ({ label, value }: { label: string; value: number }) => (
     <Badge variant={value === 0 ? "secondary" : "destructive"}>{value === 0 ? "Clear" : value}</Badge>
   </div>
 );
+
+const humanize = (value: string) => value.replace(/_/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
 
 export default FinanceFiscalPeriodsPage;

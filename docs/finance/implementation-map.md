@@ -45,6 +45,10 @@ Phases 31–45 add organization-wide accounting tables separate from legacy ledg
 | Receipt intelligence | `finance_receipt_drafts`; hash duplicate detection; review/post RPC; extraction Edge Function | Upload → extract → review → post workflow |
 | Bank/card feeds | `finance_bank_statement_imports`, `finance_bank_statement_transactions`; matching and reconciliation RPCs | CSV import, suggestions, matching, ignored rows, reconciliation |
 | Close and migration | opening source evidence, close readiness snapshots, `finance_year_end_closes`; monthly posting authority | Opening-balance CSV, period review/close/lock, immutable year-end packages |
+| NGO account ecosystem | `finance_ngo_accounts`, account activation/creation RPCs, NGO-correct budget actuals | Budgets and other forms reuse or create accounts in the selected NGO ledger |
+| Atomic receivables | invoice issue, receipt, write-off, and void/reversal RPCs; AR control account | Live AR workspace whose subledger posts to and ties with the general ledger |
+| Integrity graph | `finance_accounting_integrity`, snapshots, expense-to-payment settlement | Parent/child tie-outs on the hub and hard-close screen |
+| Safe automation | recurring rules/occurrences, connections, sync runs, payment intents, integration outbox | Reviewable recurring drafts and visible provider delivery state |
 
 ## Accounting rules (enforced in DB)
 
@@ -57,6 +61,10 @@ Phases 31–45 add organization-wide accounting tables separate from legacy ledg
 7. Opening balances are staged, balanced, source-attached, and posted as one journal.
 8. Period and year close actions are rejected until their database readiness checks pass.
 9. Finalized reconciliations and year-end packages are immutable evidence.
+10. Every account used by a budget or economic form is activated for that NGO and remains linked to the canonical chart.
+11. Completed AP, AR, deposit, payment, and expense forms must be linked to posted journals.
+12. AR/AP subledgers and financial statements must tie to their parent control accounts and general ledger before close.
+13. Recurring rules generate drafts; external provider queues cannot bypass settlement or posting controls.
 
 ## Permission model (Phase 31 baseline → Phase 44 refine)
 
@@ -68,5 +76,5 @@ Phases 31–45 add organization-wide accounting tables separate from legacy ledg
 
 - All Finance migrations through the close/lock hardening bundle are active in the connected HPG project.
 - Receipt extraction is deployed as the authenticated `extract-finance-receipt` Edge Function.
-- Bank connectivity is statement-CSV based; Plaid or another aggregator is optional, not required for ledger operation.
+- Bank connectivity works through statement CSV today. Provider-neutral connection, sync, payment-intent, and outbox tables are deployed; a selected provider adapter remains an operating integration choice rather than a ledger dependency.
 - The prior system is needed only for a cutover export and historical archive after accountant sign-off.

@@ -4,22 +4,33 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { AgentOSFinanceVerificationPanel } from "@/components/ngo/AgentOSFinanceVerificationPanel";
 import { useFinanceHubSnapshot } from "@/hooks/useFinanceHubSnapshot";
+import { useFinanceAccountingIntegrity } from "@/hooks/useFinanceAccountingIntegrity";
+import { useWorkspaceNgo } from "@/hooks/useWorkspaceNgo";
 import { useAgentOSCases } from "@/hooks/useAgentOSCases";
 import { useUserRole } from "@/hooks/useUserRole";
 import { canReadFinanceLedger } from "@/lib/financePermissions";
 import { FinanceUnauthorized } from "@/components/finance/accounting/FinanceUnauthorized";
 import {
   DollarSign, Building, FileCheck, ArrowRight, BookOpen, Scale, Receipt, ShieldCheck,
-  Bell, BookOpenCheck, ClipboardCheck, Landmark, Paperclip, FileStack, Wallet, TrendingUp, PieChart, Target, Loader2,
+  Bell, BookOpenCheck, ClipboardCheck, Landmark, Paperclip, FileStack, Wallet, TrendingUp, PieChart, Target, Loader2, CheckCircle2, XCircle, Zap,
 } from "lucide-react";
 
 const FinancialHub = () => {
   const navigate = useNavigate();
   const { role } = useUserRole();
+  const canRead = canReadFinanceLedger(role);
+  const { selectedNgo, selectedNgoId } = useWorkspaceNgo();
   const { data: snapshot, isLoading } = useFinanceHubSnapshot();
   const agentCases = useAgentOSCases({ limit: 100 });
+  const today = new Date().toISOString().slice(0, 10);
+  const yearStart = `${today.slice(0, 4)}-01-01`;
+  const { data: integrity, isLoading: integrityLoading } = useFinanceAccountingIntegrity(
+    canRead ? selectedNgoId : null,
+    yearStart,
+    today,
+  );
 
-  if (!canReadFinanceLedger(role)) {
+  if (!canRead) {
     return (
       <MainLayout>
         <div className="p-6 max-w-lg"><FinanceUnauthorized action="access the Finance Hub ledger" /></div>
@@ -41,6 +52,7 @@ const FinancialHub = () => {
     { label: "Fiscal Periods", path: "/financial-hub/accounting/fiscal-periods", icon: ShieldCheck },
     { label: "Opening Balances", path: "/financial-hub/accounting/opening-balances", icon: Scale },
     { label: "Accounts Receivable", path: "/financial-hub/accounting/accounts-receivable", icon: Receipt },
+    { label: "Automation & Connections", path: "/financial-hub/accounting/automation", icon: Zap },
     { label: "Fiscal Sponsorship", path: "/financial-hub/accounting/fiscal-sponsorship", icon: Building },
     { label: "Reports", path: "/financial-hub/accounting/reports", icon: PieChart },
     { label: "Compliance", path: "/financial-hub/accounting/compliance", icon: FileCheck },
@@ -80,6 +92,46 @@ const FinancialHub = () => {
                 </div>
               </div>
             ) : null}
+          </CardContent>
+        </Card>
+
+        <Card className={integrity?.is_balanced ? "border-emerald-500/40" : selectedNgoId ? "border-amber-500/50" : ""}>
+          <CardHeader className="flex flex-row items-start justify-between gap-4">
+            <div>
+              <CardTitle className="text-base flex items-center gap-2"><Scale className="h-4 w-4" />Living accounting ecosystem</CardTitle>
+              <CardDescription>
+                {selectedNgo
+                  ? `${selectedNgo.common_name || selectedNgo.legal_name}: every source form and subledger is checked against its parent ledger and statements.`
+                  : "Select an NGO to run its live parent/child accounting tie-outs."}
+              </CardDescription>
+            </div>
+            {integrity ? (
+              <Badge variant={integrity.is_balanced ? "default" : "destructive"}>
+                {integrity.is_balanced ? "All systems tied" : `${integrity.blocking_failures.length} blocker${integrity.blocking_failures.length === 1 ? "" : "s"}`}
+              </Badge>
+            ) : null}
+          </CardHeader>
+          <CardContent>
+            {!selectedNgoId ? (
+              <p className="text-sm text-muted-foreground">Use the NGO selector in the workspace header. HPG operating and every created NGO keep separate live ledgers.</p>
+            ) : integrityLoading ? (
+              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+            ) : integrity ? (
+              <div className="grid gap-2 md:grid-cols-2">
+                {integrity.checks.map((check) => (
+                  <div key={check.key} className="rounded-md border p-3 flex items-start gap-2">
+                    {check.is_balanced ? <CheckCircle2 className="h-4 w-4 mt-0.5 text-emerald-600 shrink-0" /> : <XCircle className="h-4 w-4 mt-0.5 text-destructive shrink-0" />}
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium">{check.label}</p>
+                      <p className="text-xs text-muted-foreground">{humanize(check.child)} → {humanize(check.parent)}</p>
+                      {!check.is_balanced ? <p className="text-xs text-destructive mt-1">Difference: {Number(check.difference).toLocaleString()}</p> : null}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">The integrity graph could not be loaded.</p>
+            )}
           </CardContent>
         </Card>
 
@@ -143,5 +195,7 @@ function Metric({ label, value, tone = "default", onClick }: { label: string; va
     </button>
   );
 }
+
+const humanize = (value: string) => value.replace(/_/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
 
 export default FinancialHub;

@@ -48,6 +48,7 @@ import FinanceAccountsReceivablePage from "./pages/FinanceAccountsReceivablePage
 import FinanceCompliancePage from "./pages/FinanceCompliancePage";
 import FinanceFiscalSponsorshipPage from "./pages/FinanceFiscalSponsorshipPage";
 import FinanceOpeningBalancesPage from "./pages/FinanceOpeningBalancesPage";
+import FinanceAutomationPage from "./pages/FinanceAutomationPage";
 import IntakeDashboard from "./pages/IntakeDashboard";
 import IntakeReviewPage from "./pages/IntakeReviewPage";
 import CostCentersPage from "./pages/CostCentersPage";
@@ -229,6 +230,7 @@ const App = () => {
                 <Route path="/financial-hub/accounting/compliance" element={<P><FinanceCompliancePage /></P>} />
                 <Route path="/financial-hub/accounting/fiscal-sponsorship" element={<P><FinanceFiscalSponsorshipPage /></P>} />
                 <Route path="/financial-hub/accounting/opening-balances" element={<P><FinanceOpeningBalancesPage /></P>} />
+                <Route path="/financial-hub/accounting/automation" element={<P><FinanceAutomationPage /></P>} />
                 <Route path="/financial-hub/ngo/:ngoId" element={<Navigate to="/financial-hub/accounting/reports" replace />} />
                 <Route path="/financial-hub/ngo/:ngoId/period/:periodId" element={<Navigate to="/financial-hub/accounting/reports" replace />} />
                 <Route path="/financial-hub/accounts" element={<Navigate to="/financial-hub/accounting/chart-of-accounts" replace />} />

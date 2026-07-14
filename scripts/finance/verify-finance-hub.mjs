@@ -17,6 +17,10 @@ const openingEvidenceMigration = read("supabase/migrations/20260714123500_financ
 const cashFlowMigration = read("supabase/migrations/20260714125500_finance_cash_flow_tie_out.sql");
 const nonprofitStatementsMigration = read("supabase/migrations/20260714130500_finance_nonprofit_statement_rollforward.sql");
 const receiptResolutionMigration = read("supabase/migrations/20260714131500_finance_receipt_draft_resolution.sql");
+const ngoAccountMigration = read("supabase/migrations/20260714132500_finance_ngo_account_ecosystem.sql");
+const arMigration = read("supabase/migrations/20260714133500_finance_ar_atomic_ledger.sql");
+const integrityMigration = read("supabase/migrations/20260714134500_finance_integrity_graph.sql");
+const automationMigration = read("supabase/migrations/20260714135500_finance_recurring_and_integration_foundation.sql");
 const app = read("src/App.tsx");
 const hub = read("src/pages/FinancialHub.tsx");
 const operations = read("src/pages/FinanceOperationsPage.tsx");
@@ -29,6 +33,10 @@ const reconciliationPage = read("src/pages/FinanceReconciliationPage.tsx");
 const fiscalPeriodsPage = read("src/pages/FinanceFiscalPeriodsPage.tsx");
 const openingBalancesPage = read("src/pages/FinanceOpeningBalancesPage.tsx");
 const compliancePage = read("src/pages/FinanceCompliancePage.tsx");
+const budgetPage = read("src/pages/FinanceBudgetsPage.tsx");
+const receivablesPage = read("src/pages/FinanceAccountsReceivablePage.tsx");
+const invoiceHook = read("src/hooks/useFinanceInvoices.ts");
+const automationPage = read("src/pages/FinanceAutomationPage.tsx");
 
 const requiredMigrationContracts = [
   "CREATE TABLE IF NOT EXISTS public.finance_expense_requests",
@@ -72,6 +80,20 @@ const accountingContracts = [
   [nonprofitStatementsMigration, "pass_through_expenses"],
   [receiptResolutionMigration, "dismiss_finance_receipt_draft"],
   [receiptResolutionMigration, "Receipt draft dismissed"],
+  [ngoAccountMigration, "CREATE TABLE public.finance_ngo_accounts"],
+  [ngoAccountMigration, "ensure_finance_ngo_account"],
+  [ngoAccountMigration, "finance_ngo_account_catalog"],
+  [arMigration, "issue_finance_invoice"],
+  [arMigration, "record_finance_invoice_payment"],
+  [arMigration, "write_off_finance_invoice"],
+  [arMigration, "void_finance_invoice"],
+  [integrityMigration, "settle_finance_expense_request"],
+  [integrityMigration, "finance_accounting_integrity"],
+  [integrityMigration, "Every completed economic form is linked to posted journal activity"],
+  [integrityMigration, "ecosystem_integrity"],
+  [automationMigration, "generate_due_finance_recurring_drafts"],
+  [automationMigration, "finance_integration_outbox"],
+  [automationMigration, "queue_finance_payment_intent"],
 ];
 
 for (const [source, contract] of accountingContracts) {
@@ -79,12 +101,21 @@ for (const [source, contract] of accountingContracts) {
 }
 
 assert.match(app, /path="\/financial-hub\/operations"/);
+assert.match(app, /path="\/financial-hub\/accounting\/automation"/);
 assert.ok(hub.includes("Finance Operations"), "Finance Hub must expose the operational queue");
+assert.ok(hub.includes("Living accounting ecosystem"), "Finance Hub must expose parent/child accounting integrity");
 assert.ok(operations.includes("Approval queue"), "Operations page must contain a unified approval queue");
 assert.ok(operations.includes("Notification outbox"), "Operations page must expose notification delivery state");
 assert.ok(purchaseHook.includes('rpc("review_purchase_request"'), "Purchase approvals must use the authority-checked RPC");
 assert.ok(budgetHook.includes('rpc("save_finance_budget"'), "Budget saves must be atomic");
 assert.ok(budgetHook.includes('rpc("review_finance_budget"'), "Budget approvals must use the authority-checked RPC");
+assert.ok(budgetPage.includes("Create account from budget"), "Budget entry must be able to create and activate NGO accounts");
+assert.ok(operations.includes("useSettleFinanceExpenseRequest"), "Expense settlement must select an actual posted payment");
+assert.ok(invoiceHook.includes('rpc("issue_finance_invoice"'), "AR issuance must post through the atomic ledger RPC");
+assert.ok(invoiceHook.includes('rpc("record_finance_invoice_payment"'), "AR receipts must post through the atomic ledger RPC");
+assert.ok(receivablesPage.includes("Issue & post"), "AR must expose ledger-backed invoice issuance");
+assert.ok(automationPage.includes("Recurring journal rules"), "Finance automation must expose reviewable recurring drafts");
+assert.ok(automationPage.includes("Integration outbox"), "Finance automation must expose durable provider delivery state");
 assert.ok(transactionPage.includes("receipt"), "Transaction entry must expose receipt evidence");
 assert.ok(transactionPage.includes("handleDismissReceipt"), "Receipt inbox must resolve unreadable drafts");
 assert.ok(transactionHook.includes('rpc("dismiss_finance_receipt_draft"'), "Receipt dismissal must use the audited RPC");
@@ -102,4 +133,4 @@ assert.equal(auditedExports.length, 10, "Every report card must use the audited 
 assert.equal((reports.match(/exportToCsv\(/g) ?? []).length, 1, "CSV downloads must only occur inside exportWithAudit");
 
 console.log("Finance Hub static contracts: PASS");
-console.log("  NGO ledger · atomic expenses · receipt AI · bank reconciliation · hard close · 10 audited reports");
+console.log("  NGO account ecosystem · atomic AP/AR · receipt AI · integrity graph · automation outbox · hard close · 10 audited reports");

@@ -16,11 +16,12 @@ import {
   useFinanceAccessCapabilities,
   useFinanceExpenseRequests,
   useFinanceWorkflowEvents,
-  useMarkFinanceExpensePaid,
   useReviewFinanceExpenseRequest,
   useSaveFinanceExpenseRequest,
+  useSettleFinanceExpenseRequest,
   useSubmitFinanceExpenseRequest,
 } from "@/hooks/useFinanceOperations";
+import { useFinancePayments } from "@/hooks/useFinancePayments";
 import { usePurchaseRequests } from "@/hooks/usePurchaseRequests";
 import { useWorkspaceNgo } from "@/hooks/useWorkspaceNgo";
 import { ArrowRight, Bell, Check, CircleDollarSign, FileCheck, Plus, Send, ShoppingCart, Wallet, X } from "lucide-react";
@@ -65,13 +66,17 @@ const FinanceOperationsPage = () => {
   );
   const { data: budgets = [] } = useFinanceBudgets();
   const { data: workflowEvents = [] } = useFinanceWorkflowEvents();
+  const { data: postedPayments = [] } = useFinancePayments("posted", selectedNgoId);
   const saveExpense = useSaveFinanceExpenseRequest();
   const submitExpense = useSubmitFinanceExpenseRequest();
   const reviewExpense = useReviewFinanceExpenseRequest();
-  const markExpensePaid = useMarkFinanceExpensePaid();
+  const settleExpense = useSettleFinanceExpenseRequest();
   const reviewBudget = useReviewFinanceBudget();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [expenseForm, setExpenseForm] = useState(initialExpenseForm);
+  const [settlementExpenseId, setSettlementExpenseId] = useState<string | null>(null);
+  const [settlementPaymentId, setSettlementPaymentId] = useState("");
+  const [settlementReference, setSettlementReference] = useState("");
 
   const scopedExpenses = useMemo(
     () => selectedNgoId ? expenses.filter((item) => item.ngo_id === selectedNgoId) : expenses,
@@ -114,6 +119,31 @@ const FinanceOperationsPage = () => {
 
   const queuedNotifications = workflowEvents.filter((event) => event.notification_status === "queued").length;
   const ownDrafts = scopedExpenses.filter((item) => item.requester_user_id === user?.id && item.status === "draft").length;
+  const settlementExpense = scopedExpenses.find((expense) => expense.id === settlementExpenseId) ?? null;
+  const alreadyLinkedPaymentIds = new Set(expenses.map((expense) => expense.finance_payment_id).filter(Boolean));
+  const eligibleSettlementPayments = settlementExpense
+    ? postedPayments.filter((payment) =>
+      payment.ngo_id === settlementExpense.ngo_id
+      && Math.abs(Number(payment.amount) - Number(settlementExpense.amount)) < 0.005
+      && !alreadyLinkedPaymentIds.has(payment.id)
+      && (!settlementExpense.budget_account_id || payment.expense_account_id === settlementExpense.budget_account_id))
+    : [];
+
+  const closeSettlement = () => {
+    setSettlementExpenseId(null);
+    setSettlementPaymentId("");
+    setSettlementReference("");
+  };
+
+  const submitSettlement = async () => {
+    if (!settlementExpense || !settlementPaymentId) return;
+    await settleExpense.mutateAsync({
+      id: settlementExpense.id,
+      paymentId: settlementPaymentId,
+      paymentReference: settlementReference,
+    });
+    closeSettlement();
+  };
 
   const createExpense = async () => {
     await saveExpense.mutateAsync({
@@ -270,10 +300,8 @@ const FinanceOperationsPage = () => {
                     <TableCell>
                       <div className="flex flex-wrap gap-1">
                         {expense.status === "draft" && expense.requester_user_id === user?.id ? <Button size="sm" variant="outline" onClick={() => submitExpense.mutate(expense.id)}><Send className="h-4 w-4 mr-1" />Submit</Button> : null}
-                        {expense.status === "approved" && access?.can_review ? <Button size="sm" variant="outline" onClick={() => {
-                          const reference = window.prompt("Enter the payment reference.");
-                          if (reference?.trim()) markExpensePaid.mutate({ id: expense.id, paymentReference: reference.trim() });
-                        }}><CircleDollarSign className="h-4 w-4 mr-1" />Mark paid</Button> : null}
+                        {expense.status === "approved" && access?.can_review ? <Button size="sm" variant="outline" onClick={() => setSettlementExpenseId(expense.id)}><CircleDollarSign className="h-4 w-4 mr-1" />Link payment</Button> : null}
+                        {expense.status === "paid" && expense.journal_entry_id ? <Badge variant="outline">Ledger linked</Badge> : null}
                       </div>
                     </TableCell>
                   </TableRow>
@@ -298,6 +326,46 @@ const FinanceOperationsPage = () => {
             </CardContent>
           </Card>
         ) : null}
+
+        <Dialog open={!!settlementExpense} onOpenChange={(open) => { if (!open) closeSettlement(); }}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader><DialogTitle>Link the posted ledger payment</DialogTitle></DialogHeader>
+            {settlementExpense ? (
+              <div className="space-y-4">
+                <div className="rounded-md border p-3 text-sm">
+                  <p className="font-medium">{settlementExpense.request_number} · {settlementExpense.payee_name}</p>
+                  <p className="text-muted-foreground">Approved amount: {money(Number(settlementExpense.amount), settlementExpense.currency_code)}</p>
+                </div>
+                <div className="space-y-2">
+                  <Label>Matching posted payment</Label>
+                  <Select value={settlementPaymentId} onValueChange={setSettlementPaymentId}>
+                    <SelectTrigger><SelectValue placeholder="Select a posted payment" /></SelectTrigger>
+                    <SelectContent>
+                      {eligibleSettlementPayments.map((payment) => (
+                        <SelectItem key={payment.id} value={payment.id}>
+                          {payment.payment_number} · {payment.payment_date} · {money(Number(payment.amount))}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {!eligibleSettlementPayments.length ? (
+                    <p className="text-xs text-amber-700">No unused posted payment matches this NGO, amount, and approved budget account. Create and post the payment first.</p>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">Only exact, unused ledger payments for this NGO are shown.</p>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label>Reference override (optional)</Label>
+                  <Input value={settlementReference} onChange={(event) => setSettlementReference(event.target.value)} placeholder="Uses the payment reference by default" />
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button variant="outline" onClick={closeSettlement}>Cancel</Button>
+                  <Button disabled={!settlementPaymentId || settleExpense.isPending} onClick={submitSettlement}>Link and settle</Button>
+                </div>
+              </div>
+            ) : null}
+          </DialogContent>
+        </Dialog>
       </div>
     </MainLayout>
   );
