@@ -141,9 +141,14 @@ const FinanceReportsPage = () => {
             soa ? [
               ["Revenue without restrictions", Number(soa.revenue_without_restrictions)],
               ["Revenue with restrictions", Number(soa.revenue_with_restrictions)],
+              ["Net assets released", Number(soa.net_assets_released)],
+              ["Total revenue", Number(soa.total_revenue)],
               ["Program expenses", Number(soa.program_expenses)],
               ["Management & general", Number(soa.management_general_expenses)],
               ["Fundraising", Number(soa.fundraising_expenses)],
+              ["Pass-through expenses", Number(soa.pass_through_expenses)],
+              ["Other expenses", Number(soa.other_expenses)],
+              ["Total expenses", Number(soa.total_expenses)],
               ["Change in net assets", Number(soa.change_in_net_assets)],
             ] : [])}
             extraAction={soa ? () => saveSnapshot.mutate({ reportType: "statement_of_activities", label: `SOA ${startDate}–${endDate}`, filters: { startDate, endDate }, data: soa as Record<string, unknown> }) : undefined}
@@ -154,12 +159,18 @@ const FinanceReportsPage = () => {
                   ["Revenue without donor restrictions", soa.revenue_without_restrictions],
                   ["Revenue with donor restrictions", soa.revenue_with_restrictions],
                   ["Net assets released", soa.net_assets_released],
+                  ["Total revenue", soa.total_revenue],
                   ["Program expenses", soa.program_expenses],
                   ["Management & general", soa.management_general_expenses],
                   ["Fundraising expenses", soa.fundraising_expenses],
+                  ["Pass-through expenses", soa.pass_through_expenses],
+                  ["Other expenses", soa.other_expenses],
+                  ["Total expenses", soa.total_expenses],
                   ["Change in net assets", soa.change_in_net_assets],
                 ].map(([label, val]) => (
-                  <div key={String(label)} className="flex justify-between"><span>{label}</span><span>{fmt(Number(val))}</span></div>
+                  <div key={String(label)} className={`flex justify-between ${String(label).startsWith("Total") || label === "Change in net assets" ? "font-semibold border-t pt-2" : ""}`}>
+                    <span>{label}</span><span>{fmt(Number(val))}</span>
+                  </div>
                 ))}
               </div>
             ) : (
@@ -205,8 +216,11 @@ const FinanceReportsPage = () => {
                 </div>
                 <div className="flex justify-between font-semibold border-t-2 pt-3">
                   <span>Total liabilities and net assets</span>
-                  <span>{fmt(Number(sofp.total_liabilities) + Number(sofp.total_net_assets))}</span>
+                  <span>{fmt(Number(sofp.total_liabilities_and_net_assets))}</span>
                 </div>
+                <p className={sofp.statement_is_balanced ? "text-green-600" : "text-destructive"}>
+                  {sofp.statement_is_balanced ? "Statement balances." : `Statement is out of balance by ${fmt(Number(sofp.statement_difference))}.`}
+                </p>
               </div>
             ) : (
               (["asset", "liability", "equity"] as const).map((section) => (
