@@ -11,6 +11,14 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import type { FormField } from "@/hooks/useFormTemplates";
+import { FileCheck2, Upload } from "lucide-react";
+
+export interface UploadedFormFileValue {
+  document_id: string;
+  name: string;
+  size?: number;
+  type?: string;
+}
 
 interface FormRendererProps {
   fields: FormField[];
@@ -18,6 +26,8 @@ interface FormRendererProps {
   errors?: Record<string, string>;
   readOnly?: boolean;
   onChange: (name: string, value: unknown) => void;
+  pendingFiles?: Record<string, File | undefined>;
+  onFileChange?: (name: string, file: File | null) => void;
 }
 
 export function FormRenderer({
@@ -26,6 +36,8 @@ export function FormRenderer({
   errors = {},
   readOnly = false,
   onChange,
+  pendingFiles = {},
+  onFileChange,
 }: FormRendererProps) {
   const handleMultiSelectToggle = (name: string, option: string) => {
     const current = (values[name] as string[]) || [];
@@ -50,7 +62,11 @@ export function FormRenderer({
             value={(value as string) || ""}
             onChange={(event) => onChange(field.name, event.target.value)}
             disabled={readOnly}
-            placeholder={`Enter ${field.label.toLowerCase()}`}
+            placeholder={field.placeholder || `Enter ${field.label.toLowerCase()}`}
+            min={field.min}
+            max={field.max}
+            minLength={field.minLength}
+            maxLength={field.maxLength}
           />
         );
 
@@ -70,8 +86,10 @@ export function FormRenderer({
             value={(value as string) || ""}
             onChange={(event) => onChange(field.name, event.target.value)}
             disabled={readOnly}
-            placeholder={`Enter ${field.label.toLowerCase()}`}
+            placeholder={field.placeholder || `Enter ${field.label.toLowerCase()}`}
             rows={3}
+            minLength={field.minLength}
+            maxLength={field.maxLength}
           />
         );
 
@@ -113,7 +131,7 @@ export function FormRenderer({
           </Select>
         );
 
-      case "multiselect":
+      case "multiselect": {
         const selected = (value as string[]) || [];
         return (
           <div className="space-y-2">
@@ -136,6 +154,37 @@ export function FormRenderer({
             )}
           </div>
         );
+      }
+
+      case "file": {
+        const uploaded = value && typeof value === "object" && !Array.isArray(value)
+          ? value as UploadedFormFileValue
+          : null;
+        const pending = pendingFiles[field.name];
+        return (
+          <div className="space-y-2">
+            {(pending || uploaded?.document_id) && (
+              <div className="flex items-center gap-2 rounded-md border bg-muted/30 px-3 py-2 text-sm">
+                <FileCheck2 className="h-4 w-4 text-primary" />
+                <span className="min-w-0 flex-1 truncate">{pending?.name || uploaded?.name || "Uploaded file"}</span>
+                <Badge variant="secondary">{pending ? "Ready to upload" : "Uploaded"}</Badge>
+              </div>
+            )}
+            {!readOnly && (
+              <label className="flex cursor-pointer items-center justify-center gap-2 rounded-md border border-dashed px-4 py-4 text-sm text-muted-foreground hover:border-primary hover:text-foreground">
+                <Upload className="h-4 w-4" />
+                {pending || uploaded?.document_id ? "Replace file" : "Choose file"}
+                <Input
+                  type="file"
+                  className="sr-only"
+                  accept={field.accept}
+                  onChange={(event) => onFileChange?.(field.name, event.target.files?.[0] || null)}
+                />
+              </label>
+            )}
+          </div>
+        );
+      }
 
       default:
         return null;
@@ -151,6 +200,9 @@ export function FormRenderer({
             {field.required && <span className="text-destructive ml-1">*</span>}
           </Label>
           {renderField(field)}
+          {field.helpText && !errors[field.name] && (
+            <p className="text-xs text-muted-foreground">{field.helpText}</p>
+          )}
           {errors[field.name] && (
             <p className="text-xs text-destructive">{errors[field.name]}</p>
           )}

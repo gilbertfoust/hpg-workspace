@@ -47,9 +47,8 @@ import { format } from "date-fns";
 import { useDocuments, useDocumentUrl, useDeleteDocument, DocumentCategory, Document } from "@/hooks/useDocuments";
 import { FormSubmissionSheet } from "./FormSubmissionSheet";
 import { documentRequestTemplate } from "./ngoFormTemplates";
-import { FormSubmission, useUpdateFormSubmission } from "@/hooks/useFormSubmissions";
 import { StatusChip } from "@/components/common/StatusChip";
-import { useCreateWorkItem, useWorkItems } from "@/hooks/useWorkItems";
+import { useWorkItems } from "@/hooks/useWorkItems";
 import { useEnsureFormTemplate, FormTemplate } from "@/hooks/useFormTemplates";
 import { DocumentUploadDialog } from "./DocumentUploadDialog";
 
@@ -135,22 +134,21 @@ export function NGODocumentsTab({ ngoId, launchDocumentRequest, onDocumentReques
   };
 
   const { data: documents, isLoading } = useDocuments(filters);
-  const { data: requests } = useWorkItems({
-    ngo_id: ngoId,
-    module: "ngo_coordination",
-    type: "Document Request",
-  });
+  const { data: requests } = useWorkItems({ ngo_id: ngoId, module: "ngo_coordination" });
   const ensureTemplate = useEnsureFormTemplate();
-  const createWorkItem = useCreateWorkItem();
-  const updateSubmission = useUpdateFormSubmission();
   const { downloadDocument, previewDocument } = useDocumentUrl();
   const deleteMutation = useDeleteDocument();
 
-  const filteredDocs = documents?.filter(doc =>
+  const filteredDocs = useMemo(() => documents?.filter(doc =>
     doc.file_name.toLowerCase().includes(searchQuery.toLowerCase())
-  ) || [];
+  ) || [], [documents, searchQuery]);
 
-  const filteredRequests = (requests || []).filter((request) => request.status !== "complete" && request.status !== "canceled");
+  const filteredRequests = (requests || []).filter((request) =>
+    request.status !== "complete"
+    && request.status !== "completed"
+    && request.status !== "canceled"
+    && (request.type === "Document Request" || request.title.toLowerCase().includes("document request"))
+  );
 
   const groupedDocuments = useMemo(() => {
     const grouped = new Map<string, typeof filteredDocs>();
@@ -177,36 +175,6 @@ export function NGODocumentsTab({ ngoId, launchDocumentRequest, onDocumentReques
       handleRequestDocument().finally(() => onDocumentRequestHandled?.());
     }
   }, [handleRequestDocument, launchDocumentRequest, onDocumentRequestHandled]);
-
-  const handleSubmissionSuccess = async (
-    submission: FormSubmission,
-    payload: Record<string, unknown>,
-    submitted: boolean
-  ) => {
-    if (!submitted || !selectedTemplate) return;
-
-    if (selectedTemplate.name === documentRequestTemplate.name) {
-      const dueDate = payload.due_date ? String(payload.due_date) : null;
-      const title = payload.document_type ? String(payload.document_type) : "Document Request";
-      const workItem = await createWorkItem.mutateAsync({
-        title: `Document Request — ${title}`,
-        module: "ngo_coordination",
-        type: "Document Request",
-        ngo_id: ngoId,
-        description: payload.description ? String(payload.description) : null,
-        due_date: dueDate,
-        status: "waiting_on_ngo",
-        priority: "medium",
-        evidence_required: true,
-        external_visible: payload.external_visible === true,
-      });
-
-      await updateSubmission.mutateAsync({
-        id: submission.id,
-        work_item_id: workItem.id,
-      });
-    }
-  };
 
   const handleSheetClose = (open: boolean) => {
     if (!open) {
@@ -438,7 +406,6 @@ export function NGODocumentsTab({ ngoId, launchDocumentRequest, onDocumentReques
         submission={null}
         ngoId={ngoId}
         initialValues={initialValues}
-        onSubmitSuccess={handleSubmissionSuccess}
       />
       {/* Upload Dialog */}
       <DocumentUploadDialog

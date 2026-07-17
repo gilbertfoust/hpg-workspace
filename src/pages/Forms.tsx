@@ -5,11 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import {
   FileText, Users, Briefcase, DollarSign, Scale, Megaphone, MessageSquare,
   GraduationCap, Wrench, Monitor, Handshake, UserPlus, ArrowRight, Bell,
   Building2, TrendingUp, Inbox, BarChart3, Settings2, Upload,
+  Plus, Pencil, ClipboardPlus,
 } from "lucide-react";
 import { useFormTemplates, FormTemplate } from "@/hooks/useFormTemplates";
 import { ModuleType } from "@/hooks/useWorkItems";
@@ -21,6 +22,9 @@ import { FormWorkflowRoutesTab } from "@/components/forms/FormWorkflowRoutesTab"
 import { FormTemplateDocumentUploadDialog } from "@/components/forms/FormTemplateDocumentUploadDialog";
 import { isSupabaseNotConfiguredError } from "@/integrations/supabase/client";
 import { SupabaseNotConfiguredNotice } from "@/components/common/SupabaseNotConfiguredNotice";
+import { FormTemplateBuilderDialog } from "@/components/forms/FormTemplateBuilderDialog";
+import { FormAssignmentDialog } from "@/components/forms/FormAssignmentDialog";
+import { isAdminRole, useUserRole } from "@/hooks/useUserRole";
 
 const moduleDisplayNames: Record<ModuleType | "All Forms", string> = {
   "All Forms": "All Forms",
@@ -63,6 +67,11 @@ export default function Forms() {
   const [selectedTemplate, setSelectedTemplate] = useState<FormTemplate | null>(null);
   const [uploadTemplate, setUploadTemplate] = useState<FormTemplate | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>("templates");
+  const [builderOpen, setBuilderOpen] = useState(false);
+  const [editingTemplate, setEditingTemplate] = useState<FormTemplate | null>(null);
+  const [assignmentTemplate, setAssignmentTemplate] = useState<FormTemplate | null>(null);
+  const { data: userRole } = useUserRole();
+  const canManageTemplates = isAdminRole(userRole?.role);
 
   const modules = useMemo(() => {
     if (!templates) return [{ name: "All Forms" as const, count: 0 }];
@@ -94,7 +103,6 @@ export default function Forms() {
   }, [templates]);
 
   const handleLaunchForm = (template: FormTemplate) => {
-    if (template.module === "ngo_coordination") return;
     setSelectedTemplate(template);
     setSheetOpen(true);
   };
@@ -116,6 +124,18 @@ export default function Forms() {
         subtitle="Launch forms to create work items and submit data"
         actions={
           <div className="flex gap-2 flex-wrap">
+            {canManageTemplates && (
+              <Button
+                size="sm"
+                onClick={() => {
+                  setEditingTemplate(null);
+                  setBuilderOpen(true);
+                }}
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Create Form
+              </Button>
+            )}
             <Button
               variant={viewMode === "templates" ? "default" : "outline"}
               size="sm"
@@ -216,7 +236,6 @@ export default function Forms() {
                   ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                       {filteredTemplates.map((form) => {
-                        const requiresNGO = form.module === "ngo_coordination";
                         const moduleIcon = moduleIcons[form.module] || <FileText className="w-5 h-5" />;
                         const moduleDisplayName =
                           moduleDisplayNames[form.module] ||
@@ -225,19 +244,23 @@ export default function Forms() {
                         return (
                           <Card key={form.id} className="module-card group">
                             <CardHeader className="pb-3">
-                              <div className="flex items-start justify-between">
+                              <div className="flex items-start justify-between gap-2">
                                 <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
                                   {moduleIcon}
                                 </div>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => setUploadTemplate(form)}
-                                  className="opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity"
-                                >
-                                  <Upload className="w-4 h-4 mr-2" />
-                                  Upload
-                                </Button>
+                                <div className="flex">
+                                  {canManageTemplates && (
+                                    <Button variant="ghost" size="icon" title="Edit and publish a new version" onClick={() => { setEditingTemplate(form); setBuilderOpen(true); }}>
+                                      <Pencil className="w-4 h-4" />
+                                    </Button>
+                                  )}
+                                  <Button variant="ghost" size="icon" title="Assign to NGO" onClick={() => setAssignmentTemplate(form)}>
+                                    <ClipboardPlus className="w-4 h-4" />
+                                  </Button>
+                                  <Button variant="ghost" size="icon" title="Upload template attachment" onClick={() => setUploadTemplate(form)}>
+                                    <Upload className="w-4 h-4" />
+                                  </Button>
+                                </div>
                               </div>
                               <CardTitle className="text-base mt-3 group-hover:text-primary transition-colors">
                                 {form.name}
@@ -253,28 +276,14 @@ export default function Forms() {
                                 </Badge>
                               </div>
                               <div className="mt-4 grid gap-2">
-                                {requiresNGO ? (
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <Button className="w-full" variant="outline" disabled>
-                                        Launch Form
-                                        <ArrowRight className="w-4 h-4 ml-2" />
-                                      </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                      <p>This form requires an NGO context. Launch from an NGO detail page.</p>
-                                    </TooltipContent>
-                                  </Tooltip>
-                                ) : (
-                                  <Button
-                                    className="w-full"
-                                    variant="outline"
-                                    onClick={() => handleLaunchForm(form)}
-                                  >
-                                    Launch Form
-                                    <ArrowRight className="w-4 h-4 ml-2" />
-                                  </Button>
-                                )}
+                                <Button
+                                  className="w-full"
+                                  variant="outline"
+                                  onClick={() => handleLaunchForm(form)}
+                                >
+                                  Launch Form
+                                  <ArrowRight className="w-4 h-4 ml-2" />
+                                </Button>
                                 <Button
                                   className="w-full"
                                   variant="secondary"
@@ -308,6 +317,16 @@ export default function Forms() {
           }}
           template={uploadTemplate}
           moduleLabel={uploadTemplate ? moduleDisplayNames[uploadTemplate.module] : undefined}
+        />
+        <FormTemplateBuilderDialog
+          open={builderOpen}
+          onOpenChange={setBuilderOpen}
+          template={editingTemplate}
+        />
+        <FormAssignmentDialog
+          open={!!assignmentTemplate}
+          onOpenChange={(open) => { if (!open) setAssignmentTemplate(null); }}
+          template={assignmentTemplate}
         />
       </MainLayout>
     </TooltipProvider>

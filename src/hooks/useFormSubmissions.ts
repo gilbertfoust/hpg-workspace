@@ -24,6 +24,14 @@ const MODULE_TO_DOC_CATEGORY: Record<string, string> = {
   legal: 'legal',
 };
 
+interface SupabaseErrorDetails {
+  message?: string;
+  details?: string;
+  hint?: string;
+}
+
+type ErrorWithSupabase = Error & { supabaseError?: SupabaseErrorDetails };
+
 async function createDocumentFromSubmission(
   submission: FormSubmission,
   formTemplateId: string,
@@ -78,7 +86,7 @@ async function createDocumentFromSubmission(
       file_path: storagePath,
       file_type: 'application/json',
       file_size: blob.size,
-      category: category as any,
+      category: category as Database['public']['Enums']['document_category'],
       ngo_id: ngoId,
       work_item_id: submission.work_item_id || null,
       uploaded_by_user_id: userId,
@@ -97,6 +105,10 @@ export type FormSubmission = Database['public']['Tables']['form_submissions']['R
   submitted_version?: number | null;
   locked_at?: string | null;
   idempotency_key?: string | null;
+  assignment_id?: string | null;
+  reviewed_by_user_id?: string | null;
+  reviewed_at?: string | null;
+  review_notes?: string | null;
   form_template?: {
     name: string;
     module: string;
@@ -119,6 +131,8 @@ export interface SaveFormWorkflowInput {
   progress?: number;
   submit: boolean;
   idempotencyKey?: string;
+  assignmentId?: string | null;
+  suppressToast?: boolean;
 }
 
 export interface FormWorkflowResult {
@@ -148,7 +162,15 @@ export const useSaveFormWorkflow = () => {
           p_idempotency_key: input.idempotencyKey || crypto.randomUUID(),
         } as never);
         if (error) throw error;
-        return data as FormWorkflowResult;
+        const result = data as FormWorkflowResult;
+        if (input.assignmentId && result.submission?.id) {
+          const { error: assignmentError } = await supabase.rpc('link_form_assignment_submission' as never, {
+            p_assignment_id: input.assignmentId,
+            p_submission_id: result.submission.id,
+          } as never);
+          if (assignmentError) throw assignmentError;
+        }
+        return result;
       }
 
       const { data, error } = await supabase.rpc('save_form_draft' as never, {
@@ -159,7 +181,15 @@ export const useSaveFormWorkflow = () => {
         p_progress: Math.max(0, Math.min(100, Math.round(input.progress ?? 0))),
       } as never);
       if (error) throw error;
-      return { submission: data as FormSubmission, work_item: null };
+      const result = { submission: data as FormSubmission, work_item: null };
+      if (input.assignmentId && result.submission?.id) {
+        const { error: assignmentError } = await supabase.rpc('link_form_assignment_submission' as never, {
+          p_assignment_id: input.assignmentId,
+          p_submission_id: result.submission.id,
+        } as never);
+        if (assignmentError) throw assignmentError;
+      }
+      return result;
     },
     onSuccess: (result, variables) => {
       queryClient.invalidateQueries({ queryKey: ['form-submissions'] });
@@ -167,12 +197,14 @@ export const useSaveFormWorkflow = () => {
       queryClient.invalidateQueries({ queryKey: ['my-queue-work-items'] });
       queryClient.invalidateQueries({ queryKey: ['department-queue-work-items'] });
       queryClient.invalidateQueries({ queryKey: ['form-workflow-events'] });
-      toast({
-        title: variables.submit ? 'Form submitted' : 'Private draft saved',
-        description: variables.submit
-          ? `A work item was routed to the responsible department${result.work_item?.title ? `: ${result.work_item.title}` : '.'}`
-          : 'Only you can see this draft. No work item was created.',
-      });
+      if (!variables.suppressToast) {
+        toast({
+          title: variables.submit ? 'Form submitted' : 'Private draft saved',
+          description: variables.submit
+            ? `A work item was routed to the responsible department${result.work_item?.title ? `: ${result.work_item.title}` : '.'}`
+            : 'Only you can see this draft. No work item was created.',
+        });
+      }
     },
     onError: (error: Error, variables) => {
       toast({
@@ -325,7 +357,7 @@ export const useCreateFormSubmission = () => {
 
         if (templateError) {
           const error = new Error(`Failed to fetch form template: ${templateError.message}`);
-          (error as any).supabaseError = templateError;
+          (error as ErrorWithSupabase).supabaseError = templateError;
           throw error;
         }
 
@@ -374,7 +406,7 @@ export const useCreateFormSubmission = () => {
 
         if (updateError) {
           const error = new Error(`Work item created but failed to link to form submission: ${updateError.message}`);
-          (error as any).supabaseError = updateError;
+          (error as ErrorWithSupabase).supabaseError = updateError;
           throw error;
         }
 
@@ -448,7 +480,7 @@ export const useCreateFormSubmission = () => {
     },
     onError: (error) => {
       let errorMessage = error instanceof Error ? error.message : String(error);
-      const supabaseError = (error as any).supabaseError;
+      const supabaseError = (error as ErrorWithSupabase).supabaseError;
       if (supabaseError) {
         errorMessage = errorMessage || supabaseError.message || 'Unknown error';
         if (supabaseError.details) {
@@ -485,7 +517,7 @@ export const useUpdateFormSubmission = () => {
 
       if (fetchError) {
         const error = new Error(`Failed to fetch form submission: ${fetchError.message}`);
-        (error as any).supabaseError = fetchError;
+        (error as ErrorWithSupabase).supabaseError = fetchError;
         throw error;
       }
 
@@ -521,7 +553,7 @@ export const useUpdateFormSubmission = () => {
 
       if (updateError) {
         const error = new Error(`Failed to update form submission: ${updateError.message}`);
-        (error as any).supabaseError = updateError;
+        (error as ErrorWithSupabase).supabaseError = updateError;
         throw error;
       }
 
@@ -543,7 +575,7 @@ export const useUpdateFormSubmission = () => {
 
         if (templateError) {
           const error = new Error(`Failed to fetch form template: ${templateError.message}`);
-          (error as any).supabaseError = templateError;
+          (error as ErrorWithSupabase).supabaseError = templateError;
           throw error;
         }
 
@@ -578,7 +610,7 @@ export const useUpdateFormSubmission = () => {
 
         if (linkError) {
           const error = new Error(`Work item created but failed to link to form submission: ${linkError.message}`);
-          (error as any).supabaseError = linkError;
+          (error as ErrorWithSupabase).supabaseError = linkError;
           throw error;
         }
       }
@@ -616,7 +648,7 @@ export const useUpdateFormSubmission = () => {
     },
     onError: (error) => {
       let errorMessage = error instanceof Error ? error.message : String(error);
-      const supabaseError = (error as any).supabaseError;
+      const supabaseError = (error as ErrorWithSupabase).supabaseError;
       if (supabaseError) {
         errorMessage = errorMessage || supabaseError.message || 'Unknown error';
         if (supabaseError.details) {
@@ -678,6 +710,60 @@ export const useArchiveFormSubmission = () => {
         title: "Unable to archive form submission",
         description: error instanceof Error ? error.message : "Archive failed. The submission was not removed.",
       });
+    },
+  });
+};
+
+export const useReviewFormSubmission = () => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async ({ id, decision, notes }: { id: string; decision: 'accepted' | 'rejected'; notes?: string }) => {
+      ensureSupabase();
+      const { data, error } = await supabase.rpc('review_form_submission' as never, {
+        p_submission_id: id,
+        p_decision: decision,
+        p_notes: notes?.trim() || null,
+      } as never);
+      if (error) throw error;
+      return data as unknown as FormSubmission;
+    },
+    onSuccess: (submission) => {
+      queryClient.invalidateQueries({ queryKey: ['form-submissions'] });
+      queryClient.invalidateQueries({ queryKey: ['form-assignments'] });
+      queryClient.invalidateQueries({ queryKey: ['work-items'] });
+      toast({
+        title: submission.submission_status === 'accepted' ? 'Form accepted' : 'Revision requested',
+        description: 'The decision was recorded in the audit trail and linked work item.',
+      });
+    },
+    onError: (error) => {
+      toast({ variant: 'destructive', title: 'Unable to review form', description: error.message });
+    },
+  });
+};
+
+export const useCreateFormRevision = () => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async (submissionId: string) => {
+      ensureSupabase();
+      const { data, error } = await supabase.rpc('create_form_revision' as never, {
+        p_submission_id: submissionId,
+      } as never);
+      if (error) throw error;
+      return data as unknown as FormSubmission;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['form-submissions'] });
+      queryClient.invalidateQueries({ queryKey: ['form-assignments'] });
+      toast({ title: 'Revision started', description: 'The prior submission remains in the audit trail and your new draft is private.' });
+    },
+    onError: (error) => {
+      toast({ variant: 'destructive', title: 'Unable to start revision', description: error.message });
     },
   });
 };

@@ -7,10 +7,17 @@ import type { Database, Json } from '@/integrations/supabase/types';
 
 export interface FormField {
   name: string;
-  type: 'text' | 'textarea' | 'email' | 'tel' | 'url' | 'number' | 'date' | 'select' | 'multiselect' | 'checkbox';
+  type: 'text' | 'textarea' | 'email' | 'tel' | 'url' | 'number' | 'date' | 'select' | 'multiselect' | 'checkbox' | 'file';
   label: string;
   required?: boolean;
   options?: string[];
+  placeholder?: string;
+  helpText?: string;
+  accept?: string;
+  min?: number;
+  max?: number;
+  minLength?: number;
+  maxLength?: number;
 }
 
 export interface FormTemplate {
@@ -27,6 +34,8 @@ export interface FormTemplate {
   created_by_user_id: string | null;
   created_at: string;
   updated_at: string;
+  form_audience?: 'staff' | 'ngo_portal';
+  intake_module?: ModuleType;
 }
 
 export interface EnsureFormTemplateInput {
@@ -132,5 +141,57 @@ export const useFormTemplate = (id: string) => {
       return data as unknown as FormTemplate;
     },
     enabled: !!id,
+  });
+};
+
+export interface AdminUpsertFormTemplateInput {
+  templateId?: string | null;
+  name: string;
+  module: ModuleType;
+  description?: string | null;
+  fields: FormField[];
+  mappingJson?: Json;
+  formAudience?: 'staff' | 'ngo_portal';
+  intakeModule?: ModuleType;
+  isActive?: boolean;
+}
+
+export const useAdminUpsertFormTemplate = () => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async (input: AdminUpsertFormTemplateInput) => {
+      ensureSupabase();
+      const { data, error } = await supabase.rpc('admin_upsert_form_template' as never, {
+        p_template_id: input.templateId || null,
+        p_name: input.name.trim(),
+        p_module: input.module,
+        p_description: input.description?.trim() || null,
+        p_schema_json: { fields: input.fields } as unknown as Json,
+        p_mapping_json: input.mappingJson || {},
+        p_form_audience: input.formAudience || 'staff',
+        p_intake_module: input.intakeModule || 'ngo_coordination',
+        p_is_active: input.isActive ?? true,
+      } as never);
+      if (error) throw error;
+      return data as unknown as FormTemplate;
+    },
+    onSuccess: (template) => {
+      queryClient.invalidateQueries({ queryKey: ['form-templates'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-config', 'form-templates'] });
+      queryClient.invalidateQueries({ queryKey: ['ngo-portal-form-templates'] });
+      toast({
+        title: 'Form published',
+        description: `${template.name} version ${template.version || 1} is ready to assign.`,
+      });
+    },
+    onError: (error) => {
+      toast({
+        variant: 'destructive',
+        title: 'Unable to publish form',
+        description: error.message,
+      });
+    },
   });
 };
