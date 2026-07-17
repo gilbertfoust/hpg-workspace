@@ -5,26 +5,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>HPG Workstation</title>
     <script>
-      // GitHub Pages SPA fallback
-      // Redirect to index.html while preserving the pathname for React Router
+      // GitHub Pages SPA fallback. Redirect to the project root and carry the
+      // requested route in one encoded query parameter. index.html restores
+      // the route before React mounts.
       var path = window.location.pathname;
       var search = window.location.search;
       var hash = window.location.hash;
-      
-      // Determine base path (repo name for GitHub Pages)
-      // e.g., /hpg-workspace/ or /
       var pathParts = path.split('/').filter(function(p) { return p; });
-      var base = '/';
-      
-      // If we have a repo name segment (first part without extension), use it as base
-      if (pathParts.length > 0 && pathParts[0] && !pathParts[0].includes('.')) {
-        base = '/' + pathParts[0] + '/';
-      }
-      
-      // Only redirect if not already at index.html
+      var project = pathParts.shift();
+      var base = project ? '/' + project + '/' : '/';
+      var route = '/' + pathParts.join('/');
+
       if (!path.includes('index.html')) {
-        // Redirect to index.html - React Router will read the pathname from window.location
-        window.location.replace(base + 'index.html' + search + hash);
+        window.location.replace(
+          base + '?spa_redirect=' + encodeURIComponent(route + search + hash)
+        );
       }
     </script>
   </head>
