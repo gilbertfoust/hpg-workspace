@@ -68,6 +68,11 @@ verify_jwt = false
 # authentication pattern and remains dry-run unless both live gates are set.
 verify_jwt = false
 
+[functions.receive-trello-webhook]
+# Trello cannot send a Supabase JWT. The endpoint validates the dedicated
+# TRELLO_WEBHOOK_SECRET from the callback URL or x-trello-webhook-secret.
+verify_jwt = false
+
 [functions.agent-os-external-form]
 # Public invitation links are authenticated by a one-time, expiring token.
 # The function stores only a SHA-256 token hash. Invitation creation still

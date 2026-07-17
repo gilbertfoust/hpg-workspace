@@ -7,9 +7,9 @@ import { WorkItemDrawer } from "@/components/work-items/WorkItemDrawer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Plus, Search, Filter } from "lucide-react";
-import { useCompleteWorkItemForAdminRecords, useWorkItems, WorkItemStatus, ModuleType } from "@/hooks/useWorkItems";
+import { useCompleteWorkItemForAdminRecords, useSyncWorkItemsToTrello, useWorkItems, WorkItem, WorkItemStatus, ModuleType } from "@/hooks/useWorkItems";
 import { useNGOs } from "@/hooks/useNGOs";
 import { useOrgUnits } from "@/hooks/useOrgUnits";
 import { useAuth } from "@/contexts/AuthContext";
@@ -70,11 +70,13 @@ export default function WorkItems() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [myItemsOnly, setMyItemsOnly] = useState(false);
   const [completingItemId, setCompletingItemId] = useState<string | null>(null);
+  const [syncingTrelloItemId, setSyncingTrelloItemId] = useState<string | null>(null);
   const { user } = useAuth();
   const { toast } = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
   const workItemIdFromSearch = searchParams.get("workItemId");
   const completeForRecords = useCompleteWorkItemForAdminRecords();
+  const syncToTrello = useSyncWorkItemsToTrello();
 
   const filters = useMemo(() => {
     const f: { module?: ModuleType; status?: WorkItemStatus[]; owner_user_id?: string; department_id?: string } = {};
@@ -110,6 +112,13 @@ export default function WorkItems() {
     });
   }, [workItems, searchQuery, selectedPriority, ngoMap]);
 
+  useEffect(() => {
+    if (workItemIdFromSearch) {
+      setSelectedWorkItemId(workItemIdFromSearch);
+      setDrawerOpen(true);
+    }
+  }, [workItemIdFromSearch]);
+
   if (isSupabaseNotConfiguredError(error) || isSupabaseNotConfiguredError(ngosError)) {
     return <MainLayout title="Work Items"><SupabaseNotConfiguredNotice /></MainLayout>;
   }
@@ -143,15 +152,29 @@ export default function WorkItems() {
     }
   };
 
-  useEffect(() => {
-    if (workItemIdFromSearch) {
-      setSelectedWorkItemId(workItemIdFromSearch);
-      setDrawerOpen(true);
+  const handleSyncToTrello = async (items: WorkItem[]) => {
+    if (items.length === 0) return;
+    if (items.length === 1) setSyncingTrelloItemId(items[0].id);
+    try {
+      await syncToTrello.mutateAsync(items);
+      toast({
+        title: "Trello synchronization queued",
+        description: `${items.length} work item${items.length === 1 ? "" : "s"} will sync through the configured department route.`,
+      });
+      setSelectedItems([]);
+    } catch (err) {
+      toast({
+        variant: "destructive",
+        title: "Unable to queue Trello sync",
+        description: err instanceof Error ? err.message : "Trello sync could not be queued.",
+      });
+    } finally {
+      setSyncingTrelloItemId(null);
     }
-  }, [workItemIdFromSearch]);
+  };
 
   return (
-    <MainLayout title="Work Items" subtitle="Manage and track all active assignments across departments" actions={<div className="flex items-center gap-2">{selectedItems.length > 0 && <DropdownMenu><DropdownMenuTrigger asChild><Button variant="outline">Bulk Actions ({selectedItems.length})</Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem>Reassign Owner</DropdownMenuItem><DropdownMenuItem>Change Due Date</DropdownMenuItem><DropdownMenuItem>Update Status</DropdownMenuItem><DropdownMenuSeparator /><DropdownMenuItem>Sync to Trello</DropdownMenuItem></DropdownMenuContent></DropdownMenu>}<Button onClick={() => setCreateDialogOpen(true)}><Plus className="w-4 h-4 mr-2" />Create Work Item</Button></div>}>
+    <MainLayout title="Work Items" subtitle="Manage and track all active assignments across departments" actions={<div className="flex items-center gap-2">{selectedItems.length > 0 && <DropdownMenu><DropdownMenuTrigger asChild><Button variant="outline">Bulk Actions ({selectedItems.length})</Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem onClick={() => handleSyncToTrello(filteredItems.filter((item) => selectedItems.includes(item.id)))}>Sync to Trello</DropdownMenuItem></DropdownMenuContent></DropdownMenu>}<Button onClick={() => setCreateDialogOpen(true)}><Plus className="w-4 h-4 mr-2" />Create Work Item</Button></div>}>
       <div className="flex flex-col lg:flex-row gap-4 mb-6">
         <div className="relative flex-1 max-w-md"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" /><Input placeholder="Search work items..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9" /></div>
         <div className="flex flex-wrap gap-2">
@@ -164,7 +187,7 @@ export default function WorkItems() {
         </div>
       </div>
 
-      <WorkItemsTable items={filteredItems} isLoading={isLoading} error={error} ngoMap={ngoMap} selectedItems={selectedItems} onToggleSelect={toggleSelectItem} onToggleSelectAll={toggleSelectAll} showSelection onCompleteForRecords={handleCompleteForRecords} completingItemId={completingItemId} onRowClick={openWorkItemDrawer} emptyMessage="No active work items found. Completed items are sent to Admin Records and removed from this list." />
+      <WorkItemsTable items={filteredItems} isLoading={isLoading} error={error} ngoMap={ngoMap} selectedItems={selectedItems} onToggleSelect={toggleSelectItem} onToggleSelectAll={toggleSelectAll} showSelection onCompleteForRecords={handleCompleteForRecords} completingItemId={completingItemId} onSyncTrello={(item) => handleSyncToTrello([item])} syncingTrelloItemId={syncingTrelloItemId} onRowClick={openWorkItemDrawer} emptyMessage="No active work items found. Completed items are sent to Admin Records and removed from this list." />
 
       <div className="mt-8">
         <WorkItemAdminRecordsPanel />

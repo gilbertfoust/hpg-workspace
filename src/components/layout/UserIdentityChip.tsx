@@ -20,7 +20,7 @@ export function UserIdentityChip({
   role,
   showRole = false,
   className,
-  settingsHref = "/admin",
+  settingsHref = "/profile",
 }: UserIdentityChipProps) {
   const displayName = getUserDisplayName(fullName, email);
 

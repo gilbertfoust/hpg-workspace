@@ -1,4 +1,4 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -51,7 +51,7 @@ Deno.serve(async (req) => {
     }
 
     // Parse incoming payload
-    let payload = {};
+    let payload: Record<string, unknown> = {};
     try {
       payload = await req.json();
     } catch {
@@ -77,7 +77,7 @@ Deno.serve(async (req) => {
       .eq("id", automationId);
 
     // Process based on trigger_event — extensible handlers
-    const result = await processInboundWebhook(supabase as any, automation, payload);
+    const result = await processInboundWebhook(supabase, automation, payload);
 
     return new Response(
       JSON.stringify({ success: true, processed: result }),
@@ -93,27 +93,107 @@ Deno.serve(async (req) => {
 });
 
 async function processInboundWebhook(
-  supabase: any,
+  supabase: SupabaseClient,
   automation: Record<string, unknown>,
   payload: Record<string, unknown>
 ): Promise<Record<string, unknown>> {
   const event = automation.trigger_event as string;
 
-  switch (event) {
-    case "work_item.created": {
-      // Create a work item from Make.com data
-      if (payload.title) {
-        const { data, error } = await supabase.from("work_items").insert({
-          title: payload.title,
-          description: payload.description || `Created via Make.com automation: ${automation.name}`,
-          status: payload.status || "open",
-          priority: payload.priority || "medium",
-          department: payload.department || "Administration",
-        }).select("id").single();
-        return { action: "work_item_created", id: data?.id, error: error?.message };
-      }
-      return { action: "skipped", reason: "no title provided" };
+  const routableEvents = new Set([
+    "work_item.created",
+    "gmail.work_item",
+    "slack.work_item",
+    "gdrive.work_item",
+    "department.intake",
+  ]);
+
+  if (routableEvents.has(event)) {
+    const config = (automation.config_json && typeof automation.config_json === "object")
+      ? automation.config_json as Record<string, unknown>
+      : {};
+    const rawTitle = String(payload.title || payload.subject || payload.name || "").trim();
+    if (!rawTitle) return { action: "skipped", reason: "title or subject is required" };
+
+    const department = String(payload.department || config.department || "administration").toLowerCase();
+    const moduleAliases: Record<string, string> = {
+      "ngo coordination": "ngo_coordination",
+      "programs": "program",
+      "partnerships": "development",
+      "procurement": "development",
+      "grants": "development",
+      "fundraising": "development",
+      "human resources": "hr",
+      "technology": "it",
+      "audit": "it",
+      "governance": "legal",
+      "compliance": "legal",
+      "assets": "finance",
+      "inventory": "finance",
+    };
+    const allowedModules = new Set([
+      "ngo_coordination", "administration", "operations", "program", "curriculum",
+      "development", "partnership", "marketing", "communications", "hr", "it",
+      "finance", "legal",
+    ]);
+    const requestedModule = String(payload.module || config.module || moduleAliases[department] || department)
+      .toLowerCase().replace(/\s+/g, "_");
+    const moduleName = allowedModules.has(requestedModule) ? requestedModule : "administration";
+    const externalEventId = String(
+      payload.external_event_id || payload.message_id || payload.event_id || payload.id || crypto.randomUUID()
+    );
+    const provider = event.split(".")[0] || "make";
+
+    const { error: eventError } = await supabase.from("integration_webhook_events").insert({
+      provider,
+      external_event_id: externalEventId,
+      event_type: event,
+      status: "received",
+      payload,
+    });
+    if (eventError?.code === "23505") {
+      return { action: "idempotent_replay", external_event_id: externalEventId };
     }
+    if (eventError) throw eventError;
+
+    const rawPriority = String(payload.priority || config.priority || "medium").toLowerCase();
+    const priority = ["low", "medium", "high"].includes(rawPriority) ? rawPriority : "medium";
+    const rawStatus = String(payload.status || "not_started").toLowerCase();
+    const status = [
+      "not_started", "in_progress", "waiting_on_ngo", "waiting_on_hpg",
+      "submitted", "under_review", "approved", "rejected", "complete", "canceled",
+    ].includes(rawStatus) ? rawStatus : "not_started";
+
+    const { data, error } = await supabase.from("work_items").insert({
+      title: rawTitle,
+      description: payload.description || payload.body || payload.snippet
+        || `Created through ${provider} / Make.com automation: ${automation.name}`,
+      module: moduleName,
+      status,
+      priority,
+      type: String(payload.type || `${provider}_intake`),
+      ngo_id: payload.ngo_id || null,
+      external_visible: payload.external_visible === true,
+      trello_sync: payload.sync_to_trello === true || config.sync_to_trello === true,
+      source_system: provider,
+      source_event_id: externalEventId,
+    }).select("id, department_id").single();
+    if (error) throw error;
+
+    await supabase.from("integration_webhook_events").update({
+      status: "processed",
+      processed_at: new Date().toISOString(),
+    }).eq("provider", provider).eq("external_event_id", externalEventId);
+
+    return {
+      action: "work_item_created",
+      id: data.id,
+      department_id: data.department_id,
+      module: moduleName,
+      provider,
+    };
+  }
+
+  switch (event) {
     case "custom.webhook":
     default:
       return { action: "logged", event, payload_keys: Object.keys(payload) };

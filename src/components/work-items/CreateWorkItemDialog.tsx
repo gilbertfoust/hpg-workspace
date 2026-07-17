@@ -31,13 +31,14 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { useCreateWorkItem, ModuleType, Priority } from "@/hooks/useWorkItems";
 import { useNGOs } from "@/hooks/useNGOs";
+import { useAuth } from "@/contexts/AuthContext";
 
 const formSchema = z.object({
   title: z.string().min(1, "Title is required"),
   module: z.string().min(1, "Module is required"),
   ngo_id: z.string().optional(),
   description: z.string().optional(),
-  priority: z.enum(["Low", "Med", "High"]),
+  priority: z.enum(["low", "medium", "high"]),
   due_date: z.string().optional(),
   evidence_required: z.boolean(),
   approval_required: z.boolean(),
@@ -70,6 +71,7 @@ interface CreateWorkItemDialogProps {
 export function CreateWorkItemDialog({ open, onOpenChange }: CreateWorkItemDialogProps) {
   const createWorkItem = useCreateWorkItem();
   const { data: ngos } = useNGOs();
+  const { user } = useAuth();
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -78,7 +80,7 @@ export function CreateWorkItemDialog({ open, onOpenChange }: CreateWorkItemDialo
       module: "",
       ngo_id: "",
       description: "",
-      priority: "Med",
+      priority: "medium",
       due_date: "",
       evidence_required: false,
       approval_required: false,
@@ -90,13 +92,14 @@ export function CreateWorkItemDialog({ open, onOpenChange }: CreateWorkItemDialo
     await createWorkItem.mutateAsync({
       title: values.title,
       module: values.module as ModuleType,
-      ngo_id: values.ngo_id || undefined,
+      ngo_id: values.ngo_id && values.ngo_id !== "none" ? values.ngo_id : undefined,
       description: values.description || undefined,
       priority: values.priority as Priority,
       due_date: values.due_date || undefined,
       evidence_required: values.evidence_required,
       approval_required: values.approval_required,
       external_visible: values.external_visible,
+      created_by_user_id: user?.id,
     });
     form.reset();
     onOpenChange(false);
@@ -167,9 +170,9 @@ export function CreateWorkItemDialog({ open, onOpenChange }: CreateWorkItemDialo
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="Low">Low</SelectItem>
-                        <SelectItem value="Med">Med</SelectItem>
-                        <SelectItem value="High">High</SelectItem>
+                        <SelectItem value="low">Low</SelectItem>
+                        <SelectItem value="medium">Medium</SelectItem>
+                        <SelectItem value="high">High</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -191,7 +194,7 @@ export function CreateWorkItemDialog({ open, onOpenChange }: CreateWorkItemDialo
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="">None</SelectItem>
+                      <SelectItem value="none">None</SelectItem>
                       {ngos?.map((ngo) => (
                         <SelectItem key={ngo.id} value={ngo.id}>
                           {ngo.common_name || ngo.legal_name}

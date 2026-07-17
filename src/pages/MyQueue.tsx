@@ -118,7 +118,7 @@ export default function MyQueue() {
     return awaitingApproval || awaitingEvidenceReview;
   });
 
-  const assignedToMeItems = filteredItems.filter((item) => item.owner_user_id === user?.id);
+  const assignedToMeItems = filteredItems;
 
   const openWorkItemDrawer = (id: string) => {
     setSelectedWorkItemId(id);
@@ -206,7 +206,7 @@ export default function MyQueue() {
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-base font-medium">
-              Assigned to Me (All) ({assignedToMeItems.length})
+              Assigned to Me (Owner or Assignee) ({assignedToMeItems.length})
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0">

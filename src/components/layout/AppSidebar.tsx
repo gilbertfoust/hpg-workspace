@@ -110,15 +110,12 @@ const hubsSections: HubConfig[] = [
   {
     title: "Financial Hub",
     icon: <DollarSign className="w-4 h-4" />,
-    basePaths: ["/financial-hub", "/procurement", "/assets", "/inventory", "/revenue", "/controller", "/governance"],
+    basePaths: ["/financial-hub", "/assets", "/inventory", "/controller"],
     items: [
       { to: "/financial-hub", icon: <DollarSign className="w-4 h-4" />, label: "Finance Dashboard" },
-      { to: "/procurement", icon: <ShoppingCart className="w-4 h-4" />, label: "Procurement" },
       { to: "/assets", icon: <Package className="w-4 h-4" />, label: "Assets" },
       { to: "/inventory", icon: <Warehouse className="w-4 h-4" />, label: "Inventory" },
-      { to: "/revenue", icon: <TrendingUp className="w-4 h-4" />, label: "Revenue" },
       { to: "/controller", icon: <Building className="w-4 h-4" />, label: "Controller Hub" },
-      { to: "/governance", icon: <Globe className="w-4 h-4" />, label: "Governance" },
     ],
   },
   {
@@ -142,32 +139,45 @@ const hubsSections: HubConfig[] = [
   {
     title: "Development Hub",
     icon: <Megaphone className="w-4 h-4" />,
-    basePaths: ["/development", "/partnerships", "/crm", "/grants"],
+    basePaths: ["/development", "/partnerships", "/crm", "/grants", "/procurement", "/revenue"],
     items: [
       { to: "/development", icon: <DollarSign className="w-4 h-4" />, label: "Development" },
       { to: "/development/potential-sponsees", icon: <Handshake className="w-4 h-4" />, label: "Potential Sponsees" },
       { to: "/partnerships", icon: <Handshake className="w-4 h-4" />, label: "Partnerships" },
       { to: "/crm", icon: <Contact className="w-4 h-4" />, label: "CRM" },
       { to: "/grants", icon: <Award className="w-4 h-4" />, label: "Grants" },
+      { to: "/procurement", icon: <ShoppingCart className="w-4 h-4" />, label: "Procurement" },
+      { to: "/revenue", icon: <TrendingUp className="w-4 h-4" />, label: "Fundraising & Revenue" },
     ],
   },
   {
     title: "Program Hub",
     icon: <GraduationCap className="w-4 h-4" />,
-    basePaths: ["/program", "/curriculum"],
+    basePaths: ["/program", "/curriculum", "/ngo-coordination"],
     items: [
       { to: "/program", icon: <GraduationCap className="w-4 h-4" />, label: "Program" },
       { to: "/curriculum", icon: <FileText className="w-4 h-4" />, label: "Curriculum" },
+      { to: "/ngo-coordination", icon: <Building2 className="w-4 h-4" />, label: "NGO Coordination" },
+      { to: "/ngo-coordination/onboarding", icon: <Rocket className="w-4 h-4" />, label: "NGO Onboarding" },
     ],
   },
   {
     title: "Compliance Hub",
     icon: <ShieldCheck className="w-4 h-4" />,
-    basePaths: ["/audit", "/financial-hub/compliance"],
+    basePaths: ["/financial-hub/compliance", "/governance"],
     items: [
-      { to: "/audit", icon: <Eye className="w-4 h-4" />, label: "Audit" },
       { to: "/financial-hub/compliance", icon: <ShieldCheck className="w-4 h-4" />, label: "Compliance" },
       { to: "/financial-hub/compliance/policies", icon: <ClipboardList className="w-4 h-4" />, label: "Policy Registry" },
+      { to: "/governance", icon: <Globe className="w-4 h-4" />, label: "Governance" },
+    ],
+  },
+  {
+    title: "Technology Hub",
+    icon: <Monitor className="w-4 h-4" />,
+    basePaths: ["/it", "/audit"],
+    items: [
+      { to: "/it", icon: <Monitor className="w-4 h-4" />, label: "IT Operations" },
+      { to: "/audit", icon: <Eye className="w-4 h-4" />, label: "Systems Audit" },
     ],
   },
 ];
@@ -192,7 +202,8 @@ export function AppSidebar() {
     if (hub.title === "HR Hub") return canAccessArea(role, "hr", userRole);
     if (hub.title === "Development Hub") return canAccessArea(role, "development", userRole);
     if (hub.title === "Program Hub") return canAccessArea(role, "program", userRole);
-    if (hub.title === "Compliance Hub") return canAccessArea(role, "finance", userRole);
+    if (hub.title === "Compliance Hub") return canAccessArea(role, "compliance", userRole);
+    if (hub.title === "Technology Hub") return canAccessArea(role, "it", userRole);
     return true;
   });
 
@@ -418,6 +429,12 @@ export function AppSidebar() {
           {!isCollapsed && (
             <div className="p-4 border-t border-sidebar-border">
               <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  className="flex min-w-0 flex-1 items-center gap-3 rounded-md text-left hover:bg-sidebar-accent"
+                  onClick={() => navigate("/profile")}
+                  title="Open My Workspace"
+                >
                 <UserAvatar
                   name={profile?.full_name ?? user?.user_metadata?.full_name}
                   email={profile?.email ?? user?.email}
@@ -427,6 +444,7 @@ export function AppSidebar() {
                   <p className="text-sm font-medium text-sidebar-foreground truncate">{displayName}</p>
                   <p className="text-xs text-sidebar-muted truncate capitalize">{roleLabel}</p>
                 </div>
+                </button>
                 <Button
                   variant="ghost"
                   size="icon"

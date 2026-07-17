@@ -67,6 +67,7 @@ import DevelopmentDashboard from "./pages/DevelopmentDashboard";
 import PotentialSponsees from "./pages/PotentialSponsees";
 import PartnershipsDashboard from "./pages/PartnershipsDashboard";
 import HPGAssistantHistory from "./pages/HPGAssistantHistory";
+import MyWorkspaceProfile from "./pages/MyWorkspaceProfile";
 
 // Module pages (placeholders you can flesh out later)
 import {
@@ -189,6 +190,7 @@ const App = () => {
 
                 {/* Core */}
                 <Route path="/dashboard" element={<P><Dashboard /></P>} />
+                <Route path="/profile" element={<P><MyWorkspaceProfile /></P>} />
                 <Route path="/hpg-assistant" element={<P><NGOCoordinationModule /></P>} />
                 <Route path="/hpg-assistant/history" element={<P><HPGAssistantHistory /></P>} />
 

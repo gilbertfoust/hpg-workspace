@@ -4,13 +4,15 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Checkbox } from "@/components/ui/checkbox";
 import { AlertTriangle, FileWarning, Calendar } from "lucide-react";
 import { format } from "date-fns";
-import { useWorkItems, WorkItemStatus } from "@/hooks/useWorkItems";
+import { useUpdateWorkItem, useWorkItems, WorkItemStatus } from "@/hooks/useWorkItems";
 import { useNGOs } from "@/hooks/useNGOs";
 import { useOrgUnits } from "@/hooks/useOrgUnits";
 import { StatusChip } from "@/components/common/StatusChip";
 import { WorkItemDrawer } from "@/components/work-items/WorkItemDrawer";
+import { PriorityBadge } from "@/components/common/PriorityBadge";
 
 const statusMap: Record<string, "approved" | "in-progress" | "rejected" | "draft" | "waiting-ngo" | "waiting-hpg" | "under-review" | "submitted"> = {
   draft: "draft",
@@ -28,6 +30,8 @@ const statusMap: Record<string, "approved" | "in-progress" | "rejected" | "draft
 
 export default function NGOMissingItems() {
   const [selectedWorkItemId, setSelectedWorkItemId] = useState<string | null>(null);
+  const [checkingItemId, setCheckingItemId] = useState<string | null>(null);
+  const updateWorkItem = useUpdateWorkItem();
   const { data: ngos, isLoading: ngosLoading } = useNGOs();
   const { data: orgUnits, isLoading: orgUnitsLoading } = useOrgUnits();
 
@@ -68,6 +72,25 @@ export default function NGOMissingItems() {
 
   const isLoading = ngosLoading || orgUnitsLoading || workItemsLoading;
 
+  const ngoSummaries = useMemo(() => {
+    return (ngos || []).map((ngo) => {
+      const items = missingItems.filter((item) => item.ngo_id === ngo.id);
+      const development = items.filter((item) => ["development", "partnership"].includes(item.module || "")).length;
+      const coordination = items.filter((item) => ["ngo_coordination", "program"].includes(item.module || "")).length;
+      const highPriority = items.filter((item) => item.priority === "high").length;
+      return { ngo, items, development, coordination, highPriority };
+    }).sort((a, b) => b.items.length - a.items.length || a.ngo.legal_name.localeCompare(b.ngo.legal_name));
+  }, [missingItems, ngos]);
+
+  const markReceived = async (id: string) => {
+    setCheckingItemId(id);
+    try {
+      await updateWorkItem.mutateAsync({ id, evidence_status: "approved" });
+    } finally {
+      setCheckingItemId(null);
+    }
+  };
+
   return (
     <MainLayout title="NGO Missing Items">
       <div className="space-y-6">
@@ -85,6 +108,26 @@ export default function NGOMissingItems() {
           </CardContent>
         </Card>
 
+        {!isLoading && (
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            {ngoSummaries.map(({ ngo, items, development, coordination, highPriority }) => (
+              <Card key={ngo.id} className={items.length > 0 ? "border-warning/50" : undefined}>
+                <CardContent className="p-4">
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="font-medium">{ngo.common_name || ngo.legal_name}</p>
+                    <Badge variant={items.length > 0 ? "destructive" : "secondary"}>{items.length}</Badge>
+                  </div>
+                  <div className="mt-3 grid grid-cols-3 gap-2 text-center text-xs text-muted-foreground">
+                    <div><p className="font-semibold text-foreground">{development}</p><p>Development</p></div>
+                    <div><p className="font-semibold text-foreground">{coordination}</p><p>Coordination</p></div>
+                    <div><p className="font-semibold text-foreground">{highPriority}</p><p>High priority</p></div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+
         {isLoading && (
           <Card>
             <CardContent className="p-6 space-y-3">
@@ -101,9 +144,12 @@ export default function NGOMissingItems() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-12">Received</TableHead>
                     <TableHead>NGO</TableHead>
                     <TableHead>Item</TableHead>
+                    <TableHead>Process</TableHead>
                     <TableHead>Department</TableHead>
+                    <TableHead>Priority</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Evidence</TableHead>
                     <TableHead>Due Date</TableHead>
@@ -116,6 +162,16 @@ export default function NGOMissingItems() {
                       className="cursor-pointer hover:bg-muted/50"
                       onClick={() => setSelectedWorkItemId(item.id)}
                     >
+                      <TableCell onClick={(event) => event.stopPropagation()}>
+                        <Checkbox
+                          checked={item.evidence_status === "approved"}
+                          disabled={checkingItemId === item.id}
+                          onCheckedChange={(checked) => {
+                            if (checked) void markReceived(item.id);
+                          }}
+                          aria-label={`Mark ${item.title} received`}
+                        />
+                      </TableCell>
                       <TableCell className="font-medium">
                         {item.ngo?.common_name || item.ngo?.legal_name || "Unassigned"}
                       </TableCell>
@@ -126,8 +182,18 @@ export default function NGOMissingItems() {
                         </div>
                       </TableCell>
                       <TableCell>
+                        <Badge variant="secondary">
+                          {["development", "partnership"].includes(item.module || "")
+                            ? "Development"
+                            : ["ngo_coordination", "program"].includes(item.module || "")
+                              ? "NGO Coordination"
+                              : "Department"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
                         {item.departmentName || "—"}
                       </TableCell>
+                      <TableCell><PriorityBadge priority={item.priority} /></TableCell>
                       <TableCell>
                         {item.status && <StatusChip status={statusMap[item.status] || "draft"} />}
                       </TableCell>

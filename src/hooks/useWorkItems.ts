@@ -46,6 +46,7 @@ export interface WorkItem {
   department_id?: string | null;
   due_date?: string | null;
   owner_user_id?: string | null;
+  created_by_user_id?: string | null;
   approval_required?: boolean;
   approver_user_id?: string | null;
   evidence_required?: boolean;
@@ -64,6 +65,11 @@ export interface WorkItem {
   google_drive_exported_at?: string | null;
   dependencies?: string[] | null;
   checklist_json?: unknown;
+  trello_sync?: boolean;
+  trello_card_id?: string | null;
+  source_system?: string | null;
+  source_event_id?: string | null;
+  deleted_at?: string | null;
 }
 
 export type CreateWorkItemInput = Partial<WorkItem> & { module: ModuleType };
@@ -111,7 +117,7 @@ export const useWorkItems = (filters?: ListFilters) => {
         else query = query.eq("status", filters.status);
       }
       if (filters?.evidence_required !== undefined) query = query.eq("evidence_required", filters.evidence_required);
-      if (filters?.module) query = query.eq("module", filters.module as any);
+      if (filters?.module) query = query.eq("module", filters.module as never);
       if (filters?.type) query = query.eq("type", filters.type);
       if (filters?.owner_user_id) query = query.eq("owner_user_id", filters.owner_user_id);
       if (filters?.department_id) query = query.eq("department_id", filters.department_id);
@@ -143,7 +149,7 @@ export const useCreateWorkItem = () => {
   return useMutation({
     mutationFn: async (input: Partial<WorkItem> & { module: ModuleType }) => {
       const client = ensureSupabase();
-      const { data, error } = await client.from("work_items").insert(input as any).select().single();
+      const { data, error } = await client.from("work_items").insert(input as never).select().single();
       if (error) throw error;
       const created = data as WorkItem;
 
@@ -180,7 +186,7 @@ export const useUpdateWorkItem = () => {
         updatePayload.completed_at = new Date().toISOString();
       }
 
-      const { data, error } = await client.from("work_items").update(updatePayload as any).eq("id", id).select().single();
+      const { data, error } = await client.from("work_items").update(updatePayload as never).eq("id", id).select().single();
       if (error) throw error;
       const updated = data as WorkItem;
 
@@ -228,6 +234,68 @@ export const useArchiveWorkItem = () => {
   });
 };
 
+export const useAdminSoftDeleteWorkItem = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, reason }: { id: string; reason?: string }) => {
+      const client = ensureSupabase();
+      const { data, error } = await client.rpc("admin_soft_delete_work_item" as never, {
+        p_work_item_id: id,
+        p_reason: reason || "Deleted by administrator",
+      } as never);
+      if (error) throw error;
+      return data as unknown as WorkItem;
+    },
+    onSuccess: (_data, variables) => invalidateWorkItemQueries(queryClient, variables.id),
+  });
+};
+
+export const useSyncWorkItemsToTrello = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (items: WorkItem[]) => {
+      const client = ensureSupabase();
+      if (items.length === 0) return [];
+
+      const results = await Promise.all(items.map(async (item) => {
+        if (!item.trello_sync) {
+          const { error } = await client
+            .from("work_items")
+            .update({ trello_sync: true } as never)
+            .eq("id", item.id);
+          if (error) throw error;
+          return item.id;
+        }
+
+        if (!item.trello_card_id) {
+          const { error } = await client.from("trello_sync_queue" as never).insert({
+            idempotency_key: `manual-work-item:${item.id}:${crypto.randomUUID()}`,
+            work_item_id: item.id,
+            entity_type: "work_item",
+            entity_id: item.id,
+            operation: "create_card",
+            direction: "supabase_to_trello",
+            payload: {
+              title: item.title,
+              description: item.description,
+              department_module: item.module,
+              ngo_id: item.ngo_id,
+            },
+            status: "pending",
+          } as never);
+          if (error) throw error;
+        }
+        return item.id;
+      }));
+
+      return results;
+    },
+    onSuccess: () => invalidateWorkItemQueries(queryClient),
+  });
+};
+
 export const useExportWorkItemToDrive = () => {
   const queryClient = useQueryClient();
 
@@ -253,12 +321,7 @@ export const useMyQueueWorkItems = () => {
     queryFn: async () => {
       if (!user?.id) return [];
       const client = ensureSupabase();
-      const { data, error } = await client
-        .from("work_items")
-        .select("*")
-        .eq("owner_user_id", user.id)
-        .is("archived_at", null)
-        .order("created_at", { ascending: false });
+      const { data, error } = await client.rpc("get_my_queue_work_items" as never);
 
       if (error) throw error;
       return (data ?? []) as WorkItem[];
@@ -292,7 +355,7 @@ export const useBulkUpdateWorkItems = () => {
     mutationFn: async ({ ids, updates }: { ids: string[]; updates: Partial<WorkItem> }) => {
       const client = ensureSupabase();
       if (ids.length === 0) return { ids, updates, updated: 0 };
-      const { error } = await client.from("work_items").update(updates as any).in("id", ids);
+      const { error } = await client.from("work_items").update(updates as never).in("id", ids);
       if (error) throw error;
       return { ids, updates, updated: ids.length };
     },
@@ -317,7 +380,7 @@ export const useBulkBumpWorkItemDueDates = () => {
       if (updates.length === 0) return { items, bumpDays };
 
       const results = await Promise.all(updates.map((update) =>
-        client.from("work_items").update({ due_date: update.due_date } as any).eq("id", update.id)
+        client.from("work_items").update({ due_date: update.due_date } as never).eq("id", update.id)
       ));
       const errors = results.filter((r) => r.error).map((r) => r.error);
       if (errors.length > 0) throw new Error(`Failed to update some work items: ${errors[0]?.message}`);

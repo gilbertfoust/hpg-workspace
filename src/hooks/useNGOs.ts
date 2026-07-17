@@ -62,6 +62,8 @@ export interface NGO {
   admin_pm_user_id: string | null;
   notes: string | null;
   confluence_url?: string | null;
+  master_drive_folder_url?: string | null;
+  master_drive_folder_id?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -78,6 +80,7 @@ export interface CreateNGOInput {
   status?: NGOStatus;
   notes?: string;
   confluence_url?: string | null;
+  master_drive_folder_url?: string | null;
 }
 
 const ensureSupabase = () => {
