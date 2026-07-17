@@ -38,6 +38,7 @@ export function NGOEditSheet({ ngo, open, onOpenChange }: NGOEditSheetProps) {
     state_province: ngo.state_province || "",
     city: ngo.city || "",
     website: ngo.website || "",
+    master_drive_folder_url: ngo.master_drive_folder_url || "",
     fiscal_type: ngo.fiscal_type,
     status: ngo.status,
     notes: ngo.notes || "",
@@ -52,6 +53,7 @@ export function NGOEditSheet({ ngo, open, onOpenChange }: NGOEditSheetProps) {
       state_province: ngo.state_province || "",
       city: ngo.city || "",
       website: ngo.website || "",
+      master_drive_folder_url: ngo.master_drive_folder_url || "",
       fiscal_type: ngo.fiscal_type,
       status: ngo.status,
       notes: ngo.notes || "",
@@ -68,6 +70,7 @@ export function NGOEditSheet({ ngo, open, onOpenChange }: NGOEditSheetProps) {
       state_province: formData.state_province || null,
       city: formData.city || null,
       website: formData.website || null,
+      master_drive_folder_url: formData.master_drive_folder_url || null,
       notes: formData.notes || null,
     });
     onOpenChange(false);
@@ -104,12 +107,12 @@ export function NGOEditSheet({ ngo, open, onOpenChange }: NGOEditSheetProps) {
               <Select value={formData.status} onValueChange={(v) => setFormData({ ...formData, status: v as NGOStatus })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Prospect">Prospect</SelectItem>
-                  <SelectItem value="Onboarding">Onboarding</SelectItem>
-                  <SelectItem value="Active">Active</SelectItem>
-                  <SelectItem value="At-Risk">At Risk</SelectItem>
-                  <SelectItem value="Offboarding">Offboarding</SelectItem>
-                  <SelectItem value="Closed">Closed</SelectItem>
+                  <SelectItem value="prospect">Prospect</SelectItem>
+                  <SelectItem value="onboarding">Onboarding</SelectItem>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="at_risk">At Risk</SelectItem>
+                  <SelectItem value="offboarding">Offboarding</SelectItem>
+                  <SelectItem value="closed">Closed</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -133,13 +136,17 @@ export function NGOEditSheet({ ngo, open, onOpenChange }: NGOEditSheetProps) {
             <Input type="url" value={formData.website} onChange={(e) => setFormData({ ...formData, website: e.target.value })} />
           </div>
           <div className="space-y-2">
+            <Label>Google Drive profile folder</Label>
+            <Input type="url" placeholder="https://drive.google.com/drive/folders/..." value={formData.master_drive_folder_url} onChange={(e) => setFormData({ ...formData, master_drive_folder_url: e.target.value })} />
+          </div>
+          <div className="space-y-2">
             <Label>Fiscal Type</Label>
             <Select value={formData.fiscal_type} onValueChange={(v) => setFormData({ ...formData, fiscal_type: v as DbFiscalType })}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="Model A">Model A</SelectItem>
-                <SelectItem value="Model C">Model C</SelectItem>
-                <SelectItem value="Other">Other</SelectItem>
+                <SelectItem value="model_a">Model A</SelectItem>
+                <SelectItem value="model_c">Model C</SelectItem>
+                <SelectItem value="other">Other</SelectItem>
               </SelectContent>
             </Select>
           </div>

@@ -78,16 +78,31 @@ export const useCreateFinanceAccount = () => {
   return useMutation({
     mutationFn: async (input: FinanceAccountInput) => {
       ensureSupabase();
-      const { data, error } = await supabase
-        .from("finance_accounts" as never)
-        .insert(input as never)
-        .select()
-        .single();
+      const { data, error } = await supabase.rpc("create_finance_account" as never, {
+        p_code: input.code,
+        p_name: input.name,
+        p_account_type: input.account_type,
+        p_account_subtype: input.account_subtype || null,
+        p_parent_account_id: input.parent_account_id || null,
+        p_normal_balance: input.normal_balance,
+        p_is_active: input.is_active,
+        p_is_cash_account: input.is_cash_account ?? false,
+        p_entity_scope: input.entity_scope ?? "hpg_operating",
+        p_revenue_restriction_class: input.revenue_restriction_class || null,
+        p_expense_functional_class: input.expense_functional_class || null,
+        p_form_990_line: input.form_990_line || null,
+        p_financial_statement_line: input.financial_statement_line || null,
+      } as never);
       if (error) throw error;
       return data as FinanceAccount;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["finance-accounts"] });
+      queryClient.invalidateQueries({ queryKey: ["finance-ngo-accounts"] });
+      queryClient.invalidateQueries({ queryKey: ["finance-hub-snapshot"] });
+      queryClient.invalidateQueries({ queryKey: ["finance-budgets"] });
+      queryClient.invalidateQueries({ queryKey: ["finance-transactions"] });
+      queryClient.invalidateQueries({ queryKey: ["finance-journal-entries"] });
       toast({ title: "Account created" });
     },
     onError: (error: Error) => {

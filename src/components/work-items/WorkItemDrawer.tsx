@@ -21,6 +21,7 @@ import { useDocuments } from "@/hooks/useDocuments";
 import { useComments, useCreateComment } from "@/hooks/useComments";
 import {
   useArchiveWorkItem,
+  useAdminSoftDeleteWorkItem,
   useCompleteWorkItemForAdminRecords,
   useExportWorkItemToDrive,
   useWorkItem,
@@ -35,7 +36,7 @@ import { useFormSubmissions, useArchiveFormSubmission, useFormSubmission } from 
 import { useFormTemplate } from "@/hooks/useFormTemplates";
 import { FormSubmissionSheet } from "@/components/ngo/FormSubmissionSheet";
 import { format } from "date-fns";
-import { Loader2, ExternalLink, FileText, Edit, Archive, FolderUp, CheckCircle2 } from "lucide-react";
+import { Loader2, ExternalLink, FileText, Edit, Archive, FolderUp, CheckCircle2, Trash2 } from "lucide-react";
 import { WorkItemChecklist } from "@/components/work-items/WorkItemChecklist";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -48,6 +49,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { useIsAdminUser } from "@/hooks/useUserRole";
 
 export type WorkItemDrawerProps = {
   open: boolean;
@@ -101,7 +103,6 @@ const priorityOptions: { value: Priority; label: string }[] = [
   { value: "low", label: "Low" },
   { value: "medium", label: "Medium" },
   { value: "high", label: "High" },
-  { value: "urgent", label: "Urgent" },
 ];
 
 export const WorkItemDrawer: React.FC<WorkItemDrawerProps> = ({ open, onOpenChange, workItemId }) => {
@@ -119,6 +120,8 @@ export const WorkItemDrawer: React.FC<WorkItemDrawerProps> = ({ open, onOpenChan
   const updateWorkItem = useUpdateWorkItem();
   const completeForAdminRecords = useCompleteWorkItemForAdminRecords();
   const archiveWorkItem = useArchiveWorkItem();
+  const adminDeleteWorkItem = useAdminSoftDeleteWorkItem();
+  const isAdmin = useIsAdminUser();
   const exportToDrive = useExportWorkItemToDrive();
   const createComment = useCreateComment();
 
@@ -130,6 +133,7 @@ export const WorkItemDrawer: React.FC<WorkItemDrawerProps> = ({ open, onOpenChan
   const [formSubmissionToArchive, setFormSubmissionToArchive] = useState<{ id: string; workItemId?: string | null } | null>(null);
   const [workItemArchiveOpen, setWorkItemArchiveOpen] = useState(false);
   const [workItemCompleteOpen, setWorkItemCompleteOpen] = useState(false);
+  const [workItemDeleteOpen, setWorkItemDeleteOpen] = useState(false);
   const [editingFormSubmissionId, setEditingFormSubmissionId] = useState<string | null>(null);
 
   const { data: editingSubmissionWithSchema } = useFormSubmission(editingFormSubmissionId || "");
@@ -258,6 +262,21 @@ export const WorkItemDrawer: React.FC<WorkItemDrawerProps> = ({ open, onOpenChan
     }
   };
 
+  const handleDeleteWorkItem = async () => {
+    if (!workItem) return;
+    try {
+      await adminDeleteWorkItem.mutateAsync({
+        id: workItem.id,
+        reason: "Manually deleted from the work item administration panel",
+      });
+      setWorkItemDeleteOpen(false);
+      onOpenChange(false);
+      toast({ title: "Work item deleted", description: "The item was removed from queues and retained in the audit trail." });
+    } catch (error) {
+      toast({ variant: "destructive", title: "Unable to delete work item", description: error instanceof Error ? error.message : "Delete failed" });
+    }
+  };
+
   const handleExportToDrive = async () => {
     try {
       const result = await exportToDrive.mutateAsync(workItem.id);
@@ -312,7 +331,7 @@ export const WorkItemDrawer: React.FC<WorkItemDrawerProps> = ({ open, onOpenChan
             </div>
           </div>
 
-          {workItem.checklist_json && Array.isArray(workItem.checklist_json) && (workItem.checklist_json as any[]).length > 0 && (
+          {workItem.checklist_json && Array.isArray(workItem.checklist_json) && workItem.checklist_json.length > 0 && (
             <>
               <Separator />
               <WorkItemChecklist workItemId={workItem.id} checklist={workItem.checklist_json} />
@@ -428,6 +447,11 @@ export const WorkItemDrawer: React.FC<WorkItemDrawerProps> = ({ open, onOpenChan
               <Button variant="destructive" onClick={() => setWorkItemArchiveOpen(true)} disabled={archiveWorkItem.isPending}>
                 <Archive className="mr-2 h-4 w-4" /> Archive Work Item
               </Button>
+              {isAdmin && (
+                <Button variant="destructive" onClick={() => setWorkItemDeleteOpen(true)} disabled={adminDeleteWorkItem.isPending}>
+                  <Trash2 className="mr-2 h-4 w-4" /> Delete Work Item
+                </Button>
+              )}
             </div>
             {!canExport && <p className="text-xs text-muted-foreground">Set the status to Complete or Approved before exporting to Drive.</p>}
           </div>
@@ -455,6 +479,23 @@ export const WorkItemDrawer: React.FC<WorkItemDrawerProps> = ({ open, onOpenChan
             <AlertDialogFooter>
               <AlertDialogCancel>Cancel</AlertDialogCancel>
               <AlertDialogAction onClick={handleArchiveWorkItem} className="bg-destructive text-destructive-foreground hover:bg-destructive/90" disabled={archiveWorkItem.isPending}>{archiveWorkItem.isPending ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Archiving...</> : "Archive"}</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        <AlertDialog open={workItemDeleteOpen} onOpenChange={setWorkItemDeleteOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete this work item?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Admin deletion removes the item from every active queue while retaining its database record and reason for audit. This is different from normal completion or archive.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDeleteWorkItem} className="bg-destructive text-destructive-foreground hover:bg-destructive/90" disabled={adminDeleteWorkItem.isPending}>
+                {adminDeleteWorkItem.isPending ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Deleting...</> : "Delete Work Item"}
+              </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>

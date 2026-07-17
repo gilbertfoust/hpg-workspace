@@ -6,6 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { ModuleType } from '@/hooks/useWorkItems';
 import { createWorkItemForSubmission } from '@/lib/createWorkItemForSubmission';
 import { createGrantFromFormSubmission } from '@/lib/createGrantFromFormSubmission';
+import { completeWorkItemForAdminRecordsWithFallback } from '@/lib/workItemRecordActions';
 
 const MODULE_TO_DOC_CATEGORY: Record<string, string> = {
   ngo_coordination: 'other',
@@ -92,6 +93,10 @@ async function createDocumentFromSubmission(
 }
 
 export type FormSubmission = Database['public']['Tables']['form_submissions']['Row'] & {
+  draft_progress?: number;
+  submitted_version?: number | null;
+  locked_at?: string | null;
+  idempotency_key?: string | null;
   form_template?: {
     name: string;
     module: string;
@@ -104,6 +109,79 @@ const ensureSupabase = () => {
   if (!supabase) {
     throw getSupabaseNotConfiguredError();
   }
+};
+
+export interface SaveFormWorkflowInput {
+  formTemplateId: string;
+  payloadJson: Json;
+  ngoId?: string | null;
+  submissionId?: string | null;
+  progress?: number;
+  submit: boolean;
+  idempotencyKey?: string;
+}
+
+export interface FormWorkflowResult {
+  submission: FormSubmission;
+  work_item?: { id: string; title: string; department_id?: string | null } | null;
+  idempotent_replay?: boolean;
+}
+
+/**
+ * The canonical form writer. Drafts and submissions intentionally use separate
+ * server contracts: saving a draft can never create a work item, while Submit
+ * commits the submission and its department-routed work item in one transaction.
+ */
+export const useSaveFormWorkflow = () => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async (input: SaveFormWorkflowInput): Promise<FormWorkflowResult> => {
+      ensureSupabase();
+      if (input.submit) {
+        const { data, error } = await supabase.rpc('submit_form_submission_atomic' as never, {
+          p_form_template_id: input.formTemplateId,
+          p_payload_json: input.payloadJson ?? {},
+          p_ngo_id: input.ngoId || null,
+          p_submission_id: input.submissionId || null,
+          p_idempotency_key: input.idempotencyKey || crypto.randomUUID(),
+        } as never);
+        if (error) throw error;
+        return data as FormWorkflowResult;
+      }
+
+      const { data, error } = await supabase.rpc('save_form_draft' as never, {
+        p_form_template_id: input.formTemplateId,
+        p_payload_json: input.payloadJson ?? {},
+        p_ngo_id: input.ngoId || null,
+        p_submission_id: input.submissionId || null,
+        p_progress: Math.max(0, Math.min(100, Math.round(input.progress ?? 0))),
+      } as never);
+      if (error) throw error;
+      return { submission: data as FormSubmission, work_item: null };
+    },
+    onSuccess: (result, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['form-submissions'] });
+      queryClient.invalidateQueries({ queryKey: ['work-items'] });
+      queryClient.invalidateQueries({ queryKey: ['my-queue-work-items'] });
+      queryClient.invalidateQueries({ queryKey: ['department-queue-work-items'] });
+      queryClient.invalidateQueries({ queryKey: ['form-workflow-events'] });
+      toast({
+        title: variables.submit ? 'Form submitted' : 'Private draft saved',
+        description: variables.submit
+          ? `A work item was routed to the responsible department${result.work_item?.title ? `: ${result.work_item.title}` : '.'}`
+          : 'Only you can see this draft. No work item was created.',
+      });
+    },
+    onError: (error: Error, variables) => {
+      toast({
+        variant: 'destructive',
+        title: variables.submit ? 'Submission failed' : 'Draft save failed',
+        description: error.message,
+      });
+    },
+  });
 };
 
 export const useFormSubmissions = (filters?: { ngo_id?: string; form_template_id?: string; work_item_id?: string }) => {

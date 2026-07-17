@@ -11,7 +11,8 @@ import {
   FileText,
   Clock,
   AlertTriangle,
-  Zap
+  Zap,
+  FolderOpen
 } from "lucide-react";
 import { format } from "date-fns";
 import { NGO } from "@/hooks/useNGOs";
@@ -29,18 +30,18 @@ interface NGOOverviewTabProps {
 }
 
 const fiscalTypeLabels: Record<string, string> = {
-  "Model A": "Model A",
-  "Model C": "Model C",
-  Other: "Other",
+  model_a: "Model A",
+  model_c: "Model C",
+  other: "Other",
 };
 
 const statusLabels: Record<string, string> = {
-  Prospect: "Prospect",
-  Onboarding: "Onboarding",
-  Active: "Active",
-  "At-Risk": "At Risk",
-  Offboarding: "Offboarding",
-  Closed: "Closed",
+  prospect: "Prospect",
+  onboarding: "Onboarding",
+  active: "Active",
+  at_risk: "At Risk",
+  offboarding: "Offboarding",
+  closed: "Closed",
 };
 
 export function NGOOverviewTab({ ngo, onEdit, onGenerateFromTemplate, onMonthlyCheckIn, onRequestDocument }: NGOOverviewTabProps) {
@@ -125,6 +126,19 @@ export function NGOOverviewTab({ ngo, onEdit, onGenerateFromTemplate, onMonthlyC
                     </a>
                   ) : (
                     <p className="font-medium text-muted-foreground">—</p>
+                  )}
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <FolderOpen className="w-4 h-4 text-muted-foreground mt-0.5" />
+                <div className="space-y-1">
+                  <p className="text-sm text-muted-foreground">Google Drive profile</p>
+                  {ngo.master_drive_folder_url ? (
+                    <a href={ngo.master_drive_folder_url} target="_blank" rel="noopener noreferrer" className="font-medium text-primary hover:underline">
+                      Open NGO folder
+                    </a>
+                  ) : (
+                    <p className="font-medium text-muted-foreground">Not linked</p>
                   )}
                 </div>
               </div>

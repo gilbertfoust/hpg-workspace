@@ -25,7 +25,8 @@ export type AccessArea =
   | "development"
   | "communications"
   | "it"
-  | "program";
+  | "program"
+  | "compliance";
 
 export interface RoleDefinition {
   key: AppRole;
@@ -80,10 +81,10 @@ const ROLE_AREA_MATRIX: Record<string, AccessArea[] | "all"> = {
   super_admin: "all",
   admin_pm: "all",
   vp_operations: ALL_STAFF_AREAS,
-  vp_programs: ["dashboard", "ngos", "work_items", "documents", "grants", "reports", "calendar", "development"],
+  vp_programs: ["dashboard", "ngos", "work_items", "documents", "grants", "reports", "calendar", "program"],
   vp_development: ["dashboard", "ngos", "work_items", "documents", "grants", "reports", "calendar", "development"],
   vp_finance: ["dashboard", "work_items", "documents", "finance", "reports", "calendar"],
-  vp_communications: ["dashboard", "ngos", "work_items", "documents", "reports", "calendar"],
+  vp_communications: ["dashboard", "ngos", "work_items", "documents", "reports", "calendar", "communications"],
   department_lead: ALL_STAFF_AREAS,
   ngo_coordinator: ["dashboard", "ngos", "work_items", "documents", "calendar"],
   executive_secretariat: ALL_STAFF_AREAS,
@@ -98,13 +99,14 @@ const ROLE_AREA_MATRIX: Record<string, AccessArea[] | "all"> = {
 const ROUTE_AREA_PREFIXES: { prefix: string; area: AccessArea }[] = [
   { prefix: "/portal", area: "ngo_portal" },
   { prefix: "/admin", area: "admin" },
+  { prefix: "/financial-hub/compliance", area: "compliance" },
   { prefix: "/financial-hub", area: "finance" },
-  { prefix: "/procurement", area: "finance" },
+  { prefix: "/procurement", area: "development" },
   { prefix: "/assets", area: "finance" },
   { prefix: "/inventory", area: "finance" },
-  { prefix: "/revenue", area: "finance" },
+  { prefix: "/revenue", area: "development" },
   { prefix: "/controller", area: "finance" },
-  { prefix: "/governance", area: "finance" },
+  { prefix: "/governance", area: "compliance" },
   { prefix: "/hr", area: "hr" },
   { prefix: "/erp/hr", area: "hr" },
   { prefix: "/grants", area: "development" },
@@ -116,6 +118,9 @@ const ROUTE_AREA_PREFIXES: { prefix: string; area: AccessArea }[] = [
   { prefix: "/modules/marketing", area: "communications" },
   { prefix: "/it", area: "it" },
   { prefix: "/modules/it", area: "it" },
+  { prefix: "/audit", area: "it" },
+  { prefix: "/ngo-coordination", area: "program" },
+  { prefix: "/ngo-missing-items", area: "program" },
   { prefix: "/program", area: "program" },
   { prefix: "/curriculum", area: "program" },
   { prefix: "/modules/program", area: "program" },
@@ -145,11 +150,17 @@ const departmentAreas = (access?: Pick<UserRole, "department_name" | "sub_depart
   }
   if (department.includes("marketing") || department.includes("communication")) areas.add("communications");
   if (department === "it" || department.includes("information technology")) areas.add("it");
+  if (department.includes("compliance") || department.includes("legal") || department.includes("governance")) {
+    areas.add("compliance");
+  }
   if (department.includes("program") || department.includes("curriculum")) {
     areas.add("program");
     areas.add("grants");
   }
-  if (department.includes("ngo coordination")) areas.add("ngos");
+  if (department.includes("ngo coordination")) {
+    areas.add("ngos");
+    areas.add("program");
+  }
   return Array.from(areas);
 };
 

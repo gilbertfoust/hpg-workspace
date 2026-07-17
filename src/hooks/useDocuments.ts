@@ -363,18 +363,25 @@ export const useDeleteDocument = () => {
     mutationFn: async (document: Document) => {
       ensureSupabase();
 
-      const { error: storageError } = await supabase.storage
-        .from(BUCKET_NAME)
-        .remove([document.file_path]);
-
-      if (storageError) throw storageError;
-
       const { error: dbError } = await supabase
         .from('documents')
         .delete()
         .eq('id', document.id);
 
       if (dbError) throw dbError;
+
+      // Remove the database record first. If object cleanup is temporarily
+      // unavailable, the user-facing deletion still succeeds and leaves only
+      // an inaccessible storage orphan that can be cleaned by maintenance.
+      // Doing this in the opposite order can permanently break an otherwise
+      // valid document when an RLS-protected database delete is rejected.
+      const { error: storageError } = await supabase.storage
+        .from(BUCKET_NAME)
+        .remove([document.file_path]);
+
+      if (storageError) {
+        console.warn('Document row deleted; storage cleanup is pending', storageError);
+      }
     },
     onSuccess: () => {
       invalidateDocumentQueries(queryClient);

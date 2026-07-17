@@ -11,6 +11,14 @@ export interface Profile {
   avatar_url: string | null;
   department_id: string | null;
   role?: string | null;
+  job_title?: string | null;
+  timezone?: string | null;
+  preferred_language?: string | null;
+  country_code?: string | null;
+  phone?: string | null;
+  bio?: string | null;
+  employment_status?: string | null;
+  manager_user_id?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -129,6 +137,39 @@ export const useUpdateProfileAvatar = () => {
             ? "Profile avatar storage is not configured on the server yet."
             : error.message,
       });
+    },
+  });
+};
+
+export const useUpdateMyProfile = () => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async ({ id, ...updates }: Pick<Profile, "id"> & Partial<Pick<Profile,
+      "full_name" | "job_title" | "timezone" | "preferred_language" |
+      "country_code" | "phone" | "bio"
+    >>) => {
+      ensureSupabase();
+      const { data: { user } } = await supabase!.auth.getUser();
+      if (!user || user.id !== id) throw new Error("You can only update your own profile.");
+
+      const { data, error } = await supabase!
+        .from("profiles")
+        .update(updates as never)
+        .eq("id" as never, id as never)
+        .select()
+        .single();
+      if (error) throw error;
+      return data as Profile;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["profiles"] });
+      queryClient.invalidateQueries({ queryKey: ["current-profile"] });
+      toast({ title: "Profile saved" });
+    },
+    onError: (error: Error) => {
+      toast({ variant: "destructive", title: "Could not save profile", description: error.message });
     },
   });
 };

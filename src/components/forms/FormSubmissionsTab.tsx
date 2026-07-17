@@ -19,10 +19,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
-import { FileText, Search, Eye } from "lucide-react";
+import { FileText, Search, Eye, PencilLine } from "lucide-react";
 import { format } from "date-fns";
 import { useFormSubmissions, FormSubmission } from "@/hooks/useFormSubmissions";
 import { FormSubmissionDetailSheet } from "@/components/forms/FormSubmissionDetailSheet";
+import { FormRunnerSheet } from "@/components/forms/FormRunnerSheet";
+import { useFormTemplates } from "@/hooks/useFormTemplates";
 
 const statusColors: Record<string, string> = {
   draft: "bg-muted text-muted-foreground",
@@ -33,10 +35,12 @@ const statusColors: Record<string, string> = {
 
 export function FormSubmissionsTab() {
   const { data: submissions, isLoading } = useFormSubmissions();
+  const { data: templates } = useFormTemplates();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [selectedSubmission, setSelectedSubmission] = useState<FormSubmission | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
+  const [editingDraft, setEditingDraft] = useState<FormSubmission | null>(null);
 
   const filtered = useMemo(() => {
     if (!submissions) return [];
@@ -106,6 +110,7 @@ export function FormSubmissionsTab() {
                 <TableHead>Form</TableHead>
                 <TableHead>Module</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead>Progress</TableHead>
                 <TableHead>Submitted</TableHead>
                 <TableHead className="w-[80px]" />
               </TableRow>
@@ -129,6 +134,9 @@ export function FormSubmissionsTab() {
                       {sub.submission_status || "draft"}
                     </Badge>
                   </TableCell>
+                  <TableCell className="text-sm text-muted-foreground">
+                    {sub.submission_status === "draft" ? `${sub.draft_progress ?? 0}%` : "100%"}
+                  </TableCell>
                   <TableCell className="text-muted-foreground text-sm">
                     {sub.submitted_at
                       ? format(new Date(sub.submitted_at), "MMM d, yyyy")
@@ -137,9 +145,15 @@ export function FormSubmissionsTab() {
                         : "—"}
                   </TableCell>
                   <TableCell>
-                    <Button variant="ghost" size="icon" onClick={() => handleView(sub)}>
-                      <Eye className="w-4 h-4" />
-                    </Button>
+                    {sub.submission_status === "draft" ? (
+                      <Button variant="ghost" size="icon" onClick={() => setEditingDraft(sub)} title="Continue private draft">
+                        <PencilLine className="w-4 h-4" />
+                      </Button>
+                    ) : (
+                      <Button variant="ghost" size="icon" onClick={() => handleView(sub)} title="View submission">
+                        <Eye className="w-4 h-4" />
+                      </Button>
+                    )}
                   </TableCell>
                 </TableRow>
               ))}
@@ -152,6 +166,15 @@ export function FormSubmissionsTab() {
         open={detailOpen}
         onOpenChange={setDetailOpen}
         submission={selectedSubmission}
+      />
+      <FormRunnerSheet
+        open={!!editingDraft}
+        onOpenChange={(open) => {
+          if (!open) setEditingDraft(null);
+        }}
+        template={templates?.find((template) => template.id === editingDraft?.form_template_id) || null}
+        initialNgoId={editingDraft?.ngo_id}
+        initialSubmission={editingDraft}
       />
     </div>
   );

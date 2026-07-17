@@ -19,6 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Loader2 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useCreateCalendarEvent, type CalendarEventType } from "@/hooks/useCalendarEvents";
 import { useNGOs } from "@/hooks/useNGOs";
 import { useOrgUnits } from "@/hooks/useOrgUnits";
@@ -29,6 +30,12 @@ const EVENT_TYPES: { value: CalendarEventType; label: string }[] = [
   { value: "birthday", label: "Birthday" },
   { value: "compliance", label: "Compliance" },
   { value: "training", label: "Training" },
+  { value: "grant_submission", label: "Grant submission" },
+  { value: "fundraiser", label: "Fundraiser" },
+  { value: "event", label: "Upcoming event" },
+  { value: "holiday", label: "Holiday" },
+  { value: "milestone", label: "Milestone" },
+  { value: "department_goal", label: "Department goal" },
   { value: "other", label: "Other" },
 ];
 
@@ -45,6 +52,8 @@ export function CreateCalendarEventDialog({ open, onOpenChange }: CreateCalendar
   const [description, setDescription] = useState("");
   const [ngoId, setNgoId] = useState<string>("none");
   const [departmentId, setDepartmentId] = useState<string>("none");
+  const [isAllDay, setIsAllDay] = useState(false);
+  const [importance, setImportance] = useState<"normal" | "important" | "critical">("normal");
 
   const createEvent = useCreateCalendarEvent();
   const { data: ngos } = useNGOs();
@@ -58,6 +67,8 @@ export function CreateCalendarEventDialog({ open, onOpenChange }: CreateCalendar
     setDescription("");
     setNgoId("none");
     setDepartmentId("none");
+    setIsAllDay(false);
+    setImportance("normal");
   };
 
   const handleSubmit = async () => {
@@ -71,6 +82,9 @@ export function CreateCalendarEventDialog({ open, onOpenChange }: CreateCalendar
       description: description.trim() || null,
       ngo_id: ngoId === "none" ? null : ngoId,
       department_id: departmentId === "none" ? null : departmentId,
+      is_all_day: isAllDay,
+      recurrence_rule: eventType === "birthday" || eventType === "holiday" ? "FREQ=YEARLY" : null,
+      importance,
     });
 
     reset();
@@ -83,7 +97,7 @@ export function CreateCalendarEventDialog({ open, onOpenChange }: CreateCalendar
         <DialogHeader>
           <DialogTitle>Add calendar event</DialogTitle>
           <DialogDescription>
-            Admins can add meetings, deadlines, birthdays, compliance dates, and training events.
+            Add meetings, grant submissions, fundraisers, birthdays, holidays, milestones, and departmental goals.
           </DialogDescription>
         </DialogHeader>
 
@@ -91,6 +105,26 @@ export function CreateCalendarEventDialog({ open, onOpenChange }: CreateCalendar
           <div className="space-y-2">
             <Label htmlFor="event-title">Title *</Label>
             <Input id="event-title" value={title} onChange={(e) => setTitle(e.target.value)} />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4 items-end">
+            <div className="space-y-2">
+              <Label>Importance</Label>
+              <Select value={importance} onValueChange={(value) => setImportance(value as typeof importance)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="normal">Normal</SelectItem>
+                  <SelectItem value="important">Important</SelectItem>
+                  <SelectItem value="critical">Critical</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <label className="flex items-center gap-2 h-10 text-sm">
+              <Checkbox checked={isAllDay} onCheckedChange={(checked) => setIsAllDay(checked === true)} />
+              All-day event
+            </label>
           </div>
 
           <div className="grid grid-cols-2 gap-4">

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Sheet,
   SheetContent,
@@ -19,20 +19,22 @@ import {
 } from "@/components/ui/select";
 import { Loader2, Save, Send } from "lucide-react";
 import type { FormField, FormTemplate } from "@/hooks/useFormTemplates";
-import { useCreateFormSubmission } from "@/hooks/useFormSubmissions";
-import { useCreateWorkItem, useUpdateWorkItem } from "@/hooks/useWorkItems";
-import { useAuth } from "@/contexts/AuthContext";
+import { useSaveFormWorkflow } from "@/hooks/useFormSubmissions";
 import { useNGOs } from "@/hooks/useNGOs";
 import { useToast } from "@/hooks/use-toast";
 import type { Json } from "@/integrations/supabase/types";
 import { FormRenderer } from "@/components/forms/FormRenderer";
-import { buildWorkItemPlan } from "@/lib/formMapping";
 
 interface FormRunnerSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   template: FormTemplate | null;
   initialNgoId?: string | null;
+  initialSubmission?: {
+    id: string;
+    ngo_id?: string | null;
+    payload_json?: Json;
+  } | null;
 }
 
 const isEmptyValue = (value: unknown) => {
@@ -71,37 +73,37 @@ const validateFields = (fields: FormField[], values: Record<string, unknown>) =>
 const formatNgoLabel = (legalName: string, commonName?: string | null) =>
   commonName ? `${commonName} (${legalName})` : legalName;
 
-const removeUndefined = <T extends Record<string, unknown>>(input: T) => {
-  return Object.fromEntries(
-    Object.entries(input).filter(([, value]) => value !== undefined)
-  ) as T;
-};
-
 export function FormRunnerSheet({
   open,
   onOpenChange,
   template,
   initialNgoId,
+  initialSubmission,
 }: FormRunnerSheetProps) {
-  const { user } = useAuth();
   const { toast } = useToast();
   const { data: ngos } = useNGOs();
-
-  const createSubmission = useCreateFormSubmission();
-  const createWorkItem = useCreateWorkItem();
-  const updateWorkItem = useUpdateWorkItem();
+  const saveWorkflow = useSaveFormWorkflow();
 
   const [formData, setFormData] = useState<Record<string, unknown>>({});
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [selectedNgoId, setSelectedNgoId] = useState<string | null>(initialNgoId || null);
+  const [draftSubmissionId, setDraftSubmissionId] = useState<string | null>(null);
+  const submitIdempotencyKey = useRef(crypto.randomUUID());
 
   useEffect(() => {
     if (open) {
-      setFormData({});
+      const initialPayload = initialSubmission?.payload_json;
+      setFormData(
+        initialPayload && typeof initialPayload === "object" && !Array.isArray(initialPayload)
+          ? initialPayload as Record<string, unknown>
+          : {}
+      );
       setFieldErrors({});
-      setSelectedNgoId(initialNgoId || null);
+      setSelectedNgoId(initialSubmission?.ngo_id || initialNgoId || null);
+      setDraftSubmissionId(initialSubmission?.id || null);
+      submitIdempotencyKey.current = crypto.randomUUID();
     }
-  }, [open, initialNgoId, template?.id]);
+  }, [open, initialNgoId, initialSubmission, template?.id]);
 
   const fields = useMemo<FormField[]>(
     () => template?.schema_json?.fields || [],
@@ -131,49 +133,26 @@ export function FormRunnerSheet({
     setFieldErrors({});
 
     try {
-      const plan = buildWorkItemPlan(template, formData, selectedNgoId);
-      let workItemId = plan.workItemId;
-
-      if (plan.action === "create" && plan.createInput) {
-        const created = await createWorkItem.mutateAsync(plan.createInput);
-        workItemId = created.id;
-      }
-
-      if (plan.action === "update" && plan.workItemId) {
-        const updateInput = plan.updateInput ? removeUndefined(plan.updateInput) : {};
-        if (Object.keys(updateInput).length > 0) {
-          await updateWorkItem.mutateAsync({ id: plan.workItemId, ...updateInput });
-        }
-      }
-
-      const payload: Json = formData as Json;
-
-      await createSubmission.mutateAsync({
-        form_template_id: template.id,
-        ngo_id: selectedNgoId || undefined,
-        work_item_id: workItemId,
-        submitted_by_user_id: user?.id,
-        payload_json: payload,
-        submission_status: submit ? "submitted" : "draft",
-        submitted_at: submit ? new Date().toISOString() : null,
+      const answeredFields = fields.filter((field) => !isEmptyValue(formData[field.name])).length;
+      const progress = fields.length === 0 ? 100 : Math.round((answeredFields / fields.length) * 100);
+      const result = await saveWorkflow.mutateAsync({
+        formTemplateId: template.id,
+        ngoId: selectedNgoId,
+        submissionId: draftSubmissionId,
+        payloadJson: formData as Json,
+        progress,
+        submit,
+        idempotencyKey: submitIdempotencyKey.current,
       });
 
-      if (submit) {
-        toast({
-          title: "Submission successful",
-          description: workItemId
-            ? "The form was submitted and officially generated as a work item."
-            : "The form was submitted successfully.",
-        });
-      } else {
-        toast({
-          title: "Draft saved",
-          description: "The form draft has been saved successfully.",
-        });
+      if (!submit) {
+        setDraftSubmissionId(result.submission.id);
+        return;
       }
 
       setFormData({});
       setFieldErrors({});
+      setDraftSubmissionId(null);
       onOpenChange(false);
     } catch (error) {
       toast({
@@ -184,8 +163,7 @@ export function FormRunnerSheet({
     }
   };
 
-  const isSaving =
-    createSubmission.isPending || createWorkItem.isPending || updateWorkItem.isPending;
+  const isSaving = saveWorkflow.isPending;
 
   const ngoOptions = useMemo(
     () =>
@@ -254,6 +232,11 @@ export function FormRunnerSheet({
         <Separator className="my-4" />
 
         <div className="flex gap-3 justify-end">
+          {draftSubmissionId && (
+            <p className="mr-auto self-center text-xs text-muted-foreground">
+              Private draft saved
+            </p>
+          )}
           <Button variant="outline" onClick={() => handleSave(false)} disabled={isSaving}>
             {isSaving ? (
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />

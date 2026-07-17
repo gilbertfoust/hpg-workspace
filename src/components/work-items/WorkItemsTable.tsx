@@ -24,6 +24,8 @@ interface WorkItemsTableProps {
   showActions?: boolean;
   onCompleteForRecords?: (id: string) => void;
   completingItemId?: string | null;
+  onSyncTrello?: (item: WorkItem) => void;
+  syncingTrelloItemId?: string | null;
 }
 
 const formatModuleName = (module?: string | null) =>
@@ -43,6 +45,8 @@ export function WorkItemsTable({
   showActions = true,
   onCompleteForRecords,
   completingItemId = null,
+  onSyncTrello,
+  syncingTrelloItemId = null,
 }: WorkItemsTableProps) {
   const hasSelection = showSelection && onToggleSelect && onToggleSelectAll;
   const hasCompleteAction = !!onCompleteForRecords;
@@ -86,7 +90,7 @@ export function WorkItemsTable({
                     <td><PriorityBadge priority={item.priority} /></td>
                     <td className="text-muted-foreground whitespace-nowrap">{item.due_date ? <div className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5" />{format(new Date(item.due_date), "MMM d, yyyy")}</div> : "—"}</td>
                     <td>{item.evidence_required ? <span className={`status-chip ${item.evidence_status === "missing" ? "evidence-missing" : item.evidence_status === "uploaded" ? "evidence-uploaded" : item.evidence_status === "approved" ? "evidence-approved" : "evidence-under-review"}`}>{item.evidence_status === "missing" && <AlertCircle className="w-3 h-3 mr-1" />}{item.evidence_status || "Required"}</span> : <span className="text-muted-foreground text-xs">—</span>}</td>
-                    {showActions && <td onClick={(e) => e.stopPropagation()}><DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100"><MoreHorizontal className="w-4 h-4" /></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem onClick={() => onRowClick?.(item.id)}>View Details</DropdownMenuItem>{onCompleteForRecords && item.status !== "complete" && <DropdownMenuItem disabled={isCompleting} onClick={() => onCompleteForRecords(item.id)}><CheckCircle2 className="w-4 h-4 mr-2" />{isCompleting ? "Sending..." : "Complete & Send to Records"}</DropdownMenuItem>}<DropdownMenuItem>Edit</DropdownMenuItem><DropdownMenuItem>Reassign</DropdownMenuItem><DropdownMenuSeparator /><DropdownMenuItem>Sync to Trello</DropdownMenuItem></DropdownMenuContent></DropdownMenu></td>}
+                    {showActions && <td onClick={(e) => e.stopPropagation()}><DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100"><MoreHorizontal className="w-4 h-4" /></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem onClick={() => onRowClick?.(item.id)}>View Details</DropdownMenuItem>{onCompleteForRecords && item.status !== "complete" && <DropdownMenuItem disabled={isCompleting} onClick={() => onCompleteForRecords(item.id)}><CheckCircle2 className="w-4 h-4 mr-2" />{isCompleting ? "Sending..." : "Complete & Send to Records"}</DropdownMenuItem>}{onSyncTrello && <><DropdownMenuSeparator /><DropdownMenuItem disabled={syncingTrelloItemId === item.id} onClick={() => onSyncTrello(item)}>{syncingTrelloItemId === item.id ? "Queueing..." : item.trello_card_id ? "Update Trello card" : "Sync to Trello"}</DropdownMenuItem></>}</DropdownMenuContent></DropdownMenu></td>}
                   </tr>
                 );
               })

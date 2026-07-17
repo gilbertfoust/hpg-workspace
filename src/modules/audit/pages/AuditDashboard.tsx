@@ -3,13 +3,22 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useAuditLog } from "@/hooks/useAuditLog";
 import { useNavigate } from "react-router-dom";
-import { ShieldCheck, History, KeyRound, ArrowRight, FileSearch } from "lucide-react";
+import { ShieldCheck, History, KeyRound, ArrowRight, FileSearch, Database, MessageSquare, Trello, BookOpen } from "lucide-react";
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
+import { useSystemUsageAudits } from "@/hooks/useSystemUsageAudits";
+
+const providerDetails = {
+  google_drive: { label: "Google Drive", icon: Database },
+  confluence: { label: "Confluence", icon: BookOpen },
+  slack: { label: "Slack", icon: MessageSquare },
+  trello: { label: "Trello", icon: Trello },
+};
 
 export default function AuditDashboard() {
   const navigate = useNavigate();
   const { data: recentLogs, isLoading } = useAuditLog({});
+  const { data: usageReports = [], isLoading: usageLoading } = useSystemUsageAudits();
   
   const recent = (recentLogs ?? []).slice(0, 10);
   const totalToday = (recentLogs ?? []).filter(
@@ -75,6 +84,43 @@ export default function AuditDashboard() {
             </CardContent>
           </Card>
         </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Monthly connected-system usage analysis</CardTitle>
+            <p className="text-sm text-muted-foreground">
+              IT-owned evidence cycle for Google Drive, Confluence, Slack, and Trello usage, security exceptions, adoption, and recommendations.
+            </p>
+          </CardHeader>
+          <CardContent>
+            {usageLoading ? (
+              <p className="text-sm text-muted-foreground">Loading monthly audit coverage…</p>
+            ) : (
+              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                {(Object.keys(providerDetails) as Array<keyof typeof providerDetails>).map((provider) => {
+                  const report = usageReports.find((item) => item.provider === provider);
+                  const details = providerDetails[provider];
+                  const Icon = details.icon;
+                  return (
+                    <div key={provider} className="rounded-lg border p-4">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2"><Icon className="h-4 w-4" /><p className="font-medium">{details.label}</p></div>
+                        <Badge variant={report?.status === "reviewed" ? "default" : report?.status === "exception" ? "destructive" : "outline"}>
+                          {report?.status || "missing"}
+                        </Badge>
+                      </div>
+                      <div className="mt-3 text-xs text-muted-foreground">
+                        <p>{report?.findings?.length || 0} findings</p>
+                        <p>{report?.recommendations?.length || 0} recommendations</p>
+                      </div>
+                      {report?.source_url && <a href={report.source_url} target="_blank" rel="noopener noreferrer" className="mt-3 inline-block text-xs text-primary hover:underline">Open source report</a>}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         <Card>
           <CardHeader>
