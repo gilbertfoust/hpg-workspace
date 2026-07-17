@@ -15,6 +15,21 @@ verify_jwt = false
 [functions.extract-finance-receipt]
 verify_jwt = true
 
+[functions.create-ngo-bank-link]
+verify_jwt = true
+
+[functions.exchange-ngo-bank-link]
+verify_jwt = true
+
+[functions.create-ngo-onboarding-payment]
+verify_jwt = true
+
+[functions.ngo-onboarding-payment-webhook]
+verify_jwt = false
+
+[functions.process-ngo-disbursement]
+verify_jwt = true
+
 [functions.delete-user]
 verify_jwt = true
 

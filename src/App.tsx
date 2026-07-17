@@ -148,6 +148,13 @@ import InterNGOTransfers from "./modules/controller/pages/InterNGOTransfers";
 import Treasury from "./modules/controller/pages/Treasury";
 import PolicyRegistryPage from "./pages/PolicyRegistryPage";
 import NGOOnboardingPipeline from "./pages/NGOOnboardingPipeline";
+import NgoAccessAdminPage from "./pages/NgoAccessAdminPage";
+import FinanceNgoReviewPage from "./pages/FinanceNgoReviewPage";
+import FinanceNgoFundingPage from "./pages/FinanceNgoFundingPage";
+import FinanceForm990Page from "./pages/FinanceForm990Page";
+import FinanceAnalysisCenterPage from "./pages/FinanceAnalysisCenterPage";
+import ProposalCollaborationPage from "./pages/ProposalCollaborationPage";
+import FinanceAdvancedAccountingPage from "./pages/FinanceAdvancedAccountingPage";
 
 const queryClient = new QueryClient();
 
@@ -202,11 +209,13 @@ const App = () => {
                 {/* Admin */}
                 <Route path="/admin" element={<P><Admin /></P>} />
                 <Route path="/admin/config" element={<P><AdminConfigHome /></P>} />
+                <Route path="/ngo-access" element={<P><NgoAccessAdminPage /></P>} />
 
                 {/* Department dashboards */}
                 <Route path="/hr" element={<Navigate to="/erp/hr" replace />} />
                 <Route path="/development" element={<P><DevelopmentDashboard /></P>} />
                 <Route path="/development/potential-sponsees" element={<P><PotentialSponsees /></P>} />
+                <Route path="/proposal-collaboration" element={<P><ProposalCollaborationPage /></P>} />
                 <Route path="/partnerships" element={<P><PartnershipsDashboard /></P>} />
                 <Route path="/it" element={<P><ITDashboard /></P>} />
                 <Route path="/ngo-coordination" element={<P><NGOCoordination /></P>} />
@@ -215,6 +224,11 @@ const App = () => {
                 {/* Financial Hub */}
                 <Route path="/financial-hub" element={<P><FinancialHub /></P>} />
                 <Route path="/financial-hub/operations" element={<P><FinanceOperationsPage /></P>} />
+                <Route path="/financial-hub/ngo-review" element={<P><FinanceNgoReviewPage /></P>} />
+                <Route path="/financial-hub/ngo-funding" element={<P><FinanceNgoFundingPage /></P>} />
+                <Route path="/financial-hub/form-990" element={<P><FinanceForm990Page /></P>} />
+                <Route path="/financial-hub/analysis" element={<P><FinanceAnalysisCenterPage /></P>} />
+                <Route path="/financial-hub/advanced" element={<P><FinanceAdvancedAccountingPage /></P>} />
                 <Route path="/financial-hub/accounting/chart-of-accounts" element={<P><FinanceChartOfAccountsPage /></P>} />
                 <Route path="/financial-hub/accounting/journal-entries" element={<P><FinanceJournalEntriesPage /></P>} />
                 <Route path="/financial-hub/accounting/transactions" element={<P><FinanceTransactionsPage /></P>} />

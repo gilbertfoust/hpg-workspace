@@ -1,0 +1,6 @@
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card,CardContent,CardDescription,CardHeader,CardTitle } from "@/components/ui/card";
+import { Lightbulb } from "lucide-react";
+import { useNgoSharedRecommendations } from "@/hooks/useFinanceAnalysisCenter";
+export function NgoFinancialInsights({ngoId}:{ngoId:string}){const insights=useNgoSharedRecommendations(ngoId);return <Card><CardHeader><CardTitle className="flex items-center gap-2"><Lightbulb className="h-5 w-5"/>Financial recommendations</CardTitle><CardDescription>Analysis and action guidance shared by HPG Finance.</CardDescription></CardHeader><CardContent className="space-y-3">{(insights.data??[]).length===0?<p className="text-sm text-muted-foreground">No recommendations have been shared yet.</p>:(insights.data??[]).map((item:any)=><div key={item.id} className="rounded-md border p-4"><div className="flex justify-between gap-2"><p className="font-semibold">{item.title}</p><Badge>{item.priority}</Badge></div><p className="mt-2 text-sm text-muted-foreground">{item.summary}</p>{item.status==="shared"&&<Button className="mt-3" size="sm" variant="outline" onClick={()=>insights.acknowledge.mutate(item.id)}>Acknowledge</Button>}</div>)}</CardContent></Card>}

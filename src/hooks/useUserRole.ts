@@ -7,6 +7,11 @@ export type AppRole = string;
 export interface UserRole {
   user_id: string;
   role: AppRole;
+  department_id?: string | null;
+  department_name?: string | null;
+  sub_department_name?: string | null;
+  org_rank?: string | null;
+  supervisor_user_id?: string | null;
 }
 
 const getSupabaseNotConfiguredError = () =>
@@ -72,14 +77,25 @@ export const useUserRole = () => {
       ensureSupabase();
       if (!user?.id) return null;
 
-      const { data: profileRole, error: profileError } = await supabase
+      const { data: profileRole, error: profileError } = await (supabase as any)
         .from("profiles")
-        .select("id, role")
+        .select("id, role, department_id, org_rank, supervisor_user_id, org_units(department_name, sub_department_name)")
         .eq("id", user.id)
         .maybeSingle();
 
       if (profileError) throw profileError;
-      if (profileRole?.role) return { user_id: user.id, role: profileRole.role } as UserRole;
+      if (profileRole?.role) {
+        const unit = Array.isArray(profileRole.org_units) ? profileRole.org_units[0] : profileRole.org_units;
+        return {
+          user_id: user.id,
+          role: profileRole.role,
+          department_id: profileRole.department_id,
+          department_name: unit?.department_name ?? null,
+          sub_department_name: unit?.sub_department_name ?? null,
+          org_rank: profileRole.org_rank,
+          supervisor_user_id: profileRole.supervisor_user_id,
+        } as UserRole;
+      }
 
       const { data, error } = await supabase
         .from("user_roles")
@@ -89,7 +105,16 @@ export const useUserRole = () => {
         .maybeSingle();
 
       if (error) throw error;
-      return data as UserRole | null;
+      if (!data) return null;
+      const unit = Array.isArray(profileRole?.org_units) ? profileRole.org_units[0] : profileRole?.org_units;
+      return {
+        ...(data as UserRole),
+        department_id: profileRole?.department_id ?? null,
+        department_name: unit?.department_name ?? null,
+        sub_department_name: unit?.sub_department_name ?? null,
+        org_rank: profileRole?.org_rank ?? null,
+        supervisor_user_id: profileRole?.supervisor_user_id ?? null,
+      };
     },
   });
 };
@@ -118,20 +143,17 @@ export const useUpdateUserRole = () => {
     mutationFn: async ({ userId, role }: { userId: string; role: AppRole }) => {
       ensureSupabase();
 
-      const { data, error } = await supabase
-        .from("user_roles")
-        .upsert({ user_id: userId, role } as any, { onConflict: "user_id,role" })
-        .select()
-        .maybeSingle();
+      const { data, error } = await supabase.functions.invoke("admin-update-role", {
+        body: {
+          target_user_id: userId,
+          new_role: role,
+        },
+      });
 
       if (error) throw error;
+      if (data?.error) throw new Error(data.error);
 
-      await supabase
-        .from("profiles")
-        .update({ role } as never)
-        .eq("id" as never, userId as never);
-
-      return data as UserRole | null;
+      return { user_id: userId, role } as UserRole;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["user-roles"] });
