@@ -1,4 +1,4 @@
-import type { AppRole } from "@/hooks/useUserRole";
+import type { AppRole, UserRole } from "@/hooks/useUserRole";
 import {
   ADMIN_ROLES,
   DEPARTMENT_LEAD_ROLES,
@@ -22,7 +22,10 @@ export type AccessArea =
   | "reports"
   | "admin"
   | "calendar"
-  | "development";
+  | "development"
+  | "communications"
+  | "it"
+  | "program";
 
 export interface RoleDefinition {
   key: AppRole;
@@ -65,6 +68,14 @@ const ALL_STAFF_AREAS: AccessArea[] = [
 
 const VIEWER_AREAS: AccessArea[] = ["dashboard", "reports"];
 
+const COMMON_STAFF_AREAS: AccessArea[] = [
+  "dashboard",
+  "work_items",
+  "documents",
+  "reports",
+  "calendar",
+];
+
 const ROLE_AREA_MATRIX: Record<string, AccessArea[] | "all"> = {
   super_admin: "all",
   admin_pm: "all",
@@ -95,8 +106,20 @@ const ROUTE_AREA_PREFIXES: { prefix: string; area: AccessArea }[] = [
   { prefix: "/controller", area: "finance" },
   { prefix: "/governance", area: "finance" },
   { prefix: "/hr", area: "hr" },
+  { prefix: "/erp/hr", area: "hr" },
+  { prefix: "/grants", area: "development" },
+  { prefix: "/crm", area: "development" },
+  { prefix: "/partnerships", area: "development" },
   { prefix: "/development", area: "development" },
   { prefix: "/modules/development", area: "development" },
+  { prefix: "/modules/communications", area: "communications" },
+  { prefix: "/modules/marketing", area: "communications" },
+  { prefix: "/it", area: "it" },
+  { prefix: "/modules/it", area: "it" },
+  { prefix: "/program", area: "program" },
+  { prefix: "/curriculum", area: "program" },
+  { prefix: "/modules/program", area: "program" },
+  { prefix: "/modules/curriculum", area: "program" },
   { prefix: "/reports", area: "reports" },
   { prefix: "/documents", area: "documents" },
   { prefix: "/work-items", area: "work_items" },
@@ -107,13 +130,51 @@ const ROUTE_AREA_PREFIXES: { prefix: string; area: AccessArea }[] = [
   { prefix: "/dashboard", area: "dashboard" },
 ];
 
-export const getAreasForRole = (role?: string | null): AccessArea[] | "all" => {
-  if (!role) return VIEWER_AREAS;
-  return ROLE_AREA_MATRIX[role] ?? ALL_STAFF_AREAS;
+const normalizeDepartment = (access?: Pick<UserRole, "department_name" | "sub_department_name"> | null) =>
+  `${access?.department_name ?? ""} ${access?.sub_department_name ?? ""}`.trim().toLowerCase();
+
+const departmentAreas = (access?: Pick<UserRole, "department_name" | "sub_department_name"> | null): AccessArea[] => {
+  const department = normalizeDepartment(access);
+  const areas = new Set<AccessArea>(COMMON_STAFF_AREAS);
+  if (department.includes("finance")) areas.add("finance");
+  if (department === "hr" || department.includes("human resources")) areas.add("hr");
+  if (department.includes("development")) {
+    areas.add("development");
+    areas.add("grants");
+    areas.add("ngos");
+  }
+  if (department.includes("marketing") || department.includes("communication")) areas.add("communications");
+  if (department === "it" || department.includes("information technology")) areas.add("it");
+  if (department.includes("program") || department.includes("curriculum")) {
+    areas.add("program");
+    areas.add("grants");
+  }
+  if (department.includes("ngo coordination")) areas.add("ngos");
+  return Array.from(areas);
 };
 
-export const canAccessArea = (role: string | null | undefined, area: AccessArea): boolean => {
-  const areas = getAreasForRole(role);
+export const getAreasForRole = (
+  role?: string | null,
+  access?: Pick<UserRole, "department_name" | "sub_department_name"> | null,
+): AccessArea[] | "all" => {
+  if (!role) return VIEWER_AREAS;
+  if (isAdminRole(role)) return "all";
+  if (isNgoPortalRole(role)) return ["ngo_portal"];
+
+  const department = normalizeDepartment(access);
+  if (department) return departmentAreas(access);
+
+  // Compatibility for staff records that have not yet been assigned a
+  // department. Admin should complete the assignment in Access Management.
+  return ROLE_AREA_MATRIX[role] ?? COMMON_STAFF_AREAS;
+};
+
+export const canAccessArea = (
+  role: string | null | undefined,
+  area: AccessArea,
+  access?: Pick<UserRole, "department_name" | "sub_department_name"> | null,
+): boolean => {
+  const areas = getAreasForRole(role, access);
   if (areas === "all") return true;
   return areas.includes(area);
 };
@@ -122,7 +183,11 @@ export const canAccessAdmin = (role?: string | null) => isAdminRole(role);
 
 export const canAssignRoles = (role?: string | null) => role === "super_admin" || role === "admin_pm";
 
-export const canAccessRoute = (role: string | null | undefined, pathname: string): boolean => {
+export const canAccessRoute = (
+  role: string | null | undefined,
+  pathname: string,
+  access?: Pick<UserRole, "department_name" | "sub_department_name"> | null,
+): boolean => {
   if (!role) return pathname === "/dashboard" || pathname.startsWith("/reports");
 
   if (isNgoPortalRole(role)) {
@@ -138,7 +203,18 @@ export const canAccessRoute = (role: string | null | undefined, pathname: string
   const matched = ROUTE_AREA_PREFIXES.find(({ prefix }) => pathname.startsWith(prefix));
   if (!matched) return isStaffWorkspaceRole(role) || isVpRole(role) || isDepartmentLeadRole(role);
 
-  return canAccessArea(role, matched.area);
+  return canAccessArea(role, matched.area, access);
+};
+
+export const canManageNgoPortalAccounts = (
+  role?: string | null,
+  access?: Pick<UserRole, "department_name" | "org_rank"> | null,
+) => {
+  if (isAdminRole(role)) return true;
+  const department = (access?.department_name ?? "").trim().toLowerCase();
+  const managementRanks = ["chief_executive", "executive_vice_president", "vice_president", "director", "manager"];
+  return (department === "it" || department === "information technology")
+    && managementRanks.includes(access?.org_rank ?? "");
 };
 
 export const getRoleLabel = (role?: string | null) =>

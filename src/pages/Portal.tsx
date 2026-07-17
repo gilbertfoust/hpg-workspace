@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
-import { Download, Eye, Loader2, Upload, FileText, FolderOpen, ShieldCheck } from "lucide-react";
+import { BarChart3, Download, Eye, Loader2, Upload, FileText, FileSignature, FolderOpen, ReceiptText, ShieldCheck } from "lucide-react";
 import { PortalLayout } from "@/components/layout/PortalLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,10 +17,13 @@ import { getSupabaseNotConfiguredError, supabase } from "@/integrations/supabase
 import { useDocumentUrl, useUploadDocument } from "@/hooks/useDocuments";
 import { emptyPayloadForFields, useNgoPortalFormTemplates, useSubmitNgoPortalForm } from "@/hooks/useNgoPortalForms";
 import type { FormTemplate } from "@/hooks/useFormTemplates";
+import { NgoFinancePortal } from "@/components/portal/NgoFinancePortal";
+import { NgoOnboardingPortal } from "@/components/portal/NgoOnboardingPortal";
+import { NgoFinancialInsights } from "@/components/portal/NgoFinancialInsights";
 
 interface PortalContactRow {
   ngo_id: string | null;
-  ngos: { id: string; legal_name: string; common_name: string | null } | null;
+  ngos: { id: string; legal_name: string; common_name: string | null; country?: string | null } | null;
 }
 
 interface NgoSummary { id: string; name: string; }
@@ -130,7 +133,7 @@ export default function Portal() {
     enabled: !!user?.id,
     queryFn: async () => {
       ensureSupabase();
-      const { data, error } = await supabase.from("contacts").select("ngo_id, ngos(id, legal_name, common_name)").eq("user_id", user?.id ?? "");
+      const { data, error } = await (supabase as any).from("ngo_portal_memberships").select("ngo_id, ngos(id, legal_name, common_name, country)").eq("user_id", user?.id ?? "").eq("status", "active");
       if (error) throw error;
       return data as PortalContactRow[];
     },
@@ -228,16 +231,31 @@ export default function Portal() {
 
         {ngos.length > 0 && <div className="flex flex-wrap gap-2">{ngos.map(ngo => <Badge key={ngo.id} variant="secondary" className="px-3 py-1 text-sm">{ngo.name}</Badge>)}</div>}
 
-        <Tabs defaultValue="requests">
+        <Tabs defaultValue="onboarding">
           <TabsList className="flex flex-wrap h-auto">
+            <TabsTrigger value="onboarding"><FileSignature className="w-4 h-4 mr-1" />Onboarding</TabsTrigger>
             <TabsTrigger value="requests"><FileText className="w-4 h-4 mr-1" />Submit Request</TabsTrigger>
+            <TabsTrigger value="finance"><ReceiptText className="w-4 h-4 mr-1" />Accounting</TabsTrigger>
+            <TabsTrigger value="insights"><BarChart3 className="w-4 h-4 mr-1" />Financial Insights</TabsTrigger>
             <TabsTrigger value="tracking"><FileText className="w-4 h-4 mr-1" />Request Tracking</TabsTrigger>
             <TabsTrigger value="compliance"><ShieldCheck className="w-4 h-4 mr-1" />Compliance</TabsTrigger>
             <TabsTrigger value="documents"><FolderOpen className="w-4 h-4 mr-1" />Documents</TabsTrigger>
           </TabsList>
 
+          <TabsContent value="onboarding">
+            {activeNgoId ? <NgoOnboardingPortal ngoId={activeNgoId} country={ngoContacts?.find((row) => row.ngo_id === activeNgoId)?.ngos?.country} /> : <Card><CardContent className="p-8 text-sm text-muted-foreground">Your account is not linked to an active NGO.</CardContent></Card>}
+          </TabsContent>
+
           <TabsContent value="requests" className="space-y-4">
             {formsLoading || ngoLoading ? <div className="py-10 text-center"><Loader2 className="mx-auto h-6 w-6 animate-spin" /></div> : portalForms.length > 0 && activeNgoId ? portalForms.map((template) => <NgoPortalRequestForm key={template.id} template={template} ngoId={activeNgoId} />) : <Card><CardContent className="p-8 text-sm text-muted-foreground">No NGO request forms are available yet.</CardContent></Card>}
+          </TabsContent>
+
+          <TabsContent value="finance">
+            {activeNgoId ? <NgoFinancePortal ngoId={activeNgoId} /> : <Card><CardContent className="p-8 text-sm text-muted-foreground">Your account is not linked to an active NGO.</CardContent></Card>}
+          </TabsContent>
+
+          <TabsContent value="insights">
+            {activeNgoId ? <NgoFinancialInsights ngoId={activeNgoId} /> : null}
           </TabsContent>
 
           <TabsContent value="tracking">

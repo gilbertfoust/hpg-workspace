@@ -46,6 +46,9 @@ import {
   Zap,
   Rocket,
   Bot,
+  FileCheck2,
+  Landmark,
+  Coins,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -54,7 +57,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useCurrentProfile } from "@/hooks/useProfiles";
 import { UserAvatar, getUserDisplayName, getUserInitials } from "@/components/common/UserAvatar";
-import { canAccessArea, canAccessAdmin, getRoleLabel } from "@/lib/accessControl";
+import { canAccessArea, canAccessAdmin, canManageNgoPortalAccounts, getRoleLabel } from "@/lib/accessControl";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { useWorkItems } from "@/hooks/useWorkItems";
@@ -182,13 +185,14 @@ export function AppSidebar() {
   const navigate = useNavigate();
   const canAccessAdminConfig = canAccessAdmin(userRole?.role);
   const role = userRole?.role;
+  const canManageNgoAccess = canManageNgoPortalAccounts(role, userRole);
 
   const visibleHubs = hubsSections.filter((hub) => {
-    if (hub.title === "Financial Hub") return canAccessArea(role, "finance");
-    if (hub.title === "HR Hub") return canAccessArea(role, "hr");
-    if (hub.title === "Development Hub") return canAccessArea(role, "development");
-    if (hub.title === "Program Hub") return canAccessArea(role, "grants") || canAccessArea(role, "work_items");
-    if (hub.title === "Compliance Hub") return canAccessArea(role, "finance") || canAccessArea(role, "documents");
+    if (hub.title === "Financial Hub") return canAccessArea(role, "finance", userRole);
+    if (hub.title === "HR Hub") return canAccessArea(role, "hr", userRole);
+    if (hub.title === "Development Hub") return canAccessArea(role, "development", userRole);
+    if (hub.title === "Program Hub") return canAccessArea(role, "program", userRole);
+    if (hub.title === "Compliance Hub") return canAccessArea(role, "finance", userRole);
     return true;
   });
 
@@ -298,15 +302,17 @@ export function AppSidebar() {
             <nav className="px-2 space-y-1">
               {/* Main Navigation */}
               <NavItem to="/dashboard" icon={<LayoutDashboard className="w-4 h-4" />} label={isCollapsed ? "" : "Dashboard"} />
-              <NavItem to="/modules/ngo-coordination" icon={<Bot className="w-4 h-4" />} label={isCollapsed ? "" : "HPG Assistant"} />
+              {canAccessArea(role, "ngos", userRole) && <NavItem to="/modules/ngo-coordination" icon={<Bot className="w-4 h-4" />} label={isCollapsed ? "" : "HPG Assistant"} />}
               <NavItem to="/my-queue" icon={<ListChecks className="w-4 h-4" />} label={isCollapsed ? "" : "My Queue"} />
               <NavItem to="/dept-queue" icon={<Users className="w-4 h-4" />} label={isCollapsed ? "" : "Dept Queue"} />
-              <NavItem to="/ngos" icon={<Building2 className="w-4 h-4" />} label={isCollapsed ? "" : "NGOs"} />
-              <NavItem to="/ngo-coordination/onboarding" icon={<Rocket className="w-4 h-4" />} label={isCollapsed ? "" : "NGO Onboarding"} />
-              <NavItem to="/ngo-missing-items" icon={<AlertTriangle className="w-4 h-4" />} label={isCollapsed ? "" : "NGO Missing Items"} />
+              {canAccessArea(role, "ngos", userRole) && <NavItem to="/ngos" icon={<Building2 className="w-4 h-4" />} label={isCollapsed ? "" : "NGOs"} />}
+              {canAccessArea(role, "ngos", userRole) && <NavItem to="/ngo-coordination/onboarding" icon={<Rocket className="w-4 h-4" />} label={isCollapsed ? "" : "NGO Onboarding"} />}
+              {canManageNgoAccess && <NavItem to="/ngo-access" icon={<UserPlus className="w-4 h-4" />} label={isCollapsed ? "" : "NGO Portal Access"} />}
+              {canAccessArea(role, "ngos", userRole) && <NavItem to="/ngo-missing-items" icon={<AlertTriangle className="w-4 h-4" />} label={isCollapsed ? "" : "NGO Missing Items"} />}
               <NavItem to="/work-items" icon={<ClipboardList className="w-4 h-4" />} label={isCollapsed ? "" : "Work Items"} badge={activeWorkItemCount} />
               <NavItem to="/forms" icon={<FileText className="w-4 h-4" />} label={isCollapsed ? "" : "Forms"} />
               <NavItem to="/department-forms" icon={<FolderKanban className="w-4 h-4" />} label={isCollapsed ? "" : "Department Forms"} />
+              {canAccessArea(role, "development", userRole) || canAccessArea(role, "finance", userRole) || canAccessArea(role, "communications", userRole) ? <NavItem to="/proposal-collaboration" icon={<Combine className="w-4 h-4" />} label={isCollapsed ? "" : "Proposal Collaboration"} /> : null}
               <NavItem to="/documents" icon={<FolderOpen className="w-4 h-4" />} label={isCollapsed ? "" : "Documents"} />
               <NavItem to="/calendar" icon={<Calendar className="w-4 h-4" />} label={isCollapsed ? "" : "Calendar"} />
 
@@ -357,6 +363,11 @@ export function AppSidebar() {
                                   {item.to === "/financial-hub" && location.pathname.startsWith("/financial-hub") && (
                                     <div className="ml-5 space-y-0.5">
                                       <NavItem to="/financial-hub/operations" icon={<ClipboardList className="w-3.5 h-3.5" />} label="Operations" />
+                                      <NavItem to="/financial-hub/ngo-review" icon={<FileCheck2 className="w-3.5 h-3.5" />} label="NGO Review" />
+                                      <NavItem to="/financial-hub/ngo-funding" icon={<Landmark className="w-3.5 h-3.5" />} label="NGO Funding" />
+                                      <NavItem to="/financial-hub/form-990" icon={<FileCheck2 className="w-3.5 h-3.5" />} label="Form 990 Center" />
+                                      <NavItem to="/financial-hub/analysis" icon={<BarChart3 className="w-3.5 h-3.5" />} label="Analysis & Forecasting" />
+                                      <NavItem to="/financial-hub/advanced" icon={<Coins className="w-3.5 h-3.5" />} label="Advanced Accounting" />
                                       <NavItem to="/financial-hub/accounting/chart-of-accounts" icon={<Layers className="w-3.5 h-3.5" />} label="Chart of Accounts" />
                                       <NavItem to="/financial-hub/accounting/journal-entries" icon={<FileText className="w-3.5 h-3.5" />} label="Journal Entries" />
                                       <NavItem to="/financial-hub/accounting/transactions" icon={<ClipboardList className="w-3.5 h-3.5" />} label="Transactions" />
@@ -398,7 +409,7 @@ export function AppSidebar() {
                   <NavItem to="/reports" icon={<BarChart3 className="w-4 h-4" />} label="" />
                 )}
                 <NavItem to="/automations" icon={<Zap className="w-4 h-4" />} label={isCollapsed ? "" : "Automations"} />
-                <NavItem to={canAccessAdminConfig ? "/admin/config" : "/admin"} icon={<Settings className="w-4 h-4" />} label={isCollapsed ? "" : "Admin"} />
+                {canAccessAdminConfig && <NavItem to="/admin/config" icon={<Settings className="w-4 h-4" />} label={isCollapsed ? "" : "Admin"} />}
               </div>
             </nav>
           </ScrollArea>

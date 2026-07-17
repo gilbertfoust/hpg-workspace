@@ -58,7 +58,7 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     return <Navigate to="/dashboard" replace />;
   }
 
-  if (!canAccessRoute(role?.role, location.pathname)) {
+  if (!canAccessRoute(role?.role, location.pathname, role)) {
     return <Navigate to="/dashboard" replace />;
   }
 

@@ -21,30 +21,50 @@ import { Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
+import { useOrgUnits } from "@/hooks/useOrgUnits";
+import { useNGOs } from "@/hooks/useNGOs";
+import { ADMIN_ASSIGNABLE_ROLES } from "@/lib/accessControl";
 
-const ALL_ROLES = [
-  { value: "super_admin", label: "Super Admin" },
-  { value: "admin_pm", label: "Admin PM" },
-  { value: "executive_secretariat", label: "Executive Secretariat" },
-  { value: "ngo_coordinator", label: "NGO Coordinator" },
-  { value: "department_lead", label: "Department Lead" },
-  { value: "staff_member", label: "Staff Member" },
-  { value: "external_ngo", label: "External NGO Portal" },
-];
+const ALL_ROLES = ADMIN_ASSIGNABLE_ROLES;
+const ORG_RANKS = [
+  ["chief_executive", "Chief Executive"],
+  ["executive_vice_president", "Executive Vice President"],
+  ["vice_president", "Vice President"],
+  ["director", "Director"],
+  ["manager", "Manager"],
+  ["specialist", "Specialist"],
+  ["coordinator", "Coordinator"],
+  ["associate", "Associate"],
+  ["staff", "Staff"],
+] as const;
+const NGO_ACCESS_LEVELS = [
+  ["viewer", "Viewer"],
+  ["preparer", "Accounting Preparer"],
+  ["approver", "Quarterly Approver"],
+  ["ngo_admin", "NGO Administrator"],
+] as const;
 
 interface CreateUserDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  ngoOnly?: boolean;
 }
 
-export default function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) {
+export default function CreateUserDialog({ open, onOpenChange, ngoOnly = false }: CreateUserDialogProps) {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState("staff_member");
+  const [role, setRole] = useState(ngoOnly ? "external_ngo" : "staff_member");
+  const [departmentId, setDepartmentId] = useState("");
+  const [orgRank, setOrgRank] = useState("staff");
+  const [ngoId, setNgoId] = useState("");
+  const [ngoAccessLevel, setNgoAccessLevel] = useState("preparer");
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { data: orgUnits = [] } = useOrgUnits();
+  const { data: ngos = [] } = useNGOs();
+  const isNgoRole = role === "external_ngo" || role === "ngo_user";
 
   const handleCreate = async () => {
     if (!fullName || !email || !password) {
@@ -55,11 +75,28 @@ export default function CreateUserDialog({ open, onOpenChange }: CreateUserDialo
       toast({ variant: "destructive", title: "Password must be at least 8 characters" });
       return;
     }
+    if (isNgoRole && !ngoId) {
+      toast({ variant: "destructive", title: "Select the NGO this user belongs to" });
+      return;
+    }
+    if (!isNgoRole && !departmentId) {
+      toast({ variant: "destructive", title: "Select the staff member's department" });
+      return;
+    }
 
     setLoading(true);
     try {
       const { data, error } = await supabase!.functions.invoke("admin-create-user", {
-        body: { email, password, full_name: fullName, role },
+        body: {
+          email,
+          password,
+          full_name: fullName,
+          role,
+          department_id: isNgoRole ? null : departmentId,
+          org_rank: isNgoRole ? null : orgRank,
+          ngo_id: isNgoRole ? ngoId : null,
+          ngo_access_level: isNgoRole ? ngoAccessLevel : null,
+        },
       });
 
       if (error) throw error;
@@ -71,7 +108,11 @@ export default function CreateUserDialog({ open, onOpenChange }: CreateUserDialo
       setFullName("");
       setEmail("");
       setPassword("");
-      setRole("staff_member");
+      setRole(ngoOnly ? "external_ngo" : "staff_member");
+      setDepartmentId("");
+      setOrgRank("staff");
+      setNgoId("");
+      setNgoAccessLevel("preparer");
       onOpenChange(false);
     } catch (err: any) {
       toast({ variant: "destructive", title: "Failed to create user", description: err.message });
@@ -86,7 +127,9 @@ export default function CreateUserDialog({ open, onOpenChange }: CreateUserDialo
         <DialogHeader>
           <DialogTitle>Create New User</DialogTitle>
           <DialogDescription>
-            Add a new user to the system. They will be able to sign in immediately.
+            {ngoOnly
+              ? "Create an NGO-scoped portal account. It cannot open HPG's internal workspace."
+              : "Create a staff or NGO user and assign the department, rank, and access boundary."}
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
@@ -119,7 +162,7 @@ export default function CreateUserDialog({ open, onOpenChange }: CreateUserDialo
               onChange={(e) => setPassword(e.target.value)}
             />
           </div>
-          <div className="space-y-2">
+          {!ngoOnly && <div className="space-y-2">
             <Label>Role</Label>
             <Select value={role} onValueChange={setRole}>
               <SelectTrigger>
@@ -133,7 +176,49 @@ export default function CreateUserDialog({ open, onOpenChange }: CreateUserDialo
                 ))}
               </SelectContent>
             </Select>
-          </div>
+          </div>}
+          {!isNgoRole && (
+            <>
+              <div className="space-y-2">
+                <Label>Department</Label>
+                <Select value={departmentId} onValueChange={setDepartmentId}>
+                  <SelectTrigger><SelectValue placeholder="Select department" /></SelectTrigger>
+                  <SelectContent>
+                    {orgUnits.map((unit) => (
+                      <SelectItem key={unit.id} value={unit.id}>
+                        {unit.department_name}{unit.sub_department_name ? ` — ${unit.sub_department_name}` : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Organization rank</Label>
+                <Select value={orgRank} onValueChange={setOrgRank}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>{ORG_RANKS.map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+            </>
+          )}
+          {isNgoRole && (
+            <>
+              <div className="space-y-2">
+                <Label>NGO</Label>
+                <Select value={ngoId} onValueChange={setNgoId}>
+                  <SelectTrigger><SelectValue placeholder="Select NGO" /></SelectTrigger>
+                  <SelectContent>{ngos.map((ngo) => <SelectItem key={ngo.id} value={ngo.id}>{ngo.common_name || ngo.legal_name}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>NGO portal access</Label>
+                <Select value={ngoAccessLevel} onValueChange={setNgoAccessLevel}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>{NGO_ACCESS_LEVELS.map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+            </>
+          )}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
