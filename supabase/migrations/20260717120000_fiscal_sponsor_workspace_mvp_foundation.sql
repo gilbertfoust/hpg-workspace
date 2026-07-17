@@ -133,7 +133,7 @@ grant execute on function public.is_department_member(uuid) to authenticated;
 
 -- The canonical work_items.department_id FK targets org_units. Resolve module
 -- ownership there and retire the incompatible legacy departments-table lookup.
-create or replace function public.resolve_work_item_department(p_module public.module_type)
+create or replace function public.resolve_work_item_department(p_module text)
 returns uuid
 language sql
 stable
@@ -163,8 +163,8 @@ as $$
   limit 1;
 $$;
 
-revoke all on function public.resolve_work_item_department(public.module_type) from public, anon;
-grant execute on function public.resolve_work_item_department(public.module_type) to authenticated, service_role;
+revoke all on function public.resolve_work_item_department(text) from public, anon;
+grant execute on function public.resolve_work_item_department(text) to authenticated, service_role;
 
 create or replace function public.assign_work_item_department_from_module()
 returns trigger
@@ -177,7 +177,7 @@ begin
     tg_op = 'UPDATE' and new.module is distinct from old.module
       and new.department_id is not distinct from old.department_id
   ) then
-    new.department_id := public.resolve_work_item_department(new.module);
+    new.department_id := public.resolve_work_item_department(new.module::text);
   end if;
   return new;
 end;
@@ -196,8 +196,25 @@ alter table public.work_items
   add column if not exists deleted_at timestamptz,
   add column if not exists deleted_by_user_id uuid references public.profiles(id) on delete set null,
   add column if not exists delete_reason text,
+  add column if not exists source_system text default 'workspace',
+  add column if not exists source_event_id text,
+  add column if not exists trello_workspace_id text,
+  add column if not exists trello_board_id text,
+  add column if not exists trello_list_id text,
   add column if not exists sync_version bigint not null default 1,
   add column if not exists last_external_sync_at timestamptz;
+
+update public.work_items
+set source_system = 'workspace'
+where source_system is null;
+
+alter table public.work_items
+  alter column source_system set default 'workspace',
+  alter column source_system set not null;
+
+create unique index if not exists work_items_source_event_unique_idx
+  on public.work_items(source_system, source_event_id)
+  where source_event_id is not null;
 
 create table if not exists public.work_item_assignees (
   work_item_id uuid not null references public.work_items(id) on delete cascade,
@@ -743,7 +760,7 @@ begin
   end if;
   target_department_id := coalesce(
     target_department_id,
-    public.resolve_work_item_department(template_row.module)
+    public.resolve_work_item_department(template_row.module::text)
   );
   if target_department_id is null then
     raise exception 'No active department route is configured for module %', template_row.module;
@@ -924,7 +941,7 @@ begin
     'ngo_document_upload',
     'Review NGO upload — ' || new.file_name,
     'An NGO portal user uploaded a document for departmental review.',
-    public.resolve_work_item_department(target_module),
+    public.resolve_work_item_department(target_module::text),
     new.uploaded_by_user_id,
     'not_started',
     'medium',
@@ -992,8 +1009,57 @@ using (public.is_admin_user() or uploaded_by_user_id = auth.uid());
 -- Trello inbound sync support
 -- ---------------------------------------------------------------------------
 
+create table if not exists public.trello_route_mappings (
+  id uuid primary key default gen_random_uuid(),
+  route_key text not null unique,
+  department_module text not null,
+  subdepartment_function text,
+  case_type text,
+  operation text not null default 'create_card',
+  workspace_id text,
+  board_id text not null,
+  list_id text not null,
+  completed_list_id text,
+  template_card_id text,
+  default_labels jsonb not null default '[]'::jsonb,
+  default_members jsonb not null default '[]'::jsonb,
+  is_active boolean not null default true,
+  notes text,
+  created_by_user_id uuid references public.profiles(id) on delete set null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
 alter table public.trello_route_mappings
   add column if not exists completed_list_id text;
+
+create table if not exists public.trello_sync_queue (
+  id uuid primary key default gen_random_uuid(),
+  idempotency_key text not null unique,
+  work_item_id uuid references public.work_items(id) on delete cascade,
+  entity_type text not null,
+  entity_id text not null,
+  operation text not null,
+  direction text not null default 'supabase_to_trello',
+  route_key text,
+  payload jsonb not null default '{}'::jsonb,
+  status text not null default 'pending'
+    check (status in ('pending','processing','completed','failed','dead_letter')),
+  attempts integer not null default 0,
+  last_attempt_at timestamptz,
+  next_attempt_at timestamptz,
+  completed_at timestamptz,
+  error_message text,
+  locked_at timestamptz,
+  locked_by text,
+  external_object_id text,
+  external_object_url text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists trello_sync_queue_pending_idx
+  on public.trello_sync_queue(status, next_attempt_at, created_at);
 
 create table if not exists public.trello_member_mappings (
   trello_member_id text primary key,
@@ -1021,6 +1087,23 @@ create table if not exists public.integration_webhook_events (
 
 alter table public.trello_member_mappings enable row level security;
 alter table public.integration_webhook_events enable row level security;
+alter table public.trello_route_mappings enable row level security;
+alter table public.trello_sync_queue enable row level security;
+drop policy if exists "Internal users read Trello routes"
+  on public.trello_route_mappings;
+create policy "Internal users read Trello routes"
+  on public.trello_route_mappings for select to authenticated
+  using (public.is_internal_user());
+drop policy if exists "Admins manage Trello routes"
+  on public.trello_route_mappings;
+create policy "Admins manage Trello routes"
+  on public.trello_route_mappings for all to authenticated
+  using (public.is_admin_user()) with check (public.is_admin_user());
+drop policy if exists "Admins read Trello sync queue"
+  on public.trello_sync_queue;
+create policy "Admins read Trello sync queue"
+  on public.trello_sync_queue for select to authenticated
+  using (public.is_admin_user());
 create policy "Internal users read Trello member mappings"
   on public.trello_member_mappings for select to authenticated
   using (public.is_internal_user());
@@ -1030,6 +1113,10 @@ create policy "Admins manage Trello member mappings"
 create policy "Admins read integration webhook events"
   on public.integration_webhook_events for select to authenticated
   using (public.is_admin_user());
+
+grant select, insert, update, delete on public.trello_route_mappings to authenticated;
+grant select on public.trello_sync_queue to authenticated;
+grant all on public.trello_route_mappings, public.trello_sync_queue to service_role;
 
 create or replace function public.queue_workspace_work_item_trello_change()
 returns trigger
@@ -1311,7 +1398,7 @@ create policy "Technology reads monthly usage audits"
   on public.system_usage_monthly_reports for select to authenticated
   using (
     public.is_admin_user()
-    or public.is_department_member(public.resolve_work_item_department('it'::public.module_type))
+    or public.is_department_member(public.resolve_work_item_department('it'))
   );
 drop policy if exists "Technology manages monthly usage audits"
   on public.system_usage_monthly_reports;
@@ -1319,11 +1406,11 @@ create policy "Technology manages monthly usage audits"
   on public.system_usage_monthly_reports for all to authenticated
   using (
     public.is_admin_user()
-    or public.is_department_member(public.resolve_work_item_department('it'::public.module_type))
+    or public.is_department_member(public.resolve_work_item_department('it'))
   )
   with check (
     public.is_admin_user()
-    or public.is_department_member(public.resolve_work_item_department('it'::public.module_type))
+    or public.is_department_member(public.resolve_work_item_department('it'))
   );
 
 insert into public.system_usage_monthly_reports(provider, reporting_month, status)

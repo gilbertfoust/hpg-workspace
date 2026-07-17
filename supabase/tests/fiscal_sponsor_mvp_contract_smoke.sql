@@ -27,6 +27,9 @@ begin
   if to_regprocedure('public.create_finance_account(text,text,public.finance_account_type,text,uuid,public.finance_normal_balance,boolean,boolean,text,text,text,text,text)') is null then
     missing_contracts := array_append(missing_contracts, 'create_finance_account');
   end if;
+  if to_regprocedure('public.resolve_work_item_department(text)') is null then
+    missing_contracts := array_append(missing_contracts, 'resolve_work_item_department');
+  end if;
 
   if cardinality(missing_contracts) > 0 then
     raise exception 'Missing MVP functions: %', array_to_string(missing_contracts, ', ');
@@ -84,6 +87,12 @@ begin
   end if;
   if to_regclass('public.system_usage_monthly_reports') is null then
     missing_tables := array_append(missing_tables, 'system_usage_monthly_reports');
+  end if;
+  if to_regclass('public.trello_route_mappings') is null then
+    missing_tables := array_append(missing_tables, 'trello_route_mappings');
+  end if;
+  if to_regclass('public.trello_sync_queue') is null then
+    missing_tables := array_append(missing_tables, 'trello_sync_queue');
   end if;
 
   if cardinality(missing_tables) > 0 then
