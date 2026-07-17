@@ -6,6 +6,23 @@
     <title>Your App</title>
   </head>
   <body>
+    <script>
+      // Restore a GitHub Pages deep link before React Router reads the URL.
+      (function () {
+        var params = new URLSearchParams(window.location.search);
+        var redirect = params.get('spa_redirect');
+        if (!redirect) return;
+
+        var base = window.location.pathname.endsWith('/')
+          ? window.location.pathname
+          : window.location.pathname + '/';
+        window.history.replaceState(
+          null,
+          '',
+          base + redirect.replace(/^\//, '')
+        );
+      })();
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
