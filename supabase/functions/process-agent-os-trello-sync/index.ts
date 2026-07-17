@@ -1,29 +1,31 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
+import {
+  createClient,
+  type SupabaseClient,
+} from "https://esm.sh/@supabase/supabase-js@2.49.4";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-agent-os-worker-secret",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-agent-os-worker-secret, x-work-item-trello-secret",
 };
 
 const internalRoles = new Set([
-  "staff",
   "super_admin",
   "admin_pm",
   "ngo_coordinator",
   "department_lead",
   "executive_secretariat",
+  "staff_member",
+  "vp_finance",
 ]);
 
-type SupabaseAdmin = any;
-
-type TrelloQueueRecord = {
+type QueueItem = {
   id: string;
-  case_registry_id: string | null;
   work_item_id: string | null;
   entity_type: string;
   entity_id: string;
   operation: string;
-  direction: "supabase_to_trello" | "trello_to_supabase";
+  direction: string;
   route_key: string | null;
   payload: Record<string, unknown>;
   status: string;
@@ -41,146 +43,78 @@ type TrelloRoute = {
   is_active: boolean;
 };
 
-function jsonResponse(payload: Record<string, unknown>, status = 200) {
-  return new Response(JSON.stringify(payload), {
+const json = (body: Record<string, unknown>, status = 200) =>
+  new Response(JSON.stringify(body), {
     status,
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
-}
 
-function safeLimit(value: unknown) {
-  return typeof value === "number" && Number.isFinite(value)
-    ? Math.min(Math.max(Math.trunc(value), 1), 50)
-    : 10;
-}
-
-function retryDelayMinutes(attempts: number) {
-  return attempts <= 1 ? 5 : 15;
-}
-
-function text(value: unknown, max = 16000) {
+const cleanText = (value: unknown, max = 16_000) => {
   const result = String(value ?? "").trim();
   return result.length > max ? result.slice(0, max) : result;
-}
+};
 
-async function requireAuthorizedCaller(req: Request, supabase: SupabaseAdmin) {
-  const configuredWorkerSecret = Deno.env.get("AGENT_OS_WORKER_SECRET") || "";
-  const suppliedWorkerSecret = req.headers.get("x-agent-os-worker-secret") || "";
+const safeLimit = (value: unknown) =>
+  typeof value === "number" && Number.isFinite(value)
+    ? Math.min(Math.max(Math.trunc(value), 1), 50)
+    : 10;
 
-  if (configuredWorkerSecret && suppliedWorkerSecret === configuredWorkerSecret) {
-    return { allowed: true as const, mode: "worker_secret" as const, userId: null };
+async function authorize(request: Request, db: SupabaseClient) {
+  const configuredSecret = Deno.env.get("WORK_ITEM_TRELLO_SYNC_SECRET")
+    || Deno.env.get("AGENT_OS_WORKER_SECRET")
+    || "";
+  const suppliedSecret = request.headers.get("x-work-item-trello-secret")
+    || request.headers.get("x-agent-os-worker-secret")
+    || "";
+  if (configuredSecret && suppliedSecret === configuredSecret) {
+    return { allowed: true as const, mode: "worker_secret" };
   }
 
-  const token = (req.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "").trim();
+  const token = (request.headers.get("Authorization") || "")
+    .replace(/^Bearer\s+/i, "")
+    .trim();
   if (!token) return { allowed: false as const, status: 401, reason: "Authentication required." };
 
-  const { data: userData, error: userError } = await supabase.auth.getUser(token);
+  const { data: userData, error: userError } = await db.auth.getUser(token);
   if (userError || !userData.user) {
     return { allowed: false as const, status: 401, reason: "Authentication could not be verified." };
   }
 
-  const { data: profile, error: profileError } = await supabase
+  const { data: profile, error: profileError } = await db
     .from("profiles")
     .select("role")
     .eq("id", userData.user.id)
     .maybeSingle();
-
   if (profileError) throw profileError;
   if (!profile || !internalRoles.has(String(profile.role))) {
     return { allowed: false as const, status: 403, reason: "Internal staff access is required." };
   }
-
-  return { allowed: true as const, mode: "internal_user" as const, userId: userData.user.id };
+  return { allowed: true as const, mode: "internal_user" };
 }
 
-async function updateQueue(
-  supabase: SupabaseAdmin,
-  id: string,
-  values: Record<string, unknown>,
-) {
-  const { error } = await supabase
-    .from("trello_sync_queue")
-    .update({
-      ...values,
-      locked_at: null,
-      locked_by: null,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", id);
-  if (error) throw error;
-}
-
-async function recordRun(
-  supabase: SupabaseAdmin,
-  item: TrelloQueueRecord,
-  status: string,
-  resultSummary: string,
-  errorDetail?: string,
-) {
-  const runKey = `trello:${item.id}:attempt:${item.attempts}`;
-  const { error } = await supabase.from("agent_runs").upsert(
-    {
-      run_key: runKey,
-      agent_name: "Agent OS Trello Sync Worker",
-      agent_role: "Controlled Trello Synchronization Processor",
-      case_registry_id: item.case_registry_id,
-      work_item_id: item.work_item_id,
-      trigger_type: "trello_sync_queue",
-      source_event_id: item.id,
-      status,
-      confidence: "high",
-      systems_consulted: ["trello_sync_queue", "trello_route_mappings", "trello"],
-      sources_used: [{ queue_record_id: item.id, route_key: item.route_key }],
-      action_attempted: `${item.direction}:${item.operation}`,
-      approval_required: false,
-      records_changed: [{ table: "trello_sync_queue", id: item.id }],
-      result_summary: resultSummary,
-      error_detail: errorDetail || null,
-      retry_count: Math.max(item.attempts - 1, 0),
-      completed_at: new Date().toISOString(),
-      metadata: {
-        entity_type: item.entity_type,
-        entity_id: item.entity_id,
-        direction: item.direction,
-      },
-    },
-    { onConflict: "run_key" },
-  );
-  if (error) console.error("Could not record Trello Agent OS run", error.message);
-}
-
-async function findRoute(
-  supabase: SupabaseAdmin,
-  item: TrelloQueueRecord,
-): Promise<TrelloRoute | null> {
-  const requestedRoute = item.route_key || text(item.payload?.route_key, 200);
-
-  if (requestedRoute) {
-    const { data, error } = await supabase
+async function findRoute(db: SupabaseClient, item: QueueItem): Promise<TrelloRoute | null> {
+  const requested = item.route_key || cleanText(item.payload?.route_key, 200);
+  if (requested) {
+    const { data, error } = await db
       .from("trello_route_mappings")
-      .select("route_key, workspace_id, board_id, list_id, template_card_id, default_labels, default_members, is_active")
-      .eq("route_key", requestedRoute)
+      .select("route_key,workspace_id,board_id,list_id,template_card_id,default_labels,default_members,is_active")
+      .eq("route_key", requested)
       .eq("is_active", true)
       .maybeSingle();
     if (error) throw error;
     return data as TrelloRoute | null;
   }
 
-  const departmentModule = text(item.payload?.department_module, 120);
-  const caseType = text(item.payload?.case_type, 120);
-  if (!departmentModule) return null;
-
-  let query = supabase
+  const moduleName = cleanText(item.payload?.department_module, 120);
+  if (!moduleName) return null;
+  const { data, error } = await db
     .from("trello_route_mappings")
-    .select("route_key, workspace_id, board_id, list_id, template_card_id, default_labels, default_members, is_active")
-    .eq("department_module", departmentModule)
-    .eq("operation", item.operation)
+    .select("route_key,workspace_id,board_id,list_id,template_card_id,default_labels,default_members,is_active")
+    .eq("department_module", moduleName)
     .eq("is_active", true)
     .order("created_at", { ascending: true })
-    .limit(1);
-
-  if (caseType) query = query.or(`case_type.eq.${caseType},case_type.is.null`);
-  const { data, error } = await query.maybeSingle();
+    .limit(1)
+    .maybeSingle();
   if (error) throw error;
   return data as TrelloRoute | null;
 }
@@ -194,259 +128,264 @@ async function trelloRequest(
 ) {
   params.set("key", key);
   params.set("token", token);
-
   const response = await fetch(`https://api.trello.com/1${path}`, {
     method,
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: params.toString(),
   });
-
-  const payload = await response.json().catch(() => ({} as Record<string, unknown>));
+  const body = await response.json().catch(() => ({} as Record<string, unknown>));
   if (!response.ok) {
-    const detail = text(payload?.message || payload?.error || "Trello rejected the request.", 300);
-    throw new Error(`Trello request failed (${response.status}): ${detail}`);
+    throw new Error(
+      `Trello request failed (${response.status}): ${cleanText(body?.message || body?.error || "Unknown error", 300)}`,
+    );
   }
-  return payload as Record<string, unknown>;
+  return body as Record<string, unknown>;
+}
+
+async function mappedOwnerMember(db: SupabaseClient, item: QueueItem) {
+  const ownerId = cleanText(item.payload?.owner_user_id, 100);
+  if (!ownerId) return null;
+  const { data, error } = await db
+    .from("trello_member_mappings")
+    .select("trello_member_id")
+    .eq("user_id", ownerId)
+    .eq("is_active", true)
+    .limit(1)
+    .maybeSingle();
+  if (error) throw error;
+  return data?.trello_member_id || null;
 }
 
 async function createCard(
-  item: TrelloQueueRecord,
+  db: SupabaseClient,
+  item: QueueItem,
   route: TrelloRoute,
   key: string,
   token: string,
 ) {
-  const title = text(item.payload?.title || item.payload?.name || item.entity_id, 16384);
+  const title = cleanText(item.payload?.title || item.entity_id, 16_384);
   if (!title) throw new Error("Trello card title is missing.");
-
-  const description = text(
-    item.payload?.description ||
-      [
-        text(item.payload?.reference_number, 200),
-        text(item.payload?.case_type, 200),
-        text(item.payload?.source_table, 200),
-        text(item.payload?.source_record_id, 200),
-      ].filter(Boolean).join("\n"),
-    16384,
-  );
-
   const params = new URLSearchParams({
     idList: route.list_id,
     name: title,
-    desc: description,
+    desc: cleanText(item.payload?.description),
     pos: "bottom",
   });
-
+  const dueDate = cleanText(item.payload?.due_date, 100);
+  if (dueDate) params.set("due", dueDate);
   if (route.template_card_id) {
     params.set("idCardSource", route.template_card_id);
     params.set("keepFromSource", "all");
   }
-
+  const members = new Set(
+    Array.isArray(route.default_members) ? route.default_members.filter(Boolean) : [],
+  );
+  const mappedOwner = await mappedOwnerMember(db, item);
+  if (mappedOwner) members.add(mappedOwner);
   const labels = Array.isArray(route.default_labels) ? route.default_labels.filter(Boolean) : [];
-  const members = Array.isArray(route.default_members) ? route.default_members.filter(Boolean) : [];
+  if (members.size) params.set("idMembers", [...members].join(","));
   if (labels.length) params.set("idLabels", labels.join(","));
-  if (members.length) params.set("idMembers", members.join(","));
-
   return await trelloRequest("/cards", "POST", params, key, token);
 }
 
 async function updateCard(
-  item: TrelloQueueRecord,
+  db: SupabaseClient,
+  item: QueueItem,
   key: string,
   token: string,
 ) {
-  const cardId = text(item.payload?.card_id || item.payload?.trello_card_id, 200);
+  const cardId = cleanText(item.payload?.card_id || item.payload?.trello_card_id, 200);
   if (!cardId) throw new Error("Trello card ID is missing for update.");
-
   const params = new URLSearchParams();
-  const name = text(item.payload?.title || item.payload?.name, 16384);
-  const description = text(item.payload?.description, 16384);
-  const listId = text(item.payload?.list_id, 200);
-  const closed = item.payload?.closed;
-
-  if (name) params.set("name", name);
+  const title = cleanText(item.payload?.title, 16_384);
+  const description = cleanText(item.payload?.description);
+  const listId = cleanText(item.payload?.list_id, 200);
+  const dueDate = cleanText(item.payload?.due_date, 100);
+  if (title) params.set("name", title);
   if (description) params.set("desc", description);
   if (listId) params.set("idList", listId);
-  if (typeof closed === "boolean") params.set("closed", closed ? "true" : "false");
-  if ([...params.keys()].length === 0) {
-    throw new Error("No supported Trello card update fields were provided.");
+  if (dueDate) params.set("due", dueDate);
+  if (typeof item.payload?.closed === "boolean") {
+    params.set("closed", item.payload.closed ? "true" : "false");
+  }
+  if ([...params.keys()].length) {
+    await trelloRequest(`/cards/${encodeURIComponent(cardId)}`, "PUT", params, key, token);
   }
 
-  return await trelloRequest(`/cards/${encodeURIComponent(cardId)}`, "PUT", params, key, token);
+  const mappedOwner = await mappedOwnerMember(db, item);
+  if (mappedOwner) {
+    await trelloRequest(
+      `/cards/${encodeURIComponent(cardId)}/idMembers`,
+      "POST",
+      new URLSearchParams({ value: mappedOwner }),
+      key,
+      token,
+    );
+  }
+  return { id: cardId };
 }
 
-async function persistExternalCard(
-  supabase: SupabaseAdmin,
-  item: TrelloQueueRecord,
-  cardId: string | null,
-  cardUrl: string | null,
-  route: TrelloRoute | null,
+async function updateQueue(
+  db: SupabaseClient,
+  id: string,
+  values: Record<string, unknown>,
 ) {
-  if (item.case_registry_id && cardId) {
-    const { error } = await supabase
-      .from("case_registry")
-      .update({
-        trello_workspace_id: route?.workspace_id || null,
-        trello_board_id: route?.board_id || null,
-        trello_list_id: route?.list_id || null,
-        trello_card_id: cardId,
-      })
-      .eq("id", item.case_registry_id);
-    if (error) throw error;
-  }
-
-  if (item.work_item_id && cardId) {
-    const { error } = await supabase
-      .from("work_items")
-      .update({
-        trello_workspace_id: route?.workspace_id || null,
-        trello_board_id: route?.board_id || null,
-        trello_list_id: route?.list_id || null,
-        trello_card_id: cardId,
-      })
-      .eq("id", item.work_item_id);
-    if (error) throw error;
-  }
-
-  await updateQueue(supabase, item.id, {
-    status: "completed",
-    completed_at: new Date().toISOString(),
-    external_object_id: cardId,
-    external_object_url: cardUrl,
-    route_key: route?.route_key || item.route_key,
-    next_attempt_at: null,
-    error_message: null,
-  });
+  const { error } = await db
+    .from("trello_sync_queue")
+    .update({
+      ...values,
+      locked_at: null,
+      locked_by: null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", id);
+  if (error) throw error;
 }
 
-Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
-  if (req.method !== "POST") return jsonResponse({ error: "Use POST." }, 405);
+Deno.serve(async (request) => {
+  if (request.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  if (request.method !== "POST") return json({ error: "Use POST." }, 405);
 
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-    if (!supabaseUrl || !serviceRoleKey) return jsonResponse({ error: "Server configuration missing." }, 500);
+    if (!supabaseUrl || !serviceRoleKey) return json({ error: "Server configuration missing." }, 500);
+    const db = createClient(supabaseUrl, serviceRoleKey, { auth: { persistSession: false } });
+    const caller = await authorize(request, db);
+    if (!caller.allowed) return json({ error: caller.reason }, caller.status);
 
-    const supabase = createClient(supabaseUrl, serviceRoleKey, {
-      auth: { persistSession: false },
-    }) as SupabaseAdmin;
-    const caller = await requireAuthorizedCaller(req, supabase);
-    if (!caller.allowed) return jsonResponse({ error: caller.reason }, caller.status);
-
-    const body = await req.json().catch(() => ({} as Record<string, unknown>));
+    const body = await request.json().catch(() => ({} as Record<string, unknown>));
     const limit = safeLimit(body.limit);
     const liveRequested = body.live === true;
-    const liveEnabled = Deno.env.get("AGENT_OS_TRELLO_LIVE") === "true";
-    const live = liveRequested && liveEnabled;
+    const liveEnabled = Deno.env.get("WORK_ITEM_TRELLO_SYNC_LIVE") === "true"
+      || Deno.env.get("AGENT_OS_TRELLO_LIVE") === "true";
 
-    if (!live) {
-      const { data, error } = await supabase
-        .from("agent_os_trello_route_readiness")
-        .select("queue_id, case_registry_id, operation, status, attempts, requested_route_key, route_readiness, department_module, board_id, list_id, template_card_id, created_at")
+    if (!liveRequested || !liveEnabled) {
+      const { data, error } = await db
+        .from("trello_sync_queue")
+        .select("id,work_item_id,entity_type,entity_id,operation,route_key,status,attempts,created_at")
         .eq("status", "pending")
         .order("created_at", { ascending: true })
         .limit(limit);
       if (error) throw error;
-
-      return jsonResponse({
+      return json({
         mode: "dry_run",
         live_requested: liveRequested,
         live_enabled: liveEnabled,
         eligible_count: data?.length || 0,
         eligible: data || [],
-        note: "No Trello operation was claimed or executed.",
       });
     }
 
     const trelloKey = Deno.env.get("TRELLO_API_KEY");
     const trelloToken = Deno.env.get("TRELLO_API_TOKEN");
     if (!trelloKey || !trelloToken) {
-      return jsonResponse({ error: "Live Trello synchronization is enabled but credentials are incomplete." }, 503);
+      return json({ error: "Live Trello credentials are incomplete." }, 503);
     }
 
-    await supabase.rpc("recover_stale_agent_os_trello_sync");
-    const workerId = `agent-os-trello:${crypto.randomUUID()}`;
-    const { data: claimed, error: claimError } = await supabase.rpc("claim_agent_os_trello_sync", {
-      p_limit: limit,
-      p_worker_id: workerId,
-    });
-    if (claimError) throw claimError;
+    const now = new Date();
+    const staleBefore = new Date(now.getTime() - 15 * 60_000).toISOString();
+    await db.from("trello_sync_queue").update({
+      status: "pending",
+      locked_at: null,
+      locked_by: null,
+      next_attempt_at: now.toISOString(),
+      updated_at: now.toISOString(),
+    }).eq("status", "processing").lt("locked_at", staleBefore);
 
-    const processed: Array<{ id: string; status: string; attempt: number; reason?: string }> = [];
+    const { data: pending, error: pendingError } = await db
+      .from("trello_sync_queue")
+      .select("id,work_item_id,entity_type,entity_id,operation,direction,route_key,payload,status,attempts")
+      .eq("status", "pending")
+      .or(`next_attempt_at.is.null,next_attempt_at.lte.${now.toISOString()}`)
+      .order("created_at", { ascending: true })
+      .limit(limit);
+    if (pendingError) throw pendingError;
 
-    for (const item of (claimed || []) as TrelloQueueRecord[]) {
+    const workerId = `work-item-trello:${crypto.randomUUID()}`;
+    const processed: Array<Record<string, unknown>> = [];
+
+    for (const candidate of (pending || []) as QueueItem[]) {
+      const attempt = (candidate.attempts || 0) + 1;
+      const { data: claimed, error: claimError } = await db
+        .from("trello_sync_queue")
+        .update({
+          status: "processing",
+          attempts: attempt,
+          last_attempt_at: new Date().toISOString(),
+          locked_at: new Date().toISOString(),
+          locked_by: workerId,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", candidate.id)
+        .eq("status", "pending")
+        .select("id,work_item_id,entity_type,entity_id,operation,direction,route_key,payload,status,attempts")
+        .maybeSingle();
+      if (claimError) throw claimError;
+      if (!claimed) continue;
+      const item = claimed as QueueItem;
+
       try {
         if (item.direction !== "supabase_to_trello") {
-          throw new Error("This worker only supports Supabase-to-Trello operations.");
+          throw new Error("Only Workspace-to-Trello queue items are supported.");
         }
-
-        const route = await findRoute(supabase, item);
+        const route = await findRoute(db, item);
         if (!route && item.operation === "create_card") {
-          await updateQueue(supabase, item.id, {
-            status: "blocked",
-            error_message: "An approved Trello route mapping is required before card creation.",
-          });
-          await recordRun(
-            supabase,
-            item,
-            "blocked",
-            "Trello operation blocked because no active route mapping was found.",
-          );
-          processed.push({ id: item.id, status: "blocked", attempt: item.attempts });
-          continue;
+          throw new Error("An active Trello route mapping is required before card creation.");
         }
 
-        let result: Record<string, unknown>;
-        if (item.operation === "create_card") {
-          result = await createCard(item, route as TrelloRoute, trelloKey, trelloToken);
-        } else if (item.operation === "update_card" || item.operation === "move_card") {
-          result = await updateCard(item, trelloKey, trelloToken);
-        } else {
-          throw new Error(`Unsupported Trello operation: ${item.operation}`);
+        const result = item.operation === "create_card"
+          ? await createCard(db, item, route as TrelloRoute, trelloKey, trelloToken)
+          : await updateCard(db, item, trelloKey, trelloToken);
+        const cardId = cleanText(result.id, 200);
+        const cardUrl = cleanText(result.url || result.shortUrl, 1_000);
+
+        if (item.work_item_id && cardId) {
+          const { error } = await db.from("work_items").update({
+            trello_workspace_id: route?.workspace_id || null,
+            trello_board_id: route?.board_id || null,
+            trello_list_id: route?.list_id || null,
+            trello_card_id: cardId,
+            last_external_sync_at: new Date().toISOString(),
+          }).eq("id", item.work_item_id);
+          if (error) throw error;
         }
-
-        const cardId = text(result.id, 200) || null;
-        const cardUrl = text(result.url || result.shortUrl, 1000) || null;
-        await persistExternalCard(supabase, item, cardId, cardUrl, route);
-        await recordRun(supabase, item, "completed", `Trello ${item.operation} completed successfully.`);
-        processed.push({ id: item.id, status: "completed", attempt: item.attempts });
-      } catch (syncError) {
-        const reason = syncError instanceof Error ? syncError.message : "Trello synchronization failed.";
-        const terminal = item.attempts >= 3;
-        const nextAttemptAt = terminal
-          ? null
-          : new Date(Date.now() + retryDelayMinutes(item.attempts) * 60_000).toISOString();
-
-        await updateQueue(supabase, item.id, {
-          status: terminal ? "failed" : "pending",
-          next_attempt_at: nextAttemptAt,
-          error_message: reason.slice(0, 1000),
+        await updateQueue(db, item.id, {
+          status: "completed",
+          completed_at: new Date().toISOString(),
+          next_attempt_at: null,
+          error_message: null,
+          external_object_id: cardId || null,
+          external_object_url: cardUrl || null,
+          route_key: route?.route_key || item.route_key,
         });
-        await recordRun(
-          supabase,
-          item,
-          terminal ? "failed" : "retry_scheduled",
-          terminal
-            ? "Trello synchronization failed after the third attempt."
-            : "Trello synchronization failed and was returned to the queue for retry.",
-          reason,
-        );
+        processed.push({ id: item.id, status: "completed", attempt });
+      } catch (error) {
+        const reason = error instanceof Error ? error.message : String(error);
+        const terminal = attempt >= 3 || reason.includes("route mapping");
+        await updateQueue(db, item.id, {
+          status: terminal ? "failed" : "pending",
+          next_attempt_at: terminal
+            ? null
+            : new Date(Date.now() + (attempt <= 1 ? 5 : 15) * 60_000).toISOString(),
+          error_message: reason.slice(0, 1_000),
+        });
         processed.push({
           id: item.id,
           status: terminal ? "failed" : "retry_scheduled",
-          attempt: item.attempts,
+          attempt,
           reason,
         });
       }
     }
 
-    return jsonResponse({
+    return json({
       mode: "live",
       worker_id: workerId,
-      claimed_count: claimed?.length || 0,
+      claimed_count: processed.length,
       processed,
     });
   } catch (error) {
-    return jsonResponse({ error: error instanceof Error ? error.message : "Unknown error" }, 500);
+    return json({ error: error instanceof Error ? error.message : String(error) }, 500);
   }
 });
