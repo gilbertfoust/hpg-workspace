@@ -6,17 +6,17 @@ import { PortalLayout } from "@/components/layout/PortalLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useAuth } from "@/contexts/AuthContext";
 import { getSupabaseNotConfiguredError, supabase } from "@/integrations/supabase/client";
 import { useDocumentUrl, useUploadDocument } from "@/hooks/useDocuments";
-import { emptyPayloadForFields, useNgoPortalFormTemplates, useSubmitNgoPortalForm } from "@/hooks/useNgoPortalForms";
+import { useNgoPortalFormTemplates } from "@/hooks/useNgoPortalForms";
 import type { FormTemplate } from "@/hooks/useFormTemplates";
+import { FormRunnerSheet } from "@/components/forms/FormRunnerSheet";
+import { useFormAssignments } from "@/hooks/useFormAssignments";
+import type { Json } from "@/integrations/supabase/types";
+import { useCreateFormRevision } from "@/hooks/useFormSubmissions";
 import { NgoFinancePortal } from "@/components/portal/NgoFinancePortal";
 import { NgoOnboardingPortal } from "@/components/portal/NgoOnboardingPortal";
 import { NgoFinancialInsights } from "@/components/portal/NgoFinancialInsights";
@@ -54,6 +54,17 @@ interface CompliancePeriodRow {
   reviewed_at: string | null;
 }
 
+interface PortalRequestSubmissionRow {
+  id: string;
+  ngo_id: string | null;
+  submission_status: string | null;
+  intake_status: string;
+  routed_to_module: string | null;
+  submitted_at: string | null;
+  created_at: string;
+  form_templates: { name: string } | null;
+}
+
 const ensureSupabase = () => { if (!supabase) throw getSupabaseNotConfiguredError(); };
 const formatDate = (v: string | null) => v ? format(new Date(v), "MMM d, yyyy") : "—";
 const formatFileSize = (bytes: number | null) => {
@@ -70,22 +81,7 @@ function StatusBadge({ status }: { status: string | null }) {
 }
 
 function NgoPortalRequestForm({ template, ngoId }: { template: FormTemplate; ngoId: string }) {
-  const submitRequest = useSubmitNgoPortalForm();
-  const [payload, setPayload] = useState<Record<string, string>>(() => emptyPayloadForFields(template.schema_json?.fields || []));
-
-  useEffect(() => {
-    setPayload(emptyPayloadForFields(template.schema_json?.fields || []));
-  }, [template.id, template.schema_json?.fields]);
-
-  const updateField = (name: string, value: string) => setPayload((current) => ({ ...current, [name]: value }));
-
-  const handleSubmit = async () => {
-    const fields = template.schema_json?.fields || [];
-    const missing = fields.find((field) => field.required && !String(payload[field.name] || "").trim());
-    if (missing) throw new Error(`${missing.label} is required.`);
-    await submitRequest.mutateAsync({ formTemplate: template, ngoId, payloadJson: payload });
-    setPayload(emptyPayloadForFields(fields));
-  };
+  const [open, setOpen] = useState(false);
 
   return (
     <Card>
@@ -94,29 +90,75 @@ function NgoPortalRequestForm({ template, ngoId }: { template: FormTemplate; ngo
           <h3 className="text-lg font-semibold">{template.name}</h3>
           <p className="text-sm text-muted-foreground">{template.description}</p>
         </div>
-        <div className="grid gap-4">
-          {(template.schema_json?.fields || []).map((field) => (
-            <div key={field.name} className="space-y-2">
-              <Label>{field.label}{field.required ? " *" : ""}</Label>
-              {field.type === "textarea" ? (
-                <Textarea value={payload[field.name] || ""} onChange={(event) => updateField(field.name, event.target.value)} rows={4} />
-              ) : field.type === "select" ? (
-                <Select value={payload[field.name] || ""} onValueChange={(value) => updateField(field.name, value)}>
-                  <SelectTrigger><SelectValue placeholder="Select an option" /></SelectTrigger>
-                  <SelectContent>{(field.options || []).map((option) => <SelectItem key={option} value={option}>{option}</SelectItem>)}</SelectContent>
-                </Select>
-              ) : (
-                <Input type={field.type === "number" ? "number" : field.type === "date" ? "date" : "text"} value={payload[field.name] || ""} onChange={(event) => updateField(field.name, event.target.value)} />
-              )}
-            </div>
-          ))}
-        </div>
-        <Button onClick={handleSubmit} disabled={submitRequest.isPending}>
-          {submitRequest.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          Submit to NGO Coordination
-        </Button>
+        <Button onClick={() => setOpen(true)}>Open Form</Button>
       </CardContent>
+      <FormRunnerSheet
+        open={open}
+        onOpenChange={setOpen}
+        template={template}
+        initialNgoId={ngoId}
+      />
     </Card>
+  );
+}
+
+function NgoAssignedForms({ ngoId }: { ngoId: string }) {
+  const { data: assignments = [], isLoading } = useFormAssignments({ ngoId });
+  const [activeAssignmentId, setActiveAssignmentId] = useState<string | null>(null);
+  const [revisionSubmission, setRevisionSubmission] = useState<{
+    id: string; ngo_id: string | null; payload_json: unknown; submission_status: string | null;
+  } | null>(null);
+  const createRevision = useCreateFormRevision();
+  const activeAssignment = assignments.find((assignment) => assignment.id === activeAssignmentId) || null;
+  const openAssignments = assignments.filter((assignment) => !['accepted', 'cancelled', 'waived'].includes(assignment.status));
+
+  const openAssignment = async (assignmentId: string) => {
+    const assignment = assignments.find((row) => row.id === assignmentId);
+    if (assignment?.status === 'needs_revision' && assignment.submission?.submission_status === 'rejected') {
+      const revision = await createRevision.mutateAsync(assignment.submission.id);
+      setRevisionSubmission({
+        id: revision.id,
+        ngo_id: revision.ngo_id,
+        payload_json: revision.payload_json,
+        submission_status: revision.submission_status,
+      });
+    } else {
+      setRevisionSubmission(null);
+    }
+    setActiveAssignmentId(assignmentId);
+  };
+
+  if (isLoading) return <div className="py-6 text-center"><Loader2 className="mx-auto h-5 w-5 animate-spin" /></div>;
+  if (openAssignments.length === 0) return null;
+
+  return (
+    <div className="space-y-3">
+      <div><h2 className="text-lg font-semibold">Forms HPG assigned to your NGO</h2><p className="text-sm text-muted-foreground">Drafts remain private until you press Submit.</p></div>
+      <div className="grid gap-4 md:grid-cols-2">
+        {openAssignments.map((assignment) => (
+          <Card key={assignment.id} className="border-primary/30">
+            <CardContent className="p-5 space-y-3">
+              <div><h3 className="font-semibold">{assignment.form_template?.name || 'Assigned form'}</h3><p className="text-sm text-muted-foreground">{assignment.instructions || assignment.form_template?.description}</p></div>
+              <div className="flex flex-wrap gap-2"><Badge className="capitalize">{assignment.status.replace(/_/g, ' ')}</Badge>{assignment.due_at && <Badge variant="outline">Due {formatDate(assignment.due_at)}</Badge>}</div>
+              <Button onClick={() => void openAssignment(assignment.id)} disabled={!assignment.form_template || createRevision.isPending}>{assignment.status === 'assigned' ? 'Start form' : assignment.status === 'submitted' ? 'View submission' : 'Continue form'}</Button>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+      <FormRunnerSheet
+        open={!!activeAssignment}
+        onOpenChange={(nextOpen) => { if (!nextOpen) { setActiveAssignmentId(null); setRevisionSubmission(null); } }}
+        template={activeAssignment?.form_template || null}
+        initialNgoId={ngoId}
+        assignmentId={activeAssignment?.id}
+        initialSubmission={(revisionSubmission || activeAssignment?.submission) ? {
+          id: (revisionSubmission || activeAssignment?.submission)!.id,
+          ngo_id: (revisionSubmission || activeAssignment?.submission)!.ngo_id,
+          payload_json: (revisionSubmission || activeAssignment?.submission)!.payload_json as Json,
+          submission_status: (revisionSubmission || activeAssignment?.submission)!.submission_status,
+        } : null}
+      />
+    </div>
   );
 }
 
@@ -133,7 +175,7 @@ export default function Portal() {
     enabled: !!user?.id,
     queryFn: async () => {
       ensureSupabase();
-      const { data, error } = await (supabase as any).from("ngo_portal_memberships").select("ngo_id, ngos(id, legal_name, common_name, country)").eq("user_id", user?.id ?? "").eq("status", "active");
+      const { data, error } = await supabase.from("ngo_portal_memberships" as never).select("ngo_id, ngos(id, legal_name, common_name, country)" as never).eq("user_id" as never, user?.id ?? "").eq("status" as never, "active" as never);
       if (error) throw error;
       return data as PortalContactRow[];
     },
@@ -182,7 +224,7 @@ export default function Portal() {
         .order("created_at", { ascending: false })
         .limit(50);
       if (error) throw error;
-      return data as any[];
+      return data as unknown as PortalRequestSubmissionRow[];
     },
   });
 
@@ -191,11 +233,11 @@ export default function Portal() {
     enabled: ngoIds.length > 0,
     queryFn: async () => {
       ensureSupabase();
-      const { data, error } = await (supabase as any)
-        .from("ngo_compliance_periods")
-        .select("id, ngo_id, period_type, period_label, period_start, period_end, due_date, status, submitted_at, reviewed_at")
-        .in("ngo_id", ngoIds)
-        .order("due_date", { ascending: true });
+      const { data, error } = await supabase
+        .from("ngo_compliance_periods" as never)
+        .select("id, ngo_id, period_type, period_label, period_start, period_end, due_date, status, submitted_at, reviewed_at" as never)
+        .in("ngo_id" as never, ngoIds as never)
+        .order("due_date" as never, { ascending: true });
       if (error) throw error;
       return (data ?? []) as CompliancePeriodRow[];
     },
@@ -247,6 +289,7 @@ export default function Portal() {
           </TabsContent>
 
           <TabsContent value="requests" className="space-y-4">
+            {activeNgoId && <NgoAssignedForms ngoId={activeNgoId} />}
             {formsLoading || ngoLoading ? <div className="py-10 text-center"><Loader2 className="mx-auto h-6 w-6 animate-spin" /></div> : portalForms.length > 0 && activeNgoId ? portalForms.map((template) => <NgoPortalRequestForm key={template.id} template={template} ngoId={activeNgoId} />) : <Card><CardContent className="p-8 text-sm text-muted-foreground">No NGO request forms are available yet.</CardContent></Card>}
           </TabsContent>
 

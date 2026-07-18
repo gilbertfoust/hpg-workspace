@@ -312,6 +312,92 @@ export const useUploadFormTemplateDocument = () => {
   });
 };
 
+export interface FormSubmissionFileUploadInput {
+  file: File;
+  submissionId: string;
+  formTemplateId: string;
+  fieldName: string;
+  module: ModuleType;
+  ngoId?: string | null;
+  category?: DocumentCategory;
+}
+
+/**
+ * Uploads evidence for a file field without creating a separate work item.
+ * The document is linked to the private draft first; the database attaches it
+ * to the department work item only after the atomic form submission succeeds.
+ */
+export const useUploadFormSubmissionFile = () => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async ({
+      file,
+      submissionId,
+      formTemplateId,
+      fieldName,
+      module,
+      ngoId,
+      category = 'other',
+    }: FormSubmissionFileUploadInput) => {
+      ensureSupabase();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('You must be logged in to upload form evidence');
+      if (file.size > 50 * 1024 * 1024) throw new Error('Form files must be 50 MB or smaller');
+
+      const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+      const prefix = ngoId || `internal/${user.id}`;
+      const filePath = `${prefix}/form-submissions/${submissionId}/${fieldName}/${Date.now()}_${safeName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from(BUCKET_NAME)
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false,
+          contentType: file.type || 'application/octet-stream',
+        });
+      if (uploadError) throw uploadError;
+
+      const { data, error: dbError } = await supabase
+        .from('documents')
+        .insert({
+          file_name: file.name,
+          file_path: filePath,
+          file_type: file.type || 'application/octet-stream',
+          file_size: file.size,
+          category,
+          ngo_id: ngoId || null,
+          work_item_id: null,
+          form_template_id: formTemplateId,
+          form_submission_id: submissionId,
+          form_field_name: fieldName,
+          module,
+          uploaded_by_user_id: user.id,
+          review_status: 'Form Evidence',
+        } as never)
+        .select()
+        .single();
+
+      if (dbError) {
+        await supabase.storage.from(BUCKET_NAME).remove([filePath]);
+        throw dbError;
+      }
+      return data as Document;
+    },
+    onSuccess: () => {
+      invalidateDocumentQueries(queryClient);
+    },
+    onError: (error) => {
+      toast({
+        variant: 'destructive',
+        title: 'Form file upload failed',
+        description: error.message,
+      });
+    },
+  });
+};
+
 export const useDocumentUrl = () => {
   const { toast } = useToast();
 

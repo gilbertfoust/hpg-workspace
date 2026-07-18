@@ -1,33 +1,7 @@
-import { useState, useEffect } from "react";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
-import { Save, Send, Loader2 } from "lucide-react";
-import { FormTemplate, FormField } from "@/hooks/useFormTemplates";
-import { FormSubmission, useCreateFormSubmission, useUpdateFormSubmission } from "@/hooks/useFormSubmissions";
-import { ModuleType, useCreateWorkItem } from "@/hooks/useWorkItems";
-import { useAuth } from "@/contexts/AuthContext";
-import { useToast } from "@/hooks/use-toast";
-import type { Json } from "@/integrations/supabase/types";
+import { FormRunnerSheet } from "@/components/forms/FormRunnerSheet";
+import type { FormSubmission } from "@/hooks/useFormSubmissions";
+import type { FormTemplate } from "@/hooks/useFormTemplates";
+import type { ModuleType } from "@/hooks/useWorkItems";
 
 interface WorkItemConfig {
   title: string;
@@ -45,10 +19,21 @@ interface FormSubmissionSheetProps {
   submission?: FormSubmission | null;
   ngoId: string;
   initialValues?: Record<string, unknown>;
-  onSubmitSuccess?: (submission: FormSubmission, payload: Record<string, unknown>, submitted: boolean) => void;
+  onSubmitSuccess?: (
+    submission: FormSubmission,
+    payload: Record<string, unknown>,
+    submitted: boolean,
+  ) => void | Promise<void>;
   workItemConfig?: WorkItemConfig;
+  assignmentId?: string | null;
 }
 
+/**
+ * Compatibility adapter for NGO cards and work-item drawers. All form entry
+ * points now use FormRunnerSheet and the same private-draft/atomic-submit RPCs.
+ * workItemConfig is retained for call-site compatibility; department routing
+ * is governed by the template instead of client-created work items.
+ */
 export function FormSubmissionSheet({
   open,
   onOpenChange,
@@ -57,323 +42,33 @@ export function FormSubmissionSheet({
   ngoId,
   initialValues,
   onSubmitSuccess,
-  workItemConfig,
+  assignmentId,
 }: FormSubmissionSheetProps) {
-  const { user } = useAuth();
-  const { toast } = useToast();
-  const createMutation = useCreateFormSubmission();
-  const updateMutation = useUpdateFormSubmission();
-  const createWorkItem = useCreateWorkItem();
-
-  const [formData, setFormData] = useState<Record<string, unknown>>({});
-  const isEditing = !!submission;
-  const isSubmitted =
-    submission?.submission_status === "submitted" ||
-    submission?.submission_status === "accepted";
-
-  useEffect(() => {
-    if (submission?.payload_json && typeof submission.payload_json === "object") {
-      setFormData(submission.payload_json as Record<string, unknown>);
-      return;
-    }
-
-    if (open) {
-      setFormData(initialValues || {});
-    } else {
-      setFormData({});
-    }
-  }, [submission, template, initialValues, open]);
-
-  const fields: FormField[] = template?.schema_json?.fields || [];
-
-  const handleFieldChange = (name: string, value: unknown) => {
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleMultiSelectToggle = (name: string, option: string) => {
-    const current = (formData[name] as string[]) || [];
-    const updated = current.includes(option)
-      ? current.filter((v) => v !== option)
-      : [...current, option];
-    handleFieldChange(name, updated);
-  };
-
-  const handleSave = async (submit = false) => {
-    if (!template) {
-      return;
-    }
-
-    try {
-      const payload: Json = {
-        ...formData,
-      } as Json;
-
-      const status = submit ? "submitted" : "draft";
-      let workItemId = submission?.work_item_id ?? undefined;
-      let savedSubmission: FormSubmission;
-
-      if (submit && workItemConfig && !workItemId) {
-        const workItem = await createWorkItem.mutateAsync({
-          title: workItemConfig.title,
-          module: workItemConfig.module,
-          type: workItemConfig.type,
-          ngo_id: workItemConfig.ngoId ?? (ngoId && ngoId.trim() ? ngoId : undefined),
-          description: workItemConfig.description,
-          external_visible: workItemConfig.external_visible,
-        });
-        workItemId = workItem.id;
-      }
-
-      if (isEditing && submission) {
-        const updatePayload: Partial<FormSubmission> = {
-          payload_json: payload,
-          submission_status: status,
-        };
-
-        if (submit) {
-          updatePayload.submitted_at = new Date().toISOString();
-        }
-
-        if (submission.work_item_id) {
-          updatePayload.work_item_id = submission.work_item_id;
-        } else if (submit && workItemId) {
-          updatePayload.work_item_id = workItemId;
-        }
-
-        savedSubmission = await updateMutation.mutateAsync({
-          id: submission.id,
-          ...updatePayload,
-        });
-      } else {
-        const createInput: Parameters<typeof createMutation.mutateAsync>[0] = {
-          form_template_id: template.id,
-          ngo_id: ngoId,
-          submitted_by_user_id: user?.id,
-          payload_json: payload,
-          submission_status: status,
-        };
-
-        if (workItemId) {
-          createInput.work_item_id = workItemId;
-        }
-
-        if (submit) {
-          createInput.submitted_at = new Date().toISOString();
-        } else {
-          createInput.submitted_at = null;
-        }
-
-        savedSubmission = await createMutation.mutateAsync(createInput);
-      }
-
-      onSubmitSuccess?.(savedSubmission, formData as Record<string, unknown>, submit);
-      onOpenChange(false);
-    } catch (error) {
-      let errorMessage = error instanceof Error ? error.message : "Failed to save form submission";
-      const supabaseError = (error as any)?.supabaseError;
-      if (supabaseError) {
-        errorMessage = supabaseError.message || errorMessage;
-        if (supabaseError.details) {
-          errorMessage += `\n${supabaseError.details}`;
-        }
-        if (supabaseError.hint) {
-          errorMessage += `\n${supabaseError.hint}`;
-        }
-      }
-
-      toast({
-        variant: "destructive",
-        title: isEditing ? "Error updating form" : "Error saving form",
-        description: errorMessage,
-      });
-      throw error;
-    }
-  };
-
-  const isSaving = createMutation.isPending || updateMutation.isPending || createWorkItem.isPending;
-
-  const renderField = (field: FormField) => {
-    const value = formData[field.name];
-    const isDisabled = isSubmitted;
-
-    switch (field.type) {
-      case "text":
-      case "email":
-      case "tel":
-      case "url":
-      case "number":
-        return (
-          <Input
-            type={field.type}
-            value={(value as string) || ""}
-            onChange={(e) => handleFieldChange(field.name, e.target.value)}
-            disabled={isDisabled}
-            placeholder={`Enter ${field.label.toLowerCase()}`}
-          />
-        );
-
-      case "date":
-        return (
-          <Input
-            type="date"
-            value={(value as string) || ""}
-            onChange={(e) => handleFieldChange(field.name, e.target.value)}
-            disabled={isDisabled}
-          />
-        );
-
-      case "textarea":
-        return (
-          <Textarea
-            value={(value as string) || ""}
-            onChange={(e) => handleFieldChange(field.name, e.target.value)}
-            disabled={isDisabled}
-            placeholder={`Enter ${field.label.toLowerCase()}`}
-            rows={3}
-          />
-        );
-
-      case "checkbox":
-        return (
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              id={field.name}
-              checked={(value as boolean) || false}
-              onCheckedChange={(checked) => handleFieldChange(field.name, checked)}
-              disabled={isDisabled}
-            />
-            <label
-              htmlFor={field.name}
-              className="text-sm text-muted-foreground cursor-pointer"
-            >
-              Yes
-            </label>
-          </div>
-        );
-
-      case "select":
-        return (
-          <Select
-            value={(value as string) || ""}
-            onValueChange={(v) => handleFieldChange(field.name, v)}
-            disabled={isDisabled}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder={`Select ${field.label.toLowerCase()}`} />
-            </SelectTrigger>
-            <SelectContent>
-              {field.options?.map((option) => (
-                <SelectItem key={option} value={option}>
-                  {option}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        );
-
-      case "multiselect": {
-        const selected = (value as string[]) || [];
-        return (
-          <div className="space-y-2">
-            <div className="flex flex-wrap gap-2">
-              {field.options?.map((option) => (
-                <Badge
-                  key={option}
-                  variant={selected.includes(option) ? "default" : "outline"}
-                  className={`cursor-pointer ${isDisabled ? "opacity-50" : ""}`}
-                  onClick={() => !isDisabled && handleMultiSelectToggle(field.name, option)}
-                >
-                  {option}
-                </Badge>
-              ))}
-            </div>
-            {selected.length > 0 && (
-              <p className="text-xs text-muted-foreground">
-                Selected: {selected.join(", ")}
-              </p>
-            )}
-          </div>
-        );
-      }
-
-      default:
-        return null;
-    }
-  };
+  const payload = submission?.payload_json && typeof submission.payload_json === "object"
+    ? submission.payload_json
+    : initialValues;
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="sm:max-w-xl">
-        <SheetHeader>
-          <SheetTitle>{template?.name || "Form"}</SheetTitle>
-          <SheetDescription className="flex items-center gap-2">
-            {template?.description || "Fill out the form below"}
-            {isEditing && (
-              <Badge variant="outline" className="capitalize">
-                {submission?.submission_status || "draft"}
-              </Badge>
-            )}
-          </SheetDescription>
-        </SheetHeader>
-
-        <Separator className="my-4" />
-
-        <ScrollArea className="h-[calc(100vh-220px)] pr-4">
-          <div className="space-y-6">
-            {fields.map((field) => (
-              <div key={field.name} className="space-y-2">
-                <Label htmlFor={field.name}>
-                  {field.label}
-                  {field.required && <span className="text-destructive ml-1">*</span>}
-                </Label>
-                {renderField(field)}
-              </div>
-            ))}
-
-            {fields.length === 0 && (
-              <p className="text-muted-foreground text-center py-8">
-                This form has no fields configured.
-              </p>
-            )}
-          </div>
-        </ScrollArea>
-
-        <Separator className="my-4" />
-
-        {!isSubmitted && (
-          <div className="flex gap-3 justify-end">
-            <Button
-              variant="outline"
-              onClick={() => handleSave(false)}
-              disabled={isSaving}
-            >
-              {isSaving ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <Save className="w-4 h-4 mr-2" />
-              )}
-              Save Draft
-            </Button>
-            <Button
-              onClick={() => handleSave(true)}
-              disabled={isSaving}
-            >
-              {isSaving ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <Send className="w-4 h-4 mr-2" />
-              )}
-              Submit
-            </Button>
-          </div>
-        )}
-
-        {isSubmitted && (
-          <p className="text-center text-muted-foreground text-sm">
-            This form has been submitted and cannot be edited.
-          </p>
-        )}
-      </SheetContent>
-    </Sheet>
+    <FormRunnerSheet
+      open={open}
+      onOpenChange={onOpenChange}
+      template={template}
+      initialNgoId={ngoId}
+      assignmentId={assignmentId}
+      initialSubmission={submission ? {
+        id: submission.id,
+        ngo_id: submission.ngo_id,
+        payload_json: payload as FormSubmission["payload_json"],
+        submission_status: submission.submission_status,
+      } : payload ? {
+        id: "",
+        ngo_id: ngoId,
+        payload_json: payload as FormSubmission["payload_json"],
+        submission_status: 'draft',
+      } : null}
+      onSuccess={async (result, values, submitted) => {
+        await onSubmitSuccess?.(result.submission, values, submitted);
+      }}
+    />
   );
 }

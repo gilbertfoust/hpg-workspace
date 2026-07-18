@@ -14,10 +14,10 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { useFormTemplates, FormTemplate, useEnsureFormTemplate } from "@/hooks/useFormTemplates";
-import { useFormSubmissions, FormSubmission, useUpdateFormSubmission } from "@/hooks/useFormSubmissions";
+import { useCreateFormRevision, useFormSubmissions, FormSubmission } from "@/hooks/useFormSubmissions";
 import { FormSubmissionSheet } from "./FormSubmissionSheet";
 import { monthlyCheckInTemplate } from "./ngoFormTemplates";
-import { useCreateWorkItem } from "@/hooks/useWorkItems";
+import { useFormAssignments } from "@/hooks/useFormAssignments";
 
 interface NGOFormsTabProps {
   ngoId: string;
@@ -42,21 +42,37 @@ const statusLabels: Record<string, string> = {
 export function NGOFormsTab({ ngoId, launchMonthlyCheckIn, onMonthlyCheckInHandled }: NGOFormsTabProps) {
   const { data: templates, isLoading: templatesLoading } = useFormTemplates();
   const { data: submissions, isLoading: submissionsLoading } = useFormSubmissions({ ngo_id: ngoId });
+  const { data: assignments = [], isLoading: assignmentsLoading } = useFormAssignments({ ngoId });
   const ensureTemplate = useEnsureFormTemplate();
-  const createWorkItem = useCreateWorkItem();
-  const updateSubmission = useUpdateFormSubmission();
+  const createRevision = useCreateFormRevision();
   
   const [sheetOpen, setSheetOpen] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<FormTemplate | null>(null);
   const [selectedSubmission, setSelectedSubmission] = useState<FormSubmission | null>(null);
   const [initialValues, setInitialValues] = useState<Record<string, unknown> | undefined>(undefined);
+  const [selectedAssignmentId, setSelectedAssignmentId] = useState<string | null>(null);
 
-  const isLoading = templatesLoading || submissionsLoading;
+  const isLoading = templatesLoading || submissionsLoading || assignmentsLoading;
   const activeTemplates = templates?.filter((t) => t.is_active) || [];
 
   const handleStartForm = (template: FormTemplate) => {
     setSelectedTemplate(template);
     setSelectedSubmission(null);
+    setSelectedAssignmentId(null);
+    setInitialValues(undefined);
+    setSheetOpen(true);
+  };
+
+  const handleStartAssignment = async (assignmentId: string) => {
+    const assignment = assignments.find((row) => row.id === assignmentId);
+    if (!assignment?.form_template) return;
+    let existingSubmission = submissions?.find((row) => row.id === assignment.submission_id) || null;
+    if (assignment.status === 'needs_revision' && existingSubmission?.submission_status === 'rejected') {
+      existingSubmission = await createRevision.mutateAsync(existingSubmission.id);
+    }
+    setSelectedTemplate(assignment.form_template);
+    setSelectedSubmission(existingSubmission);
+    setSelectedAssignmentId(assignment.id);
     setInitialValues(undefined);
     setSheetOpen(true);
   };
@@ -66,6 +82,7 @@ export function NGOFormsTab({ ngoId, launchMonthlyCheckIn, onMonthlyCheckInHandl
     if (template) {
       setSelectedTemplate(template);
       setSelectedSubmission(submission);
+      setSelectedAssignmentId(submission.assignment_id || null);
       setInitialValues(undefined);
       setSheetOpen(true);
     }
@@ -76,6 +93,7 @@ export function NGOFormsTab({ ngoId, launchMonthlyCheckIn, onMonthlyCheckInHandl
     const today = new Date();
     setSelectedTemplate(template);
     setSelectedSubmission(null);
+    setSelectedAssignmentId(null);
     setInitialValues({
       date: format(today, "yyyy-MM-dd"),
       period: format(today, "MMMM yyyy"),
@@ -89,37 +107,35 @@ export function NGOFormsTab({ ngoId, launchMonthlyCheckIn, onMonthlyCheckInHandl
     }
   }, [handleMonthlyCheckIn, launchMonthlyCheckIn, onMonthlyCheckInHandled]);
 
-  const handleSubmissionSuccess = async (
-    submission: FormSubmission,
-    payload: Record<string, unknown>,
-    submitted: boolean
-  ) => {
-    if (!submitted || !selectedTemplate) return;
-
-    if (selectedTemplate.name === monthlyCheckInTemplate.name) {
-      const period = String(payload.period || format(new Date(), "MMMM yyyy"));
-      const workItem = await createWorkItem.mutateAsync({
-        title: `Monthly Check-in — ${period}`,
-        module: "ngo_coordination",
-        type: "Monthly Check-in",
-        ngo_id: ngoId,
-        description: String(payload.summary || ""),
-        status: "submitted",
-        priority: "medium",
-        external_visible: false,
-      });
-
-      await updateSubmission.mutateAsync({
-        id: submission.id,
-        work_item_id: workItem.id,
-      });
-    }
-  };
-
   return (
     <>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="space-y-4">
+          {assignments.some((assignment) => !['accepted', 'cancelled', 'waived'].includes(assignment.status)) && (
+            <div className="space-y-3">
+              <h3 className="text-lg font-medium">Assigned Forms</h3>
+              {assignments.filter((assignment) => !['accepted', 'cancelled', 'waived'].includes(assignment.status)).map((assignment) => (
+                <Card key={assignment.id} className="border-primary/30 bg-primary/5">
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <h4 className="font-medium">{assignment.form_template?.name || 'Assigned form'}</h4>
+                        <p className="mt-1 text-sm text-muted-foreground">{assignment.instructions || 'Complete this form for HPG review.'}</p>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          <Badge variant="secondary" className="capitalize">{assignment.status.replace(/_/g, ' ')}</Badge>
+                          {assignment.due_at && <Badge variant="outline">Due {format(new Date(assignment.due_at), 'MMM d, yyyy')}</Badge>}
+                        </div>
+                      </div>
+                      <Button size="sm" onClick={() => void handleStartAssignment(assignment.id)} disabled={!assignment.form_template || createRevision.isPending}>
+                        {assignment.status === 'assigned' ? 'Start' : assignment.status === 'submitted' ? 'View' : 'Continue'}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-medium">Available Forms</h3>
             <Button size="sm" variant="outline" onClick={handleMonthlyCheckIn} disabled={ensureTemplate.isPending}>
@@ -247,7 +263,7 @@ export function NGOFormsTab({ ngoId, launchMonthlyCheckIn, onMonthlyCheckInHandl
         submission={selectedSubmission}
         ngoId={ngoId}
         initialValues={(selectedSubmission?.payload_json as Record<string, unknown> | undefined) ?? undefined}
-        onSubmitSuccess={handleSubmissionSuccess}
+        assignmentId={selectedAssignmentId}
       />
     </>
   );

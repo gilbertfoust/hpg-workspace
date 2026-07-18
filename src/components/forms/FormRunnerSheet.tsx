@@ -24,6 +24,8 @@ import { useNGOs } from "@/hooks/useNGOs";
 import { useToast } from "@/hooks/use-toast";
 import type { Json } from "@/integrations/supabase/types";
 import { FormRenderer } from "@/components/forms/FormRenderer";
+import { useUploadFormSubmissionFile } from "@/hooks/useDocuments";
+import type { FormWorkflowResult } from "@/hooks/useFormSubmissions";
 
 interface FormRunnerSheetProps {
   open: boolean;
@@ -34,7 +36,14 @@ interface FormRunnerSheetProps {
     id: string;
     ngo_id?: string | null;
     payload_json?: Json;
+    submission_status?: string | null;
   } | null;
+  assignmentId?: string | null;
+  onSuccess?: (
+    result: FormWorkflowResult,
+    payload: Record<string, unknown>,
+    submitted: boolean,
+  ) => void | Promise<void>;
 }
 
 const isEmptyValue = (value: unknown) => {
@@ -44,11 +53,15 @@ const isEmptyValue = (value: unknown) => {
   return false;
 };
 
-const validateFields = (fields: FormField[], values: Record<string, unknown>) => {
+const validateFields = (
+  fields: FormField[],
+  values: Record<string, unknown>,
+  pendingFiles: Record<string, File | undefined>,
+) => {
   const errors: Record<string, string> = {};
 
   fields.forEach((field) => {
-    const value = values[field.name];
+    const value = field.type === "file" ? pendingFiles[field.name] || values[field.name] : values[field.name];
 
     if (field.required) {
       if (field.type === "checkbox") {
@@ -65,6 +78,33 @@ const validateFields = (fields: FormField[], values: Record<string, unknown>) =>
         errors[field.name] = "Enter a valid number.";
       }
     }
+
+    if (field.type === "email" && !isEmptyValue(value)) {
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value))) {
+        errors[field.name] = "Enter a valid email address.";
+      }
+    }
+
+    if (field.type === "url" && !isEmptyValue(value)) {
+      try {
+        const parsed = new URL(String(value));
+        if (!["http:", "https:"].includes(parsed.protocol)) throw new Error("invalid");
+      } catch {
+        errors[field.name] = "Enter a complete URL beginning with http:// or https://.";
+      }
+    }
+
+    if (field.type === "file" && value instanceof File && value.size > 50 * 1024 * 1024) {
+      errors[field.name] = "Files must be 50 MB or smaller.";
+    }
+
+    if (typeof value === "string" && field.minLength && value.length < field.minLength) {
+      errors[field.name] = `Enter at least ${field.minLength} characters.`;
+    }
+
+    if (typeof value === "string" && field.maxLength && value.length > field.maxLength) {
+      errors[field.name] = `Use no more than ${field.maxLength} characters.`;
+    }
   });
 
   return errors;
@@ -79,15 +119,19 @@ export function FormRunnerSheet({
   template,
   initialNgoId,
   initialSubmission,
+  assignmentId,
+  onSuccess,
 }: FormRunnerSheetProps) {
   const { toast } = useToast();
   const { data: ngos } = useNGOs();
   const saveWorkflow = useSaveFormWorkflow();
+  const uploadFormFile = useUploadFormSubmissionFile();
 
   const [formData, setFormData] = useState<Record<string, unknown>>({});
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [selectedNgoId, setSelectedNgoId] = useState<string | null>(initialNgoId || null);
   const [draftSubmissionId, setDraftSubmissionId] = useState<string | null>(null);
+  const [pendingFiles, setPendingFiles] = useState<Record<string, File | undefined>>({});
   const submitIdempotencyKey = useRef(crypto.randomUUID());
 
   useEffect(() => {
@@ -101,6 +145,7 @@ export function FormRunnerSheet({
       setFieldErrors({});
       setSelectedNgoId(initialSubmission?.ngo_id || initialNgoId || null);
       setDraftSubmissionId(initialSubmission?.id || null);
+      setPendingFiles({});
       submitIdempotencyKey.current = crypto.randomUUID();
     }
   }, [open, initialNgoId, initialSubmission, template?.id]);
@@ -109,16 +154,26 @@ export function FormRunnerSheet({
     () => template?.schema_json?.fields || [],
     [template]
   );
+  const isLocked = !!initialSubmission?.submission_status && initialSubmission.submission_status !== 'draft';
 
   const handleFieldChange = (name: string, value: unknown) => {
     setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleFileChange = (name: string, file: File | null) => {
+    setPendingFiles((current) => ({ ...current, [name]: file || undefined }));
+    setFieldErrors((current) => {
+      const next = { ...current };
+      delete next[name];
+      return next;
+    });
   };
 
   const handleSave = async (submit: boolean) => {
     if (!template) return;
 
     if (submit) {
-      const errors = validateFields(fields, formData);
+      const errors = validateFields(fields, formData, pendingFiles);
       if (Object.keys(errors).length > 0) {
         setFieldErrors(errors);
         toast({
@@ -133,26 +188,66 @@ export function FormRunnerSheet({
     setFieldErrors({});
 
     try {
-      const answeredFields = fields.filter((field) => !isEmptyValue(formData[field.name])).length;
+      const answeredFields = fields.filter((field) => !isEmptyValue(pendingFiles[field.name] || formData[field.name])).length;
       const progress = fields.length === 0 ? 100 : Math.round((answeredFields / fields.length) * 100);
+      let submissionId = draftSubmissionId;
+      const nextPayload = { ...formData };
+      const filesToUpload = Object.entries(pendingFiles).filter((entry): entry is [string, File] => entry[1] instanceof File);
+
+      if (filesToUpload.length > 0) {
+        const reserved = await saveWorkflow.mutateAsync({
+          formTemplateId: template.id,
+          ngoId: selectedNgoId,
+          submissionId,
+          payloadJson: nextPayload as Json,
+          progress,
+          submit: false,
+          assignmentId,
+          suppressToast: true,
+        });
+        submissionId = reserved.submission.id;
+
+        for (const [fieldName, file] of filesToUpload) {
+          const document = await uploadFormFile.mutateAsync({
+            file,
+            submissionId,
+            formTemplateId: template.id,
+            fieldName,
+            module: template.module,
+            ngoId: selectedNgoId,
+          });
+          nextPayload[fieldName] = {
+            document_id: document.id,
+            name: document.file_name,
+            size: document.file_size,
+            type: document.file_type,
+          };
+        }
+        setFormData(nextPayload);
+        setPendingFiles({});
+      }
+
       const result = await saveWorkflow.mutateAsync({
         formTemplateId: template.id,
         ngoId: selectedNgoId,
-        submissionId: draftSubmissionId,
-        payloadJson: formData as Json,
+        submissionId,
+        payloadJson: nextPayload as Json,
         progress,
         submit,
+        assignmentId,
         idempotencyKey: submitIdempotencyKey.current,
       });
 
       if (!submit) {
         setDraftSubmissionId(result.submission.id);
+        await onSuccess?.(result, nextPayload, false);
         return;
       }
 
       setFormData({});
       setFieldErrors({});
       setDraftSubmissionId(null);
+      await onSuccess?.(result, nextPayload, true);
       onOpenChange(false);
     } catch (error) {
       toast({
@@ -163,7 +258,7 @@ export function FormRunnerSheet({
     }
   };
 
-  const isSaving = saveWorkflow.isPending;
+  const isSaving = saveWorkflow.isPending || uploadFormFile.isPending;
 
   const ngoOptions = useMemo(
     () =>
@@ -225,6 +320,9 @@ export function FormRunnerSheet({
               values={formData}
               errors={fieldErrors}
               onChange={handleFieldChange}
+              pendingFiles={pendingFiles}
+              onFileChange={handleFileChange}
+              readOnly={isLocked}
             />
           </div>
         </ScrollArea>
@@ -232,6 +330,13 @@ export function FormRunnerSheet({
         <Separator className="my-4" />
 
         <div className="flex gap-3 justify-end">
+          {isLocked ? (
+            <>
+              <p className="mr-auto self-center text-sm text-muted-foreground">This submission is locked for department review.</p>
+              <Button variant="outline" onClick={() => onOpenChange(false)}>Close</Button>
+            </>
+          ) : (
+            <>
           {draftSubmissionId && (
             <p className="mr-auto self-center text-xs text-muted-foreground">
               Private draft saved
@@ -253,6 +358,8 @@ export function FormRunnerSheet({
             )}
             Submit
           </Button>
+            </>
+          )}
         </div>
       </SheetContent>
     </Sheet>
