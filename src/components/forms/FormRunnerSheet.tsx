@@ -26,6 +26,7 @@ import type { Json } from "@/integrations/supabase/types";
 import { FormRenderer } from "@/components/forms/FormRenderer";
 import { useUploadFormSubmissionFile } from "@/hooks/useDocuments";
 import type { FormWorkflowResult } from "@/hooks/useFormSubmissions";
+import { createClientId } from "@/lib/clientId";
 
 interface FormRunnerSheetProps {
   open: boolean;
@@ -132,7 +133,7 @@ export function FormRunnerSheet({
   const [selectedNgoId, setSelectedNgoId] = useState<string | null>(initialNgoId || null);
   const [draftSubmissionId, setDraftSubmissionId] = useState<string | null>(null);
   const [pendingFiles, setPendingFiles] = useState<Record<string, File | undefined>>({});
-  const submitIdempotencyKey = useRef(crypto.randomUUID());
+  const submitIdempotencyKey = useRef(createClientId());
 
   useEffect(() => {
     if (open) {
@@ -146,7 +147,7 @@ export function FormRunnerSheet({
       setSelectedNgoId(initialSubmission?.ngo_id || initialNgoId || null);
       setDraftSubmissionId(initialSubmission?.id || null);
       setPendingFiles({});
-      submitIdempotencyKey.current = crypto.randomUUID();
+      submitIdempotencyKey.current = createClientId();
     }
   }, [open, initialNgoId, initialSubmission, template?.id]);
 

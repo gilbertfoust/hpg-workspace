@@ -23,6 +23,7 @@ import { Textarea } from "@/components/ui/textarea";
 import type { FormField, FormTemplate } from "@/hooks/useFormTemplates";
 import { useAdminUpsertFormTemplate } from "@/hooks/useFormTemplates";
 import type { ModuleType } from "@/hooks/useWorkItems";
+import { createClientId } from "@/lib/clientId";
 
 interface FormTemplateBuilderDialogProps {
   open: boolean;
@@ -44,7 +45,7 @@ const fieldTypes: FormField['type'][] = [
 ];
 
 const emptyField = (): FormField => ({
-  name: `field_${crypto.randomUUID().slice(0, 8)}`,
+  name: `field_${createClientId().slice(0, 8)}`,
   type: 'text',
   label: 'New field',
   required: false,

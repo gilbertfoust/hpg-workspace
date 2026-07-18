@@ -7,6 +7,7 @@ import { ModuleType } from '@/hooks/useWorkItems';
 import { createWorkItemForSubmission } from '@/lib/createWorkItemForSubmission';
 import { createGrantFromFormSubmission } from '@/lib/createGrantFromFormSubmission';
 import { completeWorkItemForAdminRecordsWithFallback } from '@/lib/workItemRecordActions';
+import { createClientId } from '@/lib/clientId';
 
 const MODULE_TO_DOC_CATEGORY: Record<string, string> = {
   ngo_coordination: 'other',
@@ -159,7 +160,7 @@ export const useSaveFormWorkflow = () => {
           p_payload_json: input.payloadJson ?? {},
           p_ngo_id: input.ngoId || null,
           p_submission_id: input.submissionId || null,
-          p_idempotency_key: input.idempotencyKey || crypto.randomUUID(),
+          p_idempotency_key: input.idempotencyKey || createClientId(),
         } as never);
         if (error) throw error;
         const result = data as FormWorkflowResult;
