@@ -12,9 +12,19 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, Building2, Clock, ShieldCheck } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { getAppUrl } from "@/lib/appUrl";
 
 const HPG_LOGO_URL =
   "https://img1.wsimg.com/isteam/ip/8d5502d6-d937-4d80-bd56-8074053e4d77/Humanity%20Pathways%20Global.jpg/:/rs=h:175,m";
+
+const getErrorMessage = (error: unknown) => {
+  if (error instanceof Error) return error.message;
+  if (typeof error === "object" && error && "message" in error) {
+    const message = (error as { message?: unknown }).message;
+    if (typeof message === "string") return message;
+  }
+  return "An unexpected error occurred.";
+};
 
 const Auth = () => {
   const { user, loading, signIn, signUp } = useAuth();
@@ -120,14 +130,14 @@ const Auth = () => {
     setIsSendingReset(true);
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(forgotEmail, {
-        redirectTo: `${window.location.origin}${import.meta.env.BASE_URL}reset-password`,
+        redirectTo: getAppUrl("reset-password"),
       });
       if (error) throw error;
       toast({ title: "Reset link sent!", description: "Check your email for a password reset link." });
       setShowForgotPassword(false);
       setForgotEmail("");
-    } catch (err: any) {
-      toast({ variant: "destructive", title: "Failed to send reset link", description: err.message });
+    } catch (err: unknown) {
+      toast({ variant: "destructive", title: "Failed to send reset link", description: getErrorMessage(err) });
     } finally {
       setIsSendingReset(false);
     }
@@ -279,14 +289,14 @@ const Auth = () => {
                       setIsSubmitting(true);
                       try {
                         const result = await lovable.auth.signInWithOAuth("google", {
-                          redirect_uri: window.location.origin,
+                          redirect_uri: getAppUrl("auth/callback"),
                         });
                         if (result.error) {
                           toast({ variant: "destructive", title: "Google sign-in failed", description: (result.error as Error).message });
                         }
                         if (result.redirected) return;
-                      } catch (err: any) {
-                        toast({ variant: "destructive", title: "Google sign-in failed", description: err.message });
+                      } catch (err: unknown) {
+                        toast({ variant: "destructive", title: "Google sign-in failed", description: getErrorMessage(err) });
                       } finally {
                         setIsSubmitting(false);
                       }
