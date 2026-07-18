@@ -334,7 +334,7 @@ Deno.serve(async (request) => {
           throw new Error("An active Trello route mapping is required before card creation.");
         }
 
-        const result = item.operation === "create_card"
+        const result: Record<string, unknown> = item.operation === "create_card"
           ? await createCard(db, item, route as TrelloRoute, trelloKey, trelloToken)
           : await updateCard(db, item, trelloKey, trelloToken);
         const cardId = cleanText(result.id, 200);
