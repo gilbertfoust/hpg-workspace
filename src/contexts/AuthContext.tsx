@@ -6,6 +6,7 @@ import React, {
 } from "react";
 import type { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { getAppUrl } from "@/lib/appUrl";
 
 interface AuthContextType {
   user: User | null;
@@ -98,7 +99,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       email,
       password,
       options: {
-        emailRedirectTo: window.location.origin,
+        emailRedirectTo: getAppUrl("auth/callback"),
         data: {
           full_name: fullName,
         },
@@ -217,4 +218,3 @@ export const useAuth = () => {
   }
   return context;
 };
-
