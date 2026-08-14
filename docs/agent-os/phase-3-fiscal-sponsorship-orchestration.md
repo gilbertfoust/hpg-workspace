@@ -133,6 +133,28 @@ Governed RPCs:
 
 All read views use invoker security. Phase 3 tables use RLS, deny anonymous access, and deny authenticated browser roles direct insert, update, and delete privileges.
 
+## Production migration ledger
+
+The active database records the Phase 3 build through the Supabase migration history. The relevant migrations are:
+
+- `agent_os_phase3_workflows`
+- `agent_os_phase3_stage_catalog`
+- `agent_os_phase3_scenarios`
+- `agent_os_phase3_cases`
+- `agent_os_phase3_rls_and_privileges`
+- `agent_os_phase3_lineage_and_runtime_integrity`
+- `agent_os_phase3_shadow_registry_and_fingerprints`
+- `agent_os_phase3_controlled_scenario_runtime`
+- `agent_os_phase3_scenario_alias_fix`
+- `agent_os_phase3_validation_suite_and_automated_gates`
+- `agent_os_phase3_gate_work_item_org_unit_fix`
+- `agent_os_phase3_gate_key_alignment`
+- `agent_os_phase3_human_gate_reviews`
+- `agent_os_phase3_workspace_views_v3`
+- `agent_os_phase3_workspace_route_alignment`
+
+The production database is the authority for applied schema history. This repository change contains the Workspace client, operating documentation, and repeatable verification script; it does not replay migrations that are already applied to production.
+
 ## Verification
 
 Run:
