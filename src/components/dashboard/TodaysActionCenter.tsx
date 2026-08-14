@@ -33,7 +33,7 @@ const formatDueDate = (date: string | null) => {
 
 export const TodaysActionCenter = ({ filters = {} }: { filters?: DashboardFilters }) => {
   const navigate = useNavigate();
-  const { data, isLoading, isError } = useDashboardActionCenter(filters);
+  const { data, isLoading, isError, refetch } = useDashboardActionCenter(filters);
   const hasFilters = Boolean(filters.bundle || filters.country || filters.state || filters.module);
 
   return (
@@ -59,6 +59,7 @@ export const TodaysActionCenter = ({ filters = {} }: { filters?: DashboardFilter
           isLoading={isLoading}
           isError={isError}
           errorMessage="Action Center data could not load. Try refreshing the page."
+          onRetry={() => void refetch()}
         >
           <>
             <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-6">

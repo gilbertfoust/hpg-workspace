@@ -7,6 +7,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useFinanceHubSnapshot } from "@/hooks/useFinanceHubSnapshot";
 import { ensureSupabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
+import { DashboardPanelState } from "@/components/dashboard/DashboardPanelState";
+import { createDashboardRequestScope } from "@/lib/dashboardRequest";
 
 const FINANCE_TABLES = [
   { table: "finance_accounts", label: "Chart of Accounts" },
@@ -19,25 +21,44 @@ const FINANCE_TABLES = [
 
 export const FinanceReadinessPanel = () => {
   const navigate = useNavigate();
-  const { data: snapshot, isLoading: snapLoading } = useFinanceHubSnapshot();
+  const {
+    data: snapshot,
+    isLoading: snapLoading,
+    isError: snapError,
+    refetch: refetchSnapshot,
+  } = useFinanceHubSnapshot();
 
-  const { data: tableHealth = [], isLoading: healthLoading } = useQuery({
+  const {
+    data: tableHealth = [],
+    isLoading: healthLoading,
+    isError: healthError,
+    refetch: refetchHealth,
+  } = useQuery({
     queryKey: ["finance-readiness-tables"],
-    queryFn: async () => {
+    queryFn: async ({ signal }) => {
       const supabase = ensureSupabase();
-      const results = await Promise.all(
-        FINANCE_TABLES.map(async ({ table, label }) => {
-          try {
-            const { count, error } = await supabase.from(table as never).select("id", { count: "exact", head: true });
-            if (error?.message?.includes("does not exist")) return { table, label, status: "missing" as const, count: null };
-            if (error) return { table, label, status: "missing" as const, count: null };
-            return { table, label, status: (count ?? 0) > 0 ? ("connected" as const) : ("empty" as const), count: count ?? 0 };
-          } catch {
-            return { table, label, status: "missing" as const, count: null };
-          }
-        })
-      );
-      return results;
+      const request = createDashboardRequestScope(signal);
+
+      try {
+        return await Promise.all(
+          FINANCE_TABLES.map(async ({ table, label }) => {
+            try {
+              const { count, error } = await supabase
+                .from(table as never)
+                .select("id", { count: "exact", head: true })
+                .abortSignal(request.signal);
+              if (error?.message?.includes("does not exist")) return { table, label, status: "missing" as const, count: null };
+              if (error) return { table, label, status: "missing" as const, count: null };
+              return { table, label, status: (count ?? 0) > 0 ? ("connected" as const) : ("empty" as const), count: count ?? 0 };
+            } catch (error) {
+              if (request.signal.aborted) throw error;
+              return { table, label, status: "missing" as const, count: null };
+            }
+          }),
+        );
+      } finally {
+        request.cleanup();
+      }
     },
   });
 
@@ -64,6 +85,12 @@ export const FinanceReadinessPanel = () => {
       <CardContent>
         {isLoading ? (
           <div className="flex items-center justify-center py-8"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
+        ) : snapError || healthError ? (
+          <DashboardPanelState
+            isError
+            errorMessage="Finance readiness could not load."
+            onRetry={() => void Promise.all([refetchSnapshot(), refetchHealth()])}
+          />
         ) : (
           <div className="space-y-4">
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">

@@ -17,8 +17,18 @@ const buildAttentionSummary = (overdue: number, dueThisWeek: number, missingEvid
 };
 
 export const ExecutiveBrief = ({ filters }: { filters: DashboardFilters }) => {
-  const { data: dashboardData, isLoading: dashboardLoading, isError: dashboardError } = useDashboardData(filters);
-  const { data: healthData, isLoading: healthLoading, isError: healthError } = useDashboardDataHealth();
+  const {
+    data: dashboardData,
+    isLoading: dashboardLoading,
+    isError: dashboardError,
+    refetch: refetchDashboard,
+  } = useDashboardData(filters);
+  const {
+    data: healthData,
+    isLoading: healthLoading,
+    isError: healthError,
+    refetch: refetchHealth,
+  } = useDashboardDataHealth();
 
   if (dashboardLoading || healthLoading) {
     return (
@@ -34,7 +44,11 @@ export const ExecutiveBrief = ({ filters }: { filters: DashboardFilters }) => {
     return (
       <Card>
         <CardContent className="py-8">
-          <DashboardPanelState isError errorMessage="Executive Brief could not load dashboard summary data." />
+          <DashboardPanelState
+            isError
+            errorMessage="Executive Brief could not load dashboard summary data."
+            onRetry={() => void Promise.all([refetchDashboard(), refetchHealth()])}
+          />
         </CardContent>
       </Card>
     );

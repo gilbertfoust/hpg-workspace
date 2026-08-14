@@ -251,11 +251,12 @@ export const useUpdateNGO = () => {
 export const useNGOStats = () => {
   return useQuery({
     queryKey: ['ngo-stats'],
-    queryFn: async () => {
+    queryFn: async ({ signal }) => {
       ensureSupabase();
       const { data, error } = await supabase
         .from('ngos' as never)
-        .select('status');
+        .select('status')
+        .abortSignal(signal);
       
       if (error) throw error;
       

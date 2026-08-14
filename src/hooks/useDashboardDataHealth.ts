@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { ensureSupabase } from "@/integrations/supabase/client";
+import { createDashboardRequestScope } from "@/lib/dashboardRequest";
 
 export type DataHealthStatus = "connected" | "empty" | "missing";
 
@@ -29,13 +30,20 @@ const dashboardTables = [
   { table: "staff_profiles", label: "Staff Profiles", area: "HR" },
   { table: "applicants", label: "Applicants", area: "HR" },
   { table: "timesheets", label: "Timesheets", area: "HR" },
-];
+] as const;
 
-const checkTable = async (supabase: ReturnType<typeof ensureSupabase>, table: string) => {
+type DashboardHealthTable = (typeof dashboardTables)[number]["table"];
+
+const checkTable = async (
+  supabase: ReturnType<typeof ensureSupabase>,
+  table: DashboardHealthTable,
+  signal: AbortSignal,
+) => {
   try {
-    const { count, error } = await (supabase as any)
+    const { count, error } = await supabase
       .from(table)
-      .select("id", { count: "exact", head: true });
+      .select("id", { count: "exact", head: true })
+      .abortSignal(signal);
 
     if (error) {
       return {
@@ -52,6 +60,7 @@ const checkTable = async (supabase: ReturnType<typeof ensureSupabase>, table: st
       message: safeCount > 0 ? "Connected with live records" : "Connected, no records yet",
     };
   } catch (error) {
+    if (signal.aborted) throw error;
     return {
       status: "missing" as const,
       count: null,
@@ -63,32 +72,38 @@ const checkTable = async (supabase: ReturnType<typeof ensureSupabase>, table: st
 export const useDashboardDataHealth = () => {
   return useQuery({
     queryKey: ["dashboard-data-health"],
-    queryFn: async () => {
+    queryFn: async ({ signal }) => {
       const supabase = ensureSupabase();
-      const checks = await Promise.all(
-        dashboardTables.map(async (config) => {
-          const result = await checkTable(supabase, config.table);
-          return {
-            ...config,
-            ...result,
-          } satisfies DataHealthItem;
-        }),
-      );
+      const request = createDashboardRequestScope(signal);
 
-      const connected = checks.filter((item) => item.status === "connected").length;
-      const empty = checks.filter((item) => item.status === "empty").length;
-      const missing = checks.filter((item) => item.status === "missing").length;
-      const total = checks.length;
-      const readiness = Math.round(((connected + empty * 0.5) / total) * 100);
+      try {
+        const checks = await Promise.all(
+          dashboardTables.map(async (config) => {
+            const result = await checkTable(supabase, config.table, request.signal);
+            return {
+              ...config,
+              ...result,
+            } satisfies DataHealthItem;
+          }),
+        );
 
-      return {
-        connected,
-        empty,
-        missing,
-        total,
-        readiness,
-        items: checks,
-      };
+        const connected = checks.filter((item) => item.status === "connected").length;
+        const empty = checks.filter((item) => item.status === "empty").length;
+        const missing = checks.filter((item) => item.status === "missing").length;
+        const total = checks.length;
+        const readiness = Math.round(((connected + empty * 0.5) / total) * 100);
+
+        return {
+          connected,
+          empty,
+          missing,
+          total,
+          readiness,
+          items: checks,
+        };
+      } finally {
+        request.cleanup();
+      }
     },
   });
 };

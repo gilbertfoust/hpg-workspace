@@ -18,7 +18,9 @@ import {
   Filter,
   Printer,
   Presentation,
+  RefreshCw,
 } from "lucide-react";
+import { useIsFetching, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend,
@@ -29,8 +31,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useDashboardData, useDashboardFilters, type DashboardFilters } from "@/hooks/useDashboardData";
 import { useNGOStats } from "@/hooks/useNGOs";
-import { useWorkItems } from "@/hooks/useWorkItems";
-import { useWorkItems as useWorkItemsAll } from "@/hooks/useWorkItems";
 import { Loader2 } from "lucide-react";
 import { format, subMonths, startOfMonth } from "date-fns";
 import { TodaysActionCenter } from "@/components/dashboard/TodaysActionCenter";
@@ -46,10 +46,13 @@ import { FinanceReadinessPanel } from "@/components/dashboard/FinanceReadinessPa
 import { HrReadinessPanel } from "@/components/dashboard/HrReadinessPanel";
 import { DashboardDataDefinitions } from "@/components/dashboard/DashboardDataDefinitions";
 import { DashboardPanelState } from "@/components/dashboard/DashboardPanelState";
+import { DashboardChartFrame } from "@/components/dashboard/DashboardChartFrame";
 import { SavedDashboardViews } from "@/components/dashboard/SavedDashboardViews";
 import { useSavedDashboardViews, type SavedDashboardView } from "@/hooks/useSavedDashboardViews";
 import { useDashboardSectionScroll, useDashboardUrlState, type DashboardSectionId } from "@/hooks/useDashboardUrlState";
 import { toDashboardSearchParams } from "@/lib/dashboardSearchParams";
+import { ensureSupabase } from "@/integrations/supabase/client";
+import { createDashboardRequestScope } from "@/lib/dashboardRequest";
 
 const HPG_LOGO_URL =
   "https://img1.wsimg.com/isteam/ip/8d5502d6-d937-4d80-bd56-8074053e4d77/Humanity%20Pathways%20Global.jpg/:/rs=h:175,m";
@@ -65,11 +68,30 @@ const CHART_COLORS = [
   "hsl(190, 60%, 45%)",
 ];
 
+const HOME_DASHBOARD_QUERY_ROOTS = new Set([
+  "dashboard-action-center",
+  "dashboard-alerts",
+  "dashboard-data",
+  "dashboard-data-health",
+  "dashboard-filters",
+  "dashboard-grant-pipeline",
+  "dashboard-hr-work-items",
+  "dashboard-module-snapshots",
+  "dashboard-portfolio-intelligence",
+  "dashboard-recent-activity",
+  "dashboard-work-item-activity",
+  "finance-hub-snapshot",
+  "finance-readiness-tables",
+  "ngo-stats",
+  "reminders",
+]);
+
 const hasActiveFilters = (filters: DashboardFilters) =>
   Boolean(filters.bundle || filters.country || filters.state || filters.module);
 
 function useWorkItemTrend(filters: DashboardFilters) {
-  const { data: workItems } = useWorkItems(filters.module ? { module: filters.module } : {});
+  const query = useDashboardWorkItemActivity(filters);
+  const workItems = query.data;
   const months: { month: string; created: number; completed: number }[] = [];
   const now = new Date();
   for (let i = 5; i >= 0; i--) {
@@ -77,27 +99,59 @@ function useWorkItemTrend(filters: DashboardFilters) {
     const label = format(start, "MMM");
     const nextMonth = startOfMonth(subMonths(now, i - 1));
     const created = workItems?.filter(wi => {
+      if (!wi.created_at) return false;
       const d = new Date(wi.created_at);
       return d >= start && d < nextMonth;
     }).length ?? 0;
     const completed = workItems?.filter(wi => {
-      if (!["complete", "approved", "Complete", "Approved"].includes(wi.status)) return false;
+      if (!["complete", "approved"].includes(String(wi.status ?? "").toLowerCase())) return false;
+      if (!wi.updated_at) return false;
       const d = new Date(wi.updated_at);
       return d >= start && d < nextMonth;
     }).length ?? 0;
     months.push({ month: label, created, completed });
   }
-  return months;
+  return { ...query, trendData: months };
 }
 
 function useStatusDistribution(filters: DashboardFilters) {
-  const { data: workItems } = useWorkItems(filters.module ? { module: filters.module } : {});
+  const query = useDashboardWorkItemActivity(filters);
+  const workItems = query.data;
   const statusMap = new Map<string, number>();
   workItems?.forEach(wi => {
-    const s = wi.status.replace(/_/g, " ");
+    const s = String(wi.status || "Unassigned").replace(/_/g, " ");
     statusMap.set(s, (statusMap.get(s) ?? 0) + 1);
   });
-  return Array.from(statusMap.entries()).map(([name, value]) => ({ name, value }));
+  return {
+    ...query,
+    statusData: Array.from(statusMap.entries()).map(([name, value]) => ({ name, value })),
+  };
+}
+
+function useDashboardWorkItemActivity(filters: DashboardFilters) {
+  return useQuery({
+    queryKey: ["dashboard-work-item-activity", filters.module ?? null],
+    queryFn: async ({ signal }) => {
+      const request = createDashboardRequestScope(signal);
+
+      try {
+        let workItemsQuery = ensureSupabase()
+          .from("work_items")
+          .select("status, created_at, updated_at")
+          .is("archived_at", null);
+
+        if (filters.module) {
+          workItemsQuery = workItemsQuery.eq("module", filters.module);
+        }
+
+        const { data, error } = await workItemsQuery.abortSignal(request.signal);
+        if (error) throw error;
+        return data ?? [];
+      } finally {
+        request.cleanup();
+      }
+    },
+  });
 }
 
 const DashboardFilterControls = ({
@@ -113,7 +167,7 @@ const DashboardFilterControls = ({
   onApplySavedView: (view: SavedDashboardView) => void;
   onResetView: () => void;
 }) => {
-  const { data: options, isLoading } = useDashboardFilters();
+  const { data: options, isLoading, isError, refetch } = useDashboardFilters();
 
   const updateFilter = (key: keyof DashboardFilters, value: string) => {
     setFilters({
@@ -141,6 +195,12 @@ const DashboardFilterControls = ({
           <div className="flex items-center justify-center py-4">
             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
           </div>
+        ) : isError ? (
+          <DashboardPanelState
+            isError
+            errorMessage="Dashboard filters could not load. The current unfiltered view remains available."
+            onRetry={() => void refetch()}
+          />
         ) : (
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <label className="space-y-1 text-xs font-medium text-muted-foreground">
@@ -228,9 +288,18 @@ const DashboardDrilldowns = ({ filters }: { filters: DashboardFilters }) => {
 };
 
 const DashboardKPIs = ({ filters }: { filters: DashboardFilters }) => {
-  const { data: dashboardData, isLoading: dashboardLoading } = useDashboardData(filters);
-  const { data: ngoStats, isLoading: ngoStatsLoading } = useNGOStats();
-  const { data: allWorkItems } = useWorkItemsAll(filters.module ? { module: filters.module } : {});
+  const {
+    data: dashboardData,
+    isLoading: dashboardLoading,
+    isError: dashboardError,
+    refetch: refetchDashboard,
+  } = useDashboardData(filters);
+  const {
+    data: ngoStats,
+    isLoading: ngoStatsLoading,
+    isError: ngoStatsError,
+    refetch: refetchNgoStats,
+  } = useNGOStats();
 
   if (dashboardLoading || ngoStatsLoading) {
     return (
@@ -246,10 +315,24 @@ const DashboardKPIs = ({ filters }: { filters: DashboardFilters }) => {
     );
   }
 
+  if (dashboardError || ngoStatsError) {
+    return (
+      <Card>
+        <CardContent className="py-6">
+          <DashboardPanelState
+            isError
+            errorMessage="Dashboard totals could not load."
+            onRetry={() => void Promise.all([refetchDashboard(), refetchNgoStats()])}
+          />
+        </CardContent>
+      </Card>
+    );
+  }
+
   const totalNgoCount = hasActiveFilters(filters) ? dashboardData?.kpis?.totalNgos || 0 : dashboardData?.kpis?.totalNgos || ngoStats?.total || 0;
   const overdueCount = dashboardData?.kpis?.overdue || 0;
   const dueIn7Days = dashboardData?.kpis?.dueIn7Days || 0;
-  const totalWorkItems = allWorkItems?.length ?? 0;
+  const totalWorkItems = dashboardData?.openWorkItemCount ?? 0;
 
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -298,135 +381,139 @@ const DashboardKPIs = ({ filters }: { filters: DashboardFilters }) => {
 };
 
 const WorkItemTrendChart = ({ filters }: { filters: DashboardFilters }) => {
-  const trendData = useWorkItemTrend(filters);
+  const { trendData, isLoading, isError, refetch } = useWorkItemTrend(filters);
+  const activityTotal = trendData.reduce((total, month) => total + month.created + month.completed, 0);
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-base">Work Item Trend</CardTitle>
-        <CardDescription>Created vs completed — last 6 months</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="h-[220px] sm:h-[250px] min-w-0">
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={trendData}>
-              <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-              <XAxis dataKey="month" className="text-xs" tick={{ fill: "hsl(var(--muted-foreground))" }} />
-              <YAxis className="text-xs" tick={{ fill: "hsl(var(--muted-foreground))" }} />
-              <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px" }} />
-              <Area type="monotone" dataKey="created" stackId="1" stroke="hsl(var(--primary))" fill="hsl(var(--primary))" fillOpacity={0.3} name="Created" />
-              <Area type="monotone" dataKey="completed" stackId="2" stroke="hsl(150, 60%, 45%)" fill="hsl(150, 60%, 45%)" fillOpacity={0.3} name="Completed" />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
-      </CardContent>
-    </Card>
+    <DashboardChartFrame
+      title="Work Item Trend"
+      description="Created vs completed — last 6 months"
+      isLoading={isLoading}
+      isError={isError}
+      isEmpty={!isLoading && !isError && activityTotal === 0}
+      onRetry={() => void refetch()}
+      emptyTitle="No work-item activity in the last six months"
+      emptyDescription="New and completed work items will populate this trend automatically."
+      accessibleSummary={`Work item activity over six months: ${trendData.map((month) => `${month.month}, ${month.created} created and ${month.completed} completed`).join("; ")}.`}
+      fallbackItems={trendData.flatMap((month) => [
+        { label: `${month.month} created`, value: month.created },
+        { label: `${month.month} completed`, value: month.completed },
+      ])}
+    >
+      <ResponsiveContainer width="100%" height="100%">
+        <AreaChart data={trendData}>
+          <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+          <XAxis dataKey="month" className="text-xs" tick={{ fill: "hsl(var(--muted-foreground))" }} />
+          <YAxis className="text-xs" tick={{ fill: "hsl(var(--muted-foreground))" }} />
+          <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px" }} />
+          <Area type="monotone" dataKey="created" stackId="1" stroke="hsl(var(--primary))" fill="hsl(var(--primary))" fillOpacity={0.3} name="Created" />
+          <Area type="monotone" dataKey="completed" stackId="2" stroke="hsl(150, 60%, 45%)" fill="hsl(150, 60%, 45%)" fillOpacity={0.3} name="Completed" />
+        </AreaChart>
+      </ResponsiveContainer>
+    </DashboardChartFrame>
   );
 };
 
 const StatusDistributionChart = ({ filters }: { filters: DashboardFilters }) => {
-  const statusData = useStatusDistribution(filters);
+  const { statusData, isLoading, isError, refetch } = useStatusDistribution(filters);
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-base">Status Distribution</CardTitle>
-        <CardDescription>Active work items by status</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="h-[220px] sm:h-[250px] min-w-0">
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie data={statusData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`} labelLine={false}>
-                {statusData.map((_, index) => (
-                  <Cell key={index} fill={CHART_COLORS[index % CHART_COLORS.length]} />
-                ))}
-              </Pie>
-              <Tooltip />
-            </PieChart>
-          </ResponsiveContainer>
-        </div>
-      </CardContent>
-    </Card>
+    <DashboardChartFrame
+      title="Status Distribution"
+      description="Active work items by status"
+      isLoading={isLoading}
+      isError={isError}
+      isEmpty={!isLoading && !isError && statusData.length === 0}
+      onRetry={() => void refetch()}
+      emptyTitle="No active work items"
+      emptyDescription="Active work-item statuses will appear here."
+      accessibleSummary={`Active work items by status: ${statusData.map((item) => `${item.name}, ${item.value}`).join("; ")}.`}
+      fallbackItems={statusData.map((item) => ({ label: item.name, value: item.value }))}
+    >
+      <ResponsiveContainer width="100%" height="100%">
+        <PieChart>
+          <Pie data={statusData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label={({ name, percent }) => `${name} (${(Number(percent ?? 0) * 100).toFixed(0)}%)`} labelLine={false}>
+            {statusData.map((_, index) => (
+              <Cell key={index} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+            ))}
+          </Pie>
+          <Tooltip />
+        </PieChart>
+      </ResponsiveContainer>
+    </DashboardChartFrame>
   );
 };
 
 const NgoPortfolioStatusChart = ({ filters }: { filters: DashboardFilters }) => {
-  const { data: dashboardData } = useDashboardData(filters);
+  const { data: dashboardData, isLoading, isError, refetch } = useDashboardData(filters);
   const portfolioData = dashboardData?.ngoStatusDistribution?.filter((item) => item.value > 0) ?? [];
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-base">NGO Portfolio Status</CardTitle>
-        <CardDescription>Where everyone stands in the HPG relationship pipeline</CardDescription>
-      </CardHeader>
-      <CardContent>
-        {portfolioData.length === 0 ? (
-          <DashboardPanelState
-            isEmpty
-            emptyTitle="No NGO portfolio data"
-            emptyDescription="Add NGOs to the workspace to see portfolio status distribution."
-          />
-        ) : (
-          <div className="h-[220px] sm:h-[250px] min-w-0">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie data={portfolioData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`} labelLine={false}>
-                  {portfolioData.map((_, index) => (
-                    <Cell key={index} fill={CHART_COLORS[(index + 2) % CHART_COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+    <DashboardChartFrame
+      title="NGO Portfolio Status"
+      description="Where everyone stands in the HPG relationship pipeline"
+      isLoading={isLoading}
+      isError={isError}
+      isEmpty={!isLoading && !isError && portfolioData.length === 0}
+      onRetry={() => void refetch()}
+      emptyTitle="No NGO portfolio data"
+      emptyDescription="Add NGOs to the workspace to see portfolio status distribution."
+      accessibleSummary={`NGO portfolio status: ${portfolioData.map((item) => `${item.name}, ${item.value}`).join("; ")}.`}
+      fallbackItems={portfolioData.map((item) => ({ label: item.name, value: item.value }))}
+    >
+      <ResponsiveContainer width="100%" height="100%">
+        <PieChart>
+          <Pie data={portfolioData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label={({ name, percent }) => `${name} (${(Number(percent ?? 0) * 100).toFixed(0)}%)`} labelLine={false}>
+            {portfolioData.map((_, index) => (
+              <Cell key={index} fill={CHART_COLORS[(index + 2) % CHART_COLORS.length]} />
+            ))}
+          </Pie>
+          <Tooltip />
+          <Legend />
+        </PieChart>
+      </ResponsiveContainer>
+    </DashboardChartFrame>
   );
 };
 
 const DeptWorkloadChart = ({ filters }: { filters: DashboardFilters }) => {
-  const { data: dashboardData } = useDashboardData(filters);
+  const { data: dashboardData, isLoading, isError, refetch } = useDashboardData(filters);
   const workload = dashboardData?.workloadByDepartment ?? [];
   const openCount = dashboardData?.openWorkItemCount ?? 0;
+
   return (
-    <Card className="col-span-full">
-      <CardHeader>
-        <CardTitle className="text-base">Workload by Department</CardTitle>
-        <CardDescription>Open work items per department (includes module-based routing when department is unset)</CardDescription>
-      </CardHeader>
-      <CardContent>
-        {workload.length === 0 ? (
-          <DashboardPanelState
-            isEmpty
-            emptyTitle={openCount > 0 ? "Work items found without department grouping" : "No open work items in this view"}
-            emptyDescription={
-              openCount > 0
-                ? `${openCount} open work item${openCount === 1 ? "" : "s"} exist but could not be grouped by department. Assign a department on each work item for clearer workload charts.`
-                : "Create or reopen work items in this dashboard view to see department workload."
-            }
-          />
-        ) : (
-          <div className="h-[220px] sm:h-[250px] min-w-0">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={workload} layout="vertical">
-                <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                <XAxis type="number" tick={{ fill: "hsl(var(--muted-foreground))" }} />
-                <YAxis dataKey="department" type="category" width={120} tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }} />
-                <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px" }} />
-                <Bar dataKey="count" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} name="Open Items" />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+    <DashboardChartFrame
+      className="col-span-full"
+      title="Workload by Department"
+      description="Open work items per department (includes module-based routing when department is unset)"
+      isLoading={isLoading}
+      isError={isError}
+      isEmpty={!isLoading && !isError && workload.length === 0}
+      onRetry={() => void refetch()}
+      emptyTitle={openCount > 0 ? "Work items found without department grouping" : "No open work items in this view"}
+      emptyDescription={
+        openCount > 0
+          ? `${openCount} open work item${openCount === 1 ? "" : "s"} exist but could not be grouped by department. Assign a department on each work item for clearer workload charts.`
+          : "Create or reopen work items in this dashboard view to see department workload."
+      }
+      accessibleSummary={`Open work items by department: ${workload.map((item) => `${item.department}, ${item.count}`).join("; ")}.`}
+      fallbackItems={workload.map((item) => ({ label: item.department, value: item.count }))}
+    >
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart data={workload} layout="vertical">
+          <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+          <XAxis type="number" tick={{ fill: "hsl(var(--muted-foreground))" }} />
+          <YAxis dataKey="department" type="category" width={120} tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }} />
+          <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px" }} />
+          <Bar dataKey="count" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} name="Open Items" />
+        </BarChart>
+      </ResponsiveContainer>
+    </DashboardChartFrame>
   );
 };
 
 const AtRiskAndEvidencePanel = ({ filters }: { filters: DashboardFilters }) => {
-  const { data: dashboardData } = useDashboardData(filters);
+  const { data: dashboardData, isLoading, isError, refetch } = useDashboardData(filters);
   const navigate = useNavigate();
   const evidenceRows = dashboardData?.evidencePending ?? [];
   const evidenceSummary = dashboardData?.evidenceSummary;
@@ -439,6 +526,21 @@ const AtRiskAndEvidencePanel = ({ filters }: { filters: DashboardFilters }) => {
     if (category === "under_review") return "default";
     return "secondary";
   };
+
+  if (isLoading || isError) {
+    return (
+      <Card className="md:col-span-2">
+        <CardContent className="py-8">
+          <DashboardPanelState
+            isLoading={isLoading}
+            isError={isError}
+            errorMessage="Portfolio risk and evidence records could not load."
+            onRetry={() => void refetch()}
+          />
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <div className="grid gap-4 md:grid-cols-2">
@@ -453,7 +555,7 @@ const AtRiskAndEvidencePanel = ({ filters }: { filters: DashboardFilters }) => {
           {dashboardData?.atRiskNgos && dashboardData.atRiskNgos.length > 0 ? (
             <div className="space-y-2">
               {dashboardData.atRiskNgos.slice(0, 8).map((ngo) => (
-                <div key={ngo.id} className="flex items-center justify-between p-2 border rounded text-sm cursor-pointer hover:bg-accent/50" onClick={() => navigate(`/ngo/${ngo.id}`)}>
+                <div key={ngo.id} className="flex items-center justify-between p-2 border rounded text-sm cursor-pointer hover:bg-accent/50" onClick={() => navigate(`/ngos/${ngo.id}`)}>
                   <div>
                     <p className="font-medium">{ngo.name}</p>
                     <p className="text-xs text-muted-foreground">{ngo.location}</p>
@@ -567,11 +669,15 @@ const QuickNavCards = () => {
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [logoFailed, setLogoFailed] = useState(false);
   const [boardBriefMode, setBoardBriefMode] = useState(false);
   const { filters, section, setFilters, applyView, resetToDefault } = useDashboardUrlState();
   const { toFilters } = useSavedDashboardViews();
   useDashboardSectionScroll(section);
+  const dashboardRequestsInFlight = useIsFetching({
+    predicate: (query) => HOME_DASHBOARD_QUERY_ROOTS.has(String(query.queryKey[0] ?? "")),
+  });
 
   const handleApplySavedView = (view: SavedDashboardView) => {
     applyView({ filters: toFilters(view), section: view.section ?? null });
@@ -585,6 +691,13 @@ const Dashboard = () => {
     document.body.classList.add("dashboard-print-mode");
     window.print();
     window.setTimeout(() => document.body.classList.remove("dashboard-print-mode"), 500);
+  };
+
+  const handleRefreshDashboard = async () => {
+    const predicate = (query: { queryKey: readonly unknown[] }) =>
+      HOME_DASHBOARD_QUERY_ROOTS.has(String(query.queryKey[0] ?? ""));
+    await queryClient.cancelQueries({ predicate });
+    await queryClient.invalidateQueries({ predicate });
   };
 
   return (
@@ -618,6 +731,14 @@ const Dashboard = () => {
           )}
         </div>
         <div className="flex flex-wrap gap-2">
+          <Button variant="outline" onClick={() => void handleRefreshDashboard()}>
+            {dashboardRequestsInFlight > 0 ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <RefreshCw className="mr-2 h-4 w-4" />
+            )}
+            Refresh data
+          </Button>
           <Button
             variant={boardBriefMode ? "default" : "outline"}
             onClick={() => setBoardBriefMode((v) => !v)}

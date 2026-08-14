@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { ensureSupabase } from "@/integrations/supabase/client";
+import { createDashboardRequestScope } from "@/lib/dashboardRequest";
 
 export interface FinanceHubSnapshot {
   openWorkItems: number;
@@ -17,8 +18,11 @@ export interface FinanceHubSnapshot {
 
 export const useFinanceHubSnapshot = () => useQuery({
   queryKey: ["finance-hub-snapshot"],
-  queryFn: async (): Promise<FinanceHubSnapshot> => {
+  queryFn: async ({ signal }): Promise<FinanceHubSnapshot> => {
     const supabase = ensureSupabase();
+    const request = createDashboardRequestScope(signal);
+
+    try {
     const [
       { count: openWorkItems },
       { count: draftEntries },
@@ -31,29 +35,77 @@ export const useFinanceHubSnapshot = () => useQuery({
       { count: pendingBudgetApprovals },
       { count: queuedNotifications },
     ] = await Promise.all([
-      supabase.from("work_items").select("id", { count: "exact", head: true }).eq("module", "finance").is("archived_at", null),
-      supabase.from("finance_journal_entries" as never).select("id", { count: "exact", head: true }).eq("status" as never, "draft" as never),
-      supabase.from("finance_bank_accounts" as never).select("id", { count: "exact", head: true }).eq("is_active" as never, true as never),
-      supabase.from("finance_bills" as never).select("id, total_amount, amount_paid, due_date").in("status" as never, ["approved", "partially_paid"] as never),
-      supabase.from("finance_bank_reconciliations" as never).select("bank_account_id, status"),
-      supabase.from("finance_journal_entries" as never).select("id").eq("status" as never, "posted" as never).limit(1),
-      supabase.from("finance_expense_requests" as never).select("id", { count: "exact", head: true }).eq("status" as never, "submitted" as never),
-      supabase.from("purchase_requests").select("id", { count: "exact", head: true }).eq("status", "pending_approval"),
-      supabase.from("finance_budgets" as never).select("id", { count: "exact", head: true }).eq("status" as never, "pending_approval" as never),
-      supabase.from("finance_workflow_events" as never).select("id", { count: "exact", head: true }).eq("notification_status" as never, "queued" as never),
+      supabase.from("work_items").select("id", { count: "exact", head: true }).eq("module", "finance").is("archived_at", null).abortSignal(request.signal),
+      supabase.from("finance_journal_entries" as never).select("id", { count: "exact", head: true }).eq("status" as never, "draft" as never).abortSignal(request.signal),
+      supabase.from("finance_bank_accounts" as never).select("id", { count: "exact", head: true }).eq("is_active" as never, true as never).abortSignal(request.signal),
+      supabase.from("finance_bills" as never).select("id, total_amount, amount_paid, due_date").in("status" as never, ["approved", "partially_paid"] as never).abortSignal(request.signal),
+      supabase.from("finance_bank_reconciliations" as never).select("bank_account_id, status").abortSignal(request.signal),
+      supabase.from("finance_journal_entries" as never).select("id").eq("status" as never, "posted" as never).limit(1).abortSignal(request.signal),
+      supabase.from("finance_expense_requests" as never).select("id", { count: "exact", head: true }).eq("status" as never, "submitted" as never).abortSignal(request.signal),
+      supabase.from("purchase_requests").select("id", { count: "exact", head: true }).eq("status", "pending_approval").abortSignal(request.signal),
+      supabase.from("finance_budgets" as never).select("id", { count: "exact", head: true }).eq("status" as never, "pending_approval" as never).abortSignal(request.signal),
+      supabase.from("finance_workflow_events" as never).select("id", { count: "exact", head: true }).eq("notification_status" as never, "queued" as never).abortSignal(request.signal),
     ]);
+
+    if (request.signal.aborted) throw new DOMException("Finance dashboard request timed out", "AbortError");
 
     let missingReceipts = 0;
     if (postedEntries?.length) {
-      const { data: entries } = await supabase.from("finance_journal_entries" as never).select("id").eq("status" as never, "posted" as never).limit(50);
+      const { data: entries, error: entriesError } = await supabase
+        .from("finance_journal_entries" as never)
+        .select("id")
+        .eq("status" as never, "posted" as never)
+        .limit(50)
+        .abortSignal(request.signal);
+      if (entriesError) throw entriesError;
+
       if (entries?.length) {
-        const checks = await Promise.all(
-          entries.map(async (e: { id: string }) => {
-            const { data } = await supabase.rpc("finance_journal_entry_has_receipt" as never, { _entry_id: e.id } as never);
-            return Boolean(data);
-          })
+        const entryIds = (entries as { id: string }[]).map((entry) => entry.id);
+        const [directLinksResult, linesResult] = await Promise.all([
+          supabase
+            .from("finance_document_links" as never)
+            .select("entity_id")
+            .eq("entity_type" as never, "journal_entry" as never)
+            .in("entity_id" as never, entryIds as never)
+            .abortSignal(request.signal),
+          supabase
+            .from("finance_journal_lines" as never)
+            .select("id, journal_entry_id, document_id")
+            .in("journal_entry_id" as never, entryIds as never)
+            .abortSignal(request.signal),
+        ]);
+
+        if (directLinksResult.error) throw directLinksResult.error;
+        if (linesResult.error) throw linesResult.error;
+
+        const lines = (linesResult.data ?? []) as unknown as Array<{
+          id: string;
+          journal_entry_id: string;
+          document_id: string | null;
+        }>;
+        const lineIds = lines.map((line) => line.id);
+        const lineLinksResult = lineIds.length
+          ? await supabase
+              .from("finance_document_links" as never)
+              .select("entity_id")
+              .eq("entity_type" as never, "journal_line" as never)
+              .in("entity_id" as never, lineIds as never)
+              .abortSignal(request.signal)
+          : { data: [], error: null };
+
+        if (lineLinksResult.error) throw lineLinksResult.error;
+
+        const supportedEntries = new Set(
+          ((directLinksResult.data ?? []) as unknown as { entity_id: string }[]).map((link) => link.entity_id),
         );
-        missingReceipts = checks.filter((h) => !h).length;
+        const linkedLineIds = new Set(
+          ((lineLinksResult.data ?? []) as unknown as { entity_id: string }[]).map((link) => link.entity_id),
+        );
+        lines.forEach((line) => {
+          if (line.document_id || linkedLineIds.has(line.id)) supportedEntries.add(line.journal_entry_id);
+        });
+
+        missingReceipts = entryIds.filter((entryId) => !supportedEntries.has(entryId)).length;
       }
     }
 
@@ -67,7 +119,11 @@ export const useFinanceHubSnapshot = () => useQuery({
     const finalizedBankIds = new Set((recons || []).filter((r: { status: string }) => r.status === "finalized").map((r: { bank_account_id: string }) => r.bank_account_id));
     const unreconciledBanks = Math.max(0, activeBanks - finalizedBankIds.size);
 
-    const { count: coaCount } = await supabase.from("finance_accounts" as never).select("id", { count: "exact", head: true });
+    const { count: coaCount, error: coaError } = await supabase
+      .from("finance_accounts" as never)
+      .select("id", { count: "exact", head: true })
+      .abortSignal(request.signal);
+    if (coaError) throw coaError;
     const dataReadiness = (coaCount ?? 0) > 0 && (postedEntries?.length ?? 0) > 0 ? "ready" : (coaCount ?? 0) > 0 ? "partial" : "setup";
 
     return {
@@ -83,5 +139,8 @@ export const useFinanceHubSnapshot = () => useQuery({
       queuedNotifications: queuedNotifications ?? 0,
       dataReadiness,
     };
+    } finally {
+      request.cleanup();
+    }
   },
 });

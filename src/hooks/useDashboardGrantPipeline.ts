@@ -1,15 +1,20 @@
 import { useQuery } from "@tanstack/react-query";
 import { ensureSupabase } from "@/integrations/supabase/client";
+import { createDashboardRequestScope } from "@/lib/dashboardRequest";
 
-const safeCount = async (table: string) => {
+type DashboardCountTable = "grant_opportunities" | "grant_applications";
+
+const safeCount = async (table: DashboardCountTable, signal: AbortSignal) => {
   try {
     const supabase = ensureSupabase();
-    const { count, error } = await (supabase as any)
+    const { count, error } = await supabase
       .from(table)
-      .select("id", { count: "exact", head: true });
+      .select("id", { count: "exact", head: true })
+      .abortSignal(signal);
     if (error) return { available: false, count: 0 };
     return { available: true, count: count ?? 0 };
-  } catch {
+  } catch (error) {
+    if (signal.aborted) throw error;
     return { available: false, count: 0 };
   }
 };
@@ -26,22 +31,26 @@ const activeApplicationStatuses = [
 export const useDashboardGrantPipeline = () => {
   return useQuery({
     queryKey: ["dashboard-grant-pipeline"],
-    queryFn: async () => {
+    queryFn: async ({ signal }) => {
       const supabase = ensureSupabase();
+      const request = createDashboardRequestScope(signal);
 
+      try {
       const [opportunities, applications, grantWorkItems] = await Promise.all([
-        safeCount("grant_opportunities"),
-        safeCount("grant_applications"),
+        safeCount("grant_opportunities", request.signal),
+        safeCount("grant_applications", request.signal),
         (async () => {
           try {
             const { count, error } = await supabase
               .from("work_items")
               .select("id", { count: "exact", head: true })
               .is("archived_at", null)
-              .eq("module", "grants");
+              .eq("module", "grants")
+              .abortSignal(request.signal);
             if (error) return { available: false, count: 0 };
             return { available: true, count: count ?? 0 };
-          } catch {
+          } catch (error) {
+            if (request.signal.aborted) throw error;
             return { available: false, count: 0 };
           }
         })(),
@@ -54,7 +63,8 @@ export const useDashboardGrantPipeline = () => {
         try {
           const { data, error } = await supabase
             .from("grant_applications")
-            .select("status");
+            .select("status")
+            .abortSignal(request.signal);
           if (!error && data) {
             activeApplications = data.filter((row) =>
               activeApplicationStatuses.includes((row.status || "").toLowerCase().replace(/[\s-]+/g, "_")),
@@ -62,7 +72,8 @@ export const useDashboardGrantPipeline = () => {
           } else {
             applicationsAvailable = false;
           }
-        } catch {
+        } catch (error) {
+          if (request.signal.aborted) throw error;
           applicationsAvailable = false;
         }
       }
@@ -80,6 +91,9 @@ export const useDashboardGrantPipeline = () => {
         grantWorkItemsAvailable: grantWorkItems.available,
         partiallyConnected,
       };
+      } finally {
+        request.cleanup();
+      }
     },
   });
 };

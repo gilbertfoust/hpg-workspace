@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { ensureSupabase } from "@/integrations/supabase/client";
 import { fetchNgoFilterIds, type DashboardFilters } from "@/hooks/useDashboardData";
+import { createDashboardRequestScope } from "@/lib/dashboardRequest";
 
 const complianceStatuses = ["at_risk", "out_of_compliance", "non_compliant", "suspended", "remediation"];
 
@@ -15,9 +16,11 @@ const topEntry = (totals: Map<string, number>) => {
 export const useDashboardPortfolioIntelligence = (filters: DashboardFilters) => {
   return useQuery({
     queryKey: ["dashboard-portfolio-intelligence", filters],
-    queryFn: async () => {
+    queryFn: async ({ signal }) => {
       const supabase = ensureSupabase();
-      const { hasNgoFilters, ngoFilterIds } = await fetchNgoFilterIds(filters);
+      const request = createDashboardRequestScope(signal);
+      try {
+      const { hasNgoFilters, ngoFilterIds } = await fetchNgoFilterIds(filters, request.signal);
 
       if (hasNgoFilters && ngoFilterIds.length === 0) {
         return {
@@ -36,7 +39,7 @@ export const useDashboardPortfolioIntelligence = (filters: DashboardFilters) => 
       if (filters.country) query = query.eq("country", filters.country);
       if (filters.state) query = query.eq("state_province", filters.state);
 
-      const { data, error } = await query;
+      const { data, error } = await query.abortSignal(request.signal);
       if (error) throw error;
 
       const ngos = data ?? [];
@@ -75,6 +78,9 @@ export const useDashboardPortfolioIntelligence = (filters: DashboardFilters) => 
         largestStatusGroup: largestStatusGroup.label,
         complianceRiskCount,
       };
+      } finally {
+        request.cleanup();
+      }
     },
   });
 };

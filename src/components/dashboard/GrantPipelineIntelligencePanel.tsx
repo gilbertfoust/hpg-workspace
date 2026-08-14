@@ -2,9 +2,10 @@ import { Briefcase, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useDashboardGrantPipeline } from "@/hooks/useDashboardGrantPipeline";
+import { DashboardPanelState } from "@/components/dashboard/DashboardPanelState";
 
 export const GrantPipelineIntelligencePanel = () => {
-  const { data, isLoading } = useDashboardGrantPipeline();
+  const { data, isLoading, isError, refetch } = useDashboardGrantPipeline();
 
   const anyAvailable = data?.opportunitiesAvailable || data?.applicationsAvailable || data?.grantWorkItemsAvailable;
 
@@ -22,6 +23,12 @@ export const GrantPipelineIntelligencePanel = () => {
           <div className="flex items-center justify-center py-8">
             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
           </div>
+        ) : isError ? (
+          <DashboardPanelState
+            isError
+            errorMessage="Grant pipeline intelligence could not load."
+            onRetry={() => void refetch()}
+          />
         ) : !anyAvailable ? (
           <p className="text-sm text-muted-foreground text-center py-6">
             Grant pipeline data is not connected yet. Connect grant tables to populate this panel.

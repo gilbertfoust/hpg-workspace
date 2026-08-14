@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { ensureSupabase } from "@/integrations/supabase/client";
 import { fetchNgoFilterIds, type DashboardFilters } from "@/hooks/useDashboardData";
+import { createDashboardRequestScope } from "@/lib/dashboardRequest";
 
 export type ActionCenterReason =
   | "Overdue"
@@ -61,9 +62,12 @@ const formatStatus = (value: string | null | undefined) =>
 export const useDashboardActionCenter = (filters: DashboardFilters = {}) => {
   return useQuery({
     queryKey: ["dashboard-action-center", filters],
-    queryFn: async () => {
+    queryFn: async ({ signal }) => {
       const supabase = ensureSupabase();
-      const { hasNgoFilters, ngoFilterIds } = await fetchNgoFilterIds(filters);
+      const request = createDashboardRequestScope(signal);
+
+      try {
+      const { hasNgoFilters, ngoFilterIds } = await fetchNgoFilterIds(filters, request.signal);
 
       if (hasNgoFilters && ngoFilterIds.length === 0) {
         return { summary: emptySummary(), items: [] as ActionCenterItem[] };
@@ -83,7 +87,7 @@ export const useDashboardActionCenter = (filters: DashboardFilters = {}) => {
         workItemsQuery = workItemsQuery.in("ngo_id", ngoFilterIds);
       }
 
-      const { data: workItems, error: workItemsError } = await workItemsQuery;
+      const { data: workItems, error: workItemsError } = await workItemsQuery.abortSignal(request.signal);
 
       if (workItemsError) throw workItemsError;
 
@@ -98,13 +102,13 @@ export const useDashboardActionCenter = (filters: DashboardFilters = {}) => {
         { data: owners, error: ownersError },
       ] = await Promise.all([
         ngoIds.length
-          ? supabase.from("ngos").select("id, legal_name, common_name").in("id", ngoIds)
+          ? supabase.from("ngos").select("id, legal_name, common_name").in("id", ngoIds).abortSignal(request.signal)
           : Promise.resolve({ data: [], error: null }),
         departmentIds.length
-          ? supabase.from("org_units").select("id, department_name").in("id", departmentIds)
+          ? supabase.from("org_units").select("id, department_name").in("id", departmentIds).abortSignal(request.signal)
           : Promise.resolve({ data: [], error: null }),
         ownerIds.length
-          ? supabase.from("profiles").select("id, full_name, email").in("id", ownerIds)
+          ? supabase.from("profiles").select("id, full_name, email").in("id", ownerIds).abortSignal(request.signal)
           : Promise.resolve({ data: [], error: null }),
       ]);
 
@@ -187,6 +191,9 @@ export const useDashboardActionCenter = (filters: DashboardFilters = {}) => {
         .slice(0, 12);
 
       return { summary, items };
+      } finally {
+        request.cleanup();
+      }
     },
   });
 };

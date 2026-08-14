@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useDashboardModuleSnapshots, type DashboardModuleSnapshot } from "@/hooks/useDashboardModuleSnapshots";
+import { DashboardPanelState } from "@/components/dashboard/DashboardPanelState";
 
 const icons: Record<string, ReactNode> = {
   "ngo-coordination": <Building2 className="h-4 w-4" />,
@@ -38,7 +39,7 @@ const metricToneClass = (tone?: DashboardModuleSnapshot["metrics"][number]["tone
 
 export const ModuleSnapshotCards = () => {
   const navigate = useNavigate();
-  const { data: snapshots, isLoading } = useDashboardModuleSnapshots();
+  const { data: snapshots, isLoading, isError, refetch } = useDashboardModuleSnapshots();
 
   return (
     <Card>
@@ -51,6 +52,12 @@ export const ModuleSnapshotCards = () => {
           <div className="flex items-center justify-center py-8">
             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
           </div>
+        ) : isError ? (
+          <DashboardPanelState
+            isError
+            errorMessage="Module snapshots could not load."
+            onRetry={() => void refetch()}
+          />
         ) : (
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {(snapshots ?? []).map((snapshot) => (
