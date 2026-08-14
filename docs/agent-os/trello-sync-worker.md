@@ -1,124 +1,71 @@
-# Agent OS Trello Synchronization Worker
+# Trello Integration Retirement and Historical Provenance
 
-Status: **implemented in code; no Trello credentials, mappings, cards, or live operations are active**.
+Status: **retired by Agent OS Phase 4**.
 
-## Purpose
+HPG Workspace and its connected Supabase database are the authoritative operating system for work items, cases, assignments, boards, approvals, handoffs, institutional memory, and audit history.
 
-The worker connects Supabase, the permanent Agent OS workflow record, to HPG's existing Trello department workspaces, boards, lists, template cards, checklists, and assignments. It does not replace or redesign the current Trello architecture.
+Trello is no longer permitted to create, update, assign, move, archive, approve, or synchronize an HPG operational record.
 
-## Safety gates
+## Current operating role
 
-Live Trello processing requires all of the following:
-
-1. Agent OS runtime and Trello-route migrations deployed.
-2. Approved `trello_route_mappings` records created after inventorying the real Trello workspaces and boards.
-3. `TRELLO_API_KEY` and `TRELLO_API_TOKEN` installed as Supabase secrets.
-4. `AGENT_OS_WORKER_SECRET` installed, or invocation by an authenticated internal user.
-5. `AGENT_OS_TRELLO_LIVE=true` installed.
-6. Request body explicitly contains `"live": true`.
-
-Missing any condition prevents live Trello operations.
-
-## Supported operations
-
-- `create_card`: creates a card in an approved mapped list and may copy an approved template card.
-- `update_card`: updates supported card fields.
-- `move_card`: moves an existing card to an approved list through a controlled payload.
-
-The first release supports only Supabase-to-Trello synchronization. Trello-to-Supabase webhook ingestion remains a separate controlled phase.
-
-## Route mappings
-
-Every live card creation requires an active route mapping containing:
-
-- route key;
-- department module;
-- optional subdepartment or function;
-- optional case type;
-- existing Trello workspace ID;
-- board ID;
-- list ID;
-- optional template card ID;
-- optional default labels and members.
-
-A missing or incomplete mapping blocks the queue item rather than guessing a destination.
-
-## Dry-run invocation
-
-```json
-{
-  "limit": 10,
-  "live": false
-}
+```text
+Provider: Trello
+Operating role: historical_provenance_only
+Authoritative: false
+Inbound mutation allowed: false
+Outbound mutation allowed: false
+Status: retired
+Replacement: HPG Workspace / Supabase
 ```
 
-Dry run returns pending queue items with route readiness and performs no claim or external action.
+Historical Trello identifiers, URLs, board references, list references, and snapshots remain available in the Phase 4 provenance archive. This preserves traceability without maintaining a competing system of record.
 
-## Live invocation
+## Retired execution paths
 
-```json
-{
-  "limit": 10,
-  "live": true
-}
+Phase 4 retired each operational Trello path:
+
+- the `work_items` outbound synchronization triggers were dropped;
+- `work_items.trello_sync` is constrained to `false`;
+- all Trello route mappings are inactive;
+- all Trello member mappings are inactive;
+- pending and processing synchronization rows are prohibited;
+- the queue trigger function is no longer executable by browser roles;
+- the Trello webhook edge function returns HTTP `410 Gone` and performs no reads or writes;
+- the Trello synchronization worker returns HTTP `410 Gone`, reports zero eligible and processed records, and performs no external request;
+- historical Trello references were copied into `external_system_provenance_archive` with SHA-256 snapshot hashes.
+
+## Historical provenance retained
+
+The archive preserves legacy references from:
+
+- grant Trello cards;
+- grant applications;
+- grant opportunities;
+- Partnership/FSA board references;
+- work items;
+- permanent Agent OS cases; and
+- NGO ES-FSA card references.
+
+Every archived record is explicitly marked non-authoritative.
+
+## Safety rule
+
+No credential, environment variable, route mapping, queue insertion, webhook delivery, or worker invocation can reactivate Trello operations. Reactivation would require a later governed migration that deliberately removes the Phase 4 database constraints, restores execution code, passes security validation, and receives the required human approvals.
+
+## Phase 4 verification
+
+Run:
+
+```text
+scripts/agent-os/verify-phase4.sql
 ```
 
-Live mode must remain disabled until a Trello sandbox or carefully selected test board is configured.
+The script verifies that:
 
-## Retry and recovery
-
-- First failure: retry after 5 minutes.
-- Second failure: retry after 15 minutes.
-- Third failure: mark failed and preserve the error.
-- Processing locks older than 15 minutes are recovered.
-- Missing route mappings are blocked immediately and require an internal configuration decision.
-- Queue idempotency keys prevent duplicate work creation for the same source event.
-
-## Trello inventory required before activation
-
-For each HPG department and function, record:
-
-- workspace name and ID;
-- board name and ID;
-- list names and IDs;
-- template cards and IDs;
-- custom fields;
-- labels;
-- assigned roles or member IDs;
-- Butler automations;
-- email-to-board addresses currently in use;
-- card naming conventions;
-- checklist ownership and completion rules;
-- archive and rejection lists;
-- dependencies on Make.com or other automations.
-
-## Pilot route
-
-The first route should be NGO Coordination or a dedicated Trello sandbox. It should use a fabricated NGO case and verify:
-
-1. one queue event creates one card;
-2. permanent HPG reference appears in the card name or description;
-3. the approved template card is copied;
-4. Director and coordinator checklists remain intact;
-5. the created card ID and URL return to Supabase;
-6. repeated processing does not create a duplicate;
-7. move and update operations work only on the expected card;
-8. missing mappings and unsupported operations fail safely;
-9. run logs contain evidence without credentials;
-10. live mode can be disabled immediately.
-
-## Production checklist
-
-- [ ] Inventory current Trello architecture.
-- [ ] Create route mappings through an internal configuration screen or controlled SQL.
-- [ ] Create a dedicated test board or approved test list.
-- [ ] Install test credentials as secrets.
-- [ ] Keep `AGENT_OS_TRELLO_LIVE` unset during dry-run testing.
-- [ ] Confirm pending items appear with route readiness.
-- [ ] Enable live mode in test only.
-- [ ] Test create, update, move, retries, and duplicate prevention.
-- [ ] Verify Supabase case and work-item identifiers update correctly.
-- [ ] Obtain Technology and department-supervisor approval.
-- [ ] Deploy to production with live mode disabled.
-- [ ] Run a production dry run.
-- [ ] Enable during a controlled window and monitor the first cards.
+1. Trello remains retired and provenance-only;
+2. webhook and worker tombstones are attested;
+3. no active route or member mappings exist;
+4. no pending or processing synchronization rows exist;
+5. no work item has Trello synchronization enabled;
+6. no outbound synchronization trigger remains attached; and
+7. historical provenance remains searchable in the HPG Workspace.
