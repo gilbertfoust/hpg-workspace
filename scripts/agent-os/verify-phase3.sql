@@ -17,12 +17,12 @@ select scenario_key,
 from public.agent_os_phase3_validation_results
 order by sort_order;
 
-select gate_key,
-       gate_group,
-       gate_status,
-       required_reviewer_role,
-       work_item_status,
-       work_item_due_date
+select g.gate_key,
+       g.gate_group,
+       g.gate_status,
+       g.required_reviewer_role,
+       h.work_item_status,
+       h.work_item_due_date
 from public.agent_sponsorship_governance_gates g
 left join public.agent_os_phase3_human_gates h using (workflow_key, gate_key)
 where g.workflow_key='phase3-fiscal-sponsorship-orchestration-v1'
