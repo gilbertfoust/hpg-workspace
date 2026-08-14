@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
-import { AlertCircle, Loader2 } from "lucide-react";
+import { AlertCircle, Loader2, RefreshCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 type DashboardPanelStateProps = {
   isLoading?: boolean;
@@ -9,7 +10,8 @@ type DashboardPanelStateProps = {
   emptyDescription?: string;
   errorMessage?: string;
   loadingLabel?: string;
-  children: ReactNode;
+  onRetry?: () => void;
+  children?: ReactNode;
 };
 
 export const DashboardPanelState = ({
@@ -20,6 +22,7 @@ export const DashboardPanelState = ({
   emptyDescription = "Data will appear here once records are created in the workspace.",
   errorMessage = "This panel could not load its data. Other dashboard sections will continue to work.",
   loadingLabel = "Loading dashboard data…",
+  onRetry,
   children,
 }: DashboardPanelStateProps) => {
   if (isLoading) {
@@ -36,6 +39,12 @@ export const DashboardPanelState = ({
       <div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 py-8 px-4 text-center">
         <AlertCircle className="h-5 w-5 text-destructive" />
         <p className="text-sm text-muted-foreground">{errorMessage}</p>
+        {onRetry ? (
+          <Button size="sm" variant="outline" onClick={onRetry}>
+            <RefreshCw className="mr-2 h-3.5 w-3.5" />
+            Retry panel
+          </Button>
+        ) : null}
       </div>
     );
   }

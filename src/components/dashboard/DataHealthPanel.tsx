@@ -2,6 +2,7 @@ import { Activity, AlertTriangle, CheckCircle2, Database, Loader2 } from "lucide
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useDashboardDataHealth, type DataHealthStatus } from "@/hooks/useDashboardDataHealth";
+import { DashboardPanelState } from "@/components/dashboard/DashboardPanelState";
 
 const statusVariant = (status: DataHealthStatus): "default" | "secondary" | "destructive" | "outline" => {
   if (status === "connected") return "default";
@@ -22,7 +23,7 @@ const statusLabel = (status: DataHealthStatus) => {
 };
 
 export const DataHealthPanel = ({ compact = false }: { compact?: boolean }) => {
-  const { data, isLoading } = useDashboardDataHealth();
+  const { data, isLoading, isError, refetch } = useDashboardDataHealth();
 
   return (
     <Card>
@@ -42,6 +43,12 @@ export const DataHealthPanel = ({ compact = false }: { compact?: boolean }) => {
           <div className="flex items-center justify-center py-8">
             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
           </div>
+        ) : isError ? (
+          <DashboardPanelState
+            isError
+            errorMessage="System and data health checks could not load."
+            onRetry={() => void refetch()}
+          />
         ) : (
           <div className="space-y-4">
             <div className="grid gap-3 md:grid-cols-4">

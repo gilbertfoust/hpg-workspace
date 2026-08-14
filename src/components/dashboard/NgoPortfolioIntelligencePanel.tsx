@@ -2,6 +2,7 @@ import { Building2, Loader2, MapPin, ShieldAlert } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useDashboardPortfolioIntelligence } from "@/hooks/useDashboardPortfolioIntelligence";
 import type { DashboardFilters } from "@/hooks/useDashboardData";
+import { DashboardPanelState } from "@/components/dashboard/DashboardPanelState";
 
 const DistributionList = ({ title, items }: { title: string; items: { label: string; count: number }[] }) => (
   <div className="rounded-lg border p-3">
@@ -22,7 +23,7 @@ const DistributionList = ({ title, items }: { title: string; items: { label: str
 );
 
 export const NgoPortfolioIntelligencePanel = ({ filters }: { filters: DashboardFilters }) => {
-  const { data, isLoading } = useDashboardPortfolioIntelligence(filters);
+  const { data, isLoading, isError, refetch } = useDashboardPortfolioIntelligence(filters);
 
   return (
     <Card>
@@ -38,6 +39,12 @@ export const NgoPortfolioIntelligencePanel = ({ filters }: { filters: DashboardF
           <div className="flex items-center justify-center py-8">
             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
           </div>
+        ) : isError ? (
+          <DashboardPanelState
+            isError
+            errorMessage="NGO portfolio intelligence could not load."
+            onRetry={() => void refetch()}
+          />
         ) : (
           <div className="space-y-4">
             <div className="grid gap-3 md:grid-cols-3">

@@ -1,7 +1,32 @@
 import { useQuery } from "@tanstack/react-query";
 import { ensureSupabase } from "@/integrations/supabase/client";
+import { createDashboardRequestScope } from "@/lib/dashboardRequest";
 
 type SnapshotStatus = "connected" | "building" | "needs_build" | "attention";
+
+type SnapshotTable =
+  | "ngos"
+  | "work_items"
+  | "grant_opportunities"
+  | "grant_applications"
+  | "documents"
+  | "form_templates"
+  | "finance_journal_entries"
+  | "finance_accounts"
+  | "finance_bills"
+  | "finance_bank_accounts"
+  | "staff_profiles"
+  | "applicants";
+
+type SnapshotCountQuery = {
+  abortSignal: (signal: AbortSignal) => PromiseLike<{
+    count: number | null;
+    error: { message: string } | null;
+  }>;
+  eq: (column: string, value: unknown) => SnapshotCountQuery;
+  in: (column: string, values: readonly unknown[]) => SnapshotCountQuery;
+  is: (column: string, value: unknown) => SnapshotCountQuery;
+};
 
 export type DashboardModuleSnapshot = {
   id: string;
@@ -15,14 +40,20 @@ export type DashboardModuleSnapshot = {
 
 const titleCase = (value: string | null | undefined) => (value || "").trim().toLowerCase().replace(/[\s-]+/g, "_");
 
-const countRows = async (supabase: ReturnType<typeof ensureSupabase>, table: string, configure?: (query: any) => any) => {
+const countRows = async (
+  supabase: ReturnType<typeof ensureSupabase>,
+  table: SnapshotTable,
+  signal: AbortSignal,
+  configure?: (query: SnapshotCountQuery) => SnapshotCountQuery,
+) => {
   try {
-    let query = (supabase as any).from(table).select("id", { count: "exact", head: true });
+    let query = supabase.from(table).select("id", { count: "exact", head: true }) as unknown as SnapshotCountQuery;
     if (configure) query = configure(query);
-    const { count, error } = await query;
+    const { count, error } = await query.abortSignal(signal);
     if (error) return { count: 0, connected: false, error: error.message as string };
     return { count: count ?? 0, connected: true, error: null };
   } catch (error) {
+    if (signal.aborted) throw error;
     return { count: 0, connected: false, error: error instanceof Error ? error.message : "Unavailable" };
   }
 };
@@ -47,9 +78,11 @@ const activeWorkItemStatuses = [
 export const useDashboardModuleSnapshots = () => {
   return useQuery({
     queryKey: ["dashboard-module-snapshots"],
-    queryFn: async (): Promise<DashboardModuleSnapshot[]> => {
+    queryFn: async ({ signal }): Promise<DashboardModuleSnapshot[]> => {
       const supabase = ensureSupabase();
+      const request = createDashboardRequestScope(signal);
 
+      try {
       const [
         ngos,
         onboardingNgos,
@@ -71,25 +104,25 @@ export const useDashboardModuleSnapshots = () => {
         hrWorkItems,
         complianceWorkItems,
       ] = await Promise.all([
-        countRows(supabase, "ngos"),
-        countRows(supabase, "ngos", (q) => q.in("status", ["onboarding", "Onboarding", "training", "Training"])),
-        countRows(supabase, "ngos", (q) => q.in("status", ["at_risk", "out_of_compliance", "non_compliant", "suspended", "remediation", "At Risk", "Out of Compliance"])),
-        countRows(supabase, "work_items", (q) => q.is("archived_at", null).in("status", activeWorkItemStatuses)),
-        countRows(supabase, "grant_opportunities"),
-        countRows(supabase, "grant_applications"),
-        countRows(supabase, "work_items", (q) => q.is("archived_at", null).eq("module", "development")),
-        countRows(supabase, "documents"),
-        countRows(supabase, "documents", (q) => q.eq("review_status", "Pending")),
-        countRows(supabase, "form_templates"),
-        countRows(supabase, "finance_journal_entries"),
-        countRows(supabase, "finance_accounts"),
-        countRows(supabase, "work_items", (q) => q.is("archived_at", null).eq("module", "finance")),
-        countRows(supabase, "finance_bills", (q) => q.in("status", ["approved", "partially_paid"])),
-        countRows(supabase, "finance_bank_accounts", (q) => q.eq("is_active", true)),
-        countRows(supabase, "staff_profiles"),
-        countRows(supabase, "applicants"),
-        countRows(supabase, "work_items", (q) => q.is("archived_at", null).eq("module", "hr")),
-        countRows(supabase, "work_items", (q) => q.is("archived_at", null).in("module", ["legal", "administration", "ngo_coordination"])),
+        countRows(supabase, "ngos", request.signal),
+        countRows(supabase, "ngos", request.signal, (q) => q.in("status", ["onboarding", "Onboarding", "training", "Training"])),
+        countRows(supabase, "ngos", request.signal, (q) => q.in("status", ["at_risk", "out_of_compliance", "non_compliant", "suspended", "remediation", "At Risk", "Out of Compliance"])),
+        countRows(supabase, "work_items", request.signal, (q) => q.is("archived_at", null).in("status", activeWorkItemStatuses)),
+        countRows(supabase, "grant_opportunities", request.signal),
+        countRows(supabase, "grant_applications", request.signal),
+        countRows(supabase, "work_items", request.signal, (q) => q.is("archived_at", null).eq("module", "development")),
+        countRows(supabase, "documents", request.signal),
+        countRows(supabase, "documents", request.signal, (q) => q.eq("review_status", "Pending")),
+        countRows(supabase, "form_templates", request.signal),
+        countRows(supabase, "finance_journal_entries", request.signal),
+        countRows(supabase, "finance_accounts", request.signal),
+        countRows(supabase, "work_items", request.signal, (q) => q.is("archived_at", null).eq("module", "finance")),
+        countRows(supabase, "finance_bills", request.signal, (q) => q.in("status", ["approved", "partially_paid"])),
+        countRows(supabase, "finance_bank_accounts", request.signal, (q) => q.eq("is_active", true)),
+        countRows(supabase, "staff_profiles", request.signal),
+        countRows(supabase, "applicants", request.signal),
+        countRows(supabase, "work_items", request.signal, (q) => q.is("archived_at", null).eq("module", "hr")),
+        countRows(supabase, "work_items", request.signal, (q) => q.is("archived_at", null).in("module", ["legal", "administration", "ngo_coordination"])),
       ]);
 
       const snapshots: DashboardModuleSnapshot[] = [
@@ -175,6 +208,9 @@ export const useDashboardModuleSnapshots = () => {
       ];
 
       return snapshots;
+      } finally {
+        request.cleanup();
+      }
     },
   });
 };

@@ -5,10 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useDashboardActionCenter } from "@/hooks/useDashboardActionCenter";
 import type { DashboardFilters } from "@/hooks/useDashboardData";
+import { DashboardPanelState } from "@/components/dashboard/DashboardPanelState";
 
 export const DashboardFollowUpQueue = ({ filters }: { filters: DashboardFilters }) => {
   const navigate = useNavigate();
-  const { data, isLoading } = useDashboardActionCenter(filters);
+  const { data, isLoading, isError, refetch } = useDashboardActionCenter(filters);
 
   const followUps = (data?.items ?? [])
     .filter((item) =>
@@ -37,6 +38,12 @@ export const DashboardFollowUpQueue = ({ filters }: { filters: DashboardFilters 
           <div className="flex items-center justify-center py-6">
             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
           </div>
+        ) : isError ? (
+          <DashboardPanelState
+            isError
+            errorMessage="The follow-up queue could not load."
+            onRetry={() => void refetch()}
+          />
         ) : followUps.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-4">No follow-ups queued for the current view.</p>
         ) : (

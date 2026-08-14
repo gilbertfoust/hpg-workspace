@@ -8,6 +8,7 @@ import {
   resolveWorkItemDepartmentLabel,
   type DashboardEvidenceCategory,
 } from "@/lib/workItemDashboardUtils";
+import { createDashboardRequestScope } from "@/lib/dashboardRequest";
 
 export type DashboardFilters = {
   bundle?: string;
@@ -111,7 +112,7 @@ const uniqueSorted = (values: (string | null | undefined)[]) => {
     .sort((a, b) => a.localeCompare(b));
 };
 
-export const fetchNgoFilterIds = async (filters: DashboardFilters) => {
+export const fetchNgoFilterIds = async (filters: DashboardFilters, signal?: AbortSignal) => {
   const supabase = ensureSupabase();
   const hasNgoFilters = Boolean(filters.bundle || filters.country || filters.state);
 
@@ -129,6 +130,8 @@ export const fetchNgoFilterIds = async (filters: DashboardFilters) => {
   if (filters.state) {
     ngoFilterQuery = ngoFilterQuery.eq("state_province", filters.state);
   }
+
+  if (signal) ngoFilterQuery = ngoFilterQuery.abortSignal(signal);
 
   const { data, error } = await ngoFilterQuery;
   if (error) throw error;
@@ -154,26 +157,31 @@ const buildNgoStatusDistribution = (ngos: { status: string | null }[]) => {
 export const useDashboardFilters = () => {
   return useQuery({
     queryKey: ["dashboard-filters"],
-    queryFn: async () => {
+    queryFn: async ({ signal }) => {
       const supabase = ensureSupabase();
+      const request = createDashboardRequestScope(signal);
 
-      const [
-        { data: ngoData, error: ngoError },
-        { data: workItemData, error: workItemError },
-      ] = await Promise.all([
-        supabase.from("ngos").select("bundle, country, state_province"),
-        supabase.from("work_items").select("module"),
-      ]);
+      try {
+        const [
+          { data: ngoData, error: ngoError },
+          { data: workItemData, error: workItemError },
+        ] = await Promise.all([
+          supabase.from("ngos").select("bundle, country, state_province").abortSignal(request.signal),
+          supabase.from("work_items").select("module").abortSignal(request.signal),
+        ]);
 
-      if (ngoError) throw ngoError;
-      if (workItemError) throw workItemError;
+        if (ngoError) throw ngoError;
+        if (workItemError) throw workItemError;
 
-      return {
-        bundles: uniqueSorted(ngoData?.map((row) => row.bundle) ?? []),
-        countries: uniqueSorted(ngoData?.map((row) => row.country) ?? []),
-        states: uniqueSorted(ngoData?.map((row) => row.state_province) ?? []),
-        modules: uniqueSorted(workItemData?.map((row) => row.module) ?? []),
-      };
+        return {
+          bundles: uniqueSorted(ngoData?.map((row) => row.bundle) ?? []),
+          countries: uniqueSorted(ngoData?.map((row) => row.country) ?? []),
+          states: uniqueSorted(ngoData?.map((row) => row.state_province) ?? []),
+          modules: uniqueSorted(workItemData?.map((row) => row.module) ?? []),
+        };
+      } finally {
+        request.cleanup();
+      }
     },
   });
 };
@@ -181,9 +189,11 @@ export const useDashboardFilters = () => {
 export const useDashboardData = (filters: DashboardFilters) => {
   return useQuery({
     queryKey: ["dashboard-data", filters],
-    queryFn: async (): Promise<DashboardData> => {
+    queryFn: async ({ signal }): Promise<DashboardData> => {
       const supabase = ensureSupabase();
+      const request = createDashboardRequestScope(signal);
 
+      try {
       const hasNgoFilters = Boolean(filters.bundle || filters.country || filters.state);
 
       let ngoFilterQuery = supabase.from("ngos").select("id, status");
@@ -197,7 +207,7 @@ export const useDashboardData = (filters: DashboardFilters) => {
         ngoFilterQuery = ngoFilterQuery.eq("state_province", filters.state);
       }
 
-      const { data: ngoFilterData, error: ngoFilterError } = await ngoFilterQuery;
+      const { data: ngoFilterData, error: ngoFilterError } = await ngoFilterQuery.abortSignal(request.signal);
       if (ngoFilterError) throw ngoFilterError;
 
       const ngoFilterIds = ngoFilterData?.map((ngo) => ngo.id) ?? [];
@@ -237,12 +247,6 @@ export const useDashboardData = (filters: DashboardFilters) => {
         workItemsQuery = workItemsQuery.in("ngo_id", ngoFilterIds);
       }
 
-      const { data: workItemsRaw, error: workItemsError } = await workItemsQuery;
-      if (workItemsError) throw workItemsError;
-
-      const workItems = (workItemsRaw ?? []).filter((item) => isOpenDashboardWorkItem(item.status));
-      const workItemIds = workItems.map((item) => item.id);
-
       let atRiskQuery = supabase
         .from("ngos")
         .select("id, legal_name, common_name, bundle, country, state_province, city")
@@ -259,53 +263,75 @@ export const useDashboardData = (filters: DashboardFilters) => {
         atRiskQuery = atRiskQuery.eq("state_province", filters.state);
       }
 
-      const { data: atRiskData, error: atRiskError } = await atRiskQuery;
-      if (atRiskError) throw atRiskError;
-
-      const ngoIdsForMap = uniqueSorted(
-        (workItems ?? []).map((item) => item.ngo_id).filter(Boolean),
-      );
-
-      const [
-        { data: ngoMapData, error: ngoMapError },
-        { data: orgUnits, error: orgUnitsError },
-      ] = await Promise.all([
-        ngoIdsForMap.length
-          ? supabase.from("ngos").select("id, legal_name, common_name").in("id", ngoIdsForMap)
-          : Promise.resolve({ data: [], error: null }),
-        supabase.from("org_units").select("id, department_name"),
-      ]);
-
-      if (ngoMapError) throw ngoMapError;
-      if (orgUnitsError) throw orgUnitsError;
-
-      const ownerIds = uniqueSorted(
-        (workItems ?? []).map((item) => item.owner_user_id).filter(Boolean),
-      );
-
-      const { data: ownerProfiles, error: ownerError } = ownerIds.length
-        ? await supabase.from("profiles").select("id, full_name, email").in("id", ownerIds)
-        : { data: [], error: null };
-
-      if (ownerError) throw ownerError;
-
       let documentQuery = supabase
         .from("documents")
         .select("id", { count: "exact", head: true })
         .eq("review_status", "Pending");
 
-      if (filters.module) {
-        if (workItemIds.length === 0) {
-          documentQuery = documentQuery.in("work_item_id", ["__none__"]);
-        } else {
-          documentQuery = documentQuery.in("work_item_id", workItemIds);
-        }
-      } else if (hasNgoFilters) {
+      if (!filters.module && hasNgoFilters) {
         documentQuery = documentQuery.in("ngo_id", ngoFilterIds);
       }
 
-      const { count: pendingDocumentsCount, error: documentError } = await documentQuery;
-      if (documentError) throw documentError;
+      // These reads do not depend on one another. Running them together removes
+      // several serial round trips from the default home-dashboard load.
+      const [workItemsResult, atRiskResult, orgUnitsResult, documentsResult] = await Promise.all([
+        workItemsQuery.abortSignal(request.signal),
+        atRiskQuery.abortSignal(request.signal),
+        supabase.from("org_units").select("id, department_name").abortSignal(request.signal),
+        filters.module
+          ? Promise.resolve({ count: null, error: null })
+          : documentQuery.abortSignal(request.signal),
+      ]);
+
+      const { data: workItemsRaw, error: workItemsError } = workItemsResult;
+      const { data: atRiskData, error: atRiskError } = atRiskResult;
+      const { data: orgUnits, error: orgUnitsError } = orgUnitsResult;
+      if (workItemsError) throw workItemsError;
+      if (atRiskError) throw atRiskError;
+      if (orgUnitsError) throw orgUnitsError;
+      if (documentsResult.error) throw documentsResult.error;
+
+      const workItems = (workItemsRaw ?? []).filter((item) => isOpenDashboardWorkItem(item.status));
+      const workItemIds = workItems.map((item) => item.id);
+
+      const ngoIdsForMap = uniqueSorted(
+        (workItems ?? []).map((item) => item.ngo_id).filter(Boolean),
+      );
+
+      const ownerIds = uniqueSorted(
+        (workItems ?? []).map((item) => item.owner_user_id).filter(Boolean),
+      );
+
+      const [
+        { data: ngoMapData, error: ngoMapError },
+        { data: ownerProfiles, error: ownerError },
+      ] = await Promise.all([
+        ngoIdsForMap.length
+          ? supabase.from("ngos").select("id, legal_name, common_name").in("id", ngoIdsForMap).abortSignal(request.signal)
+          : Promise.resolve({ data: [], error: null }),
+        ownerIds.length
+          ? supabase.from("profiles").select("id, full_name, email").in("id", ownerIds).abortSignal(request.signal)
+          : Promise.resolve({ data: [], error: null }),
+      ]);
+
+      if (ngoMapError) throw ngoMapError;
+      if (ownerError) throw ownerError;
+
+      let pendingDocumentsCount = documentsResult.count;
+      if (filters.module) {
+        let moduleDocumentQuery = supabase
+          .from("documents")
+          .select("id", { count: "exact", head: true })
+          .eq("review_status", "Pending");
+        if (workItemIds.length === 0) {
+          moduleDocumentQuery = moduleDocumentQuery.in("work_item_id", ["__none__"]);
+        } else {
+          moduleDocumentQuery = moduleDocumentQuery.in("work_item_id", workItemIds);
+        }
+        const { count, error: documentError } = await moduleDocumentQuery.abortSignal(request.signal);
+        if (documentError) throw documentError;
+        pendingDocumentsCount = count;
+      }
 
       const ngoNameMap = new Map(
         (ngoMapData ?? []).map((ngo) => [ngo.id, ngo.common_name || ngo.legal_name]),
@@ -426,6 +452,9 @@ export const useDashboardData = (filters: DashboardFilters) => {
         ngoStatusDistribution,
         openWorkItemCount: workItems.length,
       };
+      } finally {
+        request.cleanup();
+      }
     },
   });
 };

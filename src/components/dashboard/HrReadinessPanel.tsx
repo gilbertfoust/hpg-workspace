@@ -5,6 +5,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useDashboardDataHealth, type DataHealthItem } from "@/hooks/useDashboardDataHealth";
 import { useQuery } from "@tanstack/react-query";
 import { ensureSupabase } from "@/integrations/supabase/client";
+import { DashboardPanelState } from "@/components/dashboard/DashboardPanelState";
+import { createDashboardRequestScope } from "@/lib/dashboardRequest";
 
 const HR_TABLES = ["staff_profiles", "applicants", "timesheets"];
 
@@ -28,19 +30,36 @@ const recommendAction = (items: DataHealthItem[]) => {
 };
 
 export const HrReadinessPanel = () => {
-  const { data: healthData, isLoading: healthLoading } = useDashboardDataHealth();
+  const {
+    data: healthData,
+    isLoading: healthLoading,
+    isError: healthError,
+    refetch: refetchHealth,
+  } = useDashboardDataHealth();
 
-  const { data: hrWorkItems, isLoading: workItemsLoading } = useQuery({
+  const {
+    data: hrWorkItems,
+    isLoading: workItemsLoading,
+    isError: workItemsError,
+    refetch: refetchWorkItems,
+  } = useQuery({
     queryKey: ["dashboard-hr-work-items"],
-    queryFn: async () => {
+    queryFn: async ({ signal }) => {
       const supabase = ensureSupabase();
-      const { count, error } = await supabase
-        .from("work_items")
-        .select("id", { count: "exact", head: true })
-        .is("archived_at", null)
-        .eq("module", "hr");
-      if (error) return null;
-      return count ?? 0;
+      const request = createDashboardRequestScope(signal);
+
+      try {
+        const { count, error } = await supabase
+          .from("work_items")
+          .select("id", { count: "exact", head: true })
+          .is("archived_at", null)
+          .eq("module", "hr")
+          .abortSignal(request.signal);
+        if (error) throw error;
+        return count ?? 0;
+      } finally {
+        request.cleanup();
+      }
     },
   });
 
@@ -66,6 +85,12 @@ export const HrReadinessPanel = () => {
           <div className="flex items-center justify-center py-8">
             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
           </div>
+        ) : healthError || workItemsError ? (
+          <DashboardPanelState
+            isError
+            errorMessage="HR readiness could not load."
+            onRetry={() => void Promise.all([refetchHealth(), refetchWorkItems()])}
+          />
         ) : (
           <div className="space-y-4">
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">

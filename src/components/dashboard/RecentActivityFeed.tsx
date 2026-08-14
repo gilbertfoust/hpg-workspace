@@ -44,7 +44,7 @@ const formatWhen = (timestamp: string) => {
 
 export const RecentActivityFeed = ({ filters = {} }: { filters?: DashboardFilters }) => {
   const navigate = useNavigate();
-  const { data: activity, isLoading, isError } = useDashboardRecentActivity(filters);
+  const { data: activity, isLoading, isError, refetch } = useDashboardRecentActivity(filters);
   const hasFilters = Boolean(filters.bundle || filters.country || filters.state || filters.module);
 
   return (
@@ -72,6 +72,7 @@ export const RecentActivityFeed = ({ filters = {} }: { filters?: DashboardFilter
           emptyTitle="No recent activity"
           emptyDescription="Activity appears when work items, NGOs, documents, grants, or forms are created or updated."
           errorMessage="Recent activity could not load. Other dashboard sections will continue to work."
+          onRetry={() => void refetch()}
         >
           <div className="space-y-2">
             {activity?.map((item) => (
