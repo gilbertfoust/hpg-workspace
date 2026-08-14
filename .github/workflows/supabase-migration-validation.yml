@@ -23,17 +23,54 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect database migration and test changes
+        id: database-scope
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "database_changed=true" >> "$GITHUB_OUTPUT"
+            echo "Manual validation requested; the complete database replay will run."
+            exit 0
+          fi
+
+          BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+          CHANGED_FILES="$(git diff --name-only "$BASE_SHA" "$HEAD_SHA")"
+
+          printf '%s\n' "$CHANGED_FILES"
+
+          if grep -Eq '^supabase/(migrations|tests)/|^supabase/config\.toml$' <<< "$CHANGED_FILES"; then
+            echo "database_changed=true" >> "$GITHUB_OUTPUT"
+            echo "Database migrations, tests, or configuration changed; the complete replay will run."
+          else
+            echo "database_changed=false" >> "$GITHUB_OUTPUT"
+            echo "No database migration, test, or configuration changes were detected."
+          fi
+
+      - name: Database replay not required
+        if: steps.database-scope.outputs.database_changed != 'true'
+        run: |
+          echo "This pull request changes Edge Function or workflow code only."
+          echo "The Edge Function validation job remains required; database replay is reserved for migration, SQL test, and Supabase configuration changes."
 
       - name: Set up Node
+        if: steps.database-scope.outputs.database_changed == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: npm
 
       - name: Install dependencies
+        if: steps.database-scope.outputs.database_changed == 'true'
         run: npm ci
 
       - name: Start database-only Supabase stack
+        if: steps.database-scope.outputs.database_changed == 'true'
         id: supabase-start
         shell: bash
         run: |
@@ -45,6 +82,7 @@ jobs:
           npx supabase start -x "$EXCLUDED_SERVICES" 2>&1 | tee supabase-start.log
 
       - name: Rebuild database from migrations
+        if: steps.database-scope.outputs.database_changed == 'true'
         id: database-reset
         shell: bash
         run: |
@@ -52,6 +90,7 @@ jobs:
           npx supabase db reset --local 2>&1 | tee supabase-reset.log
 
       - name: Run Agent OS activation fee smoke test
+        if: steps.database-scope.outputs.database_changed == 'true'
         id: activation-fee-smoke-test
         shell: bash
         run: |
@@ -62,6 +101,7 @@ jobs:
             2>&1 | tee activation-fee-smoke.log
 
       - name: Run database lint
+        if: steps.database-scope.outputs.database_changed == 'true'
         id: database-lint
         shell: bash
         run: |
@@ -69,7 +109,7 @@ jobs:
           npx supabase db lint --local --level warning 2>&1 | tee supabase-lint.log
 
       - name: Upload Supabase validation diagnostics
-        if: always()
+        if: always() && steps.database-scope.outputs.database_changed == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: supabase-validation-diagnostics
@@ -82,11 +122,11 @@ jobs:
           retention-days: 7
 
       - name: Show local service status
-        if: always()
+        if: always() && steps.database-scope.outputs.database_changed == 'true'
         run: npx supabase status || true
 
       - name: Stop local Supabase stack
-        if: always()
+        if: always() && steps.database-scope.outputs.database_changed == 'true'
         run: npx supabase stop --no-backup || true
 
   check-edge-functions:

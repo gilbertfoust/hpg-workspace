@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Construction, ArrowRight, History } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import HPGAssistant from "@/pages/HPGAssistant";
+import { Phase4MemoryPanel } from "@/components/agent-os/Phase4MemoryPanel";
 import { AgentOSQueuePanel } from "@/components/ngo/AgentOSQueuePanel";
 import { AgentOSOperationsPanel } from "@/components/ngo/AgentOSOperationsPanel";
 import { AgentOSFinanceVerificationPanel } from "@/components/ngo/AgentOSFinanceVerificationPanel";
@@ -70,6 +71,9 @@ export function NGOCoordinationModule() {
         <Button variant="outline" size="sm" onClick={() => navigate("/hpg-assistant/history")}>
           <History className="mr-2 h-4 w-4" /> Packet History
         </Button>
+      </div>
+      <div className="px-4 lg:px-6">
+        <Phase4MemoryPanel />
       </div>
       <div className="px-4 lg:px-6">
         <Phase3SponsorshipPanel />
