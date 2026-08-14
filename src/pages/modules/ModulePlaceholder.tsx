@@ -9,6 +9,7 @@ import { AgentOSQueuePanel } from "@/components/ngo/AgentOSQueuePanel";
 import { AgentOSOperationsPanel } from "@/components/ngo/AgentOSOperationsPanel";
 import { AgentOSFinanceVerificationPanel } from "@/components/ngo/AgentOSFinanceVerificationPanel";
 import { NiaPilotPanel } from "@/components/ngo/NiaPilotPanel";
+import { Phase3SponsorshipPanel } from "@/components/ngo/Phase3SponsorshipPanel";
 import { useAgentOSCases } from "@/hooks/useAgentOSCases";
 import { useAgentOSOperations } from "@/hooks/useAgentOSOperations";
 
@@ -69,6 +70,9 @@ export function NGOCoordinationModule() {
         <Button variant="outline" size="sm" onClick={() => navigate("/hpg-assistant/history")}>
           <History className="mr-2 h-4 w-4" /> Packet History
         </Button>
+      </div>
+      <div className="px-4 lg:px-6">
+        <Phase3SponsorshipPanel />
       </div>
       <div className="px-4 lg:px-6">
         <NiaPilotPanel />
