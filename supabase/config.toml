@@ -51,6 +51,10 @@ verify_jwt = true
 [functions.admin-approve-user]
 verify_jwt = true
 
+[functions.process-workspace-admin-notifications]
+# The scheduled worker authenticates with a dedicated secret held in Vault.
+verify_jwt = false
+
 [functions.receive-sponsorship-application]
 verify_jwt = false
 

@@ -66,7 +66,7 @@ export default function PendingApprovalsPanel() {
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-      toast({ title: 'User approved', description: 'The user has been approved and notified via email.' });
+      toast({ title: 'User approved', description: 'The approval email is queued for delivery after account checks.' });
       queryClient.invalidateQueries({ queryKey: ['admin', 'pending-approvals'] });
       queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
     } catch (err: any) {
