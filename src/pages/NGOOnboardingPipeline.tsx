@@ -300,7 +300,7 @@ export default function NGOOnboardingPipeline() {
     );
     const total = ngoItems.length;
     const done = ngoItems.filter((workItem) =>
-      workItem.status === "complete" || workItem.status === "approved"
+      workItem.status === "Complete" || workItem.status === "Submitted"
     ).length;
 
     if (total === 0) return "G1 - Intake";
@@ -342,10 +342,10 @@ export default function NGOOnboardingPipeline() {
         module: item.module,
         ngo_id: launchNgo.id,
         type: "NGO Onboarding",
-        status: "not_started" as const,
+        status: "Not Started" as const,
         priority: item.title.includes("Activation Fee") || item.title.includes("Onboarding Fee")
-          ? "high" as const
-          : "medium" as const,
+          ? "High" as const
+          : "Med" as const,
         owner_user_id: user.id,
         checklist_json: item.checklist.length > 0 ? item.checklist : null,
       }));
@@ -425,7 +425,7 @@ export default function NGOOnboardingPipeline() {
                               workItem.ngo_id === ngo.id && workItem.type === "NGO Onboarding"
                             );
                             const done = ngoItems.filter((workItem) =>
-                              workItem.status === "complete" || workItem.status === "approved"
+                              workItem.status === "Complete" || workItem.status === "Submitted"
                             ).length;
                             return (
                               <p className="mt-2 text-xs text-muted-foreground">
