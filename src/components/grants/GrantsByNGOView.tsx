@@ -125,7 +125,12 @@ export function GrantsByNGOView({ applications, ngos, onSelect }: Props) {
   );
 }
 
-const stageLabel = (stage: string) =>\n  ["prospect", "researching", "writing", "under_review"].includes(stage)\n    ? "In Progress"\n    : stage.replace(/_/g, " ");\n\nfunction GrantRow({ app, onClick }: { app: GrantApp; onClick?: () => void }) {
+const stageLabel = (stage: string) =>
+  ["prospect", "researching", "writing", "under_review"].includes(stage)
+    ? "In Progress"
+    : stage.replace(/_/g, " ");
+
+function GrantRow({ app, onClick }: { app: GrantApp; onClick?: () => void }) {
   return (
     <div
       className="flex items-center justify-between gap-3 p-2 rounded-md hover:bg-muted/50 cursor-pointer transition-colors"
