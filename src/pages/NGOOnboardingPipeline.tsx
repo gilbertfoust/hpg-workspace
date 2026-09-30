@@ -300,7 +300,7 @@ export default function NGOOnboardingPipeline() {
     );
     const total = ngoItems.length;
     const done = ngoItems.filter((workItem) =>
-      workItem.status === "Complete" || workItem.status === "Submitted"
+      workItem.status === "Complete"
     ).length;
 
     if (total === 0) return "G1 - Intake";
@@ -425,7 +425,7 @@ export default function NGOOnboardingPipeline() {
                               workItem.ngo_id === ngo.id && workItem.type === "NGO Onboarding"
                             );
                             const done = ngoItems.filter((workItem) =>
-                              workItem.status === "Complete" || workItem.status === "Submitted"
+                              workItem.status === "Complete"
                             ).length;
                             return (
                               <p className="mt-2 text-xs text-muted-foreground">
