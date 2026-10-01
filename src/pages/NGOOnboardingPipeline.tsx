@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,30 +6,44 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useNGOs, type NGO } from "@/hooks/useNGOs";
-import { useWorkItems } from "@/hooks/useWorkItems";
+import { DnDKanbanBoard, type KanbanColumn } from "@/components/common/DnDKanbanBoard";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { Rocket } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
-const FSA_STAGES = [
-  "G1 - Intake",
-  "G1 - Documentation",
-  "G2 - Compliance",
-  "G2 - Program Review",
-  "G2 - Finance Review",
-  "G2 - General Counsel",
-  "G2 - BOD Approval",
-  "G3 - Contract Exec",
-  "Activation Fee",
-  "Confirmation & Activation",
-  "Dept Onboarding",
-  "Active",
-] as const;
+type FsaBoardProfile = {
+  id: string;
+  ngo_id: string;
+  current_stage_key: string;
+};
 
-type FsaStage = typeof FSA_STAGES[number];
+type FsaBoardStage = {
+  stage_key: string;
+  stage_name: string;
+  stage_order: number;
+  display_group_key: string;
+  display_group_name: string;
+  display_group_order: number;
+  responsible_role: string;
+  canonical_gate: boolean;
+  terminal_stage: boolean;
+};
+
+type FsaBoardCard = {
+  ngo: NGO;
+  profile?: FsaBoardProfile;
+  stage?: FsaBoardStage;
+};
+
+const workflowErrorMessage = (error: unknown) => {
+  if (error && typeof error === "object" && "message" in error) {
+    return String(error.message);
+  }
+  return "An unexpected error occurred.";
+};
 
 type OnboardingWorkItem = {
   title: string;
@@ -46,21 +60,6 @@ type OnboardingWorkItem = {
     | "operations";
   description: string;
   checklist: { label: string; checked: boolean }[];
-};
-
-const STAGE_COLORS: Record<FsaStage, string> = {
-  "G1 - Intake": "border-l-blue-400",
-  "G1 - Documentation": "border-l-indigo-400",
-  "G2 - Compliance": "border-l-violet-400",
-  "G2 - Program Review": "border-l-purple-400",
-  "G2 - Finance Review": "border-l-orange-400",
-  "G2 - General Counsel": "border-l-fuchsia-400",
-  "G2 - BOD Approval": "border-l-amber-400",
-  "G3 - Contract Exec": "border-l-rose-400",
-  "Activation Fee": "border-l-cyan-500",
-  "Confirmation & Activation": "border-l-teal-500",
-  "Dept Onboarding": "border-l-emerald-400",
-  "Active": "border-l-green-500",
 };
 
 const checked = (label: string) => ({ label, checked: false });
@@ -287,44 +286,114 @@ export default function NGOOnboardingPipeline() {
   const { toast } = useToast();
   const qc = useQueryClient();
   const { data: ngos, isLoading: ngosLoading } = useNGOs();
-  const { data: workItems } = useWorkItems();
   const [launchNgo, setLaunchNgo] = useState<NGO | null>(null);
   const [launching, setLaunching] = useState(false);
 
-  const stageForNgo = (ngo: NGO): FsaStage => {
-    if (ngo.status === "active") return "Active";
-    if (ngo.status !== "onboarding") return "G1 - Intake";
+  const movingRef = useRef(false);
+  const [movingNgoId, setMovingNgoId] = useState<string | null>(null);
+  const {
+    data: workflow,
+    isLoading: workflowLoading,
+    error: workflowError,
+    refetch: refetchWorkflow,
+  } = useQuery({
+    queryKey: ["partnership-fsa-board", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      if (!supabase) throw new Error("The workspace connection is unavailable.");
+      const [profilesResult, stagesResult] = await Promise.all([
+        supabase.from("partnership_fsa_profiles" as never)
+          .select("id,ngo_id,current_stage_key"),
+        supabase.from("partnership_fsa_stages" as never)
+          .select("stage_key,stage_name,stage_order,display_group_key,display_group_name,display_group_order,responsible_role,canonical_gate,terminal_stage")
+          .order("stage_order"),
+      ]);
+      if (profilesResult.error) throw profilesResult.error;
+      if (stagesResult.error) throw stagesResult.error;
+      const stages = (stagesResult.data || []) as unknown as FsaBoardStage[];
+      if (!stages.length) throw new Error("Onboarding stages could not be loaded. Please contact IT.");
+      return {
+        profiles: (profilesResult.data || []) as unknown as FsaBoardProfile[],
+        stages,
+      };
+    },
+  });
 
-    const ngoItems = (workItems || []).filter((workItem) =>
-      workItem.ngo_id === ngo.id && workItem.type === "NGO Onboarding"
-    );
-    const total = ngoItems.length;
-    const done = ngoItems.filter((workItem) =>
-      workItem.status === "Complete"
-    ).length;
-
-    if (total === 0) return "G1 - Intake";
-    if (done < 2) return "G1 - Documentation";
-    if (done < 3) return "G2 - Compliance";
-    if (done < 4) return "G2 - Program Review";
-    if (done < 5) return "G2 - Finance Review";
-    if (done < 6) return "G2 - General Counsel";
-    if (done < 7) return "G2 - BOD Approval";
-    if (done < 8) return "G3 - Contract Exec";
-    if (done < 9) return "Activation Fee";
-    if (done < 10) return "Confirmation & Activation";
-    return "Dept Onboarding";
-  };
-
-  const columns = useMemo(() => {
-    const map = new Map<FsaStage, NGO[]>();
-    FSA_STAGES.forEach((stage) => map.set(stage, []));
-    (ngos || []).forEach((ngo) => {
+  const { columns, cardsByNgoId } = useMemo(() => {
+    const groups = new Map<string, KanbanColumn<FsaBoardCard>>();
+    const cardsByNgoId = new Map<string, FsaBoardCard>();
+    const profilesByNgo = new Map((workflow?.profiles || []).map(profile => [profile.ngo_id, profile]));
+    const stagesByKey = new Map((workflow?.stages || []).map(stage => [stage.stage_key, stage]));
+    [...(workflow?.stages || [])]
+      .sort((a, b) => a.display_group_order - b.display_group_order || a.stage_order - b.stage_order)
+      .forEach(stage => {
+        if (!groups.has(stage.display_group_key)) {
+          groups.set(stage.display_group_key, {
+            id: stage.display_group_key,
+            label: stage.display_group_name,
+            items: [],
+          });
+        }
+      });
+    const unlinked: FsaBoardCard[] = [];
+    (ngos || []).forEach(ngo => {
       if (ngo.status === "closed" || ngo.status === "at_risk") return;
-      map.get(stageForNgo(ngo))?.push(ngo);
+      const profile = profilesByNgo.get(ngo.id);
+      const stage = profile ? stagesByKey.get(profile.current_stage_key) : undefined;
+      const card = { ngo, profile, stage };
+      cardsByNgoId.set(ngo.id, card);
+      const group = stage ? groups.get(stage.display_group_key) : undefined;
+      if (group) group.items.push(card);
+      else unlinked.push(card);
     });
-    return map;
-  }, [ngos, workItems]);
+    if (unlinked.length) {
+      groups.set("workflow-review", { id: "workflow-review", label: "Needs workflow review", items: unlinked });
+    }
+    return { columns: [...groups.values()], cardsByNgoId };
+  }, [ngos, workflow]);
+
+  const advanceCard = async (ngoId: string, targetGroupKey?: string) => {
+    if (movingRef.current || !supabase) return;
+    const card = cardsByNgoId.get(ngoId);
+    if (!card?.profile || !card.stage || targetGroupKey === "workflow-review") {
+      toast({
+        variant: "destructive",
+        title: "Workflow review required",
+        description: "This NGO needs its onboarding workflow linked before its card can move.",
+      });
+      return;
+    }
+    movingRef.current = true;
+    setMovingNgoId(ngoId);
+    try {
+      const result = targetGroupKey
+        ? await supabase.rpc("move_partnership_fsa_profile_to_group" as never, {
+            p_profile_id: card.profile.id,
+            p_target_group_key: targetGroupKey,
+            p_reason: "Staff moved the NGO card on the onboarding board",
+          } as never)
+        : await supabase.rpc("advance_partnership_fsa_profile" as never, {
+            p_profile_id: card.profile.id,
+            p_reason: "Staff advanced the NGO's current onboarding step",
+          } as never);
+      if (result.error) throw result.error;
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ["partnership-fsa-board"] }),
+        qc.invalidateQueries({ queryKey: ["work-items"] }),
+        qc.invalidateQueries({ queryKey: ["ngos"] }),
+      ]);
+      toast({ title: "Onboarding stage updated", description: "The saved workflow is now shown on the board." });
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Card could not move",
+        description: workflowErrorMessage(error),
+      });
+    } finally {
+      movingRef.current = false;
+      setMovingNgoId(null);
+    }
+  };
 
   const handleLaunchOnboarding = async () => {
     if (!launchNgo || !user || !supabase) return;
@@ -393,57 +462,70 @@ export default function NGOOnboardingPipeline() {
       subtitle="Agreement → jurisdiction-specific fee → Finance verification → confirmation → activation → NGO Coordination"
     >
       <div className="space-y-6">
-        {ngosLoading ? (
+        <p className="text-sm text-muted-foreground">
+          Drag a card to its next workflow column, or use Advance step for the next stage within a column.
+          Required checklists and approvals must be complete before a move can be saved.
+        </p>
+        {ngosLoading || workflowLoading ? (
           <div className="grid grid-cols-4 gap-4">
             {[1, 2, 3, 4].map((item) => <Skeleton key={item} className="h-64" />)}
           </div>
+        ) : workflowError ? (
+          <Card>
+            <CardContent className="space-y-3 p-4">
+              <p className="text-sm text-destructive">{workflowErrorMessage(workflowError)}</p>
+              <Button variant="outline" onClick={() => void refetchWorkflow()}>Retry</Button>
+            </CardContent>
+          </Card>
         ) : (
-          <div className="flex gap-3 overflow-x-auto pb-4">
-            {FSA_STAGES.map((stage) => {
-              const stageNgos = columns.get(stage) || [];
-              return (
-                <div key={stage} className="min-w-[210px] flex-shrink-0">
-                  <div className="mb-3 flex items-center gap-2">
-                    <h3 className="text-xs font-semibold uppercase tracking-wide">{stage}</h3>
-                    <Badge variant="secondary" className="text-xs">{stageNgos.length}</Badge>
-                  </div>
-                  <div className="space-y-2">
-                    {stageNgos.map((ngo) => (
-                      <Card
-                        key={ngo.id}
-                        className={`cursor-pointer border-l-4 ${STAGE_COLORS[stage]} transition-colors hover:bg-accent/50`}
-                        onClick={() => navigate(`/ngos/${ngo.id}`)}
-                      >
-                        <CardContent className="p-3">
-                          <p className="text-sm font-medium">{ngo.common_name || ngo.legal_name}</p>
-                          <p className="mt-1 text-xs text-muted-foreground">{ngo.country || "Country required"}</p>
-                          <Badge variant="outline" className="mt-2 text-[10px]">
-                            {isUsNgo(ngo) ? "U.S. fee route" : "International $100 route"}
-                          </Badge>
-                          {stage !== "Active" && stage !== "G1 - Intake" && (() => {
-                            const ngoItems = (workItems || []).filter((workItem) =>
-                              workItem.ngo_id === ngo.id && workItem.type === "NGO Onboarding"
-                            );
-                            const done = ngoItems.filter((workItem) =>
-                              workItem.status === "Complete"
-                            ).length;
-                            return (
-                              <p className="mt-2 text-xs text-muted-foreground">
-                                {done}/{ngoItems.length} tasks done
-                              </p>
-                            );
-                          })()}
-                        </CardContent>
-                      </Card>
-                    ))}
-                    {stageNgos.length === 0 && (
-                      <p className="py-8 text-center text-xs text-muted-foreground">No NGOs</p>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+          <DnDKanbanBoard
+            columns={columns}
+            getItemId={card => card.ngo.id}
+            onDrop={(ngoId, groupKey) => void advanceCard(ngoId, groupKey)}
+            columnWidth={250}
+            renderCard={({ ngo, profile, stage }) => (
+              <Card
+                className="cursor-pointer border-l-4 border-l-primary/60 transition-colors hover:bg-accent/50"
+                onClick={() => navigate(`/ngos/${ngo.id}`)}
+              >
+                <CardContent className="p-3">
+                  <p className="text-sm font-medium">{ngo.common_name || ngo.legal_name}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">{ngo.country || "Country required"}</p>
+                  <Badge variant="outline" className="mt-2 text-[10px]">
+                    {isUsNgo(ngo) ? "U.S. fee route" : "International $100 route"}
+                  </Badge>
+                  {stage ? (
+                    <>
+                      <p className="mt-2 text-xs font-medium">{stage.stage_name}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">Responsible: {stage.responsible_role}</p>
+                      {stage.canonical_gate && stage.stage_key !== "confirmation_letter_issued" ? (
+                        <p className="mt-2 text-xs text-muted-foreground">
+                          Update the required approval, signed document, or payment record to advance this stage.
+                        </p>
+                      ) : !stage.terminal_stage && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="mt-2 w-full"
+                          disabled={!!movingNgoId}
+                          onClick={event => {
+                            event.stopPropagation();
+                            void advanceCard(ngo.id);
+                          }}
+                        >
+                          {movingNgoId === ngo.id ? "Saving..." : "Advance step"}
+                        </Button>
+                      )}
+                    </>
+                  ) : (
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      {profile ? "The saved workflow stage needs review." : "No onboarding workflow is linked."}
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+          />
         )}
 
         <Card>
