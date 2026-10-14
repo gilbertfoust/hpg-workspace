@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Construction, ArrowRight, History } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import CommunicationsDesignHub from "@/pages/CommunicationsDesignHub";
 import HPGAssistant from "@/pages/HPGAssistant";
 import { Phase5MonitoringPanel } from "@/components/agent-os/Phase5MonitoringPanel";
 import { Phase4MemoryPanel } from "@/components/agent-os/Phase4MemoryPanel";
@@ -130,11 +131,11 @@ export function PartnershipsModule() {
 }
 
 export function MarketingModule() {
-  return <ModulePlaceholder title="Marketing" description="Marketing campaigns and asset management" links={[{ label: "Department Forms", path: "/department-forms" }, { label: "Documents", path: "/documents" }]} features={["Request Intake", "Campaign Tracking", "Monthly Reports"]} />;
+  return <ModulePlaceholder title="Marketing" description="Marketing campaigns and asset management" links={[{ label: "Department Forms", path: "/department-forms?department=Marketing" }, { label: "Documents", path: "/documents" }]} features={["Request Intake", "Campaign Tracking", "Monthly Reports"]} />;
 }
 
 export function CommunicationsModule() {
-  return <ModulePlaceholder title="Communications" description="Internal and external messaging" links={[{ label: "Department Forms", path: "/department-forms" }, { label: "Documents", path: "/documents" }]} features={["Press Releases", "Newsletter Builder", "Internal Memos"]} />;
+  return <CommunicationsDesignHub />;
 }
 
 export function HRModule() {

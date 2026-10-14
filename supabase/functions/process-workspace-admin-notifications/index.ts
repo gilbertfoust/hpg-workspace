@@ -17,6 +17,7 @@ type NotificationEvent = {
   recipient_email: string;
   dedupe_key: string;
   attempt_count: number;
+  created_at: string;
   lease_token: string;
   payload_json: Json;
 };
@@ -97,6 +98,10 @@ function messageFor(event: NotificationEvent) {
     const lines = [
       "The HPG Workspace recorded an application error.",
       "",
+      `Affected user: ${safeLine(payload.actor_full_name, 200) || (payload.attempted_username ? "Not verified — sign-in attempt" : "Name unavailable")}`,
+      `Username / email: ${safeLine(payload.actor_email, 320) || (payload.attempted_username ? "Not authenticated" : "Unavailable")}`,
+      ...(payload.attempted_username ? [`Attempted username: ${safeLine(payload.attempted_username, 320)} (entered value; identity not verified)`] : []),
+      ...(payload.actor_user_id ? [`User ID: ${safeLine(payload.actor_user_id, 100)}`] : []),
       `Area: ${safeLine(payload.route_key, 200) || "/other"}`,
       `Source: ${safeLine(payload.source, 100) || "other"}`,
       `Code: ${safeLine(payload.error_code, 100) || "CLIENT_OPERATION_FAILED"}`,
@@ -107,7 +112,7 @@ function messageFor(event: NotificationEvent) {
       "",
       `Open IT support: ${canonicalWorkspaceUrl("/it")}`,
       "",
-      "For privacy, this automatic notice does not include the error message, stack, form contents, or URL parameters.",
+      "This notice includes account identity or the attempted sign-in username for IT diagnosis. It excludes passwords, authentication tokens, other form contents, stack traces, and URL parameters.",
     ];
     return {
       subject: "HPG Workspace error detected",
@@ -195,6 +200,12 @@ Deno.serve(async (req) => {
     const smtpPort = Number(Deno.env.get("SMTP_PORT") || "465");
     const smtpFrom = Deno.env.get("MAIL_FROM") || smtpUser;
     const smtpReady = Boolean(smtpHost && smtpUser && smtpPass && smtpFrom && smtpPort === 465);
+    const itSmtpHost = Deno.env.get("IT_SMTP_HOST") || "smtp.gmail.com";
+    const itSmtpUser = Deno.env.get("IT_SMTP_USER") || "";
+    const itSmtpPass = Deno.env.get("IT_SMTP_PASS") || "";
+    const itSmtpPort = Number(Deno.env.get("IT_SMTP_PORT") || "465");
+    const itSmtpReady = Boolean(itSmtpHost === "smtp.gmail.com" &&
+      itSmtpUser.toLowerCase() === SUPPORT_EMAIL && itSmtpPass && itSmtpPort === 465);
     const from = Deno.env.get("WORKSPACE_NOTIFICATION_FROM_EMAIL") ||
       Deno.env.get("DEPARTMENT_NOTIFICATION_FROM_EMAIL") ||
       Deno.env.get("FORM_WORKFLOW_FROM_EMAIL") ||
@@ -217,9 +228,9 @@ Deno.serve(async (req) => {
       return json({ error: "Unauthorized." }, 401);
     }
 
-    const configured = Boolean(resendKey || smtpReady);
+    const configured = Boolean(resendKey || smtpReady || itSmtpReady);
     const body = await req.json().catch(() => ({}) as Json);
-    if (body?.action === "healthcheck") return json({ ready: configured, provider: resendKey ? "resend" : "smtp", configuration_only: true }, configured ? 200 : 503);
+    if (body?.action === "healthcheck") return json({ ready: configured, provider: resendKey ? "resend" : "smtp", configuration_only: true, direct_it_signup_ready: itSmtpReady, direct_it_approval_ready: itSmtpReady }, configured ? 200 : 503);
     const health = async (outcome: string, count = 0) => {
       try { await db.rpc("record_workspace_notification_worker_health", {
         p_worker_key: "process-workspace-admin-notifications", p_channel: "email",
@@ -240,7 +251,8 @@ Deno.serve(async (req) => {
     let acknowledgedCount = 0;
     for (const event of (claimed || []) as NotificationEvent[]) {
       let sending = false;
-      const provider = resendKey ? "resend" : "smtp";
+      const directIT = itSmtpReady && accountNotice(event.notification_kind);
+      const provider = directIT ? "smtp_it" : resendKey ? "resend" : "smtp";
       let smtpClient: SMTPClient | null = null;
       const quarantine = async (reason: string, uncertain: boolean) => {
         const updated = await db.from("workspace_admin_notification_events").update({
@@ -252,6 +264,21 @@ Deno.serve(async (req) => {
         return updated.data ? "deadletter" : "lease_lost";
       };
       const prepare = async () => {
+        if (event.notification_kind === "workspace_error") {
+          if (event.recipient_email !== SUPPORT_EMAIL) throw new Error("Unexpected error-notice recipient.");
+          const actorId = safeLine(event.payload_json?.actor_user_id, 100);
+          if (actorId && !event.payload_json.actor_email) {
+            const account = await db.auth.admin.getUserById(actorId);
+            if (account.error) throw new Error("Error-notice account lookup failed.");
+            const profile = await db.from("profiles").select("full_name").eq("id", actorId).maybeSingle();
+            if (profile.error) throw new Error("Error-notice profile lookup failed.");
+            event.payload_json = { ...event.payload_json,
+              actor_email: account.data.user?.email || null,
+              actor_full_name: profile.data?.full_name || null,
+            };
+          }
+          return true;
+        }
         if (event.notification_kind === "workspace_signup_received") {
           const prepared = await db.rpc("prepare_workspace_signup_received_delivery", { p_notification_id: event.id, p_lease_token: event.lease_token });
           if (prepared.error) throw new Error("Signup receipt recipient revalidation failed.");
@@ -299,7 +326,7 @@ Deno.serve(async (req) => {
         // Durable marker makes an expired lease safe even if the worker dies
         // after the provider accepts but before the acknowledgement is recorded.
         const marked = await db.from("workspace_admin_notification_events").update({
-          response_json: { provider, send_started: true, ...(accountNotice(event.notification_kind) ? { send_stage: "it_wakeup" } : {}) }, updated_at: new Date().toISOString(),
+          response_json: { provider, send_started: true, ...(accountNotice(event.notification_kind) ? { send_stage: directIT ? "direct_it" : "it_wakeup" } : {}) }, updated_at: new Date().toISOString(),
         }).eq("id", event.id).eq("status", "leased").eq("lease_token", event.lease_token)
           .gt("leased_until", new Date().toISOString()).select("id").single();
         if (marked.error || !marked.data) throw new Error("Notification lease lost.");
@@ -309,6 +336,31 @@ Deno.serve(async (req) => {
         const accountMessage = messageFor(event);
         if (!accountMessage || !validRecipient(event.recipient_email)) {
           results.push({ id: event.id, status: await quarantine("Recipient configuration changed before sending.", false) });
+          continue;
+        }
+        // Authenticate as IT and deliver future signup receipts and approval emails directly. Do not
+        // send an applications-mailbox wakeup or wait for a Gmail automation.
+        if (directIT) {
+          smtpClient = new SMTPClient({
+            connection: { hostname: itSmtpHost, port: itSmtpPort, tls: true,
+              auth: { username: itSmtpUser, password: itSmtpPass } },
+            pool: false, debug: { log: false, allowUnsecure: false },
+          });
+          sending = true;
+          await bounded(smtpClient.send({
+            from: SUPPORT_EMAIL, to: event.recipient_email,
+            subject: accountMessage.subject, content: accountMessage.text,
+            headers: { "Message-ID": `<hpg-workspace-${event.id}@humanitypathwaysglobal.com>`,
+              "Auto-Submitted": "auto-generated",
+              "X-HPG-Workspace-Notification-ID": event.id, "Reply-To": SUPPORT_EMAIL },
+          }), 40_000);
+          acknowledgedCount++;
+          const finished = await finish(db, event, true, {
+            provider: "smtp_it", from: SUPPORT_EMAIL, send_stage: "direct_it",
+            send_started: true,
+          });
+          results.push({ id: event.id, kind: event.notification_kind,
+            status: finished?.status || "sent", attempt: event.attempt_count });
           continue;
         }
         // The applications SMTP account rewrites From addresses. Account email
@@ -370,7 +422,7 @@ Deno.serve(async (req) => {
       } catch {
         try {
           if (sending) {
-            if (accountNotice(event.notification_kind)) {
+            if (accountNotice(event.notification_kind) && !directIT) {
               const finished = await finish(db, event, false, { provider, send_stage: "it_wakeup", send_started: false }, "IT workflow wakeup was not confirmed; retrying the internal notice.");
               results.push({ id: event.id, status: finished?.status || "retry" });
             } else {
