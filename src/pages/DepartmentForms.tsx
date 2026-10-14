@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useOrgUnits } from "@/hooks/useOrgUnits";
 import { useDepartmentFormTemplates, useDepartmentFormSubmissions } from "@/hooks/useDepartmentForms";
 import { MainLayout } from "@/components/layout/MainLayout";
@@ -12,8 +13,11 @@ import { format } from "date-fns";
 
 
 const DepartmentForms = () => {
-  const [selectedDepartment, setSelectedDepartment] = useState<string>("");
+  const [searchParams] = useSearchParams();
+  const requestedDepartment = searchParams.get("department") || "";
+  const [selectedDepartment, setSelectedDepartment] = useState<string>(requestedDepartment);
   const [selectedSubDepartment, setSelectedSubDepartment] = useState<string | null>(null);
+  useEffect(() => { setSelectedDepartment(requestedDepartment); setSelectedSubDepartment(null); }, [requestedDepartment]);
   
   const { data: orgUnits, isLoading: loadingOrgUnits } = useOrgUnits();
   const { data: templates, isLoading: loadingTemplates } = useDepartmentFormTemplates(
