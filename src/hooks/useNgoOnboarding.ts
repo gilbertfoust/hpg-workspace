@@ -9,7 +9,7 @@ import { agreementPdfPath, releasedAgreementStatuses, resolveReleasedAgreement, 
 type AgreementDatabase = { public: { Tables: {
   ngo_agreements: { Row: NgoAgreement; Insert: Partial<NgoAgreement>; Update: Partial<NgoAgreement>; Relationships: [] };
   ngo_portal_onboarding: { Row: { ngo_id: string; agreement_id: string | null }; Insert: { ngo_id: string; agreement_id?: string | null }; Update: { agreement_id?: string | null }; Relationships: [] };
-}; Views: {}; Functions: {} } };
+}; Views: {}; Functions: {}; Enums: {}; CompositeTypes: {} } };
 const agreementClient = supabase as unknown as SupabaseClient<AgreementDatabase>;
 
 export function useReleasedNgoAgreement(ngoId?: string) {
