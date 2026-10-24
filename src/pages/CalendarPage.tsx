@@ -24,7 +24,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { CreateCalendarEventDialog } from "@/components/calendar/CreateCalendarEventDialog";
 import { addDays, isSameDay, isAfter, isBefore, parseISO, startOfDay, format } from "date-fns";
 
-const statusMap: Record<string, React.ComponentProps<typeof StatusChip>["status"]> = {
+const statusMap: Record<string, string> = {
   draft: "draft",
   not_started: "not-started",
   in_progress: "in-progress",
@@ -38,7 +38,7 @@ const statusMap: Record<string, React.ComponentProps<typeof StatusChip>["status"
   canceled: "canceled",
 };
 
-const priorityMap: Record<string, "Low" | "Med" | "High"> = {
+const priorityMap: Record<string, string> = {
   low: "Low",
   medium: "Med",
   high: "High",
@@ -225,7 +225,7 @@ export default function CalendarPage() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <p className="font-medium truncate">{item.title}</p>
-                      <StatusChip status={statusMap[item.status] || "draft"} />
+                      <StatusChip status={statusMap[item.status] || item.status} />
                       {item.priority && <PriorityBadge priority={priorityMap[item.priority] || item.priority} />}
                     </div>
                     <div className="flex flex-wrap gap-3 mt-1 text-xs text-muted-foreground">
