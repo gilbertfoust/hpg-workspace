@@ -12,6 +12,10 @@ export type NgoAgreement = {
 
 export const releasedAgreementStatuses = ["hpg_signed", "executed"];
 
+export function isPreparedAgreementReviewPath(path: string): boolean {
+  return /^[^/]+\/[^/]+\/review-v\d+\.pdf$/i.test(path);
+}
+
 export function isReleasedAgreement(item: NgoAgreement | null, ngoId: string): item is NgoAgreement {
   return !!item && item.ngo_id === ngoId && releasedAgreementStatuses.includes(item.status);
 }
