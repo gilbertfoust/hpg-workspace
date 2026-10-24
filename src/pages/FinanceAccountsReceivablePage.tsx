@@ -29,7 +29,8 @@ const fmt = (value: number) => value.toLocaleString(undefined, { style: "currenc
 const today = () => new Date().toISOString().slice(0, 10);
 
 const FinanceAccountsReceivablePage = () => {
-  const { role } = useUserRole();
+  const { data: userRole } = useUserRole();
+  const role = userRole?.role;
   const canManage = hasFinancePermission(role, "manage_ledger");
   const { selectedNgo, selectedNgoId } = useWorkspaceNgo();
   const { data: donors = [] } = useFinanceDonors(selectedNgoId);

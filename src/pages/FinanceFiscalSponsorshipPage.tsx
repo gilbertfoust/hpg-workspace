@@ -24,7 +24,8 @@ import { useUserRole } from "@/hooks/useUserRole";
 const fmt = (n: number) => n.toLocaleString(undefined, { style: "currency", currency: "USD" });
 
 const FinanceFiscalSponsorshipPage = () => {
-  const { role } = useUserRole();
+  const { data: userRole } = useUserRole();
+  const role = userRole?.role;
   const canManage = hasFinancePermission(role, "manage_ledger");
   const { data: ngos = [] } = useNGOs();
   const { data: funds = [] } = useFinanceFunds();
