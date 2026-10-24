@@ -32,7 +32,7 @@ type AuditActivityRow = { id: string; action_type: string | null; entity_type: s
 const safeQuery = async <T>(
   label: string,
   signal: AbortSignal,
-  queryBuilder: () => PromiseLike<{ data: T[] | null; error: { message: string } | null }>,
+  queryBuilder: () => Promise<{ data: T[] | null; error: { message: string } | null }>,
 ) => {
   try {
     const { data, error } = await queryBuilder();

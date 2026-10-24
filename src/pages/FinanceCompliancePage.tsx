@@ -33,8 +33,7 @@ const today = new Date().toISOString().slice(0, 10);
 
 const FinanceCompliancePage = () => {
   const { selectedNgo, selectedNgoId } = useWorkspaceNgo();
-  const { data: userRole } = useUserRole();
-  const role = userRole?.role;
+  const { role } = useUserRole();
   const canManage = hasFinancePermission(role, "edit_settings");
   const [startDate, setStartDate] = useState(yearStart);
   const [endDate, setEndDate] = useState(today);

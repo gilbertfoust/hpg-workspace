@@ -26,8 +26,7 @@ const fmt = (n: number) => n.toLocaleString(undefined, { style: "currency", curr
 
 const FinanceOpeningBalancesPage = () => {
   const { selectedNgo, selectedNgoId } = useWorkspaceNgo();
-  const { data: userRole } = useUserRole();
-  const role = userRole?.role;
+  const { role } = useUserRole();
   const canManage = hasFinancePermission(role, "edit_settings");
   const { data: periods = [] } = useFinanceFiscalPeriods(selectedNgoId);
   const { data: accounts = [] } = useFinanceAccounts();

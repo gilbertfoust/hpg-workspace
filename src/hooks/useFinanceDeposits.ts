@@ -88,8 +88,7 @@ export const useCalculateAdminFee = (amount: number, ngoId?: string | null, gran
       _amount: amount, _ngo_id: ngoId ?? null, _grant_id: grantId ?? null,
     } as never);
     if (error) throw error;
-    const result: unknown = data;
-    const row = Array.isArray(result) ? result[0] : result;
+    const row = Array.isArray(data) ? data[0] : data;
     if (!row) return null;
     return row as FinanceAdminFeeCalculation;
   },

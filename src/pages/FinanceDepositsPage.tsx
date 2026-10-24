@@ -52,17 +52,16 @@ const FinanceDepositsPage = () => {
     const adminFeeAcct = accounts.find((a) => a.code === "4300")?.id;
     const passAcct = revenueAccountId !== "none" ? revenueAccountId : revenueAccounts[0]?.id;
     if (!passAcct) return;
-    const lineDefaults = { fund_id: null, grant_application_id: null, restriction_type: null, donor_source: null, memo: null };
 
     if (sourceType === "admin_fee" || appliedFee > 0) {
       if (appliedFee > 0 && adminFeeAcct) {
-        lines.push({ ...lineDefaults, revenue_account_id: adminFeeAcct, amount: appliedFee, ngo_id: selectedNgoId, memo: "HPG admin fee", line_number: 1 });
+        lines.push({ revenue_account_id: adminFeeAcct, amount: appliedFee, ngo_id: selectedNgoId, memo: "HPG admin fee", line_number: 1 });
       }
       if (passThrough > 0) {
-        lines.push({ ...lineDefaults, revenue_account_id: passAcct, amount: passThrough, ngo_id: selectedNgoId, memo: "Pass-through amount", line_number: lines.length + 1 });
+        lines.push({ revenue_account_id: passAcct, amount: passThrough, ngo_id: selectedNgoId, fund_id: null, memo: "Pass-through amount", line_number: lines.length + 1 });
       }
     } else {
-      lines.push({ ...lineDefaults, revenue_account_id: passAcct, amount: gross, ngo_id: selectedNgoId, line_number: 1 });
+      lines.push({ revenue_account_id: passAcct, amount: gross, ngo_id: selectedNgoId, line_number: 1 });
     }
 
     const input: FinanceDepositInput = {

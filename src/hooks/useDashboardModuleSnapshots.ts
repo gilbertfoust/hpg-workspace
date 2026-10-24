@@ -1,7 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { ensureSupabase } from "@/integrations/supabase/client";
 import { createDashboardRequestScope } from "@/lib/dashboardRequest";
-import type { SupabaseClient } from "@supabase/supabase-js";
 
 type SnapshotStatus = "connected" | "building" | "needs_build" | "attention";
 
@@ -29,10 +28,6 @@ type SnapshotCountQuery = {
   is: (column: string, value: unknown) => SnapshotCountQuery;
 };
 
-type SnapshotDatabase = { public: { Tables: Record<SnapshotTable, {
-  Row: { id: string }; Insert: { id?: string }; Update: { id?: string }; Relationships: [];
-}>; Views: {}; Functions: {} } };
-
 export type DashboardModuleSnapshot = {
   id: string;
   title: string;
@@ -52,8 +47,7 @@ const countRows = async (
   configure?: (query: SnapshotCountQuery) => SnapshotCountQuery,
 ) => {
   try {
-    const countClient = supabase as unknown as SupabaseClient<SnapshotDatabase>;
-    let query = countClient.from(table).select("id", { count: "exact", head: true }) as unknown as SnapshotCountQuery;
+    let query = supabase.from(table).select("id", { count: "exact", head: true }) as unknown as SnapshotCountQuery;
     if (configure) query = configure(query);
     const { count, error } = await query.abortSignal(signal);
     if (error) return { count: 0, connected: false, error: error.message as string };
