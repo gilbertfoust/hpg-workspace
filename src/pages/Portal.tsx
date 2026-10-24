@@ -20,6 +20,8 @@ import { useCreateFormRevision } from "@/hooks/useFormSubmissions";
 import { NgoFinancePortal } from "@/components/portal/NgoFinancePortal";
 import { NgoOnboardingPortal } from "@/components/portal/NgoOnboardingPortal";
 import { NgoFinancialInsights } from "@/components/portal/NgoFinancialInsights";
+import { NgoAgreementDocument } from "@/components/portal/NgoAgreementDocument";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface PortalContactRow {
   ngo_id: string | null;
@@ -169,6 +171,7 @@ export default function Portal() {
   const { data: portalForms = [], isLoading: formsLoading } = useNgoPortalFormTemplates();
   const [uploadingId, setUploadingId] = useState<string | null>(null);
   const [selectedUploadNgoId, setSelectedUploadNgoId] = useState<string>("");
+  const [activeTab, setActiveTab] = useState("onboarding");
 
   const { data: ngoContacts, isLoading: ngoLoading } = useQuery({
     queryKey: ["portal-ngos", user?.id],
@@ -254,7 +257,7 @@ export default function Portal() {
     }
   };
 
-  const activeNgoId = selectedUploadNgoId || ngos[0]?.id || "";
+  const activeNgoId = ngos.find((ngo) => ngo.id === selectedUploadNgoId)?.id || ngos[0]?.id || "";
 
   return (
     <PortalLayout title="NGO Portal" subtitle="Submit requests, upload documents, and track compliance for your organization.">
@@ -273,7 +276,9 @@ export default function Portal() {
 
         {ngos.length > 0 && <div className="flex flex-wrap gap-2">{ngos.map(ngo => <Badge key={ngo.id} variant="secondary" className="px-3 py-1 text-sm">{ngo.name}</Badge>)}</div>}
 
-        <Tabs defaultValue="onboarding">
+        {ngos.length > 1 && <Select value={activeNgoId} onValueChange={setSelectedUploadNgoId}><SelectTrigger aria-label="Current NGO" className="w-full sm:w-80"><SelectValue /></SelectTrigger><SelectContent>{ngos.map((ngo) => <SelectItem key={ngo.id} value={ngo.id}>{ngo.name}</SelectItem>)}</SelectContent></Select>}
+
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="flex flex-wrap h-auto">
             <TabsTrigger value="onboarding"><FileSignature className="w-4 h-4 mr-1" />Onboarding</TabsTrigger>
             <TabsTrigger value="requests"><FileText className="w-4 h-4 mr-1" />Submit Request</TabsTrigger>
@@ -285,7 +290,7 @@ export default function Portal() {
           </TabsList>
 
           <TabsContent value="onboarding">
-            {activeNgoId ? <NgoOnboardingPortal ngoId={activeNgoId} country={ngoContacts?.find((row) => row.ngo_id === activeNgoId)?.ngos?.country} /> : <Card><CardContent className="p-8 text-sm text-muted-foreground">Your account is not linked to an active NGO.</CardContent></Card>}
+            {activeNgoId ? <NgoOnboardingPortal key={activeNgoId} ngoId={activeNgoId} country={ngoContacts?.find((row) => row.ngo_id === activeNgoId)?.ngos?.country} /> : <Card><CardContent className="p-8 text-sm text-muted-foreground">Your account is not linked to an active NGO.</CardContent></Card>}
           </TabsContent>
 
           <TabsContent value="requests" className="space-y-4">
@@ -320,6 +325,7 @@ export default function Portal() {
           </TabsContent>
 
           <TabsContent value="documents">
+            {activeNgoId && <NgoAgreementDocument key={activeNgoId} ngoId={activeNgoId} ngoName={ngoNameLookup.get(activeNgoId) || "Your NGO"} onReview={() => { setActiveTab("onboarding"); window.setTimeout(() => document.getElementById("ngo-agreement-signature")?.scrollIntoView({ block: "start" }), 0); }} />}
             <Card><CardContent className="p-0">
               <div className="border-b px-5 py-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between"><div><h2 className="text-lg font-semibold">Documents</h2><p className="text-sm text-muted-foreground">Upload, view, and download files associated with your NGO.</p></div><div className="flex flex-col gap-2 sm:flex-row sm:items-center">{ngos.length > 1 && <select className="h-9 rounded-md border bg-background px-3 text-sm" value={selectedUploadNgoId} onChange={(e) => setSelectedUploadNgoId(e.target.value)}>{ngos.map(ngo => <option key={ngo.id} value={ngo.id}>{ngo.name}</option>)}</select>}<label className="inline-flex"><input type="file" className="hidden" onChange={(e) => handleGeneralDocumentUpload(e.target.files)} disabled={!activeNgoId || uploadingId === "general-document-upload"} /><Button asChild disabled={!activeNgoId || uploadingId === "general-document-upload"}><span>{uploadingId === "general-document-upload" ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}Upload Document</span></Button></label></div></div>
               {docsLoading ? <div className="py-10 text-center"><Loader2 className="mx-auto h-6 w-6 animate-spin" /></div> : documents && documents.length > 0 ? (

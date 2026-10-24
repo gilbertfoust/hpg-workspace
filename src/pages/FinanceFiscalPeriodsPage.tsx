@@ -21,7 +21,8 @@ import { CheckCircle2, RefreshCw, ShieldCheck, XCircle } from "lucide-react";
 
 const FinanceFiscalPeriodsPage = () => {
   const { selectedNgo, selectedNgoId } = useWorkspaceNgo();
-  const { role } = useUserRole();
+  const { data: userRole } = useUserRole();
+  const role = userRole?.role;
   const canManage = hasFinancePermission(role, "edit_settings");
   const { data: periods = [], isLoading } = useFinanceFiscalPeriods(selectedNgoId);
   const closePeriod = useCloseFinanceFiscalPeriod();

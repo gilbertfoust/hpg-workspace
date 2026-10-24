@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CheckCircle2, CreditCard, FileSignature, Landmark, Loader2 } from "lucide-react";
+import { CheckCircle2, CreditCard, Download, Eye, FileSignature, Landmark, Loader2 } from "lucide-react";
 import { useNgoOnboarding } from "@/hooks/useNgoOnboarding";
 
 declare global {
@@ -35,13 +35,20 @@ export function NgoOnboardingPortal({ ngoId, country }: { ngoId: string; country
   const [provider, setProvider] = useState("auto");
   const [countryCode, setCountryCode] = useState(/^[A-Za-z]{2}$/.test(country || "") ? String(country).toUpperCase() : "US");
   const [currency, setCurrency] = useState("USD");
+  const [pdfError, setPdfError] = useState<string | null>(null);
+  const [pdfBusy, setPdfBusy] = useState(false);
+  const openPdf = async (action: () => Promise<void>) => {
+    setPdfError(null); setPdfBusy(true);
+    try { await action(); } catch (error) { setPdfError(error instanceof Error ? error.message : "Unable to open the agreement."); }
+    finally { setPdfBusy(false); }
+  };
 
   const agreement = state.agreement.data;
   const latestPayment = state.payments.data?.[0];
   const sign = async () => {
     if (!signature.current || signature.current.isEmpty() || !signerName || !signerTitle || !consent) return;
     const signatureDataUrl = signature.current.getTrimmedCanvas().toDataURL("image/png");
-    await state.signAgreement.mutateAsync({ signerName, signerTitle, signatureDataUrl });
+    state.signAgreement.mutate({ signerName, signerTitle, signatureDataUrl });
   };
 
   const connectBank = async () => {
@@ -65,18 +72,20 @@ export function NgoOnboardingPortal({ ngoId, country }: { ngoId: string; country
         <Step label="Bank connection" complete={(state.banks.data ?? []).some((bank: any) => bank.status === "verified")} />
       </div>
 
-      <Card>
+      <Card id="ngo-agreement-signature">
         <CardHeader><CardTitle className="flex items-center gap-2"><FileSignature className="h-5 w-5" />Fiscal sponsorship agreement</CardTitle><CardDescription>Review the exact HPG-issued agreement before signing.</CardDescription></CardHeader>
         <CardContent className="space-y-4">
-          {state.onboarding.isLoading || state.agreement.isLoading ? <p className="text-sm text-muted-foreground">Loading your agreement…</p> : state.onboarding.error || state.agreement.error ? <p role="alert" className="text-sm text-destructive">Unable to load the agreement: {String((state.onboarding.error || state.agreement.error)?.message || "Please contact HPG Development.")}</p> : !agreement ? <p className="text-sm text-muted-foreground">No agreement is currently linked to this organization. Please contact HPG Development.</p> : <>
+          {state.onboarding.isLoading || state.agreement.isLoading ? <p role="status" className="text-sm text-muted-foreground">Loading your agreement…</p> : state.agreement.error ? <div className="space-y-2"><p role="alert" className="text-sm text-destructive">Unable to load the agreement. Please try again or contact HPG Development.</p><Button variant="outline" onClick={() => void state.agreement.refetch()}>Retry</Button></div> : !agreement ? <p className="text-sm text-muted-foreground">No released agreement is available for this organization. Please contact HPG Development.</p> : <>
             <div className="flex items-center justify-between"><p className="font-medium">{agreement.agreement_name}</p><Badge>{agreement.status}</Badge></div>
-            <Button type="button" variant="outline" onClick={() => state.downloadAgreement().catch((error: Error) => window.alert(error.message))} disabled={!agreement.hpg_signed_pdf_path && !agreement.executed_pdf_path}>View / download signed agreement PDF</Button>
+            <div className="flex flex-wrap gap-2"><Button type="button" variant="outline" onClick={() => void openPdf(state.previewAgreement)} disabled={pdfBusy || !state.pdfPath}><Eye className="h-4 w-4 mr-2" />Preview signed agreement PDF</Button><Button type="button" variant="outline" onClick={() => void openPdf(state.downloadAgreement)} disabled={pdfBusy || !state.pdfPath}><Download className="h-4 w-4 mr-2" />Download signed agreement PDF</Button></div>
+            {!state.pdfPath && <p role="alert" className="text-sm text-destructive">The signed PDF is not available. Please contact HPG Development.</p>}
+            {pdfError && <p role="alert" className="text-sm text-destructive">{pdfError}</p>}
             {agreement.status === "hpg_signed" ? <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2"><Label>Authorized signer name</Label><Input value={signerName} onChange={(event) => setSignerName(event.target.value)} /></div>
               <div className="space-y-2"><Label>Signer title</Label><Input value={signerTitle} onChange={(event) => setSignerTitle(event.target.value)} /></div>
               <div className="space-y-2 md:col-span-2"><Label>Signature</Label><div className="rounded-md border bg-white"><SignatureCanvas ref={signature} canvasProps={{ className: "h-40 w-full" }} /></div><Button variant="ghost" size="sm" onClick={() => signature.current?.clear()}>Clear signature</Button></div>
               <label className="flex items-start gap-2 text-sm md:col-span-2"><input className="mt-1" type="checkbox" checked={consent} onChange={(event) => setConsent(event.target.checked)} />I consent to use this electronic signature and certify I am authorized to sign for the NGO.</label>
-              <div className="md:col-span-2"><Button onClick={sign} disabled={state.signAgreement.isPending || !consent || !signerName || !signerTitle}>{(state.signAgreement.isPending) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Sign agreement</Button></div>
+              <div className="md:col-span-2"><Button onClick={sign} disabled={state.signAgreement.isPending || state.signAgreement.isSuccess || !state.pdfPath || !consent || !signerName || !signerTitle}>{(state.signAgreement.isPending) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Sign agreement</Button></div>
             </div> : agreement.status === "executed" ? <p className="flex items-center gap-2 text-sm text-emerald-700"><CheckCircle2 className="h-4 w-4" />Signed by {agreement.signer_name} on {new Date(agreement.signed_at).toLocaleDateString()}</p> : <p className="text-sm text-muted-foreground">HPG is preparing this agreement for signature.</p>}
           </>}
         </CardContent>

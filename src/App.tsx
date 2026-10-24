@@ -192,6 +192,7 @@ const App = () => {
                 <Route path="/index.html" element={<Navigate to="/dashboard" replace />} />
 
                 {/* Core */}
+                <Route path="/portal/*" element={<P><Portal /></P>} />
                 <Route path="/dashboard" element={<P><Dashboard /></P>} />
                 <Route path="/profile" element={<P><MyWorkspaceProfile /></P>} />
                 <Route path="/hpg-assistant" element={<P><NGOCoordinationModule /></P>} />

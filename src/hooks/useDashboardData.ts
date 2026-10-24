@@ -250,7 +250,7 @@ export const useDashboardData = (filters: DashboardFilters) => {
       let atRiskQuery = supabase
         .from("ngos")
         .select("id, legal_name, common_name, bundle, country, state_province, city")
-        .in("status", ["at_risk", "out_of_compliance", "non_compliant", "suspended", "remediation"])
+        .eq("status", "at_risk")
         .order("legal_name", { ascending: true });
 
       if (filters.bundle) {

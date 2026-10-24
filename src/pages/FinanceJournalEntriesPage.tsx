@@ -82,7 +82,8 @@ const FinanceJournalEntriesPage = () => {
   const postEntry = usePostFinanceJournalEntry();
   const voidEntry = useVoidFinanceJournalEntry();
   const reverseEntry = useReverseFinanceJournalEntry();
-  const { role } = useUserRole();
+  const { data: userRole } = useUserRole();
+  const role = userRole?.role;
   const canPost = hasFinancePermission(role, "post_journal");
   const canVoid = hasFinancePermission(role, "void_transaction");
   const scopeName = selectedNgo?.common_name || selectedNgo?.legal_name || "All HPG";

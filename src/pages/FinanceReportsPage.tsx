@@ -169,7 +169,7 @@ const FinanceReportsPage = () => {
                   ["Change in net assets", soa.change_in_net_assets],
                 ].map(([label, val]) => (
                   <div key={String(label)} className={`flex justify-between ${String(label).startsWith("Total") || label === "Change in net assets" ? "font-semibold border-t pt-2" : ""}`}>
-                    <span>{label}</span><span>{fmt(Number(val))}</span>
+                    <span>{String(label)}</span><span>{fmt(Number(val))}</span>
                   </div>
                 ))}
               </div>
