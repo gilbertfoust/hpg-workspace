@@ -1,4 +1,4 @@
-export interface NgoAgreement {
+export type NgoAgreement = {
   id: string;
   ngo_id: string;
   agreement_name: string;
@@ -8,7 +8,7 @@ export interface NgoAgreement {
   signer_name: string | null;
   signed_at: string | null;
   created_at: string;
-}
+};
 
 export const releasedAgreementStatuses = ["hpg_signed", "executed"];
 
