@@ -102,8 +102,8 @@ export const useFinanceGeneralLedger = (filters: FinanceReportFilters & { accoun
   queryFn: async () => {
     const { entries, lines } = await fetchPostedLines(filters);
     const entryMap = new Map((entries as { id: string; entry_date: string; entry_number: string; memo: string }[]).map((e) => [e.id, e]));
-    return (lines as { journal_entry_id: string; debit: number; credit: number; memo: string | null }[])
-      .filter((l) => !filters.accountId || (l as { account_id: string }).account_id === filters.accountId)
+    return (lines as { account_id: string; journal_entry_id: string; debit: number; credit: number; memo: string | null }[])
+      .filter((l) => !filters.accountId || l.account_id === filters.accountId)
       .map((l) => ({ ...l, entry: entryMap.get(l.journal_entry_id) }))
       .sort((a, b) => (a.entry?.entry_date || "").localeCompare(b.entry?.entry_date || ""));
   },
@@ -166,7 +166,7 @@ export const useFinanceMissingReceiptsReport = (ngoId?: string | null) => useQue
     const { data: entries } = await query;
     if (!entries?.length) return [];
     const results = await Promise.all(
-      (entries as { id: string }[]).map(async (e) => {
+      (entries as { id: string; entry_number: string; entry_date: string; memo: string | null; status: string }[]).map(async (e) => {
         const { data: has } = await supabase.rpc("finance_journal_entry_has_receipt" as never, { _entry_id: e.id } as never);
         return { ...e, has_receipt: Boolean(has) };
       })

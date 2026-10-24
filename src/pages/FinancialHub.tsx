@@ -17,7 +17,8 @@ import {
 
 const FinancialHub = () => {
   const navigate = useNavigate();
-  const { role } = useUserRole();
+  const { data: userRole } = useUserRole();
+  const role = userRole?.role;
   const canRead = canReadFinanceLedger(role);
   const { selectedNgo, selectedNgoId } = useWorkspaceNgo();
   const { data: snapshot, isLoading } = useFinanceHubSnapshot();
