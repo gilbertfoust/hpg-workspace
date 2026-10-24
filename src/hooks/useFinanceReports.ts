@@ -166,7 +166,7 @@ export const useFinanceMissingReceiptsReport = (ngoId?: string | null) => useQue
     const { data: entries } = await query;
     if (!entries?.length) return [];
     const results = await Promise.all(
-      (entries as { id: string }[]).map(async (e) => {
+      (entries as { id: string; entry_number: string; entry_date: string; memo: string | null; status: string }[]).map(async (e) => {
         const { data: has } = await supabase.rpc("finance_journal_entry_has_receipt" as never, { _entry_id: e.id } as never);
         return { ...e, has_receipt: Boolean(has) };
       })
