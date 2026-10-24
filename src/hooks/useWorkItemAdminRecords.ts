@@ -1,22 +1,14 @@
 import { useQuery } from "@tanstack/react-query";
 import { ensureSupabase } from "@/integrations/supabase/client";
-import type { SupabaseClient } from "@supabase/supabase-js";
-import type { ModuleType } from "@/hooks/useWorkItems";
+import type { Database } from "@/integrations/supabase/types";
 
-export type WorkItemAdminRecord = {
-  id: string; work_item_id: string; title: string; module: ModuleType | null;
-  department_id: string | null; ngo_id: string | null; completed_at: string;
-  archive_reason: string; record_status: "queued" | "reviewed" | "filed"; notes: string | null; created_at: string;
-};
-type AdminRecordDatabase = { public: { Tables: { work_item_admin_records: {
-  Row: WorkItemAdminRecord; Insert: Partial<WorkItemAdminRecord>; Update: Partial<WorkItemAdminRecord>; Relationships: [];
-} }; Views: {}; Functions: {} } };
+export type WorkItemAdminRecord = Database["public"]["Tables"]["work_item_admin_records"]["Row"];
 
 export const useWorkItemAdminRecords = () => {
   return useQuery({
     queryKey: ["work-item-admin-records"],
     queryFn: async (): Promise<WorkItemAdminRecord[]> => {
-      const supabase = ensureSupabase() as unknown as SupabaseClient<AdminRecordDatabase>;
+      const supabase = ensureSupabase();
       const { data, error } = await supabase
         .from("work_item_admin_records")
         .select("id, work_item_id, title, module, department_id, ngo_id, completed_at, archive_reason, record_status, notes, created_at")
