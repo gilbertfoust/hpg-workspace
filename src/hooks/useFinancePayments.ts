@@ -31,8 +31,8 @@ export const useFinancePayments = (statusFilter?: FinancePaymentStatus | "all", 
         billIds.length ? supabase.from("finance_bills" as never).select("id, bill_number, vendor_id").in("id" as never, billIds as never) : Promise.resolve({ data: [] }),
       ]);
 
-      const ngoMap = new Map((ngos || []).map((n) => [n.id, n]));
-      const billMap = new Map(((bills || []) as NonNullable<FinancePayment["bill"]>[]).map((b) => [b.id, b]));
+      const ngoMap = new Map((ngos || []).map((n: { id: string }) => [n.id, n]));
+      const billMap = new Map((bills || []).map((b: { id: string }) => [b.id, b]));
 
       return (data as FinancePayment[]).map((p) => ({
         ...p,
