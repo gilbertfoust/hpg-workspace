@@ -23,6 +23,7 @@ export function useNgoOnboarding(ngoId?: string) {
     queryFn: async () => {
       const { data, error } = await (supabase as any).from("ngo_agreements").select("*").eq("id", onboarding.data.agreement_id).single();
       if (error) throw error;
+      if (!data) throw new Error("No agreement was returned for this organization. Please contact HPG Development.");
       return data;
     },
   });
@@ -48,20 +49,27 @@ export function useNgoOnboarding(ngoId?: string) {
   });
 
   const signAgreement = useMutation({
-    mutationFn: async ({ signerName, signerTitle, signatureDocumentId }: { signerName: string; signerTitle: string; signatureDocumentId: string }) => {
-      const { data, error } = await (supabase as any).rpc("sign_ngo_agreement", {
-        p_agreement_id: agreement.data?.id,
-        p_signer_name: signerName,
-        p_signer_title: signerTitle,
-        p_signature_document_id: signatureDocumentId,
-        p_electronic_consent: true,
+    mutationFn: async ({ signerName, signerTitle, signatureDataUrl }: { signerName: string; signerTitle: string; signatureDataUrl: string }) => {
+      if (!agreement.data?.id || agreement.data.status !== "hpg_signed") throw new Error("The HPG-signed agreement must be available before signing.");
+      const { data, error } = await supabase.functions.invoke("sign-ngo-agreement", {
+        body: { agreementId: agreement.data.id, party: "ngo", signerName, signerTitle, signatureDataUrl, consent: true },
       });
       if (error) throw error;
+      if (data?.error) throw new Error(data.error);
       return data;
     },
     onSuccess: () => { invalidate(); toast.success("Agreement signed"); },
     onError: (error: Error) => toast.error(error.message),
   });
+
+  const downloadAgreement = async () => {
+    const item = agreement.data;
+    const path = item?.status === "executed" ? item?.executed_pdf_path : item?.hpg_signed_pdf_path;
+    if (!path) throw new Error("The signed agreement document has not been made available.");
+    const { data, error } = await supabase.storage.from("ngo-agreements").createSignedUrl(path, 120);
+    if (error || !data?.signedUrl) throw error || new Error("Unable to generate a secure agreement link.");
+    window.open(data.signedUrl, "_blank", "noopener,noreferrer");
+  };
 
   const createPayment = useMutation({
     mutationFn: async () => {
@@ -96,5 +104,5 @@ export function useNgoOnboarding(ngoId?: string) {
     onError: (error: Error) => toast.error(error.message),
   });
 
-  return { onboarding, agreement, payments, banks, signAgreement, createPayment, createBankLink, exchangePlaid };
+  return { onboarding, agreement, payments, banks, signAgreement, downloadAgreement, createPayment, createBankLink, exchangePlaid };
 }
