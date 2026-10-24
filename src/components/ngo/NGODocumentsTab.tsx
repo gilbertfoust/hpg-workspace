@@ -145,7 +145,6 @@ export function NGODocumentsTab({ ngoId, launchDocumentRequest, onDocumentReques
 
   const filteredRequests = (requests || []).filter((request) =>
     request.status !== "complete"
-    && request.status !== "completed"
     && request.status !== "canceled"
     && (request.type === "Document Request" || request.title.toLowerCase().includes("document request"))
   );

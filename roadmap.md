@@ -1,4 +1,5 @@
 # NGO agreement visibility repair
+- [ ] Clear remaining preview type errors, including pre-existing errors; preserve agreement protections.
 - [x] Add NGO-scoped released agreement resolution and secure PDF actions.
 - [x] Surface agreements in Documents and link to the correct signature panel.
 - [x] Validate scoped rules (10 passing tests) and public preview; report pre-existing errors and production mismatch.

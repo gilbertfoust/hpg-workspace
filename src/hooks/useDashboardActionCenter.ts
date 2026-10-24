@@ -35,14 +35,7 @@ const activeStatuses = [
   "waiting_on_hpg",
   "submitted",
   "under_review",
-  "Draft",
-  "Not Started",
-  "In Progress",
-  "Waiting on NGO",
-  "Waiting on HPG",
-  "Submitted",
-  "Under Review",
-];
+] as const;
 
 const emptySummary = (): ActionCenterSummary => ({
   Overdue: 0,

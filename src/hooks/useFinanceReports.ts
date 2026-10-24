@@ -102,8 +102,8 @@ export const useFinanceGeneralLedger = (filters: FinanceReportFilters & { accoun
   queryFn: async () => {
     const { entries, lines } = await fetchPostedLines(filters);
     const entryMap = new Map((entries as { id: string; entry_date: string; entry_number: string; memo: string }[]).map((e) => [e.id, e]));
-    return (lines as { journal_entry_id: string; debit: number; credit: number; memo: string | null }[])
-      .filter((l) => !filters.accountId || (l as { account_id: string }).account_id === filters.accountId)
+    return (lines as { account_id: string; journal_entry_id: string; debit: number; credit: number; memo: string | null }[])
+      .filter((l) => !filters.accountId || l.account_id === filters.accountId)
       .map((l) => ({ ...l, entry: entryMap.get(l.journal_entry_id) }))
       .sort((a, b) => (a.entry?.entry_date || "").localeCompare(b.entry?.entry_date || ""));
   },

@@ -20,12 +20,13 @@ const safeCount = async (table: DashboardCountTable, signal: AbortSignal) => {
 };
 
 const activeApplicationStatuses = [
-  "draft",
-  "in_progress",
+  "prospect",
+  "researching",
+  "writing",
   "submitted",
   "under_review",
-  "pending",
-  "active",
+  "awarded",
+  "reporting",
 ];
 
 export const useDashboardGrantPipeline = () => {
@@ -45,7 +46,7 @@ export const useDashboardGrantPipeline = () => {
               .from("work_items")
               .select("id", { count: "exact", head: true })
               .is("archived_at", null)
-              .eq("module", "grants")
+              .eq("module", "development")
               .abortSignal(request.signal);
             if (error) return { available: false, count: 0 };
             return { available: true, count: count ?? 0 };
@@ -63,11 +64,11 @@ export const useDashboardGrantPipeline = () => {
         try {
           const { data, error } = await supabase
             .from("grant_applications")
-            .select("status")
+            .select("stage")
             .abortSignal(request.signal);
           if (!error && data) {
             activeApplications = data.filter((row) =>
-              activeApplicationStatuses.includes((row.status || "").toLowerCase().replace(/[\s-]+/g, "_")),
+              activeApplicationStatuses.includes(row.stage),
             ).length;
           } else {
             applicationsAvailable = false;
