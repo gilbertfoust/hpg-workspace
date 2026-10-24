@@ -21,6 +21,7 @@ import { NgoFinancePortal } from "@/components/portal/NgoFinancePortal";
 import { NgoOnboardingPortal } from "@/components/portal/NgoOnboardingPortal";
 import { NgoFinancialInsights } from "@/components/portal/NgoFinancialInsights";
 import { NgoAgreementDocument } from "@/components/portal/NgoAgreementDocument";
+import { isPreparedAgreementReviewPath } from "@/lib/ngoAgreement";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface PortalContactRow {
@@ -208,10 +209,14 @@ export default function Portal() {
         .from("documents")
         .select("id, file_name, file_path, file_type, file_size, category, review_status, ngo_id, uploaded_at, created_at")
         .in("ngo_id", ngoIds)
+        .not("file_path", "ilike", "%/review-v%.pdf")
         .order("uploaded_at", { ascending: false })
         .limit(50);
       if (error) throw error;
-      return data as PortalDocumentRow[];
+      return (data as PortalDocumentRow[]).filter((document) =>
+        document.ngo_id !== null && ngoIds.includes(document.ngo_id)
+        && !isPreparedAgreementReviewPath(document.file_path)
+      );
     },
   });
 
