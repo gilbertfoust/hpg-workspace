@@ -180,6 +180,7 @@ const hubsSections: HubConfig[] = [
     items: [
       { to: "/modules/communications", icon: <MessageSquare className="w-4 h-4" />, label: "Communications Studio" },
       { to: "/communications/editorial", icon: <Newspaper className="w-4 h-4" />, label: "Editorial Production" },
+      { to: "/communications/media", icon: <FolderOpen className="w-4 h-4" />, label: "Editorial Media Library" },
       { to: "/modules/marketing", icon: <Megaphone className="w-4 h-4" />, label: "Marketing Studio" },
     ],
   },
