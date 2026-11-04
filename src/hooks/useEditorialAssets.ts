@@ -76,6 +76,26 @@ export function useUploadEditorialAsset() {
   });
 }
 
+export function useUpdateEditorialAsset() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, alt_text, attribution, license_type, rights_document_id }: {
+      id: string;
+      alt_text: string;
+      attribution: string;
+      license_type: "owned" | "licensed" | "permission" | "public_domain" | "unknown";
+      rights_document_id: string | null;
+    }) => {
+      const { data, error } = await (ensureSupabase() as any).from("editorial_assets")
+        .update({ alt_text, attribution, license_type, rights_document_id })
+        .eq("id", id).eq("rights_status", "pending").select().single();
+      if (error) throw error;
+      return data as EditorialAsset;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["editorial-assets"] }),
+  });
+}
+
 export function useReviewEditorialAsset() {
   const qc = useQueryClient();
   return useMutation({
