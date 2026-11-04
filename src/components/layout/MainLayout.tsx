@@ -118,8 +118,10 @@ export function MainLayout({ children, title, subtitle, actions }: MainLayoutPro
                 </div>
               </PopoverContent>
             </Popover>
-            <Button variant="ghost" size="icon">
-              <HelpCircle className="w-5 h-5 text-muted-foreground" />
+            <Button asChild variant="ghost" size="icon">
+              <Link to="/learning" aria-label="Open HPG Workspace Learning Academy" title="Learning Academy">
+                <HelpCircle className="w-5 h-5 text-muted-foreground" />
+              </Link>
             </Button>
             <Button 
               variant="ghost" 
