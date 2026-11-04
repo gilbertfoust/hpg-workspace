@@ -24,6 +24,8 @@ type Lesson = {
   requiresEditorial?: boolean;
   requiresPublications?: boolean;
   requiresMedia?: boolean;
+  requiresCanonicalCommunications?: boolean;
+  requiresCanonicalMarketing?: boolean;
 };
 
 type Track = { id: string; title: string; audience: string; lessons: Lesson[] };
@@ -40,15 +42,16 @@ const tracks: Track[] = [
     { id: "grant-draft", name: "Coordinate a proposal", goal: "Find the shared proposal workflow.", path: "/proposal-collaboration", area: "development", readiness: "navigation", steps: ["Open Proposal Collaboration.", "Identify where research, budgets, and proposal material come together.", "Review the appropriate approvals before submitting a real proposal."], practice: "Describe which collaborators should review a proposal before submission." },
   ] },
   { id: "communications", title: "Communications, Magazines & Interviews", audience: "Editors, interviewers, writers, and communications staff", lessons: [
-    { id: "editorial-queue", name: "Create an editorial assignment", goal: "Track a magazine article, interview, press release, or newsletter.", path: "/modules/communications", area: "communications", readiness: "navigation", steps: ["Open Communications Studio.", "Review the existing editorial task list and work types.", "Use New assignment when you have a real approved assignment; add a title, description, and due date.", "Track its stage and use Documents for the related files."], practice: "Identify which type of assignment you would create for a planned interview." },
-    { id: "interview", name: "Plan and document an interview", goal: "Use an assignment to coordinate consent, research, recording, and transcription.", path: "/modules/communications", area: "communications", readiness: "navigation", steps: ["Choose Interview in Communications Studio for an authorized interview assignment.", "Document the subject, purpose, interview questions, and consent requirements in the description.", "Maintain recordings and transcripts in approved document storage; do not publish without editorial approval."], practice: "Outline an interview's purpose, questions, and consent check." },
+    { id: "editorial-queue", name: "Create and assign an editorial pitch", goal: "Start the original Communications editorial workflow.", path: "/modules/communications", area: "communications", requiresCanonicalCommunications: true, readiness: "pending", steps: ["Open Communications Operations and review existing editorial records.", "For an authorized story, choose New Story and enter a working title and pitch of at least 10 characters.", "Choose a responsible owner and a distinct editor if known. Keep sensitive context out of the public publication pages.", "Create the pitch, open its record, and follow the controlled stages. The database will require sources, versions, and approvals before publication."], practice: "Locate the title, status, assigned writer and editor on a real editorial record." },
+    { id: "interview", name: "Begin an interview assignment", goal: "Coordinate editorial responsibility and then document interview evidence.", path: "/modules/communications", area: "communications", requiresCanonicalCommunications: true, readiness: "pending", steps: ["Create an Editorial record with content type Interview and provide a clear research pitch.", "Assign a writer and separate editor before advancing beyond pitch.", "Use the private Editorial Media Library for recordings, and the approved editorial process for consent and interviews.", "Do not move the work to public release until required sources, consent, fact checks and approvals are recorded."], practice: "Identify the stage gate that requires explicit interview consent." },
     { id: "editorial-calendar", name: "Plan the editorial calendar", goal: "Schedule an upcoming story or release and see it on the internal calendar.", path: "/communications/editorial", area: "communications", requiresEditorial: true, readiness: "pending", steps: ["Open Editorial Production Desk and create a real article or interview brief.", "Save its planned release date.", "Open the Calendar tab to locate the scheduled item. This date does not automatically publish content."], practice: "Locate the saved planned date without changing a live published item." },
     { id: "interview-controls", name: "Document interview consent", goal: "Link stored release evidence before an interview is approved.", path: "/communications/editorial", area: "communications", requiresEditorial: true, readiness: "pending", steps: ["Open an existing Interview item.", "Attach a signed consent/release from the authorized Documents area.", "Confirm the agreed publication scope and add a transcript link if available.", "Submit the saved version for a separate editorial review."], practice: "Identify which document demonstrates consent for a real interview." },
     { id: "publish-magazine", name: "Assemble and publish an HPG magazine", goal: "Arrange approved contributions and release a controlled public edition.", path: "/communications/editorial", area: "communications", requiresPublications: true, readiness: "pending", steps: ["Create an issue and add the relevant article contributions.", "Arrange the order, print an internal proof, and verify each contribution is approved.", "Submit the saved issue for an independent review. Authors cannot approve their own work.", "After approval, select Publish to HPG Publications, choose a unique URL slug, and confirm the text is approved for public release.", "Open the public edition and verify the article contents. A publisher can withdraw a released page if necessary."], practice: "Explain the distinction between an internal proof, editorial approval, and public release." },
     { id: "media-rights", name: "Manage editorial media and rights", goal: "Store interviews, photos and recordings privately and review rights before use.", path: "/communications/media", area: "communications", requiresMedia: true, readiness: "pending", steps: ["Open Editorial Media Library and choose a real editorial item.", "Upload the file with a creator credit, description, and verifiable rights basis.", "Attach a permission or license record for material that requires it.", "A different authorized reviewer checks the evidence and clears or rejects the asset.", "Remember: clearance does not publish the private media or make the file publicly accessible."], practice: "Locate a private media asset and identify its rights review status." },
   ] },
   { id: "marketing", title: "Social Media & Marketing", audience: "Campaign planners and social-media staff", lessons: [
-    { id: "campaign-task", name: "Plan a campaign", goal: "Track social posts, campaign assets, and approvals.", path: "/modules/marketing", area: "communications", readiness: "navigation", steps: ["Open Marketing Studio.", "Review campaign and social-media assignments.", "Create a real Social post or Campaign assignment only with an authorized brief.", "Track content preparation and approvals before publishing outside the workspace."], practice: "Recognize where to record a draft post and its intended platform." },
+    { id: "campaign-task", name: "Create a Marketing campaign", goal: "Use the actual campaign database and cross-department review controls.", path: "/modules/marketing", area: "communications", requiresCanonicalMarketing: true, readiness: "pending", steps: ["Open Marketing Operations and inspect the current campaign pipeline.", "For an authorized campaign, select New Campaign and supply the objective, audience, call to action, channels, and approved owner.", "Save the campaign, review its stage and assigned strategist, then submit a versioned campaign packet when appropriate.", "Record marketing and required Communications, Finance, Development, Program or Legal approvals before attempting a launch."], practice: "Find an existing campaign and identify which approvals it requires." },
+    { id: "social-draft", name: "Draft and review a social post", goal: "Prepare a post and move it through the approved social workflow without publishing it automatically.", path: "/modules/marketing", area: "communications", requiresCanonicalMarketing: true, readiness: "pending", steps: ["Open Marketing Operations → Social posts.", "Review a real post and its intended social platform.", "Save edits, then submit a numbered version and advance through drafting and review when permitted.", "Verify publication rights and approvals separately. The internal Scheduled or Approved stage does not post to external accounts."], practice: "Explain the distinction between a scheduled post and a verified external publication." },
     { id: "social-publish", name: "Schedule and publish social posts", goal: "Publish through connected and authorized social accounts.", readiness: "pending", steps: ["Platform authentication, scheduling, posting, and analytics are not yet connected in this module."], practice: "Do not assume task tracking automatically posts to social platforms." },
   ] },
   { id: "research", title: "Research & Evidence", audience: "Researchers and program development teams", lessons: [
@@ -71,10 +74,12 @@ const tracks: Track[] = [
   ] },
 ];
 
-const isReady = (lesson: Lesson, editorReady: boolean, publicationReady: boolean, mediaReady: boolean) =>
+const isReady = (lesson: Lesson, editorReady: boolean, publicationReady: boolean, mediaReady: boolean, canonicalCommsReady: boolean, canonicalMarketingReady: boolean) =>
   lesson.readiness === "navigation" || (!!lesson.requiresEditorial && editorReady) ||
   (!!lesson.requiresPublications && editorReady && publicationReady) ||
-  (!!lesson.requiresMedia && editorReady && mediaReady);
+  (!!lesson.requiresMedia && editorReady && mediaReady) ||
+  (!!lesson.requiresCanonicalCommunications && canonicalCommsReady) ||
+  (!!lesson.requiresCanonicalMarketing && canonicalMarketingReady);
 
 const isAllowed = (lesson: Lesson, role?: string | null, access?: Parameters<typeof canAccessArea>[2]) =>
   !lesson.area || canAccessArea(role, lesson.area, access);
@@ -107,6 +112,21 @@ export default function LearningAcademy() {
   });
   const publicationReady = nativeReadiness.data?.publicationReady === true;
   const mediaReady = nativeReadiness.data?.mediaReady === true;
+  const canonicalReadiness = useQuery({
+    queryKey: ["department-operating-readiness", user?.id],
+    enabled: !!user?.id && canAccessArea(access?.role, "communications", access),
+    retry: false,
+    queryFn: async () => {
+      const client = ensureSupabase();
+      const [comms, marketing] = await Promise.all([
+        client.rpc("is_communications_staff" as never),
+        client.rpc("is_marketing_staff" as never),
+      ]);
+      return { communications: !comms.error && comms.data === true, marketing: !marketing.error && marketing.data === true };
+    },
+  });
+  const canonicalCommsReady = canonicalReadiness.data?.communications === true;
+  const canonicalMarketingReady = canonicalReadiness.data?.marketing === true;
   const [params, setParams] = useSearchParams();
   const selectedTrackId = params.get("track") || "start";
   const activeTrack = tracks.find(track => track.id === selectedTrackId) || tracks[0];
@@ -130,8 +150,8 @@ export default function LearningAcademy() {
 
   const selectedLesson = activeTrack.lessons.find(lesson => lesson.id === selectedLessonId);
   const availableLessons = useMemo(
-    () => tracks.flatMap(track => track.lessons).filter(lesson => isReady(lesson, editorReady, publicationReady, mediaReady) && isAllowed(lesson, access?.role, access)),
-    [access, editorReady, publicationReady, mediaReady],
+    () => tracks.flatMap(track => track.lessons).filter(lesson => isReady(lesson, editorReady, publicationReady, mediaReady, canonicalCommsReady, canonicalMarketingReady) && isAllowed(lesson, access?.role, access)),
+    [access, editorReady, publicationReady, mediaReady, canonicalCommsReady, canonicalMarketingReady],
   );
   const doneCount = availableLessons.filter(lesson => completed.includes(lesson.id)).length;
   const percent = availableLessons.length ? Math.round(doneCount / availableLessons.length * 100) : 0;
@@ -185,7 +205,7 @@ export default function LearningAcademy() {
                   <CardDescription>{selectedLesson.goal}</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-5">
-                  {!isReady(selectedLesson, editorReady, publicationReady, mediaReady) ? (
+                  {!isReady(selectedLesson, editorReady, publicationReady, mediaReady, canonicalCommsReady, canonicalMarketingReady) ? (
                     <p className="rounded-lg border border-dashed p-4 text-sm">This workflow is not ready for hands-on training. Its lesson will be activated when the underlying feature is verified.</p>
                   ) : (
                     <>
