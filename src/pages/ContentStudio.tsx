@@ -94,7 +94,7 @@ export default function ContentStudio({ module }: { module: "communications" | "
   };
 
   return (
-    <MainLayout title={isMarketing ? "Marketing Studio" : "Communications Studio"}
+    <MainLayout title={isMarketing ? "Marketing Assignments" : "Communications Assignments"}
       subtitle={isMarketing ? "Coordinate campaigns and social-media assignments." : "Coordinate interviews, magazine issues, articles, press releases, and research briefs."}
       actions={<Button onClick={() => setOpen(true)}><Plus className="mr-2 h-4 w-4" /> New assignment</Button>}>
       <div className="space-y-6">
@@ -106,6 +106,7 @@ export default function ContentStudio({ module }: { module: "communications" | "
             {!isMarketing && <Button asChild variant="outline" size="sm"><Link to="/communications/editorial"><FileText className="mr-2 h-4 w-4" /> Editorial production</Link></Button>}
             {!isMarketing && <Button asChild variant="outline" size="sm"><Link to="/communications/media"><FileText className="mr-2 h-4 w-4" /> Private media</Link></Button>}
             {!isMarketing && <Button asChild variant="outline" size="sm"><Link to="/publications"><FileText className="mr-2 h-4 w-4" /> Public editions</Link></Button>}
+            <Button asChild variant="outline" size="sm"><Link to={isMarketing ? "/modules/marketing" : "/modules/communications"}><ClipboardList className="mr-2 h-4 w-4" /> Department Operations</Link></Button>
             <Button asChild variant="outline" size="sm"><Link to="/documents"><FileText className="mr-2 h-4 w-4" /> Documents</Link></Button>
             <Button asChild variant="outline" size="sm"><Link to="/work-items"><ClipboardList className="mr-2 h-4 w-4" /> All work items</Link></Button>
           </div>

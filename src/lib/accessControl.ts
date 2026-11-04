@@ -117,6 +117,7 @@ const ROUTE_AREA_PREFIXES: { prefix: string; area: AccessArea }[] = [
   { prefix: "/modules/communications", area: "communications" },
   { prefix: "/communications", area: "communications" },
   { prefix: "/modules/marketing", area: "communications" },
+  { prefix: "/marketing", area: "communications" },
   { prefix: "/it", area: "it" },
   { prefix: "/modules/it", area: "it" },
   { prefix: "/audit", area: "it" },

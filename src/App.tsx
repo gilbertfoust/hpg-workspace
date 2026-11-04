@@ -70,6 +70,7 @@ import HPGAssistantHistory from "./pages/HPGAssistantHistory";
 import MyWorkspaceProfile from "./pages/MyWorkspaceProfile";
 import LearningAcademy from "./pages/LearningAcademy";
 import ContentStudio from "./pages/ContentStudio";
+import DepartmentOperationsHub from "./pages/DepartmentOperationsHub";
 import EditorialDesk from "./pages/EditorialDesk";
 import EditorialMediaDesk from "./pages/EditorialMediaDesk";
 import Publications from "./pages/Publications";
@@ -313,8 +314,10 @@ const App = () => {
                 <Route path="/modules/curriculum" element={<P><CurriculumModule /></P>} />
                 <Route path="/modules/development" element={<P><DevelopmentModule /></P>} />
                 <Route path="/modules/partnerships" element={<P><PartnershipsModule /></P>} />
-                <Route path="/modules/marketing" element={<P><ContentStudio module="marketing" /></P>} />
-                <Route path="/modules/communications" element={<P><ContentStudio module="communications" /></P>} />
+                <Route path="/modules/marketing" element={<P><DepartmentOperationsHub lane="marketing" /></P>} />
+                <Route path="/marketing/assignments" element={<P><ContentStudio module="marketing" /></P>} />
+                <Route path="/modules/communications" element={<P><DepartmentOperationsHub lane="communications" /></P>} />
+                <Route path="/communications/assignments" element={<P><ContentStudio module="communications" /></P>} />
                 <Route path="/modules/hr" element={<P><HRModule /></P>} />
                 <Route path="/modules/it" element={<P><ITModule /></P>} />
                 <Route path="/modules/finance" element={<P><FinanceModule /></P>} />

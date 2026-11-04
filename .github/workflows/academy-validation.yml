@@ -7,6 +7,9 @@ on:
       - 'src/pages/LearningAcademy.tsx'
       - 'src/pages/ContentStudio.tsx'
       - 'src/pages/EditorialDesk.tsx'
+      - 'src/pages/DepartmentOperationsHub.tsx'
+      - 'src/components/onboarding/GuidedWalkthrough.tsx'
+      - 'src/hooks/useDepartmentOperations.ts'
       - 'src/pages/EditorialMediaDesk.tsx'
       - 'src/pages/Publications.tsx'
       - 'src/hooks/useEditorialAssets.ts'
@@ -32,4 +35,4 @@ jobs:
       - name: TypeScript check
         run: npx tsc --noEmit
       - name: Lint new learning and studio pages
-        run: npx eslint src/pages/LearningAcademy.tsx src/pages/ContentStudio.tsx src/pages/EditorialDesk.tsx src/pages/EditorialMediaDesk.tsx src/pages/Publications.tsx src/hooks/useEditorial.ts src/hooks/useEditorialAssets.ts src/hooks/usePublications.ts
+        run: npx eslint src/pages/LearningAcademy.tsx src/pages/ContentStudio.tsx src/pages/DepartmentOperationsHub.tsx src/components/onboarding/GuidedWalkthrough.tsx src/hooks/useDepartmentOperations.ts src/pages/EditorialDesk.tsx src/pages/EditorialMediaDesk.tsx src/pages/Publications.tsx src/hooks/useEditorial.ts src/hooks/useEditorialAssets.ts src/hooks/usePublications.ts
