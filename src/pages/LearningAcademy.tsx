@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Link, useSearchParams } from "react-router-dom";
 import { ArrowLeft, ArrowRight, BookOpen, CheckCircle2, Circle, ExternalLink, GraduationCap, LockKeyhole, Wrench } from "lucide-react";
 import { MainLayout } from "@/components/layout/MainLayout";
@@ -9,6 +10,7 @@ import { Progress } from "@/components/ui/progress";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
 import { canAccessArea, type AccessArea } from "@/lib/accessControl";
+import { ensureSupabase } from "@/integrations/supabase/client";
 
 type Lesson = {
   id: string;
@@ -19,6 +21,7 @@ type Lesson = {
   path?: string;
   area?: AccessArea;
   readiness: "navigation" | "pending";
+  requiresEditorial?: boolean;
 };
 
 type Track = { id: string; title: string; audience: string; lessons: Lesson[] };
@@ -37,7 +40,9 @@ const tracks: Track[] = [
   { id: "communications", title: "Communications, Magazines & Interviews", audience: "Editors, interviewers, writers, and communications staff", lessons: [
     { id: "editorial-queue", name: "Create an editorial assignment", goal: "Track a magazine article, interview, press release, or newsletter.", path: "/modules/communications", area: "communications", readiness: "navigation", steps: ["Open Communications Studio.", "Review the existing editorial task list and work types.", "Use New assignment when you have a real approved assignment; add a title, description, and due date.", "Track its stage and use Documents for the related files."], practice: "Identify which type of assignment you would create for a planned interview." },
     { id: "interview", name: "Plan and document an interview", goal: "Use an assignment to coordinate consent, research, recording, and transcription.", path: "/modules/communications", area: "communications", readiness: "navigation", steps: ["Choose Interview in Communications Studio for an authorized interview assignment.", "Document the subject, purpose, interview questions, and consent requirements in the description.", "Maintain recordings and transcripts in approved document storage; do not publish without editorial approval."], practice: "Outline an interview's purpose, questions, and consent check." },
-    { id: "publish-magazine", name: "Publish a magazine issue", goal: "Move an approved issue into a controlled publishing workflow.", readiness: "pending", steps: ["Editorial calendar, layout approval, issue assembly, and publishing remain to be implemented."], practice: "Await the publishing workflow before treating this as a completed lesson." },
+    { id: "editorial-calendar", name: "Plan the editorial calendar", goal: "Schedule an upcoming story or release and see it on the internal calendar.", path: "/communications/editorial", area: "communications", requiresEditorial: true, readiness: "pending", steps: ["Open Editorial Production Desk and create a real article or interview brief.", "Save its planned release date.", "Open the Calendar tab to locate the scheduled item. This date does not automatically publish content."], practice: "Locate the saved planned date without changing a live published item." },
+    { id: "interview-controls", name: "Document interview consent", goal: "Link stored release evidence before an interview is approved.", path: "/communications/editorial", area: "communications", requiresEditorial: true, readiness: "pending", steps: ["Open an existing Interview item.", "Attach a signed consent/release from the authorized Documents area.", "Confirm the agreed publication scope and add a transcript link if available.", "Submit the saved version for a separate editorial review."], practice: "Identify which document demonstrates consent for a real interview." },
+    { id: "publish-magazine", name: "Assemble and approve a magazine issue", goal: "Arrange approved articles, print an internal proof, and record an externally published release.", path: "/communications/editorial", area: "communications", requiresEditorial: true, readiness: "pending", steps: ["Create an issue and add relevant article contributions.", "Arrange the order and print an internal proof; verify each contributing article has approval.", "Submit the issue for review. An independent authorized reviewer must approve it.", "Only after the issue is actually published externally, an authorized publisher records the live HTTPS URL."], practice: "Explain the difference between an internal proof, editorial approval, and recording a published release." },
   ] },
   { id: "marketing", title: "Social Media & Marketing", audience: "Campaign planners and social-media staff", lessons: [
     { id: "campaign-task", name: "Plan a campaign", goal: "Track social posts, campaign assets, and approvals.", path: "/modules/marketing", area: "communications", readiness: "navigation", steps: ["Open Marketing Studio.", "Review campaign and social-media assignments.", "Create a real Social post or Campaign assignment only with an authorized brief.", "Track content preparation and approvals before publishing outside the workspace."], practice: "Recognize where to record a draft post and its intended platform." },
@@ -63,12 +68,24 @@ const tracks: Track[] = [
   ] },
 ];
 
+const isReady = (lesson: Lesson, editorReady: boolean) => lesson.readiness === "navigation" || (!!lesson.requiresEditorial && editorReady);
+
 const isAllowed = (lesson: Lesson, role?: string | null, access?: Parameters<typeof canAccessArea>[2]) =>
   !lesson.area || canAccessArea(role, lesson.area, access);
 
 export default function LearningAcademy() {
   const { user } = useAuth();
   const { data: access } = useUserRole();
+  const editorialReadiness = useQuery({
+    queryKey: ["editorial-academy-readiness", user?.id],
+    enabled: !!user?.id && canAccessArea(access?.role, "communications", access),
+    retry: false,
+    queryFn: async () => {
+      const { data, error } = await ensureSupabase().rpc("can_write_editorial" as never);
+      return !error && (data as unknown) === true;
+    },
+  });
+  const editorReady = editorialReadiness.data === true;
   const [params, setParams] = useSearchParams();
   const selectedTrackId = params.get("track") || "start";
   const activeTrack = tracks.find(track => track.id === selectedTrackId) || tracks[0];
@@ -92,8 +109,8 @@ export default function LearningAcademy() {
 
   const selectedLesson = activeTrack.lessons.find(lesson => lesson.id === selectedLessonId);
   const availableLessons = useMemo(
-    () => tracks.flatMap(track => track.lessons).filter(lesson => lesson.readiness === "navigation" && isAllowed(lesson, access?.role, access)),
-    [access],
+    () => tracks.flatMap(track => track.lessons).filter(lesson => isReady(lesson, editorReady) && isAllowed(lesson, access?.role, access)),
+    [access, editorReady],
   );
   const doneCount = availableLessons.filter(lesson => completed.includes(lesson.id)).length;
   const percent = availableLessons.length ? Math.round(doneCount / availableLessons.length * 100) : 0;
@@ -125,7 +142,7 @@ export default function LearningAcademy() {
             <CardHeader><CardTitle className="text-base">Learning paths</CardTitle><CardDescription>Select your area of work.</CardDescription></CardHeader>
             <CardContent className="space-y-1">
               {tracks.map(track => {
-                const allowed = track.lessons.some(lesson => isAllowed(lesson, access?.role, access) && lesson.readiness === "navigation");
+                const allowed = track.lessons.some(lesson => isAllowed(lesson, access?.role, access) && isReady(lesson, editorReady));
                 return (
                   <Button key={track.id} size="sm" variant={activeTrack.id === track.id ? "secondary" : "ghost"}
                     className="h-auto w-full justify-start py-2 text-left whitespace-normal"
@@ -147,7 +164,7 @@ export default function LearningAcademy() {
                   <CardDescription>{selectedLesson.goal}</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-5">
-                  {selectedLesson.readiness === "pending" ? (
+                  {!isReady(selectedLesson, editorReady) ? (
                     <p className="rounded-lg border border-dashed p-4 text-sm">This workflow is not ready for hands-on training. Its lesson will be activated when the underlying feature is verified.</p>
                   ) : (
                     <>
@@ -182,7 +199,7 @@ export default function LearningAcademy() {
                 <div className="grid gap-3">
                   {activeTrack.lessons.map(lesson => {
                     const allowed = isAllowed(lesson, access?.role, access);
-                    const pending = lesson.readiness === "pending";
+                    const pending = !isReady(lesson, editorReady);
                     return (
                       <Card key={lesson.id}>
                         <CardContent className="flex flex-wrap items-center gap-4 p-4">
