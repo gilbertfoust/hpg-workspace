@@ -116,7 +116,7 @@ export default function DepartmentOperationsHub({ lane }: { lane: DepartmentLane
     if (!selected) return;
     setDraft({
       title: selected.title || "", summary: String(selected.pitch_summary || selected.objective || ""),
-      ownerId: selected.owner_user_id || "none", editorId: selected.editor_user_id || selected.strategist_user_id || "none",
+      ownerId: selected.production_owner_user_id || selected.owner_user_id || "none", editorId: selected.editor_user_id || selected.strategist_user_id || "none",
       audience: String(selected.audience_segment || selected.target_audience || ""),
       platform: String(selected.platform || "facebook"), channels: (selected.channels || []).join(", "),
       campaignType: String(selected.campaign_type || "awareness"), contentType: String(selected.content_type || "magazine_feature"),
@@ -178,24 +178,38 @@ export default function DepartmentOperationsHub({ lane }: { lane: DepartmentLane
     if (!selected) return;
     const owner = draft.ownerId === "none" ? "" : draft.ownerId;
     const editor = draft.editorId === "none" ? "" : draft.editorId;
-    const changes: Record<string, unknown> = { title: draft.title.trim(), priority: selected.priority || "medium" };
+    const changes: Record<string, unknown> = {};
+    const updateIfChanged = (key: string, current: unknown, target: unknown) => {
+      if (JSON.stringify(current ?? "") !== JSON.stringify(target ?? "")) changes[key] = target;
+    };
+    updateIfChanged("title", selected.title, draft.title.trim());
     if (tab === "editorial") {
-      changes.pitch_summary = draft.summary.trim();
-      changes.owner_user_id = owner; changes.editor_user_id = editor;
-      changes.due_at = iso(draft.due) || "";
+      updateIfChanged("pitch_summary", selected.pitch_summary, draft.summary.trim());
+      updateIfChanged("owner_user_id", selected.owner_user_id, owner);
+      updateIfChanged("editor_user_id", selected.editor_user_id, editor);
+      if (draft.due !== yyyyMmDd(selected.due_at)) changes.due_at = iso(draft.due) || "";
     } else if (tab === "publications") {
-      changes.audience_segment = draft.audience.trim();
-      changes.editor_user_id = editor; changes.production_owner_user_id = owner;
-      changes.due_at = iso(draft.due) || "";
+      updateIfChanged("audience_segment", selected.audience_segment, draft.audience.trim());
+      updateIfChanged("editor_user_id", selected.editor_user_id, editor);
+      updateIfChanged("production_owner_user_id", selected.production_owner_user_id, owner);
+      if (draft.due !== yyyyMmDd(selected.due_at)) changes.due_at = iso(draft.due) || "";
     } else if (tab === "campaigns") {
-      changes.objective = draft.summary.trim(); changes.target_audience = draft.audience.trim();
-      changes.primary_cta = draft.body.trim();
-      changes.owner_user_id = owner; changes.strategist_user_id = editor;
-      changes.channels = draft.channels.split(",").map(x => x.trim().toLowerCase()).filter(Boolean);
+      updateIfChanged("objective", selected.objective, draft.summary.trim());
+      updateIfChanged("target_audience", selected.target_audience, draft.audience.trim());
+      updateIfChanged("primary_cta", selected.primary_cta, draft.body.trim());
+      updateIfChanged("owner_user_id", selected.owner_user_id, owner);
+      updateIfChanged("strategist_user_id", selected.strategist_user_id, editor);
+      const channels = draft.channels.split(",").map(x => x.trim().toLowerCase()).filter(Boolean);
+      if (JSON.stringify(selected.channels || []) !== JSON.stringify(channels)) changes.channels = channels;
     } else {
-      changes.body_text = draft.body.trim(); changes.platform = draft.platform;
-      changes.owner_user_id = owner;
-      changes.channel_account_id = draft.accountId === "none" ? "" : draft.accountId;
+      updateIfChanged("body_text", selected.body_text, draft.body.trim());
+      updateIfChanged("platform", selected.platform, draft.platform);
+      updateIfChanged("owner_user_id", selected.owner_user_id, owner);
+      updateIfChanged("channel_account_id", selected.channel_account_id, draft.accountId === "none" ? "" : draft.accountId);
+    }
+    if (Object.keys(changes).length === 0) {
+      toast.info("No changes to save.");
+      return;
     }
     try {
       await action.mutateAsync({ action: "update", lane, board: kindBoard[tab], id: selected.id, changes, reason: changeReason.trim() });
@@ -276,7 +290,7 @@ export default function DepartmentOperationsHub({ lane }: { lane: DepartmentLane
     tab === "publications" ? ["review", "scheduled"].includes(selected.status) :
       tab === "campaigns" ? ["approvals", "changes_requested"].includes(selected.status) :
         ["review", "changes_requested"].includes(selected.status));
-  const editable = !!selected && !["published", "distributed", "archived", "closed", "canceled", "live", "optimization", "reporting"].includes(selected.status);
+  const editable = !!selected && !(communication ? ["published", "distributed", "archived", "canceled"].includes(selected.status) : ["published", "measured", "archived", "closed", "canceled", "live", "optimization", "reporting"].includes(selected.status));
 
   return <MainLayout title={communication ? "Communications Operations" : "Marketing Operations"}
     subtitle={communication ? "Canonical editorial and magazine production records, assignments, and review." : "Canonical campaign and social workflow, channel inventory, approvals, and schedules."}
