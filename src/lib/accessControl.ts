@@ -115,6 +115,7 @@ const ROUTE_AREA_PREFIXES: { prefix: string; area: AccessArea }[] = [
   { prefix: "/development", area: "development" },
   { prefix: "/modules/development", area: "development" },
   { prefix: "/modules/communications", area: "communications" },
+  { prefix: "/communications", area: "communications" },
   { prefix: "/modules/marketing", area: "communications" },
   { prefix: "/it", area: "it" },
   { prefix: "/modules/it", area: "it" },
@@ -133,6 +134,7 @@ const ROUTE_AREA_PREFIXES: { prefix: string; area: AccessArea }[] = [
   { prefix: "/calendar", area: "calendar" },
   { prefix: "/ngos", area: "ngos" },
   { prefix: "/dashboard", area: "dashboard" },
+  { prefix: "/learning", area: "dashboard" },
 ];
 
 const normalizeDepartment = (access?: Pick<UserRole, "department_name" | "sub_department_name"> | null) =>

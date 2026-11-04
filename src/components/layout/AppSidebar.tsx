@@ -49,6 +49,8 @@ import {
   FileCheck2,
   Landmark,
   Coins,
+  BookOpen,
+  Newspaper,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -172,6 +174,16 @@ const hubsSections: HubConfig[] = [
     ],
   },
   {
+    title: "Communications & Marketing Hub",
+    icon: <Megaphone className="w-4 h-4" />,
+    basePaths: ["/modules/communications", "/modules/marketing", "/communications"],
+    items: [
+      { to: "/modules/communications", icon: <MessageSquare className="w-4 h-4" />, label: "Communications Studio" },
+      { to: "/communications/editorial", icon: <Newspaper className="w-4 h-4" />, label: "Editorial Production" },
+      { to: "/modules/marketing", icon: <Megaphone className="w-4 h-4" />, label: "Marketing Studio" },
+    ],
+  },
+  {
     title: "Technology Hub",
     icon: <Monitor className="w-4 h-4" />,
     basePaths: ["/it", "/audit"],
@@ -204,6 +216,7 @@ export function AppSidebar() {
     if (hub.title === "Program Hub") return canAccessArea(role, "program", userRole);
     if (hub.title === "Compliance Hub") return canAccessArea(role, "compliance", userRole);
     if (hub.title === "Technology Hub") return canAccessArea(role, "it", userRole);
+    if (hub.title === "Communications & Marketing Hub") return canAccessArea(role, "communications", userRole);
     return true;
   });
 
@@ -313,6 +326,7 @@ export function AppSidebar() {
             <nav className="px-2 space-y-1">
               {/* Main Navigation */}
               <NavItem to="/dashboard" icon={<LayoutDashboard className="w-4 h-4" />} label={isCollapsed ? "" : "Dashboard"} />
+               <NavItem to="/learning" icon={<BookOpen className="w-4 h-4" />} label={isCollapsed ? "" : "Learning Academy"} />
               {canAccessArea(role, "ngos", userRole) && <NavItem to="/modules/ngo-coordination" icon={<Bot className="w-4 h-4" />} label={isCollapsed ? "" : "HPG Assistant"} />}
               <NavItem to="/my-queue" icon={<ListChecks className="w-4 h-4" />} label={isCollapsed ? "" : "My Queue"} />
               <NavItem to="/dept-queue" icon={<Users className="w-4 h-4" />} label={isCollapsed ? "" : "Dept Queue"} />
