@@ -57,11 +57,13 @@ type Draft = {
   platform: string; channels: string; campaignType: string; contentType: string;
   body: string; due: string; approvalType: string; decision: "approved" | "changes_requested" | "rejected";
   notes: string;
+  campaignId: string;
+  accountId: string;
 };
 const defaultDraft = (): Draft => ({
   title: "", summary: "", ownerId: "none", editorId: "none", audience: "",
   platform: "facebook", channels: "website", campaignType: "awareness", contentType: "magazine_feature",
-  body: "", due: "", approvalType: "editorial", decision: "approved", notes: "",
+  body: "", due: "", approvalType: "editorial", decision: "approved", notes: "", campaignId: "none", accountId: "none",
 });
 function countLabel(n: unknown) { return typeof n === "number" ? n.toLocaleString() : String(n ?? "0"); }
 
@@ -120,7 +122,7 @@ export default function DepartmentOperationsHub({ lane }: { lane: DepartmentLane
       campaignType: String(selected.campaign_type || "awareness"), contentType: String(selected.content_type || "magazine_feature"),
       body: String(selected.body_text || ""), due: yyyyMmDd(selected.due_at),
       approvalType: tab === "editorial" ? "editorial" : tab === "publications" ? "publication" : "marketing",
-      decision: "approved", notes: "",
+      decision: "approved", notes: "", campaignId: selected.campaign_id || "none", accountId: selected.channel_account_id || "none",
     });
     setStage("none"); setVersionBody(""); setVersionSummary("");
     setSourceName(""); setSourceUrl(""); setConsentSubject(""); setPlacementCandidate("none");
@@ -160,6 +162,8 @@ export default function DepartmentOperationsHub({ lane }: { lane: DepartmentLane
         title: draft.title.trim(), platform: draft.platform,
         body_text: draft.body.trim(), post_format: "text",
         owner_user_id: owner, communications_review_required: true, priority: "medium",
+        campaign_id: draft.campaignId === "none" ? null : draft.campaignId,
+        channel_account_id: draft.accountId === "none" ? null : draft.accountId,
       };
     }
     try {
@@ -191,6 +195,7 @@ export default function DepartmentOperationsHub({ lane }: { lane: DepartmentLane
     } else {
       changes.body_text = draft.body.trim(); changes.platform = draft.platform;
       changes.owner_user_id = owner;
+      changes.channel_account_id = draft.accountId === "none" ? "" : draft.accountId;
     }
     try {
       await action.mutateAsync({ action: "update", lane, board: kindBoard[tab], id: selected.id, changes, reason: changeReason.trim() });
@@ -347,6 +352,13 @@ export default function DepartmentOperationsHub({ lane }: { lane: DepartmentLane
                     {tab === "campaigns" && <div className="space-y-1"><Label>Channels (comma-separated)</Label><Input value={draft.channels} disabled={!editable} onChange={e => setDraft(v => ({ ...v, channels: e.target.value }))} /></div>}
                     {tab === "posts" && <div className="space-y-1"><Label>Platform</Label><Select value={draft.platform} disabled={!editable} onValueChange={v => setDraft(s => ({ ...s, platform: v }))}><SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>{["facebook","instagram","linkedin","x","youtube","tiktok","threads","pinterest","other"].map(v => <SelectItem key={v} value={v}>{pretty(v)}</SelectItem>)}</SelectContent></Select></div>}
+                    {tab === "posts" && <div className="space-y-1"><Label>Registered channel account (optional)</Label>
+                      <Select value={draft.accountId} disabled={!editable} onValueChange={v => setDraft(s => ({ ...s, accountId: v }))}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent><SelectItem value="none">No account selected</SelectItem>{data.accounts.map(account => <SelectItem key={account.id} value={account.id}>{pretty(account.platform)} — {account.scope_name}</SelectItem>)}</SelectContent>
+                      </Select>
+                      {selected.campaign_id && <p className="text-xs text-muted-foreground">Linked campaign: {data.campaigns.find(c => c.id === selected.campaign_id)?.title || selected.campaign_id}</p>}
+                    </div>}
                     <div className="grid gap-3 sm:grid-cols-2">
                       <div className="space-y-1"><Label>{tab === "publications" ? "Production owner" : "Assigned owner"}</Label>
                         <Select value={draft.ownerId} disabled={!editable} onValueChange={v => setDraft(s => ({ ...s, ownerId: v }))}>
@@ -528,6 +540,18 @@ export default function DepartmentOperationsHub({ lane }: { lane: DepartmentLane
             {(tab === "campaigns" || tab === "posts") && <div className="space-y-1"><Label>{tab === "campaigns" ? "Primary call to action" : "Draft post text"}</Label><Textarea rows={tab === "posts" ? 5 : 2} value={draft.body} onChange={e=>setDraft(s=>({...s,body:e.target.value}))} /></div>}
             {tab === "posts" && <div className="space-y-1"><Label>Platform</Label><Select value={draft.platform} onValueChange={v=>setDraft(s=>({...s,platform:v}))}><SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>{["facebook","instagram","linkedin","x","youtube","tiktok","threads","other"].map(v=><SelectItem key={v} value={v}>{pretty(v)}</SelectItem>)}</SelectContent></Select></div>}
+            {tab === "posts" && <>
+              <div className="space-y-1"><Label>Linked campaign (optional)</Label>
+                <Select value={draft.campaignId} onValueChange={v=>setDraft(s=>({...s,campaignId:v}))}><SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent><SelectItem value="none">No campaign</SelectItem>{(data?.campaigns || []).map(c => <SelectItem key={c.id} value={c.id}>{c.title}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1"><Label>Channel account (optional)</Label>
+                <Select value={draft.accountId} onValueChange={v=>setDraft(s=>({...s,accountId:v}))}><SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent><SelectItem value="none">No channel account</SelectItem>{(data?.accounts || []).map(a => <SelectItem key={a.id} value={a.id}>{pretty(a.platform)} — {a.scope_name}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+            </>}
             {(tab === "campaigns" || tab === "publications" || tab === "editorial") && <div className="space-y-1"><Label>Channels, comma separated</Label><Input value={draft.channels} onChange={e=>setDraft(s=>({...s,channels:e.target.value}))}/></div>}
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-1"><Label>Owner {communication ? "(optional at pitch stage)" : "(required)"}</Label>
