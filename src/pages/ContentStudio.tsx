@@ -33,7 +33,6 @@ const workflowStatuses: { value: WorkItemStatus; label: string }[] = [
   { value: "not_started", label: "Not started" },
   { value: "in_progress", label: "In progress" },
   { value: "under_review", label: "Under review" },
-  { value: "approved", label: "Approved" },
   { value: "complete", label: "Complete" },
   { value: "waiting_on_hpg", label: "Waiting on HPG" },
 ];
