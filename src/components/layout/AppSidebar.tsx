@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { NavLink, useLocation } from "react-router-dom";
 import {
   LayoutDashboard,
@@ -63,6 +64,7 @@ import { canAccessArea, canAccessAdmin, canManageNgoPortalAccounts, getRoleLabel
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { useWorkItems } from "@/hooks/useWorkItems";
+import { ensureSupabase } from "@/integrations/supabase/client";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -211,6 +213,22 @@ export function AppSidebar() {
   const canAccessAdminConfig = canAccessAdmin(userRole?.role);
   const role = userRole?.role;
   const canManageNgoAccess = canManageNgoPortalAccounts(role, userRole);
+  const { data: departmentAccess } = useQuery({
+    queryKey: ["department-sidebar-authorization", user?.id],
+    enabled: !!user?.id && canAccessArea(role, "communications", userRole),
+    retry: false,
+    queryFn: async () => {
+      const client = ensureSupabase();
+      const [communications, marketing] = await Promise.all([
+        client.rpc("is_communications_staff" as never),
+        client.rpc("is_marketing_staff" as never),
+      ]);
+      return {
+        communications: !communications.error && communications.data === true,
+        marketing: !marketing.error && marketing.data === true,
+      };
+    },
+  });
 
   const visibleHubs = hubsSections.filter((hub) => {
     if (hub.title === "Financial Hub") return canAccessArea(role, "finance", userRole);
@@ -219,7 +237,7 @@ export function AppSidebar() {
     if (hub.title === "Program Hub") return canAccessArea(role, "program", userRole);
     if (hub.title === "Compliance Hub") return canAccessArea(role, "compliance", userRole);
     if (hub.title === "Technology Hub") return canAccessArea(role, "it", userRole);
-    if (hub.title === "Communications & Marketing Hub") return canAccessArea(role, "communications", userRole);
+    if (hub.title === "Communications & Marketing Hub") return canAccessArea(role, "communications", userRole) && (!!departmentAccess?.communications || !!departmentAccess?.marketing);
     return true;
   });
 
@@ -377,7 +395,8 @@ export function AppSidebar() {
                           </button>
                           {isOpen && (
                             <div className="ml-4 space-y-0.5 animate-fade-in">
-                              {hub.items.map((item) => (
+                              {hub.items.filter(item => hub.title !== "Communications & Marketing Hub" ||
+                                (item.to.startsWith("/marketing") || item.to === "/modules/marketing" ? !!departmentAccess?.marketing : !!departmentAccess?.communications)).map((item) => (
                                 <div key={item.to}>
                                   <NavItem to={item.to} icon={item.icon} label={item.label} />
                                   {item.subItems && location.pathname.startsWith(item.to) && (
