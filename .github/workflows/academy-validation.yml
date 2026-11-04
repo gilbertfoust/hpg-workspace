@@ -8,6 +8,7 @@ on:
       - 'src/pages/ContentStudio.tsx'
       - 'src/pages/EditorialDesk.tsx'
       - 'src/pages/DepartmentOperationsHub.tsx'
+      - 'src/components/onboarding/GuidedWalkthrough.tsx'
       - 'src/hooks/useDepartmentOperations.ts'
       - 'src/pages/EditorialMediaDesk.tsx'
       - 'src/pages/Publications.tsx'
