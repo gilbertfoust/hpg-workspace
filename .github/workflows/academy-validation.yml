@@ -1,0 +1,28 @@
+name: Learning Academy validation
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'src/pages/LearningAcademy.tsx'
+      - 'src/pages/ContentStudio.tsx'
+      - 'src/App.tsx'
+      - 'src/lib/accessControl.ts'
+      - 'src/components/layout/AppSidebar.tsx'
+      - 'src/components/layout/MainLayout.tsx'
+      - '.github/workflows/academy-validation.yml'
+  workflow_dispatch:
+
+jobs:
+  typecheck-and-feature-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm install
+      - name: TypeScript check
+        run: npx tsc --noEmit
+      - name: Lint new learning and studio pages
+        run: npx eslint src/pages/LearningAcademy.tsx src/pages/ContentStudio.tsx
