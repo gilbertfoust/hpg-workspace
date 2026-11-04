@@ -103,6 +103,7 @@ export default function ContentStudio({ module }: { module: "communications" | "
           <p className="mt-1 text-sm text-muted-foreground">Assignments are saved as organizational Work Items. Store relevant documents in the document system; publication, interviewing software, external social-media posting, and magazine layout must follow separately approved workflows.</p>
           <div className="mt-3 flex flex-wrap gap-2">
             <Button asChild variant="outline" size="sm"><Link to={"/learning?track=" + (isMarketing ? "marketing" : "communications")}><GraduationCap className="mr-2 h-4 w-4" /> Guided tutorial</Link></Button>
+            {!isMarketing && <Button asChild variant="outline" size="sm"><Link to="/communications/editorial"><FileText className="mr-2 h-4 w-4" /> Editorial production</Link></Button>}
             <Button asChild variant="outline" size="sm"><Link to="/documents"><FileText className="mr-2 h-4 w-4" /> Documents</Link></Button>
             <Button asChild variant="outline" size="sm"><Link to="/work-items"><ClipboardList className="mr-2 h-4 w-4" /> All work items</Link></Button>
           </div>
