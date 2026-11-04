@@ -32,6 +32,7 @@ export type OperationsRecord = {
   content_type?: string | null;
   story_angle?: string | null;
   publication_type?: string | null;
+  design_proof_url?: string | null;
   audience_segment?: string | null;
   objective?: string | null;
   target_audience?: string | null;
@@ -86,7 +87,7 @@ export function useDepartmentOperations(lane: DepartmentLane) {
         const [summary, editorial, publications, people, calendar, sources, rights, placements] = await Promise.all([
           client.rpc("get_communications_hub_snapshot"),
           client.from("communications_editorial_items").select("id,title,status,priority,due_at,scheduled_at,created_at,updated_at,work_item_id,owner_user_id,editor_user_id,ngo_id,current_version,pitch_summary,content_type,story_angle,publication_url").order("created_at", { ascending: false }).limit(200),
-          client.from("communications_publications").select("id,title,status,priority,due_at,scheduled_at,created_at,updated_at,work_item_id,ngo_id,editor_user_id,production_owner_user_id,publication_type,audience_segment,channels,published_url").order("created_at", { ascending: false }).limit(200),
+          client.from("communications_publications").select("id,title,status,priority,due_at,scheduled_at,created_at,updated_at,work_item_id,ngo_id,editor_user_id,production_owner_user_id,publication_type,audience_segment,channels,design_proof_url,published_url").order("created_at", { ascending: false }).limit(200),
           client.rpc("get_communications_assignable_users"),
           client.from("communications_editorial_calendar").select("title,entity_id,event_type,status,starts_at").order("starts_at", { ascending: true }).limit(200),
           client.from("communications_sources").select("id,editorial_item_id,source_name,source_type,source_url,consent_status,attribution_status").order("created_at", { ascending: false }).limit(500),
