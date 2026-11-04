@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useDocuments } from "@/hooks/useDocuments";
+import { useWorkItems } from "@/hooks/useWorkItems";
 import {
   type EditableFields, type EditorialItem, type EditorialKind,
   useEditorialData, useCreateEditorialItem, useUpdateEditorialItem, useAddIssueContribution,
@@ -35,7 +36,7 @@ const editableStates = ["draft", "changes_requested"];
 const emptyFields = (): EditableFields => ({
   title: "", summary: "", body_markdown: "", planned_publish_at: null,
   interviewee_name: null, interview_date: null, consent_confirmed: false,
-  consent_document_id: null, transcript_document_id: null,
+  consent_document_id: null, transcript_document_id: null, work_item_id: null,
 });
 const pretty = (name: string) => name.replaceAll("_", " ").replace(/\b\w/g, char => char.toUpperCase());
 const asDay = (iso: string | null) => iso ? iso.slice(0, 10) : "";
@@ -62,10 +63,12 @@ export default function EditorialDesk() {
   const review = useReviewEditorial();
   const publish = useRecordEditorialPublication();
   const documents = useDocuments();
+  const { data: communicationsTasks = [] } = useWorkItems({ module: "communications" });
 
   const [createOpen, setCreateOpen] = useState(false);
   const [newKind, setNewKind] = useState<EditorialKind>("article");
   const [newTitle, setNewTitle] = useState("");
+  const [newWorkItemId, setNewWorkItemId] = useState("none");
   const [activeId, setActiveId] = useState<string | null>(null);
   const [draft, setDraft] = useState<EditableFields>(emptyFields);
   const [reviewNote, setReviewNote] = useState("");
@@ -90,13 +93,14 @@ export default function EditorialDesk() {
     : ""));
   const consentDocuments = (documents.data || []).filter(doc => /consent|release|interview|permission/i.test(doc.file_name));
   const openForEditing = !!current && editableStates.includes(current.status);
+  const availableAssignments = communicationsTasks.filter(task => !items.some(item => item.work_item_id === task.id && item.id !== current?.id));
 
   useEffect(() => {
     if (!current) { setDraft(emptyFields()); return; }
     const { title, summary, body_markdown, planned_publish_at, interviewee_name, interview_date,
-      consent_confirmed, consent_document_id, transcript_document_id } = current;
+      consent_confirmed, consent_document_id, transcript_document_id, work_item_id } = current;
     setDraft({ title, summary, body_markdown, planned_publish_at, interviewee_name, interview_date,
-      consent_confirmed, consent_document_id, transcript_document_id });
+      consent_confirmed, consent_document_id, transcript_document_id, work_item_id });
     setReviewNote(""); setPublicationUrl(current.published_url || "");
     setNewContributionId("");
   }, [current?.id, current?.updated_at, current?.status]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -104,8 +108,8 @@ export default function EditorialDesk() {
   const createItem = async () => {
     if (!newTitle.trim()) return;
     try {
-      const result = await create.mutateAsync({ ...emptyFields(), title: newTitle.trim(), kind: newKind });
-      setCreateOpen(false); setNewTitle(""); setNewKind("article"); setActiveId(result.id);
+      const result = await create.mutateAsync({ ...emptyFields(), title: newTitle.trim(), kind: newKind, work_item_id: newWorkItemId === "none" ? null : newWorkItemId });
+      setCreateOpen(false); setNewTitle(""); setNewKind("article"); setNewWorkItemId("none"); setActiveId(result.id);
       toast.success("Editorial draft created");
     } catch (error) { toast.error(describeError(error)); }
   };
@@ -253,6 +257,16 @@ export default function EditorialDesk() {
                       <Label>{current.kind === "interview" ? "Interview brief, questions, notes and approved text" : "Draft body (Markdown supported as plain source text)"}</Label>
                       <Textarea rows={14} className="font-mono text-sm" value={draft.body_markdown} disabled={!openForEditing} onChange={e => setDraft(v => ({ ...v, body_markdown: e.target.value }))} />
                     </div>}
+                    <div className="space-y-2">
+                      <Label>Associated Communications assignment</Label>
+                      <Select value={draft.work_item_id || "none"} disabled={!openForEditing} onValueChange={id => setDraft(v => ({ ...v, work_item_id: id === "none" ? null : id }))}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent><SelectItem value="none">No linked assignment</SelectItem>
+                          {availableAssignments.map(task => <SelectItem key={task.id} value={task.id}>{task.title}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                      {current.work_item_id && <Link className="text-xs text-primary underline" to={"/work-items?workItemId=" + current.work_item_id}>Open linked assignment</Link>}
+                    </div>
                     {current.kind === "issue" && <p className="text-sm text-muted-foreground">Issue content is assembled below from contributions. The issue title and editorial summary are used on the cover.</p>}
                     {openForEditing && <div className="flex flex-wrap gap-2">
                       <Button disabled={update.isPending || !draft.title.trim()} onClick={saveDraft}><FileText className="mr-2 h-4 w-4" /> Save draft</Button>
@@ -379,6 +393,17 @@ export default function EditorialDesk() {
                 <SelectContent>{kinds.map(kind => <SelectItem key={kind.value} value={kind.value}>{kind.label}</SelectItem>)}</SelectContent></Select>
             </div>
             <div className="space-y-2"><Label>Working title</Label><Input value={newTitle} maxLength={240} onChange={e => setNewTitle(e.target.value)} placeholder="Name this article, issue or interview" /></div>
+            <div className="space-y-2">
+              <Label>Related assignment (optional)</Label>
+              <Select value={newWorkItemId} onValueChange={setNewWorkItemId}>
+                <SelectTrigger><SelectValue placeholder="Choose an assignment" /></SelectTrigger>
+                <SelectContent><SelectItem value="none">No assignment</SelectItem>
+                  {communicationsTasks.filter(task => !items.some(item => item.work_item_id === task.id)).map(task =>
+                    <SelectItem key={task.id} value={task.id}>{task.title}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">To create an assignment first, use Communications Studio. Drafting and editorial approval remain separate from task status.</p>
+            </div>
             <Button className="w-full" disabled={create.isPending || !newTitle.trim()} onClick={createItem}><Plus className="mr-2 h-4 w-4" /> Create private draft</Button>
           </div>
         </DialogContent>
