@@ -78,9 +78,21 @@ export default function DepartmentOperationsHub({ lane }: { lane: DepartmentLane
   const [stage, setStage] = useState("none");
   const [versionBody, setVersionBody] = useState("");
   const [versionSummary, setVersionSummary] = useState("");
+  const [sourceName, setSourceName] = useState("");
+  const [sourceType, setSourceType] = useState("document");
+  const [sourceUrl, setSourceUrl] = useState("");
+  const [sourceConsent, setSourceConsent] = useState("not_required");
+  const [consentSubject, setConsentSubject] = useState("");
+  const [consentType, setConsentType] = useState("interview");
+  const [placementCandidate, setPlacementCandidate] = useState("none");
+  const [sectionName, setSectionName] = useState("");
   const data = operations.data;
   const records: OperationsRecord[] = data ? data[tab] || [] : [];
   const selected = records.find(row => row.id === selectedId);
+  const editorialSources = (data?.sources || []).filter(item => item.editorial_item_id === selectedId);
+  const editorialRights = (data?.rights || []).filter(item => item.editorial_item_id === selectedId);
+  const placements = (data?.placements || []).filter(item => item.publication_id === selectedId).sort((a,b) => a.position-b.position);
+  const eligibleContents = (data?.editorial || []).filter(item => ["scheduled","published"].includes(item.status) && !placements.some(p => p.editorial_item_id === item.id));
   const filtered = useMemo(() => records.filter(row =>
     (row.title + " " + (row.pitch_summary || "") + " " + (row.objective || "") + " " + (row.platform || "")).toLowerCase().includes(search.toLowerCase())
   ), [records, search]);
@@ -111,6 +123,7 @@ export default function DepartmentOperationsHub({ lane }: { lane: DepartmentLane
       decision: "approved", notes: "",
     });
     setStage("none"); setVersionBody(""); setVersionSummary("");
+    setSourceName(""); setSourceUrl(""); setConsentSubject(""); setPlacementCandidate("none");
   }, [selectedId, selected?.updated_at, selected?.current_version, tab]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const newRecord = () => {
@@ -216,6 +229,41 @@ export default function DepartmentOperationsHub({ lane }: { lane: DepartmentLane
       toast.success("Review decision recorded by the canonical workflow");
     } catch (error) { toast.error(errText(error)); }
   };
+  const addSource = async () => {
+    if (!selected || !sourceName.trim()) return;
+    if (sourceUrl.trim() && !/^https:\/\/[^\s]+$/i.test(sourceUrl.trim())) {
+      toast.error("Source URLs must use HTTPS.");
+      return;
+    }
+    try {
+      await action.mutateAsync({ action: "source", lane, id: selected.id, sourceName, sourceType, sourceUrl, consentStatus: sourceConsent });
+      setSourceName(""); setSourceUrl("");
+      toast.success("Source recorded in the canonical editorial evidence register");
+    } catch (error) { toast.error(errText(error)); }
+  };
+  const addConsentRequirement = async () => {
+    if (!selected || !consentSubject.trim()) return;
+    try {
+      await action.mutateAsync({ action: "consent", lane, id: selected.id, subject: consentSubject, consentType });
+      setConsentSubject("");
+      toast.success("Required consent recorded; proof and verification are still needed");
+    } catch (error) { toast.error(errText(error)); }
+  };
+  const addPlacement = async () => {
+    if (!selected || placementCandidate === "none") return;
+    try {
+      await action.mutateAsync({ action: "place", lane, id: selected.id, editorialId: placementCandidate, sectionName });
+      setPlacementCandidate("none"); setSectionName("");
+      toast.success("Approved story placed into the magazine issue");
+    } catch (error) { toast.error(errText(error)); }
+  };
+  const removePlacement = async (placementId: string) => {
+    if (!selected) return;
+    try {
+      await action.mutateAsync({ action: "removePlacement", lane, id: selected.id, placementId });
+      toast.success("Story removed from the issue");
+    } catch (error) { toast.error(errText(error)); }
+  };
   const canSubmitVersion = !!selected && (tab === "editorial" ? ["assigned", "reporting", "drafting", "revisions"].includes(selected.status) :
     tab === "campaigns" ? ["strategy", "planning", "production", "changes_requested"].includes(selected.status) :
       tab === "posts" && ["brief", "drafting", "creative", "changes_requested"].includes(selected.status));
@@ -317,6 +365,79 @@ export default function DepartmentOperationsHub({ lane }: { lane: DepartmentLane
                     <p className="text-xs text-muted-foreground">The database determines which revisions are permitted and can reopen a review cycle if material changes after approval.</p>
                   </CardContent>
                 </Card>
+                {tab === "editorial" && <Card>
+                  <CardHeader><CardTitle className="text-base">Sources and consent evidence</CardTitle>
+                    <CardDescription>Journalism, interviews and impact stories require documented sources. Publishing sensitive stories may require verified consent and separate Legal approval.</CardDescription></CardHeader>
+                  <CardContent className="space-y-5">
+                    <div>
+                      <p className="mb-2 text-sm font-medium">Recorded sources ({editorialSources.length})</p>
+                      {editorialSources.length === 0 && <p className="text-xs text-muted-foreground">No sources recorded. A sourced story cannot advance to drafting.</p>}
+                      {editorialSources.map(source => <div key={source.id} className="flex flex-wrap gap-2 border-b py-2 text-sm">
+                        <span className="flex-1 font-medium">{source.source_name}</span>
+                        <Badge variant="outline">{pretty(source.source_type)}</Badge>
+                        <Badge variant="secondary">{pretty(source.consent_status)}</Badge>
+                        {source.source_url?.startsWith("https://") && <a className="text-primary underline" href={source.source_url} target="_blank" rel="noopener noreferrer">Evidence</a>}
+                      </div>)}
+                    </div>
+                    <div className="space-y-2 rounded-lg border p-3">
+                      <p className="text-sm font-medium">Record a source</p>
+                      <Input aria-label="Source name" placeholder="Source or document name" value={sourceName} onChange={e => setSourceName(e.target.value)} />
+                      <Input aria-label="Source evidence URL" placeholder="https://... (optional verified source)" value={sourceUrl} onChange={e => setSourceUrl(e.target.value)} />
+                      <div className="grid gap-2 sm:grid-cols-2">
+                        <Select value={sourceType} onValueChange={setSourceType}><SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>{["document","interview","dataset","official_record","expert","participant","observation","other"].map(v => <SelectItem key={v} value={v}>{pretty(v)}</SelectItem>)}</SelectContent>
+                        </Select>
+                        <Select value={sourceConsent} onValueChange={setSourceConsent}><SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>{["not_required","requested","restricted"].map(v => <SelectItem key={v} value={v}>Consent: {pretty(v)}</SelectItem>)}</SelectContent>
+                        </Select>
+                      </div>
+                      <Button size="sm" variant="outline" disabled={action.isPending || sourceName.trim().length < 2} onClick={addSource}>Save source</Button>
+                    </div>
+                    <div>
+                      <p className="mb-2 text-sm font-medium">Rights and consent determinations ({editorialRights.length})</p>
+                      {editorialRights.length === 0 && <p className="text-xs text-muted-foreground">No rights determinations recorded.</p>}
+                      {editorialRights.map(right => <div key={right.id} className="flex flex-wrap items-center gap-2 border-b py-2 text-sm">
+                        <span className="flex-1">{right.subject_reference}</span>
+                        <Badge variant="outline">{pretty(right.consent_type)}</Badge>
+                        <Badge variant="secondary">{pretty(right.status)}</Badge>
+                      </div>)}
+                    </div>
+                    <div className="space-y-2 rounded-lg border p-3">
+                      <p className="text-sm font-medium">Register a consent requirement</p>
+                      <Input placeholder="Interviewee / rights holder" aria-label="Consent subject" value={consentSubject} onChange={e => setConsentSubject(e.target.value)} />
+                      <Select value={consentType} onValueChange={setConsentType}><SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>{["interview","quotation","photograph","video","audio","beneficiary_story","minor_guardian","license","other"].map(v => <SelectItem key={v} value={v}>{pretty(v)}</SelectItem>)}</SelectContent>
+                      </Select>
+                      <Button size="sm" variant="outline" disabled={action.isPending || consentSubject.trim().length < 2} onClick={addConsentRequirement}>Save pending consent requirement</Button>
+                      <p className="text-xs text-muted-foreground">This only records that consent is required. It does not certify that permission was granted or verified.</p>
+                    </div>
+                  </CardContent>
+                </Card>}
+                {tab === "publications" && <Card>
+                  <CardHeader><CardTitle className="text-base">Magazine story placements</CardTitle>
+                    <CardDescription>Existing Communications rules permit only scheduled or published approved stories to be placed into issues.</CardDescription></CardHeader>
+                  <CardContent className="space-y-3">
+                    {!placements.length && <p className="text-sm text-muted-foreground">No approved stories are placed in this issue yet.</p>}
+                    {placements.map(item => <div key={item.id} className="flex flex-wrap items-center gap-2 rounded-md border p-3 text-sm">
+                      <span className="flex-1">{(data.editorial || []).find(e => e.id === item.editorial_item_id)?.title || "Editorial record"}</span>
+                      {item.section_name && <Badge variant="secondary">{item.section_name}</Badge>}
+                      {["planning","commissioning","production","changes_requested"].includes(selected.status) &&
+                        <Button size="sm" variant="outline" disabled={action.isPending} onClick={() => removePlacement(item.id)}>Remove</Button>}
+                    </div>)}
+                    {["planning","commissioning","production","changes_requested"].includes(selected.status) &&
+                      <div className="space-y-2 rounded-md border p-3">
+                        <Label>Approved story to add</Label>
+                        <Select value={placementCandidate} onValueChange={setPlacementCandidate}><SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent><SelectItem value="none">Choose a scheduled or published story</SelectItem>
+                            {eligibleContents.map(item => <SelectItem key={item.id} value={item.id}>{item.title}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                        <Input aria-label="Magazine section" placeholder="Issue section (optional)" value={sectionName} onChange={e => setSectionName(e.target.value)} />
+                        <Button size="sm" disabled={action.isPending || placementCandidate === "none"} onClick={addPlacement}>Add approved contribution</Button>
+                        <p className="text-xs text-muted-foreground">Placement does not approve the issue. The separate proof and independent publication approvals still apply.</p>
+                      </div>}
+                  </CardContent>
+                </Card>}
                 {!!stageOptions.length && <Card>
                   <CardHeader><CardTitle className="text-base">Move to the next stage</CardTitle><CardDescription>Stages must pass the underlying source, approvals, rights and evidence gates. No external publishing is triggered.</CardDescription></CardHeader>
                   <CardContent className="flex flex-wrap gap-2">
