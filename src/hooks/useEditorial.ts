@@ -24,6 +24,7 @@ export type EditorialItem = {
   consent_confirmed: boolean;
   consent_document_id: string | null;
   transcript_document_id: string | null;
+  work_item_id: string | null;
   author_id: string;
   approved_by: string | null;
   approved_at: string | null;
@@ -56,7 +57,7 @@ export type EditorialEvent = {
   created_at: string;
 };
 export type EditableFields = Pick<EditorialItem, "title" | "summary" | "body_markdown" | "planned_publish_at" |
-  "interviewee_name" | "interview_date" | "consent_confirmed" | "consent_document_id" | "transcript_document_id">;
+  "interviewee_name" | "interview_date" | "consent_confirmed" | "consent_document_id" | "transcript_document_id" | "work_item_id">;
 export type NewEditorialItem = EditableFields & { kind: EditorialKind };
 
 const api = () => ensureSupabase() as any;
