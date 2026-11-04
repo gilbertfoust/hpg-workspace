@@ -73,6 +73,7 @@ export default function EditorialDesk() {
   const [newContributionId, setNewContributionId] = useState("");
   const [calendarDate, setCalendarDate] = useState<Date | undefined>(new Date());
   const [search, setSearch] = useState("");
+  const [activeTab, setActiveTab] = useState("editorial");
 
   const items = useMemo(() => editorial.data?.items || [], [editorial.data?.items]);
   const current = items.find(item => item.id === activeId) || null;
@@ -184,7 +185,7 @@ export default function EditorialDesk() {
             <Card key={status}><CardContent className="p-4"><p className="text-xs text-muted-foreground">{label}</p><p className="mt-1 text-2xl font-semibold">{items.filter(item => item.status === status).length}</p></CardContent></Card>
           )}
         </div>
-        <Tabs defaultValue="editorial" className="space-y-4">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
           <TabsList className="h-auto flex-wrap justify-start">
             <TabsTrigger value="editorial"><Newspaper className="mr-2 h-4 w-4" /> Editorial Desk</TabsTrigger>
             <TabsTrigger value="calendar"><CalendarDays className="mr-2 h-4 w-4" /> Calendar</TabsTrigger>
@@ -336,7 +337,7 @@ export default function EditorialDesk() {
                 <Calendar mode="single" selected={calendarDate} onSelect={setCalendarDate} className="rounded-md border" modifiers={{ planned: items.map(item => item.planned_publish_at).filter((value): value is string => !!value).map(value => new Date(value)) }} modifiersClassNames={{ planned: "font-bold underline underline-offset-4" }} />
                 <div><h3 className="mb-3 font-medium">{calendarDate?.toDateString() || "Choose a date"}</h3>
                   {calendarItems.length === 0 ? <p className="text-sm text-muted-foreground">No releases planned for this day.</p> : calendarItems.map(item =>
-                    <button key={item.id} type="button" className="mb-2 block w-full rounded-md border p-3 text-left text-sm hover:bg-muted" onClick={() => { setActiveId(item.id); toast.info("Item selected. Open Editorial Desk to edit."); }}>
+                    <button key={item.id} type="button" className="mb-2 block w-full rounded-md border p-3 text-left text-sm hover:bg-muted" onClick={() => { setActiveId(item.id); setActiveTab("editorial"); }}>
                       <strong>{item.title}</strong> <Badge variant="outline">{pretty(item.status)}</Badge>
                     </button>)}
                 </div>
@@ -348,7 +349,7 @@ export default function EditorialDesk() {
               {items.filter(item => item.kind === "interview").map(item => <div key={item.id} className="flex flex-wrap items-center gap-3 rounded-md border p-3">
                 <div className="flex-1"><p className="font-medium">{item.title}</p><p className="text-xs text-muted-foreground">{item.interviewee_name || "Subject not yet assigned"} · {item.interview_date ? new Date(item.interview_date).toLocaleDateString() : "Date not set"}</p></div>
                 <Badge variant={item.consent_confirmed && item.consent_document_id ? "secondary" : "outline"}>{item.consent_confirmed && item.consent_document_id ? "Consent documented" : "Consent evidence needed"}</Badge>
-                <Button size="sm" variant="outline" onClick={() => { setActiveId(item.id); toast.info("Interview selected. Open Editorial Desk to edit."); }}>Select</Button>
+                <Button size="sm" variant="outline" onClick={() => { setActiveId(item.id); setActiveTab("editorial"); }}>Select</Button>
               </div>)}
             </CardContent></Card></TabsContent>
           <TabsContent value="issues"><Card><CardHeader><CardTitle>Magazine production</CardTitle><CardDescription>Manage issue outlines, ordered contributions, internal proofs, and reviewed publication records.</CardDescription></CardHeader>
@@ -356,14 +357,14 @@ export default function EditorialDesk() {
               {items.filter(item => item.kind === "issue").length === 0 && <p className="text-sm text-muted-foreground">No magazine issues yet. Choose New content → Magazine issue.</p>}
               {items.filter(item => item.kind === "issue").map(item => <div key={item.id} className="flex flex-wrap items-center gap-3 rounded-md border p-3">
                 <div className="flex-1"><p className="font-medium">{item.title}</p><p className="text-xs text-muted-foreground">{(editorial.data?.members || []).filter(member => member.issue_id === item.id).length} contributions · {item.planned_publish_at ? asDay(item.planned_publish_at) : "Unscheduled"}</p></div>
-                <Badge variant="outline">{pretty(item.status)}</Badge><Button size="sm" variant="outline" onClick={() => { setActiveId(item.id); toast.info("Magazine selected. Open Editorial Desk to assemble."); }}>Select issue</Button>
+                <Badge variant="outline">{pretty(item.status)}</Badge><Button size="sm" variant="outline" onClick={() => { setActiveId(item.id); setActiveTab("editorial"); }}>Select issue</Button>
               </div>)}
             </CardContent></Card></TabsContent>
           <TabsContent value="review"><Card><CardHeader><CardTitle>Editorial review queue</CardTitle><CardDescription>Decisions require independent reviewer permissions and are retained in the audit history.</CardDescription></CardHeader>
             <CardContent className="space-y-3">
               {items.filter(item => item.status === "in_review").length === 0 && <p className="text-sm text-muted-foreground">No submissions awaiting review.</p>}
               {items.filter(item => item.status === "in_review").map(item => <div key={item.id} className="flex flex-wrap items-center gap-3 rounded-md border p-3">
-                <span className="flex-1 text-sm font-medium">{item.title}</span><Badge variant="outline">{kindLabel(item.kind)}</Badge><Button size="sm" variant="outline" onClick={() => { setActiveId(item.id); toast.info("Submission selected. Open Editorial Desk to review."); }}>Select for review</Button>
+                <span className="flex-1 text-sm font-medium">{item.title}</span><Badge variant="outline">{kindLabel(item.kind)}</Badge><Button size="sm" variant="outline" onClick={() => { setActiveId(item.id); setActiveTab("editorial"); }}>Select for review</Button>
               </div>)}
               {!editorial.data.canApprove && <p className="text-xs text-muted-foreground"><LockKeyhole className="mr-1 inline h-3 w-3" /> Your role can read editorial status but cannot approve content.</p>}
             </CardContent></Card></TabsContent>
