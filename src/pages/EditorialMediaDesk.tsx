@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useEditorialData } from "@/hooks/useEditorial";
 import { useDocuments } from "@/hooks/useDocuments";
-import { useEditorialAssets, useUploadEditorialAsset, useReviewEditorialAsset, getEditorialAssetPreview, type EditorialAsset } from "@/hooks/useEditorialAssets";
+import { useEditorialAssets, useUploadEditorialAsset, useUpdateEditorialAsset, useReviewEditorialAsset, getEditorialAssetPreview, type EditorialAsset } from "@/hooks/useEditorialAssets";
 
 function errorMessage(error: unknown) { return error instanceof Error ? error.message : "Unable to perform this action."; }
 const size = (bytes: number) => (bytes / 1024 / 1024).toFixed(1) + " MB";
@@ -31,6 +31,7 @@ export default function EditorialMediaDesk() {
   const documents = useDocuments();
   const upload = useUploadEditorialAsset();
   const review = useReviewEditorialAsset();
+  const updateAsset = useUpdateEditorialAsset();
   const [itemId, setItemId] = useState("none");
   const [file, setFile] = useState<File | null>(null);
   const [alt, setAlt] = useState("");
@@ -39,6 +40,11 @@ export default function EditorialMediaDesk() {
   const [rightsId, setRightsId] = useState("none");
   const [reviewNotes, setReviewNotes] = useState<Record<string,string>>({});
   const [filter, setFilter] = useState("all");
+  const [editAssetId, setEditAssetId] = useState<string | null>(null);
+  const [mediaEdit, setMediaEdit] = useState({
+    alt_text: "", attribution: "", license_type: "unknown" as typeof types[number]["value"],
+    rights_document_id: "none",
+  });
 
   const rightsDocs = (documents.data || []).filter(doc => /license|permission|release|consent|rights/i.test(doc.file_name));
   const visible = (media.data || []).filter(asset => filter === "all" || asset.rights_status === filter);
@@ -57,15 +63,41 @@ export default function EditorialMediaDesk() {
   };
   const showPrivate = async (asset: EditorialAsset) => {
     // Opening a temporary blank tab inside the click keeps the preview user-initiated.
-    const opened = window.open("about:blank", "_blank", "noopener,noreferrer");
+    const opened = window.open("about:blank", "_blank");
+    if (opened) opened.opener = null;
     try {
       const url = await getEditorialAssetPreview(asset);
       if (opened) opened.location.href = url;
-      else window.location.assign(url);
+      else {
+        await navigator.clipboard.writeText(url);
+        toast.info("A temporary private preview link was copied to your clipboard.");
+      }
     } catch (error) {
       if (opened) opened.close();
       toast.error(errorMessage(error));
     }
+  };
+  const startEditing = (asset: EditorialAsset) => {
+    setEditAssetId(asset.id);
+    setMediaEdit({
+      alt_text: asset.alt_text, attribution: asset.attribution,
+      license_type: asset.license_type as typeof types[number]["value"],
+      rights_document_id: asset.rights_document_id || "none",
+    });
+  };
+  const saveMediaDetails = async () => {
+    if (!editAssetId) return;
+    try {
+      await updateAsset.mutateAsync({
+        id: editAssetId,
+        alt_text: mediaEdit.alt_text.trim(),
+        attribution: mediaEdit.attribution.trim(),
+        license_type: mediaEdit.license_type,
+        rights_document_id: mediaEdit.rights_document_id === "none" ? null : mediaEdit.rights_document_id,
+      });
+      toast.success("Media details saved for independent rights review");
+      setEditAssetId(null);
+    } catch (error) { toast.error(errorMessage(error)); }
   };
   const decide = async (id: string, decision: "cleared" | "rejected") => {
     try {
@@ -158,11 +190,33 @@ export default function EditorialMediaDesk() {
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <Button variant="outline" size="sm" onClick={() => showPrivate(asset)}><ExternalLink className="mr-2 h-3.5 w-3.5" /> View privately</Button>
+                  {asset.rights_status === "pending" && <Button size="sm" variant="outline" onClick={() => startEditing(asset)}>Edit rights details</Button>}
                   {asset.rights_status === "pending" && editorial.data?.canApprove && <>
                     <Button size="sm" variant="outline" disabled={review.isPending} onClick={() => decide(asset.id, "cleared")}><ShieldCheck className="mr-2 h-3.5 w-3.5" /> Clear rights</Button>
                     <Button size="sm" variant="outline" disabled={review.isPending || note.trim().length < 5} onClick={() => decide(asset.id, "rejected")}>Reject</Button>
                   </>}
                 </div>
+                {editAssetId === asset.id && <div className="space-y-3 rounded-lg bg-muted/40 p-3">
+                  <div className="space-y-1"><Label>Alt text</Label><Textarea rows={2} value={mediaEdit.alt_text} onChange={e => setMediaEdit(v => ({ ...v, alt_text: e.target.value }))} /></div>
+                  <div className="space-y-1"><Label>Creator / source</Label><Input value={mediaEdit.attribution} onChange={e => setMediaEdit(v => ({ ...v, attribution: e.target.value }))} /></div>
+                  <div className="space-y-1"><Label>Rights basis</Label>
+                    <Select value={mediaEdit.license_type} onValueChange={v => setMediaEdit(prev => ({ ...prev, license_type: v as typeof prev.license_type }))}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>{types.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}</SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1"><Label>Rights evidence</Label>
+                    <Select value={mediaEdit.rights_document_id} onValueChange={v => setMediaEdit(prev => ({ ...prev, rights_document_id: v }))}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent><SelectItem value="none">Not attached</SelectItem>
+                        {rightsDocs.map(doc => <SelectItem key={doc.id} value={doc.id}>{doc.file_name}</SelectItem>)}</SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Button size="sm" onClick={saveMediaDetails} disabled={updateAsset.isPending}>Save rights metadata</Button>
+                    <Button size="sm" variant="outline" onClick={() => setEditAssetId(null)}>Cancel</Button>
+                  </div>
+                </div>}
                 {asset.rights_status === "pending" && editorial.data?.canApprove && <Textarea rows={2} placeholder="Reviewer note or rejection reason"
                   value={note} onChange={e => setReviewNotes(prev => ({ ...prev, [asset.id]: e.target.value }))} />}
                 {asset.rights_note && <p className="text-xs text-muted-foreground"><FileText className="mr-1 inline h-3 w-3" /> {asset.rights_note}</p>}
