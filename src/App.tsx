@@ -68,6 +68,8 @@ import PotentialSponsees from "./pages/PotentialSponsees";
 import PartnershipsDashboard from "./pages/PartnershipsDashboard";
 import HPGAssistantHistory from "./pages/HPGAssistantHistory";
 import MyWorkspaceProfile from "./pages/MyWorkspaceProfile";
+import LearningAcademy from "./pages/LearningAcademy";
+import ContentStudio from "./pages/ContentStudio";
 
 // Module pages (placeholders you can flesh out later)
 import {
@@ -78,8 +80,6 @@ import {
   CurriculumModule,
   DevelopmentModule,
   PartnershipsModule,
-  MarketingModule,
-  CommunicationsModule,
   HRModule,
   ITModule,
   FinanceModule,
@@ -195,6 +195,7 @@ const App = () => {
                 <Route path="/portal/*" element={<P><Portal /></P>} />
                 <Route path="/dashboard" element={<P><Dashboard /></P>} />
                 <Route path="/profile" element={<P><MyWorkspaceProfile /></P>} />
+                <Route path="/learning" element={<P><LearningAcademy /></P>} />
                 <Route path="/hpg-assistant" element={<P><NGOCoordinationModule /></P>} />
                 <Route path="/hpg-assistant/history" element={<P><HPGAssistantHistory /></P>} />
 
@@ -305,8 +306,8 @@ const App = () => {
                 <Route path="/modules/curriculum" element={<P><CurriculumModule /></P>} />
                 <Route path="/modules/development" element={<P><DevelopmentModule /></P>} />
                 <Route path="/modules/partnerships" element={<P><PartnershipsModule /></P>} />
-                <Route path="/modules/marketing" element={<P><MarketingModule /></P>} />
-                <Route path="/modules/communications" element={<P><CommunicationsModule /></P>} />
+                <Route path="/modules/marketing" element={<P><ContentStudio module="marketing" /></P>} />
+                <Route path="/modules/communications" element={<P><ContentStudio module="communications" /></P>} />
                 <Route path="/modules/hr" element={<P><HRModule /></P>} />
                 <Route path="/modules/it" element={<P><ITModule /></P>} />
                 <Route path="/modules/finance" element={<P><FinanceModule /></P>} />
