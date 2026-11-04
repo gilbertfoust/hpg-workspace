@@ -416,7 +416,7 @@ export default function DepartmentOperationsHub({ lane }: { lane: DepartmentLane
                     <div className="space-y-1"><Label>Planned publication, distribution or launch time</Label><Input type="datetime-local" value={draft.scheduled} disabled={!editable} onChange={e => setDraft(v => ({ ...v, scheduled: e.target.value }))} />
                       <p className="text-xs text-muted-foreground">Planning a time never posts or distributes content automatically.</p></div>
                     {tab === "publications" && <div className="space-y-1"><Label>Design or campaign proof (HTTPS)</Label><Input type="url" value={draft.designProof} disabled={!editable} placeholder="https://..." onChange={e => setDraft(v => ({ ...v, designProof: e.target.value }))} />
-                      <p className="text-xs text-muted-foreground">A valid proof is required before the magazine issue can enter review.</p></div>
+                      <p className="text-xs text-muted-foreground">A valid proof is required before the magazine issue can enter review.</p></div>}
                     {editable && <>
                       <div className="space-y-1"><Label>Revision reason (required when material has already been reviewed)</Label><Input value={changeReason} onChange={e=>setChangeReason(e.target.value)} placeholder="Explain changes after review" /></div>
                       <Button disabled={action.isPending || draft.title.trim().length < 3} onClick={saveDetails}>Save changes through workflow</Button>
