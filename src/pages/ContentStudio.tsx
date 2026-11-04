@@ -99,11 +99,13 @@ export default function ContentStudio({ module }: { module: "communications" | "
       actions={<Button onClick={() => setOpen(true)}><Plus className="mr-2 h-4 w-4" /> New assignment</Button>}>
       <div className="space-y-6">
         <div className="rounded-xl border bg-card/95 p-4">
-          <h2 className="font-semibold">A working assignment board—not an automatic publishing platform</h2>
-          <p className="mt-1 text-sm text-muted-foreground">Assignments are saved as organizational Work Items. Store relevant documents in the document system; publication, interviewing software, external social-media posting, and magazine layout must follow separately approved workflows.</p>
+          <h2 className="font-semibold">Assignments and controlled editorial publication</h2>
+          <p className="mt-1 text-sm text-muted-foreground">Assignments are saved as organizational Work Items. Editorial Production supports separate approval and controlled HPG text publication; private media and external social-media posting remain independent workflows.</p>
           <div className="mt-3 flex flex-wrap gap-2">
             <Button asChild variant="outline" size="sm"><Link to={"/learning?track=" + (isMarketing ? "marketing" : "communications")}><GraduationCap className="mr-2 h-4 w-4" /> Guided tutorial</Link></Button>
             {!isMarketing && <Button asChild variant="outline" size="sm"><Link to="/communications/editorial"><FileText className="mr-2 h-4 w-4" /> Editorial production</Link></Button>}
+            {!isMarketing && <Button asChild variant="outline" size="sm"><Link to="/communications/media"><FileText className="mr-2 h-4 w-4" /> Private media</Link></Button>}
+            {!isMarketing && <Button asChild variant="outline" size="sm"><Link to="/publications"><FileText className="mr-2 h-4 w-4" /> Public editions</Link></Button>}
             <Button asChild variant="outline" size="sm"><Link to="/documents"><FileText className="mr-2 h-4 w-4" /> Documents</Link></Button>
             <Button asChild variant="outline" size="sm"><Link to="/work-items"><ClipboardList className="mr-2 h-4 w-4" /> All work items</Link></Button>
           </div>
