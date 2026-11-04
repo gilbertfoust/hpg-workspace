@@ -71,6 +71,8 @@ import MyWorkspaceProfile from "./pages/MyWorkspaceProfile";
 import LearningAcademy from "./pages/LearningAcademy";
 import ContentStudio from "./pages/ContentStudio";
 import EditorialDesk from "./pages/EditorialDesk";
+import EditorialMediaDesk from "./pages/EditorialMediaDesk";
+import Publications from "./pages/Publications";
 
 // Module pages (placeholders you can flesh out later)
 import {
@@ -186,6 +188,8 @@ const App = () => {
 
                 {/* Public signing page (no auth required) */}
                 <Route path="/sign/:token" element={<SignDocument />} />
+                <Route path="/publications" element={<Publications />} />
+                <Route path="/publications/:slug" element={<Publications />} />
 
                 {/* Root redirects */}
                 <Route path="/" element={<Navigate to="/dashboard" replace />} />
@@ -225,6 +229,7 @@ const App = () => {
                 <Route path="/development/potential-sponsees" element={<P><PotentialSponsees /></P>} />
                 <Route path="/proposal-collaboration" element={<P><ProposalCollaborationPage /></P>} />
                 <Route path="/communications/editorial" element={<P><EditorialDesk /></P>} />
+                <Route path="/communications/media" element={<P><EditorialMediaDesk /></P>} />
                 <Route path="/partnerships" element={<P><PartnershipsDashboard /></P>} />
                 <Route path="/it" element={<P><ITDashboard /></P>} />
                 <Route path="/ngo-coordination" element={<P><NGOCoordination /></P>} />
