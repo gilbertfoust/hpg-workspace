@@ -52,6 +52,13 @@ const stageNext: Record<RecordKind, Record<string, string[]>> = {
 const pretty = (text: string) => text.replaceAll("_", " ").replace(/\b\w/g, letter => letter.toUpperCase());
 const iso = (date: string) => date ? new Date(date + "T12:00:00").toISOString() : undefined;
 const yyyyMmDd = (date?: string | null) => date?.slice(0, 10) || "";
+const localDateTime = (date?: string | null) => {
+  if (!date) return "";
+  const value = new Date(date);
+  if (Number.isNaN(value.getTime())) return "";
+  return new Date(value.getTime() - value.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+};
+const dateTimeIso = (date: string) => date ? new Date(date).toISOString() : undefined;
 const errText = (err: unknown) => err instanceof Error ? err.message : "Unable to complete the request.";
 type Draft = {
   title: string; summary: string; ownerId: string; editorId: string; audience: string;
@@ -60,11 +67,13 @@ type Draft = {
   notes: string;
   campaignId: string;
   accountId: string;
+  scheduled: string;
+  designProof: string;
 };
 const defaultDraft = (): Draft => ({
   title: "", summary: "", ownerId: "none", editorId: "none", audience: "",
   platform: "facebook", channels: "website", campaignType: "awareness", contentType: "magazine_feature",
-  body: "", due: "", approvalType: "editorial", decision: "approved", notes: "", campaignId: "none", accountId: "none",
+  body: "", due: "", approvalType: "editorial", decision: "approved", notes: "", campaignId: "none", accountId: "none", scheduled: "", designProof: "",
 });
 function countLabel(n: unknown) { return typeof n === "number" ? n.toLocaleString() : String(n ?? "0"); }
 
@@ -124,6 +133,7 @@ export default function DepartmentOperationsHub({ lane }: { lane: DepartmentLane
       body: String(selected.body_text || ""), due: yyyyMmDd(selected.due_at),
       approvalType: tab === "editorial" ? "editorial" : tab === "publications" ? "publication" : "marketing",
       decision: "approved", notes: "", campaignId: selected.campaign_id || "none", accountId: selected.channel_account_id || "none",
+      scheduled: localDateTime(selected.scheduled_at), designProof: selected.design_proof_url || "",
     });
     setStage("none"); setVersionBody(""); setVersionSummary("");
     setSourceName(""); setSourceUrl(""); setConsentSubject(""); setPlacementCandidate("none");
@@ -143,26 +153,26 @@ export default function DepartmentOperationsHub({ lane }: { lane: DepartmentLane
       record = {
         title: draft.title.trim(), pitch_summary: draft.summary.trim(),
         content_type: draft.contentType, owner_user_id: owner, editor_user_id: editor,
-        due_at: iso(draft.due), channels, sensitivity: "routine", priority: "medium",
+        due_at: iso(draft.due), scheduled_at: dateTimeIso(draft.scheduled), channels, sensitivity: "routine", priority: "medium",
       };
     } else if (tab === "publications") {
       record = {
         title: draft.title.trim(), publication_type: "magazine_issue",
         audience_segment: draft.audience.trim(), editor_user_id: editor,
-        production_owner_user_id: owner, due_at: iso(draft.due), channels, priority: "medium",
+        production_owner_user_id: owner, due_at: iso(draft.due), scheduled_at: dateTimeIso(draft.scheduled), channels, priority: "medium",
       };
     } else if (tab === "campaigns") {
       record = {
         title: draft.title.trim(), objective: draft.summary.trim(),
         campaign_type: draft.campaignType, target_audience: draft.audience.trim(),
         primary_cta: draft.body.trim(), channels, owner_user_id: owner,
-        strategist_user_id: editor, communications_review_required: true, priority: "medium",
+        strategist_user_id: editor, scheduled_at: dateTimeIso(draft.scheduled), communications_review_required: true, priority: "medium",
       };
     } else {
       record = {
         title: draft.title.trim(), platform: draft.platform,
         body_text: draft.body.trim(), post_format: "text",
-        owner_user_id: owner, communications_review_required: true, priority: "medium",
+        owner_user_id: owner, scheduled_at: dateTimeIso(draft.scheduled), communications_review_required: true, priority: "medium",
         campaign_id: draft.campaignId === "none" ? null : draft.campaignId,
         channel_account_id: draft.accountId === "none" ? null : draft.accountId,
       };
@@ -177,6 +187,10 @@ export default function DepartmentOperationsHub({ lane }: { lane: DepartmentLane
   };
   const saveDetails = async () => {
     if (!selected) return;
+    if (tab === "publications" && draft.designProof.trim() && !/^https:\/\/\S+$/i.test(draft.designProof.trim())) {
+      toast.error("Magazine design proofs must use an HTTPS URL.");
+      return;
+    }
     const owner = draft.ownerId === "none" ? "" : draft.ownerId;
     const editor = draft.editorId === "none" ? "" : draft.editorId;
     const changes: Record<string, unknown> = {};
@@ -189,11 +203,14 @@ export default function DepartmentOperationsHub({ lane }: { lane: DepartmentLane
       updateIfChanged("owner_user_id", selected.owner_user_id, owner);
       updateIfChanged("editor_user_id", selected.editor_user_id, editor);
       if (draft.due !== yyyyMmDd(selected.due_at)) changes.due_at = iso(draft.due) || "";
+      if (draft.scheduled !== localDateTime(selected.scheduled_at)) changes.scheduled_at = dateTimeIso(draft.scheduled) || "";
     } else if (tab === "publications") {
       updateIfChanged("audience_segment", selected.audience_segment, draft.audience.trim());
       updateIfChanged("editor_user_id", selected.editor_user_id, editor);
       updateIfChanged("production_owner_user_id", selected.production_owner_user_id, owner);
       if (draft.due !== yyyyMmDd(selected.due_at)) changes.due_at = iso(draft.due) || "";
+      if (draft.scheduled !== localDateTime(selected.scheduled_at)) changes.scheduled_at = dateTimeIso(draft.scheduled) || "";
+      updateIfChanged("design_proof_url", selected.design_proof_url, draft.designProof.trim());
     } else if (tab === "campaigns") {
       updateIfChanged("objective", selected.objective, draft.summary.trim());
       updateIfChanged("target_audience", selected.target_audience, draft.audience.trim());
@@ -202,11 +219,13 @@ export default function DepartmentOperationsHub({ lane }: { lane: DepartmentLane
       updateIfChanged("strategist_user_id", selected.strategist_user_id, editor);
       const channels = draft.channels.split(",").map(x => x.trim().toLowerCase()).filter(Boolean);
       if (JSON.stringify(selected.channels || []) !== JSON.stringify(channels)) changes.channels = channels;
+      if (draft.scheduled !== localDateTime(selected.scheduled_at)) changes.scheduled_at = dateTimeIso(draft.scheduled) || "";
     } else {
       updateIfChanged("body_text", selected.body_text, draft.body.trim());
       updateIfChanged("platform", selected.platform, draft.platform);
       updateIfChanged("owner_user_id", selected.owner_user_id, owner);
       updateIfChanged("channel_account_id", selected.channel_account_id, draft.accountId === "none" ? "" : draft.accountId);
+      if (draft.scheduled !== localDateTime(selected.scheduled_at)) changes.scheduled_at = dateTimeIso(draft.scheduled) || "";
     }
     if (Object.keys(changes).length === 0) {
       toast.info("No changes to save.");
@@ -394,6 +413,10 @@ export default function DepartmentOperationsHub({ lane }: { lane: DepartmentLane
                       </div>}
                     </div>
                     {(tab === "editorial" || tab === "publications") && <div className="space-y-1"><Label>Due date</Label><Input type="date" value={draft.due} disabled={!editable} onChange={e=>setDraft(s=>({...s,due:e.target.value}))}/></div>}
+                    <div className="space-y-1"><Label>Planned publication, distribution or launch time</Label><Input type="datetime-local" value={draft.scheduled} disabled={!editable} onChange={e => setDraft(v => ({ ...v, scheduled: e.target.value }))} />
+                      <p className="text-xs text-muted-foreground">Planning a time never posts or distributes content automatically.</p></div>
+                    {tab === "publications" && <div className="space-y-1"><Label>Design or campaign proof (HTTPS)</Label><Input type="url" value={draft.designProof} disabled={!editable} placeholder="https://..." onChange={e => setDraft(v => ({ ...v, designProof: e.target.value }))} />
+                      <p className="text-xs text-muted-foreground">A valid proof is required before the magazine issue can enter review.</p></div>
                     {editable && <>
                       <div className="space-y-1"><Label>Revision reason (required when material has already been reviewed)</Label><Input value={changeReason} onChange={e=>setChangeReason(e.target.value)} placeholder="Explain changes after review" /></div>
                       <Button disabled={action.isPending || draft.title.trim().length < 3} onClick={saveDetails}>Save changes through workflow</Button>
@@ -588,6 +611,8 @@ export default function DepartmentOperationsHub({ lane }: { lane: DepartmentLane
               </div>}
             </div>
             {communication && <div className="space-y-1"><Label>Due date</Label><Input type="date" value={draft.due} onChange={e=>setDraft(s=>({...s,due:e.target.value}))}/></div>}
+            <div className="space-y-1"><Label>Planned publication, distribution, or campaign date (optional)</Label><Input type="datetime-local" value={draft.scheduled} onChange={e=>setDraft(s=>({...s,scheduled:e.target.value}))}/>
+              <p className="text-xs text-muted-foreground">A date records a plan, not a confirmed external release.</p></div>
             <p className="text-xs text-muted-foreground">Approval and published status are not set by creation. The database will enforce every downstream step.</p>
             <Button className="w-full" disabled={action.isPending || draft.title.trim().length < 3 ||
               (tab === "editorial" && draft.summary.trim().length < 10) ||
