@@ -74,6 +74,7 @@ create table if not exists public.editorial_items (
   consent_confirmed boolean not null default false,
   consent_document_id uuid references public.documents(id) on delete restrict,
   transcript_document_id uuid references public.documents(id) on delete restrict,
+  work_item_id uuid unique references public.work_items(id) on delete set null,
   author_id uuid not null default auth.uid() references public.profiles(id) on delete restrict,
   approved_by uuid references public.profiles(id) on delete set null,
   approved_at timestamptz,
@@ -126,7 +127,7 @@ alter table public.editorial_events enable row level security;
 revoke all on public.editorial_items, public.editorial_issue_items, public.editorial_reviews, public.editorial_events from anon, authenticated;
 
 grant select on public.editorial_items, public.editorial_issue_items, public.editorial_reviews, public.editorial_events to authenticated;
-grant insert (kind, title, summary, body_markdown, planned_publish_at, interviewee_name, interview_date, consent_confirmed, consent_document_id, transcript_document_id) on public.editorial_items to authenticated;
+grant insert (kind, title, summary, body_markdown, planned_publish_at, interviewee_name, interview_date, consent_confirmed, consent_document_id, transcript_document_id, work_item_id) on public.editorial_items to authenticated;
 grant update (title, summary, body_markdown, planned_publish_at, interviewee_name, interview_date, consent_confirmed, consent_document_id, transcript_document_id) on public.editorial_items to authenticated;
 grant insert (issue_id, content_id, sort_order) on public.editorial_issue_items to authenticated;
 grant update (sort_order) on public.editorial_issue_items to authenticated;
@@ -144,12 +145,22 @@ with check (
   and status = 'draft'
   and approved_by is null and approved_at is null
   and published_at is null and published_url is null
+  and (work_item_id is null or exists (
+    select 1 from public.work_items wi
+    where wi.id = work_item_id and wi.module::text = 'communications' and wi.deleted_at is null
+  ))
 );
 
 create policy "Editorial staff edit only unapproved copy"
 on public.editorial_items for update to authenticated
 using ((select public.can_write_editorial()) and status in ('draft','changes_requested'))
-with check ((select public.can_write_editorial()) and status in ('draft','changes_requested'));
+with check (
+  (select public.can_write_editorial()) and status in ('draft','changes_requested')
+  and (work_item_id is null or exists (
+    select 1 from public.work_items wi
+    where wi.id = work_item_id and wi.module::text = 'communications' and wi.deleted_at is null
+  ))
+);
 
 create policy "Editorial staff read issue contents"
 on public.editorial_issue_items for select to authenticated
