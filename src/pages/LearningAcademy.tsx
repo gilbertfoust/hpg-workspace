@@ -22,6 +22,8 @@ type Lesson = {
   area?: AccessArea;
   readiness: "navigation" | "pending";
   requiresEditorial?: boolean;
+  requiresPublications?: boolean;
+  requiresMedia?: boolean;
 };
 
 type Track = { id: string; title: string; audience: string; lessons: Lesson[] };
@@ -42,7 +44,8 @@ const tracks: Track[] = [
     { id: "interview", name: "Plan and document an interview", goal: "Use an assignment to coordinate consent, research, recording, and transcription.", path: "/modules/communications", area: "communications", readiness: "navigation", steps: ["Choose Interview in Communications Studio for an authorized interview assignment.", "Document the subject, purpose, interview questions, and consent requirements in the description.", "Maintain recordings and transcripts in approved document storage; do not publish without editorial approval."], practice: "Outline an interview's purpose, questions, and consent check." },
     { id: "editorial-calendar", name: "Plan the editorial calendar", goal: "Schedule an upcoming story or release and see it on the internal calendar.", path: "/communications/editorial", area: "communications", requiresEditorial: true, readiness: "pending", steps: ["Open Editorial Production Desk and create a real article or interview brief.", "Save its planned release date.", "Open the Calendar tab to locate the scheduled item. This date does not automatically publish content."], practice: "Locate the saved planned date without changing a live published item." },
     { id: "interview-controls", name: "Document interview consent", goal: "Link stored release evidence before an interview is approved.", path: "/communications/editorial", area: "communications", requiresEditorial: true, readiness: "pending", steps: ["Open an existing Interview item.", "Attach a signed consent/release from the authorized Documents area.", "Confirm the agreed publication scope and add a transcript link if available.", "Submit the saved version for a separate editorial review."], practice: "Identify which document demonstrates consent for a real interview." },
-    { id: "publish-magazine", name: "Assemble and approve a magazine issue", goal: "Arrange approved articles, print an internal proof, and record an externally published release.", path: "/communications/editorial", area: "communications", requiresEditorial: true, readiness: "pending", steps: ["Create an issue and add relevant article contributions.", "Arrange the order and print an internal proof; verify each contributing article has approval.", "Submit the issue for review. An independent authorized reviewer must approve it.", "Only after the issue is actually published externally, an authorized publisher records the live HTTPS URL."], practice: "Explain the difference between an internal proof, editorial approval, and recording a published release." },
+    { id: "publish-magazine", name: "Assemble and publish an HPG magazine", goal: "Arrange approved contributions and release a controlled public edition.", path: "/communications/editorial", area: "communications", requiresPublications: true, readiness: "pending", steps: ["Create an issue and add the relevant article contributions.", "Arrange the order, print an internal proof, and verify each contribution is approved.", "Submit the saved issue for an independent review. Authors cannot approve their own work.", "After approval, select Publish to HPG Publications, choose a unique URL slug, and confirm the text is approved for public release.", "Open the public edition and verify the article contents. A publisher can withdraw a released page if necessary."], practice: "Explain the distinction between an internal proof, editorial approval, and public release." },
+    { id: "media-rights", name: "Manage editorial media and rights", goal: "Store interviews, photos and recordings privately and review rights before use.", path: "/communications/media", area: "communications", requiresMedia: true, readiness: "pending", steps: ["Open Editorial Media Library and choose a real editorial item.", "Upload the file with a creator credit, description, and verifiable rights basis.", "Attach a permission or license record for material that requires it.", "A different authorized reviewer checks the evidence and clears or rejects the asset.", "Remember: clearance does not publish the private media or make the file publicly accessible."], practice: "Locate a private media asset and identify its rights review status." },
   ] },
   { id: "marketing", title: "Social Media & Marketing", audience: "Campaign planners and social-media staff", lessons: [
     { id: "campaign-task", name: "Plan a campaign", goal: "Track social posts, campaign assets, and approvals.", path: "/modules/marketing", area: "communications", readiness: "navigation", steps: ["Open Marketing Studio.", "Review campaign and social-media assignments.", "Create a real Social post or Campaign assignment only with an authorized brief.", "Track content preparation and approvals before publishing outside the workspace."], practice: "Recognize where to record a draft post and its intended platform." },
@@ -68,7 +71,10 @@ const tracks: Track[] = [
   ] },
 ];
 
-const isReady = (lesson: Lesson, editorReady: boolean) => lesson.readiness === "navigation" || (!!lesson.requiresEditorial && editorReady);
+const isReady = (lesson: Lesson, editorReady: boolean, publicationReady: boolean, mediaReady: boolean) =>
+  lesson.readiness === "navigation" || (!!lesson.requiresEditorial && editorReady) ||
+  (!!lesson.requiresPublications && editorReady && publicationReady) ||
+  (!!lesson.requiresMedia && editorReady && mediaReady);
 
 const isAllowed = (lesson: Lesson, role?: string | null, access?: Parameters<typeof canAccessArea>[2]) =>
   !lesson.area || canAccessArea(role, lesson.area, access);
@@ -86,6 +92,21 @@ export default function LearningAcademy() {
     },
   });
   const editorReady = editorialReadiness.data === true;
+  const nativeReadiness = useQuery({
+    queryKey: ["editorial-native-readiness", user?.id],
+    enabled: editorReady,
+    retry: false,
+    queryFn: async () => {
+      const client = ensureSupabase();
+      const [publication, media] = await Promise.all([
+        client.from("editorial_publications" as never).select("id", { head: true }).limit(1),
+        client.from("editorial_assets" as never).select("id", { head: true }).limit(1),
+      ]);
+      return { publicationReady: !publication.error, mediaReady: !media.error };
+    },
+  });
+  const publicationReady = nativeReadiness.data?.publicationReady === true;
+  const mediaReady = nativeReadiness.data?.mediaReady === true;
   const [params, setParams] = useSearchParams();
   const selectedTrackId = params.get("track") || "start";
   const activeTrack = tracks.find(track => track.id === selectedTrackId) || tracks[0];
@@ -109,8 +130,8 @@ export default function LearningAcademy() {
 
   const selectedLesson = activeTrack.lessons.find(lesson => lesson.id === selectedLessonId);
   const availableLessons = useMemo(
-    () => tracks.flatMap(track => track.lessons).filter(lesson => isReady(lesson, editorReady) && isAllowed(lesson, access?.role, access)),
-    [access, editorReady],
+    () => tracks.flatMap(track => track.lessons).filter(lesson => isReady(lesson, editorReady, publicationReady, mediaReady) && isAllowed(lesson, access?.role, access)),
+    [access, editorReady, publicationReady, mediaReady],
   );
   const doneCount = availableLessons.filter(lesson => completed.includes(lesson.id)).length;
   const percent = availableLessons.length ? Math.round(doneCount / availableLessons.length * 100) : 0;
@@ -142,7 +163,7 @@ export default function LearningAcademy() {
             <CardHeader><CardTitle className="text-base">Learning paths</CardTitle><CardDescription>Select your area of work.</CardDescription></CardHeader>
             <CardContent className="space-y-1">
               {tracks.map(track => {
-                const allowed = track.lessons.some(lesson => isAllowed(lesson, access?.role, access) && isReady(lesson, editorReady));
+                const allowed = track.lessons.some(lesson => isAllowed(lesson, access?.role, access) && isReady(lesson, editorReady, publicationReady, mediaReady));
                 return (
                   <Button key={track.id} size="sm" variant={activeTrack.id === track.id ? "secondary" : "ghost"}
                     className="h-auto w-full justify-start py-2 text-left whitespace-normal"
@@ -164,7 +185,7 @@ export default function LearningAcademy() {
                   <CardDescription>{selectedLesson.goal}</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-5">
-                  {!isReady(selectedLesson, editorReady) ? (
+                  {!isReady(selectedLesson, editorReady, publicationReady, mediaReady) ? (
                     <p className="rounded-lg border border-dashed p-4 text-sm">This workflow is not ready for hands-on training. Its lesson will be activated when the underlying feature is verified.</p>
                   ) : (
                     <>
@@ -199,7 +220,7 @@ export default function LearningAcademy() {
                 <div className="grid gap-3">
                   {activeTrack.lessons.map(lesson => {
                     const allowed = isAllowed(lesson, access?.role, access);
-                    const pending = !isReady(lesson, editorReady);
+                    const pending = !isReady(lesson, editorReady, publicationReady, mediaReady);
                     return (
                       <Card key={lesson.id}>
                         <CardContent className="flex flex-wrap items-center gap-4 p-4">
