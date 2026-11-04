@@ -72,8 +72,8 @@ create table if not exists public.editorial_items (
   interviewee_name text,
   interview_date timestamptz,
   consent_confirmed boolean not null default false,
-  consent_document_id uuid references public.documents(id) on delete set null,
-  transcript_document_id uuid references public.documents(id) on delete set null,
+  consent_document_id uuid references public.documents(id) on delete restrict,
+  transcript_document_id uuid references public.documents(id) on delete restrict,
   author_id uuid not null default auth.uid() references public.profiles(id) on delete restrict,
   approved_by uuid references public.profiles(id) on delete set null,
   approved_at timestamptz,
@@ -210,6 +210,7 @@ $$;
 drop trigger if exists editorial_draft_revision on public.editorial_items;
 create trigger editorial_draft_revision before update on public.editorial_items
 for each row execute function public.editorial_touch_draft();
+revoke all on function public.editorial_touch_draft() from public, anon, authenticated;
 
 -- Status transitions only through guarded RPCs; no direct authenticated UPDATE on status.
 create or replace function public.submit_editorial_item(p_id uuid)
@@ -224,6 +225,9 @@ begin
   select * into item from public.editorial_items where id = p_id for update;
   if not found or item.status not in ('draft','changes_requested') then
     raise exception 'Item is not editable or does not exist';
+  end if;
+  if item.author_id <> (select auth.uid()) and not (select public.can_approve_editorial()) then
+    raise exception 'Only the author or a designated editorial reviewer can submit this item';
   end if;
   if item.kind = 'issue' then
     select count(*) into member_count from public.editorial_issue_items where issue_id = item.id;
