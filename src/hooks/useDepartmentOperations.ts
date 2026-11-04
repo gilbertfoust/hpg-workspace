@@ -16,6 +16,7 @@ export type OperationsRecord = {
   due_at?: string | null;
   scheduled_at?: string | null;
   created_at?: string;
+  updated_at?: string;
   work_item_id?: string | null;
   owner_user_id?: string | null;
   editor_user_id?: string | null;
@@ -77,8 +78,8 @@ export function useDepartmentOperations(lane: DepartmentLane) {
       if (lane === "communications") {
         const [summary, editorial, publications, people, calendar] = await Promise.all([
           client.rpc("get_communications_hub_snapshot"),
-          client.from("communications_editorial_items").select("id,title,status,priority,due_at,scheduled_at,created_at,work_item_id,owner_user_id,editor_user_id,ngo_id,current_version,pitch_summary,content_type,story_angle,publication_url").order("created_at", { ascending: false }).limit(200),
-          client.from("communications_publications").select("id,title,status,priority,due_at,scheduled_at,created_at,work_item_id,ngo_id,editor_user_id,publication_type,audience_segment,channels,published_url").order("created_at", { ascending: false }).limit(200),
+          client.from("communications_editorial_items").select("id,title,status,priority,due_at,scheduled_at,created_at,updated_at,work_item_id,owner_user_id,editor_user_id,ngo_id,current_version,pitch_summary,content_type,story_angle,publication_url").order("created_at", { ascending: false }).limit(200),
+          client.from("communications_publications").select("id,title,status,priority,due_at,scheduled_at,created_at,updated_at,work_item_id,ngo_id,editor_user_id,publication_type,audience_segment,channels,published_url").order("created_at", { ascending: false }).limit(200),
           client.rpc("get_communications_assignable_users"),
           client.from("communications_editorial_calendar").select("title,entity_id,event_type,status,starts_at").order("starts_at", { ascending: true }).limit(200),
         ]);
@@ -98,8 +99,8 @@ export function useDepartmentOperations(lane: DepartmentLane) {
 
       const [summary, campaigns, posts, accounts, people, calendar] = await Promise.all([
         client.rpc("get_marketing_snapshot"),
-        client.from("marketing_campaigns").select("id,title,status,priority,due_at,scheduled_at,created_at,work_item_id,owner_user_id,strategist_user_id,ngo_id,current_version,objective,target_audience,primary_cta,campaign_type,channels,landing_page_url,donation_page_url").order("created_at", { ascending: false }).limit(200),
-        client.from("marketing_social_posts").select("id,title,status,priority,due_at,scheduled_at,created_at,work_item_id,owner_user_id,reviewer_user_id,ngo_id,current_version,platform,body_text,campaign_id,channel_account_id,public_url").order("created_at", { ascending: false }).limit(200),
+        client.from("marketing_campaigns").select("id,title,status,priority,due_at,scheduled_at,created_at,updated_at,work_item_id,owner_user_id,strategist_user_id,ngo_id,current_version,objective,target_audience,primary_cta,campaign_type,channels,landing_page_url,donation_page_url").order("created_at", { ascending: false }).limit(200),
+        client.from("marketing_social_posts").select("id,title,status,priority,due_at,scheduled_at,created_at,updated_at,work_item_id,owner_user_id,reviewer_user_id,ngo_id,current_version,platform,body_text,campaign_id,channel_account_id,public_url").order("created_at", { ascending: false }).limit(200),
         client.from("marketing_channel_accounts").select("id,platform,scope_name,handle,ownership_status,public_url").order("platform").limit(100),
         client.rpc("get_marketing_assignable_users"),
         client.rpc("get_marketing_calendar"),
