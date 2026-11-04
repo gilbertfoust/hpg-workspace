@@ -50,6 +50,7 @@ import {
   Landmark,
   Coins,
   BookOpen,
+  Newspaper,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -175,9 +176,10 @@ const hubsSections: HubConfig[] = [
   {
     title: "Communications & Marketing Hub",
     icon: <Megaphone className="w-4 h-4" />,
-    basePaths: ["/modules/communications", "/modules/marketing"],
+    basePaths: ["/modules/communications", "/modules/marketing", "/communications"],
     items: [
       { to: "/modules/communications", icon: <MessageSquare className="w-4 h-4" />, label: "Communications Studio" },
+      { to: "/communications/editorial", icon: <Newspaper className="w-4 h-4" />, label: "Editorial Production" },
       { to: "/modules/marketing", icon: <Megaphone className="w-4 h-4" />, label: "Marketing Studio" },
     ],
   },
