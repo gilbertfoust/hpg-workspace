@@ -22,6 +22,7 @@ import {
   useRemoveIssueContribution, useReorderIssueContribution, useSubmitEditorial,
   useReviewEditorial, useRecordEditorialPublication
 } from "@/hooks/useEditorial";
+import { usePublications, usePublishNative, useWithdrawNative } from "@/hooks/usePublications";
 import "./editorial-print.css";
 
 const kinds: { value: EditorialKind; label: string }[] = [
@@ -62,6 +63,9 @@ export default function EditorialDesk() {
   const submit = useSubmitEditorial();
   const review = useReviewEditorial();
   const publish = useRecordEditorialPublication();
+  const publicCatalog = usePublications();
+  const publishNative = usePublishNative();
+  const withdrawNative = useWithdrawNative();
   const documents = useDocuments();
   const { data: communicationsTasks = [] } = useWorkItems({ module: "communications" });
 
@@ -73,6 +77,9 @@ export default function EditorialDesk() {
   const [draft, setDraft] = useState<EditableFields>(emptyFields);
   const [reviewNote, setReviewNote] = useState("");
   const [publicationUrl, setPublicationUrl] = useState("");
+  const [publicSlug, setPublicSlug] = useState("");
+  const [releaseConfirmed, setReleaseConfirmed] = useState(false);
+  const [withdrawReason, setWithdrawReason] = useState("");
   const [newContributionId, setNewContributionId] = useState("");
   const [calendarDate, setCalendarDate] = useState<Date | undefined>(new Date());
   const [search, setSearch] = useState("");
@@ -80,6 +87,7 @@ export default function EditorialDesk() {
 
   const items = useMemo(() => editorial.data?.items || [], [editorial.data?.items]);
   const current = items.find(item => item.id === activeId) || null;
+  const nativePublication = (publicCatalog.data || []).find(item => item.editorial_item_id === activeId);
   const members = useMemo(() => (editorial.data?.members || []).filter(member => member.issue_id === activeId)
     .sort((a, b) => a.sort_order - b.sort_order || a.created_at.localeCompare(b.created_at)), [editorial.data?.members, activeId]);
   const issueContents = members.map(member => ({
@@ -102,6 +110,8 @@ export default function EditorialDesk() {
     setDraft({ title, summary, body_markdown, planned_publish_at, interviewee_name, interview_date,
       consent_confirmed, consent_document_id, transcript_document_id, work_item_id });
     setReviewNote(""); setPublicationUrl(current.published_url || "");
+    setPublicSlug(current.title.toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 82));
+    setReleaseConfirmed(false); setWithdrawReason("");
     setNewContributionId("");
   }, [current?.id, current?.updated_at, current?.status]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -133,6 +143,23 @@ export default function EditorialDesk() {
       await review.mutateAsync({ p_id: current.id, p_decision: decision, p_note: reviewNote });
       toast.success(decision === "approved" ? "Editorial approval recorded" : "Revision requested");
       setReviewNote("");
+    } catch (error) { toast.error(describeError(error)); }
+  };
+  const publicEditionUrl = (slug: string) => new URL(import.meta.env.BASE_URL + "publications/" + slug, window.location.origin).toString();
+  const publishApprovedNative = async () => {
+    if (!current || !releaseConfirmed) return;
+    try {
+      const result = await publishNative.mutateAsync({ id: current.id, slug: publicSlug.trim() });
+      setReleaseConfirmed(false);
+      toast.success("Approved text edition is now visible at " + publicEditionUrl(result.slug));
+    } catch (error) { toast.error(describeError(error)); }
+  };
+  const withdrawApprovedNative = async () => {
+    if (!current) return;
+    try {
+      await withdrawNative.mutateAsync({ id: current.id, reason: withdrawReason.trim() });
+      toast.success("Public edition withdrawn. Previously cached copies may remain available.");
+      setWithdrawReason("");
     } catch (error) { toast.error(describeError(error)); }
   };
   const recordRelease = async () => {
@@ -170,6 +197,8 @@ export default function EditorialDesk() {
         </div>
         <Button asChild variant="outline" size="sm"><Link to="/learning?track=communications"><GraduationCap className="mr-2 h-4 w-4" /> Tutorial</Link></Button>
         <Button asChild variant="outline" size="sm"><Link to="/modules/communications">Assignments</Link></Button>
+        <Button asChild variant="outline" size="sm"><Link to="/communications/media">Media library</Link></Button>
+        <Button asChild variant="outline" size="sm"><Link to="/publications">Publications</Link></Button>
         <Button onClick={() => setCreateOpen(true)} disabled={!editorial.data?.canWrite}><Plus className="mr-2 h-4 w-4" /> New content</Button>
       </div>
 
@@ -323,6 +352,42 @@ export default function EditorialDesk() {
                   </CardContent>
                 </Card>}
 
+                {current.status === "approved" && editorial.data?.canApprove && <Card>
+                  <CardHeader><CardTitle className="text-lg">Publish a text edition to HPG Publications</CardTitle>
+                    <CardDescription>This creates a public snapshot of the approved text. Review every contribution, image reference, quote and consent scope before releasing. Private media and consent files are not included.</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div className="space-y-2"><Label htmlFor="native-slug">Public URL name</Label>
+                      <Input id="native-slug" value={publicSlug} onChange={e => setPublicSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))} placeholder="issue-name" />
+                    </div>
+                    <label className="flex items-start gap-2 text-sm">
+                      <Checkbox checked={releaseConfirmed} onCheckedChange={checked => setReleaseConfirmed(checked === true)} />
+                      I confirm this exact edition is approved for public release, including the rights and consent for its written content.
+                    </label>
+                    <Button disabled={!releaseConfirmed || !/^[a-z0-9]+(-[a-z0-9]+)*$/.test(publicSlug) || publicSlug.length < 4 || publishNative.isPending} onClick={publishApprovedNative}>
+                      {publishNative.isPending ? "Publishing…" : "Publish to HPG Publications"}
+                    </Button>
+                    <p className="text-xs text-muted-foreground">The public page appears in the HPG Publications archive. No external social account or NGO website is modified.</p>
+                  </CardContent>
+                </Card>}
+                {nativePublication && <Card>
+                  <CardHeader><CardTitle className="text-lg">Public HPG edition</CardTitle>
+                    <CardDescription>Approved editorial snapshot, available to readers without signing in.</CardDescription></CardHeader>
+                  <CardContent className="space-y-3">
+                    <Link className="block break-all text-sm text-primary underline" to={"/publications/" + nativePublication.slug}>{publicEditionUrl(nativePublication.slug)}</Link>
+                    <div className="flex flex-wrap gap-2">
+                      <Button variant="outline" onClick={async () => {
+                        try { await navigator.clipboard.writeText(publicEditionUrl(nativePublication.slug)); toast.success("Public link copied"); }
+                        catch { toast.error("Clipboard unavailable. Copy the link shown above."); }
+                      }}>Copy public link</Button>
+                    </div>
+                    {editorial.data?.canApprove && <div className="space-y-2 border-t pt-3">
+                      <Label>Withdraw this page (reason required)</Label>
+                      <Textarea rows={2} value={withdrawReason} onChange={e => setWithdrawReason(e.target.value)} placeholder="Explain why this release must be removed from the public archive" />
+                      <Button variant="outline" disabled={withdrawReason.trim().length < 10 || withdrawNative.isPending} onClick={withdrawApprovedNative}>Withdraw public edition</Button>
+                    </div>}
+                  </CardContent>
+                </Card>}
                 {current.published_url && <Card><CardContent className="p-4 text-sm"><strong>Publication on record:</strong> <a href={current.published_url} target="_blank" rel="noopener noreferrer" className="ml-2 break-all text-primary underline">{current.published_url}</a></CardContent></Card>}
                 <Card>
                   <CardHeader><CardTitle className="text-base">Editorial decisions and audit trail</CardTitle></CardHeader>
