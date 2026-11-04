@@ -70,6 +70,7 @@ import HPGAssistantHistory from "./pages/HPGAssistantHistory";
 import MyWorkspaceProfile from "./pages/MyWorkspaceProfile";
 import LearningAcademy from "./pages/LearningAcademy";
 import ContentStudio from "./pages/ContentStudio";
+import EditorialDesk from "./pages/EditorialDesk";
 
 // Module pages (placeholders you can flesh out later)
 import {
@@ -223,6 +224,7 @@ const App = () => {
                 <Route path="/development" element={<P><DevelopmentDashboard /></P>} />
                 <Route path="/development/potential-sponsees" element={<P><PotentialSponsees /></P>} />
                 <Route path="/proposal-collaboration" element={<P><ProposalCollaborationPage /></P>} />
+                <Route path="/communications/editorial" element={<P><EditorialDesk /></P>} />
                 <Route path="/partnerships" element={<P><PartnershipsDashboard /></P>} />
                 <Route path="/it" element={<P><ITDashboard /></P>} />
                 <Route path="/ngo-coordination" element={<P><NGOCoordination /></P>} />
