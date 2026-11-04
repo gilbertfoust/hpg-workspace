@@ -17,7 +17,7 @@ as $$
           and (
             p.role::text = 'vp_communications'
             or lower(coalesce(u.department_name, '') || ' ' || coalesce(u.sub_department_name, ''))
-               ~ '(communication|marketing|editorial|media)'
+               ~ '(communication|editorial|media)'
           )
       )
       or exists (
@@ -25,7 +25,7 @@ as $$
         join public.org_units ou on ou.id = dm.department_id
         where dm.user_id = (select auth.uid()) and dm.is_active
           and lower(coalesce(ou.department_name, '') || ' ' || coalesce(ou.sub_department_name, ''))
-              ~ '(communication|marketing|editorial|media)'
+              ~ '(communication|editorial|media)'
       )
     );
 $$;
