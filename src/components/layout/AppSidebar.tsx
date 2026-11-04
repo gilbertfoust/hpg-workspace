@@ -176,12 +176,14 @@ const hubsSections: HubConfig[] = [
   {
     title: "Communications & Marketing Hub",
     icon: <Megaphone className="w-4 h-4" />,
-    basePaths: ["/modules/communications", "/modules/marketing", "/communications"],
+    basePaths: ["/modules/communications", "/modules/marketing", "/communications", "/marketing"],
     items: [
-      { to: "/modules/communications", icon: <MessageSquare className="w-4 h-4" />, label: "Communications Studio" },
+      { to: "/modules/communications", icon: <MessageSquare className="w-4 h-4" />, label: "Communications Operations" },
+      { to: "/communications/assignments", icon: <ClipboardList className="w-4 h-4" />, label: "Communications Assignments" },
       { to: "/communications/editorial", icon: <Newspaper className="w-4 h-4" />, label: "Editorial Production" },
       { to: "/communications/media", icon: <FolderOpen className="w-4 h-4" />, label: "Editorial Media Library" },
-      { to: "/modules/marketing", icon: <Megaphone className="w-4 h-4" />, label: "Marketing Studio" },
+      { to: "/modules/marketing", icon: <Megaphone className="w-4 h-4" />, label: "Marketing Operations" },
+      { to: "/marketing/assignments", icon: <ClipboardList className="w-4 h-4" />, label: "Marketing Assignments" },
     ],
   },
   {
