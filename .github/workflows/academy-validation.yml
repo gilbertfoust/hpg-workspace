@@ -6,6 +6,9 @@ on:
     paths:
       - 'src/pages/LearningAcademy.tsx'
       - 'src/pages/ContentStudio.tsx'
+      - 'src/pages/EditorialDesk.tsx'
+      - 'src/hooks/useEditorial.ts'
+      - 'src/pages/editorial-print.css'
       - 'src/App.tsx'
       - 'src/lib/accessControl.ts'
       - 'src/components/layout/AppSidebar.tsx'
@@ -25,4 +28,4 @@ jobs:
       - name: TypeScript check
         run: npx tsc --noEmit
       - name: Lint new learning and studio pages
-        run: npx eslint src/pages/LearningAcademy.tsx src/pages/ContentStudio.tsx
+        run: npx eslint src/pages/LearningAcademy.tsx src/pages/ContentStudio.tsx src/pages/EditorialDesk.tsx src/hooks/useEditorial.ts
