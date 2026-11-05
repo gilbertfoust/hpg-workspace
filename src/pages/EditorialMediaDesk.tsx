@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useSearchParams } from "react-router-dom";
 import { FileImage, FileText, GraduationCap, ImagePlus, LockKeyhole, ShieldCheck, ExternalLink } from "lucide-react";
@@ -52,6 +52,11 @@ export default function EditorialMediaDesk() {
   const updateAsset = useUpdateEditorialAsset();
   const [itemId, setItemId] = useState(params.get("story") || "none");
   const [sourceKind, setSourceKind] = useState<"canonical" | "standalone">("canonical");
+  useEffect(() => {
+    if (!canonical.isLoading && !canCanonical && canStandalone) {
+      setSourceKind("standalone");
+    }
+  }, [canonical.isLoading, canCanonical, canStandalone]);
   const [file, setFile] = useState<File | null>(null);
   const [alt, setAlt] = useState("");
   const [credit, setCredit] = useState("");
@@ -196,7 +201,7 @@ export default function EditorialMediaDesk() {
         <Card>
           <CardHeader className="space-y-3">
             <CardTitle className="flex items-center gap-2 text-lg"><FileImage className="h-5 w-5" /> Private asset library</CardTitle>
-            <CardDescription>Files remain internal, including those marked rights-cleared. Publishing images to a public magazine requires a separate approved release process.</CardDescription>
+            <CardDescription>Files remain internal, including those marked rights-cleared. The canonical Communications and standalone editorial sources have separate private buckets. No uploaded file is automatically copied into the public text-only archive.</CardDescription>
             <Select value={filter} onValueChange={setFilter}><SelectTrigger className="max-w-60"><SelectValue /></SelectTrigger>
               <SelectContent><SelectItem value="all">All rights statuses</SelectItem><SelectItem value="pending">Awaiting review</SelectItem><SelectItem value="cleared">Cleared</SelectItem><SelectItem value="rejected">Rejected</SelectItem></SelectContent></Select>
           </CardHeader>
