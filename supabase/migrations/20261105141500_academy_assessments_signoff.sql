@@ -124,6 +124,8 @@ as $$
   );
 $$;
 
+revoke all on function private.academy_assessment_eligible(text) from public,anon,authenticated;
+
 create or replace function public.get_academy_assessment(p_assessment text)
 returns jsonb language plpgsql stable security definer set search_path=''
 as $$
