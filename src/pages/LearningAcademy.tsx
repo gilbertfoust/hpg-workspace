@@ -285,7 +285,7 @@ export default function LearningAcademy() {
                       <AcademyNarratedSteps title={selectedLesson.name} steps={selectedLesson.steps} currentStep={step} />
                       <AcademyLessonResources lessonId={selectedLesson.id} />
                       {selectedLesson.path && (
-                        <Button asChild variant="outline"><Link to={selectedLesson.path}><ExternalLink className="mr-2 h-4 w-4" /> Open workspace screen</Link></Button>
+                        <Button asChild variant="outline"><Link to={selectedLesson.path + "?academyLesson=" + encodeURIComponent(selectedLesson.id)}><ExternalLink className="mr-2 h-4 w-4" /> Open workspace screen with guided instructions</Link></Button>
                       )}
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <Button variant="outline" disabled={step === 0} onClick={() => setStep(previous => Math.max(0, previous - 1))}><ArrowLeft className="mr-2 h-4 w-4" /> Previous</Button>
