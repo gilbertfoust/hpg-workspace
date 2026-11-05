@@ -188,7 +188,7 @@ export default function BoardHub(){
   const [creating,setCreating]=useState(false);
   const [title,setTitle]=useState("");const [scheduled,setScheduled]=useState("");
   const [timezone,setTimezone]=useState("America/Detroit");const [location,setLocation]=useState("");
-  const [quorum,setQuorum]=useState("2");const [requiredYes,setRequiredYes]=useState("2");
+  const [quorum,setQuorum]=useState("");const [requiredYes,setRequiredYes]=useState("");
   const [policy,setPolicy]=useState("");
   const meetings=board.data?.meetings||[];
   const chosen=meetings.find(m=>m.id===meetingId)||meetings[0];
