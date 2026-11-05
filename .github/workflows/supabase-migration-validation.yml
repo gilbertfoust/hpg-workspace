@@ -122,6 +122,17 @@ jobs:
             -f supabase/tests/editorial_publication_media_smoke.sql \
             2>&1 | tee editorial-publications-smoke.log
 
+      - name: Run canonical Communications release security smoke test
+        if: steps.database-scope.outputs.database_changed == 'true'
+        id: canonical-release-smoke
+        shell: bash
+        run: |
+          set -o pipefail
+          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" \
+            -v ON_ERROR_STOP=1 \
+            -f supabase/tests/canonical_communications_publication_smoke.sql \
+            2>&1 | tee canonical-communications-release-smoke.log
+
       - name: Run database lint
         if: steps.database-scope.outputs.database_changed == 'true'
         id: database-lint
@@ -141,6 +152,7 @@ jobs:
             activation-fee-smoke.log
             editorial-smoke.log
             editorial-publications-smoke.log
+            canonical-communications-release-smoke.log
             supabase-lint.log
           if-no-files-found: ignore
           retention-days: 7
