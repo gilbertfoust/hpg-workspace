@@ -74,6 +74,7 @@ import AcademyAssessments from "./pages/AcademyAssessments";
 import AcademyPracticeLab from "./pages/AcademyPracticeLab";
 import AcademyRecordingStudio from "./pages/AcademyRecordingStudio";
 import AcademyReadinessCenter from "./pages/AcademyReadinessCenter";
+import WorkspaceResearchLibrary from "./pages/WorkspaceResearchLibrary";
 import BoardHub from "./pages/BoardHub";
 import ContentStudio from "./pages/ContentStudio";
 import DepartmentOperationsHub from "./pages/DepartmentOperationsHub";
@@ -213,6 +214,7 @@ const App = () => {
                 <Route path="/learning/practice" element={<P><AcademyPracticeLab /></P>} />
                 <Route path="/learning/studio" element={<P><AcademyRecordingStudio /></P>} />
                 <Route path="/learning/readiness" element={<P><AcademyReadinessCenter /></P>} />
+                <Route path="/research/library" element={<P><WorkspaceResearchLibrary /></P>} />
                 <Route path="/board/hub" element={<P><BoardHub /></P>} />
                 <Route path="/hpg-assistant" element={<P><NGOCoordinationModule /></P>} />
                 <Route path="/hpg-assistant/history" element={<P><HPGAssistantHistory /></P>} />

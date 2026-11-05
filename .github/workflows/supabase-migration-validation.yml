@@ -210,6 +210,17 @@ jobs:
             -f supabase/tests/academy_readiness_acceptance_smoke.sql \
             2>&1 | tee academy-readiness-acceptance-smoke.log
 
+      - name: Run internal research library privacy and review smoke test
+        if: steps.database-scope.outputs.database_changed == 'true'
+        id: workspace-research-smoke
+        shell: bash
+        run: |
+          set -o pipefail
+          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" \
+            -v ON_ERROR_STOP=1 \
+            -f supabase/tests/workspace_research_library_smoke.sql \
+            2>&1 | tee workspace-research-library-smoke.log
+
       - name: Run database lint
         if: steps.database-scope.outputs.database_changed == 'true'
         id: database-lint
@@ -237,6 +248,7 @@ jobs:
             academy-assessment-signoff-smoke.log
             academy-workflow-expansion-smoke.log
             academy-readiness-acceptance-smoke.log
+            workspace-research-library-smoke.log
             supabase-lint.log
           if-no-files-found: ignore
           retention-days: 7
