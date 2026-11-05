@@ -5,6 +5,12 @@ on:
     branches: [main]
     paths:
       - 'src/pages/LearningAcademy.tsx'
+      - 'src/pages/AcademyPracticeLab.tsx'
+      - 'src/data/academyWorkspaceTracks.ts'
+      - 'src/components/onboarding/AcademyNarratedSteps.tsx'
+      - 'src/components/onboarding/AcademyLessonResources.tsx'
+      - 'src/hooks/useAcademyLessonResources.ts'
+      - 'scripts/validate-academy-curriculum.mjs'
       - 'src/pages/AcademyTeamProgress.tsx'
       - 'src/pages/AcademyAssessments.tsx'
       - 'src/pages/BoardHub.tsx'
@@ -38,9 +44,11 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
-      - run: npm install
+          node-version: '22'
+      - run: npm ci
+      - name: Verify Academy lessons, workflow routes, private simulation and media authoring
+        run: node scripts/validate-academy-curriculum.mjs
       - name: TypeScript check
         run: npx tsc --noEmit
       - name: Lint new learning and studio pages
-        run: npx eslint src/pages/LearningAcademy.tsx src/pages/AcademyTeamProgress.tsx src/pages/AcademyAssessments.tsx src/pages/BoardHub.tsx src/hooks/useAcademyAssessments.ts src/hooks/useBoardMeetings.ts src/components/onboarding/AcademySupervisorReview.tsx src/hooks/useAcademyProgress.ts src/pages/ContentStudio.tsx src/pages/DepartmentOperationsHub.tsx src/pages/CanonicalMagazinePanel.tsx src/components/onboarding/GuidedWalkthrough.tsx src/hooks/useDepartmentOperations.ts src/pages/EditorialDesk.tsx src/pages/EditorialMediaDesk.tsx src/pages/Publications.tsx src/hooks/useEditorial.ts src/hooks/useEditorialAssets.ts src/hooks/usePublications.ts
+        run: npx eslint src/pages/LearningAcademy.tsx src/pages/AcademyPracticeLab.tsx src/data/academyWorkspaceTracks.ts src/components/onboarding/AcademyNarratedSteps.tsx src/components/onboarding/AcademyLessonResources.tsx src/hooks/useAcademyLessonResources.ts src/pages/AcademyTeamProgress.tsx src/pages/AcademyAssessments.tsx src/pages/BoardHub.tsx src/hooks/useAcademyAssessments.ts src/hooks/useBoardMeetings.ts src/components/onboarding/AcademySupervisorReview.tsx src/hooks/useAcademyProgress.ts src/pages/ContentStudio.tsx src/pages/DepartmentOperationsHub.tsx src/pages/CanonicalMagazinePanel.tsx src/components/onboarding/GuidedWalkthrough.tsx src/hooks/useDepartmentOperations.ts src/pages/EditorialDesk.tsx src/pages/EditorialMediaDesk.tsx src/pages/Publications.tsx src/hooks/useEditorial.ts src/hooks/useEditorialAssets.ts src/hooks/usePublications.ts

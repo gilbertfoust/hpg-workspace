@@ -239,6 +239,26 @@ export default function BoardHub(){
         <Button variant="outline" size="sm" asChild><Link to="/learning?track=board"><ArrowLeft className="mr-2 h-4 w-4"/>Board orientation</Link></Button>
       </CardContent></Card>
       {board.isLoading&&<p className="text-sm text-muted-foreground">Verifying Board membership and loading governed records…</p>}
+      {board.data && <Card><CardHeader>
+        <CardTitle className="text-base">Governance readiness — before any live Board vote</CardTitle>
+        <CardDescription>This is an administrative preflight, not a meeting or a ballot. It does not create sample directors or approve any proposal.</CardDescription>
+      </CardHeader><CardContent className="space-y-2 text-sm">
+        <p>Registered active Board memberships: <strong>{totals.directors}</strong></p>
+        {totals.directors < 2 && <p className="text-amber-700 dark:text-amber-300">
+          The membership register currently has fewer than two active directors. Confirm the actual director appointments and governing bylaws before scheduling a governed vote.
+        </p>}
+        {chosen && <>
+          <p>Selected meeting: {chosen.title} · quorum {chosen.quorum}, affirmative threshold {chosen.required_yes}.</p>
+          {totals.directors < chosen.quorum && <p className="text-amber-700 dark:text-amber-300">
+            The current active roster count is below this meeting's quorum. Meeting publication cannot proceed until legitimate appointments and the correct thresholds are recorded.
+          </p>}
+          {chosen.required_yes > totals.directors && <p className="text-amber-700 dark:text-amber-300">
+            The required affirmative threshold is larger than the active roster count.
+          </p>}
+        </>}
+        {!chosen && <p className="text-muted-foreground">No Board meeting has been selected. Review membership records, bylaws, quorum and conflict procedures before creating a real meeting.</p>}
+        <p className="text-xs text-muted-foreground">Only eligible directors may cast live ballots. A successful application build does not replace director or staff acceptance tests, which are scheduled for the final verification phase.</p>
+      </CardContent></Card>}
       {board.error&&<Card><CardContent className="p-6 text-sm text-destructive" role="alert">
         Board meeting access is unavailable: {msg(board.error)}. A Board role alone does not replace active membership or the required permissions.
       </CardContent></Card>}
