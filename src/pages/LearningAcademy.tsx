@@ -207,6 +207,7 @@ export default function LearningAcademy() {
               <div className="flex flex-wrap gap-2">
                 <Button asChild variant="outline" size="sm"><Link to="/learning/assessments">Take a role-related knowledge check</Link></Button>
                 <Button asChild variant="outline" size="sm"><Link to="/learning/practice">Open the safe practice lab</Link></Button>
+                {isAdminRole(access?.role)&&<Button asChild variant="outline" size="sm"><Link to="/learning/studio">Author instructional recordings</Link></Button>}
                 {mayViewTeam && <Button asChild variant="outline" size="sm"><Link to="/learning/team">View authorized team progress and signoffs</Link></Button>}
               </div>
               {academy.progress.error && <p role="alert" className="text-sm text-destructive">Account progress is unavailable. Completions will not be saved until this connection works.</p>}
