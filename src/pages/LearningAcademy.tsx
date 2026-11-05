@@ -10,6 +10,7 @@ import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
 import { supplementalWorkspaceTracks } from "@/data/academyWorkspaceTracks";
 import AcademyNarratedSteps from "@/components/onboarding/AcademyNarratedSteps";
+import AcademyLessonResources from "@/components/onboarding/AcademyLessonResources";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole, isAdminRole } from "@/hooks/useUserRole";
 import { toast } from "sonner";
@@ -356,6 +357,7 @@ export default function LearningAcademy() {
                         <p className="text-base font-medium">{selectedLesson.steps[step]}</p>
                       </div>
                       <AcademyNarratedSteps title={selectedLesson.name} steps={selectedLesson.steps} currentStep={step} />
+                      <AcademyLessonResources lessonId={selectedLesson.id} />
                       {selectedLesson.path && (
                         <Button asChild variant="outline"><Link to={selectedLesson.path}><ExternalLink className="mr-2 h-4 w-4" /> Open workspace screen</Link></Button>
                       )}
