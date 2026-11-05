@@ -155,6 +155,17 @@ jobs:
             -f supabase/tests/canonical_magazine_issue_smoke.sql \
             2>&1 | tee canonical-magazine-smoke.log
 
+      - name: Run canonical Communications private media security smoke test
+        if: steps.database-scope.outputs.database_changed == 'true'
+        id: canonical-private-media-smoke
+        shell: bash
+        run: |
+          set -o pipefail
+          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" \
+            -v ON_ERROR_STOP=1 \
+            -f supabase/tests/canonical_editorial_media_smoke.sql \
+            2>&1 | tee canonical-editorial-media-smoke.log
+
       - name: Run database lint
         if: steps.database-scope.outputs.database_changed == 'true'
         id: database-lint
@@ -177,6 +188,7 @@ jobs:
             canonical-communications-release-smoke.log
             communications-consent-smoke.log
             canonical-magazine-smoke.log
+            canonical-editorial-media-smoke.log
             supabase-lint.log
           if-no-files-found: ignore
           retention-days: 7
