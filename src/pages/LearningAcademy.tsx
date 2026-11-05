@@ -27,6 +27,7 @@ type Lesson = {
   requiresCanonicalCommunications?: boolean;
   requiresCanonicalMarketing?: boolean;
   requiresCanonicalPublishing?: boolean;
+  requiresCanonicalIssuePublishing?: boolean;
 };
 
 type Track = { id: string; title: string; audience: string; lessons: Lesson[] };
@@ -47,6 +48,7 @@ const tracks: Track[] = [
     { id: "editorial-sources", name: "Document evidence for a story", goal: "Record sources and consent requirements in the canonical Communications evidence register.", path: "/modules/communications", area: "communications", requiresCanonicalCommunications: true, readiness: "pending", steps: ["Open Communications Operations and select an existing editorial story.", "Find Sources and consent evidence below the record details.", "Review existing source names and links. For real approved work, use Record a source with an HTTPS link and its correct consent classification.", "For interviews and impact stories, register a pending consent requirement if needed. A pending requirement never claims permission was granted.", "Return to the stage menu. The backend will check whether a documented source is present before advancing to drafting."], practice: "Find a source record and distinguish a pending consent requirement from a verified release." },
     { id: "consent-review", name: "Review an interview or media consent requirement", goal: "Record independent permission decisions with evidence and expiration before final editorial approval.", path: "/modules/communications", area: "communications", requiresCanonicalCommunications: true, readiness: "pending", steps: ["Open Communications Operations, select an editorial story, and locate Sources and consent evidence.", "A staff member registers the subject and type of required permission. This does not authorize public use.", "A different authorized Communications reviewer selects the consent record in Independent consent review.", "Record the precise approved scope and an HTTPS reference to the actual permission evidence. For granted permission, set the expiration date when one exists.", "Confirm the decision is displayed as Granted or Not Required, as applicable. Declined or pending requirements block the public release workflow; independent editorial approvals must still be current."], practice: "Identify the difference between a consent request, verified permission, and editorial publication approval." },
     { id: "canonical-magazine-assembly", name: "Assemble a canonical magazine issue", goal: "Link approved stories, record a proof, and follow the issue's production and review gates.", path: "/modules/communications", area: "communications", requiresCanonicalCommunications: true, readiness: "pending", steps: ["Open Communications Operations and select Magazine issues.", "Choose an existing issue or create an authorized issue with its intended audience and responsible editor.", "Under Magazine story placements, choose an editorial contribution already scheduled or published and add it to the issue.", "Record the HTTPS design-proof location and planned release date in the issue details, then save.", "Follow the planning, commissioning, production and review stages. The backend requires separate story and issue approvals; a planned date never distributes the issue."], practice: "Identify the issue's approved story placement and design-proof URL." },
+    { id: "canonical-issue-release", name: "Preview and publish an approved HPG magazine issue", goal: "Generate an internal proof and publish only after the canonical issue and all articles pass approval.", path: "/modules/communications", area: "communications", requiresCanonicalIssuePublishing: true, readiness: "pending", steps: ["Open Communications Operations → Magazine issues and select an existing issue.", "Under Magazine story placements, verify each story is reviewed, approved and placed in the intended order.", "Open Magazine proof and publication, inspect the internal text proof and use Print internal proof for editorial review. A proof does not publish the issue.", "Confirm the issue has a reviewed HTTPS design proof, a scheduled release time, an independent publication approval and a separate distribution approval.", "At or after the planned release time, an authorized publisher confirms the rights and approval checks, enters a unique URL name, and selects Publish approved issue to HPG.", "Open the live edition to verify the released text. If necessary, an authorized publisher can withdraw the public edition with a reason; the original distribution record remains for audit."], practice: "Locate the internal proof, the current issue status, and the public release controls. Explain why a magazine containing an unapproved or embargoed story cannot be published." },
     { id: "canonical-public-release", name: "Release an approved Communications story", goal: "Publish reviewed text to HPG Publications while preserving the original approval and evidence history.", path: "/modules/communications", area: "communications", requiresCanonicalPublishing: true, readiness: "pending", steps: ["Open Communications Operations and select an authorized story in Scheduled status.", "Verify that its publication date and any embargo have passed, a numbered version exists, and independent editorial, fact-check, publication and applicable Legal approvals are current.", "Review the rights and consent evidence; sensitive interview or impact material requires documented active permission.", "An authorized Communications publisher chooses a unique public URL name and confirms the final text and permissions before selecting Publish approved text to HPG.", "Open the public page and verify the approved text. If withdrawal is necessary, use the reasoned Withdraw action; cached copies may remain elsewhere."], practice: "Explain why the Scheduled stage alone cannot release a public story and identify the separate withdrawal safeguard." },
     { id: "interview", name: "Begin an interview assignment", goal: "Coordinate editorial responsibility and then document interview evidence.", path: "/modules/communications", area: "communications", requiresCanonicalCommunications: true, readiness: "pending", steps: ["Create an Editorial record with content type Interview and provide a clear research pitch.", "Assign a writer and separate editor before advancing beyond pitch.", "Use the private Editorial Media Library for recordings, and the approved editorial process for consent and interviews.", "Do not move the work to public release until required sources, consent, fact checks and approvals are recorded."], practice: "Identify the stage gate that requires explicit interview consent." },
     { id: "editorial-calendar", name: "Plan the editorial calendar", goal: "Schedule an upcoming story or release and see it on the internal calendar.", path: "/communications/editorial", area: "communications", requiresEditorial: true, readiness: "pending", steps: ["Open Editorial Production Desk and create a real article or interview brief.", "Save its planned release date.", "Open the Calendar tab to locate the scheduled item. This date does not automatically publish content."], practice: "Locate the saved planned date without changing a live published item." },
@@ -80,13 +82,14 @@ const tracks: Track[] = [
   ] },
 ];
 
-const isReady = (lesson: Lesson, editorReady: boolean, publicationReady: boolean, mediaReady: boolean, canonicalCommsReady: boolean, canonicalMarketingReady: boolean, canonicalPublisherReady: boolean) =>
+const isReady = (lesson: Lesson, editorReady: boolean, publicationReady: boolean, mediaReady: boolean, canonicalCommsReady: boolean, canonicalMarketingReady: boolean, canonicalPublisherReady: boolean, canonicalIssueReady: boolean) =>
   lesson.readiness === "navigation" || (!!lesson.requiresEditorial && editorReady) ||
   (!!lesson.requiresPublications && editorReady && publicationReady) ||
   (!!lesson.requiresMedia && editorReady && mediaReady) ||
   (!!lesson.requiresCanonicalCommunications && canonicalCommsReady) ||
   (!!lesson.requiresCanonicalMarketing && canonicalMarketingReady) ||
-  (!!lesson.requiresCanonicalPublishing && canonicalCommsReady && canonicalPublisherReady);
+  (!!lesson.requiresCanonicalPublishing && canonicalCommsReady && canonicalPublisherReady) ||
+  (!!lesson.requiresCanonicalIssuePublishing && canonicalCommsReady && canonicalIssueReady);
 
 const isAllowed = (lesson: Lesson, role?: string | null, access?: Parameters<typeof canAccessArea>[2]) =>
   !lesson.area || canAccessArea(role, lesson.area, access);
@@ -146,6 +149,18 @@ export default function LearningAcademy() {
     },
   });
   const canonicalPublisherReady = publisherSchemaReadiness.data === true;
+  const canonicalIssueSchemaReadiness = useQuery({
+    queryKey: ["canonical-magazine-schema-readiness", user?.id],
+    enabled: canonicalCommsReady,
+    retry: false,
+    queryFn: async () => {
+      const result = await ensureSupabase()
+        .from("editorial_publications" as never)
+        .select("communications_publication_id", { head: true }).limit(1);
+      return !result.error;
+    },
+  });
+  const canonicalIssueReady = canonicalIssueSchemaReadiness.data === true;
   const [params, setParams] = useSearchParams();
   const selectedTrackId = params.get("track") || "start";
   const activeTrack = tracks.find(track => track.id === selectedTrackId) || tracks[0];
@@ -169,8 +184,8 @@ export default function LearningAcademy() {
 
   const selectedLesson = activeTrack.lessons.find(lesson => lesson.id === selectedLessonId);
   const availableLessons = useMemo(
-    () => tracks.flatMap(track => track.lessons).filter(lesson => isReady(lesson, editorReady, publicationReady, mediaReady, canonicalCommsReady, canonicalMarketingReady, canonicalPublisherReady) && isAllowed(lesson, access?.role, access)),
-    [access, editorReady, publicationReady, mediaReady, canonicalCommsReady, canonicalMarketingReady, canonicalPublisherReady],
+    () => tracks.flatMap(track => track.lessons).filter(lesson => isReady(lesson, editorReady, publicationReady, mediaReady, canonicalCommsReady, canonicalMarketingReady, canonicalPublisherReady, canonicalIssueReady) && isAllowed(lesson, access?.role, access)),
+    [access, editorReady, publicationReady, mediaReady, canonicalCommsReady, canonicalMarketingReady, canonicalPublisherReady, canonicalIssueReady],
   );
   const doneCount = availableLessons.filter(lesson => completed.includes(lesson.id)).length;
   const percent = availableLessons.length ? Math.round(doneCount / availableLessons.length * 100) : 0;
@@ -224,7 +239,7 @@ export default function LearningAcademy() {
                   <CardDescription>{selectedLesson.goal}</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-5">
-                  {!isReady(selectedLesson, editorReady, publicationReady, mediaReady, canonicalCommsReady, canonicalMarketingReady, canonicalPublisherReady) ? (
+                  {!isReady(selectedLesson, editorReady, publicationReady, mediaReady, canonicalCommsReady, canonicalMarketingReady, canonicalPublisherReady, canonicalIssueReady) ? (
                     <p className="rounded-lg border border-dashed p-4 text-sm">This workflow is not ready for hands-on training. Its lesson will be activated when the underlying feature is verified.</p>
                   ) : (
                     <>
