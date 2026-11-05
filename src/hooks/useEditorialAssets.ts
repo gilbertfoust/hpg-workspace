@@ -5,7 +5,8 @@ import { ensureSupabase } from "@/integrations/supabase/client";
 
 export type EditorialAsset = {
   id: string;
-  editorial_item_id: string;
+  editorial_item_id: string | null;
+  communications_editorial_item_id: string | null;
   bucket_name: string;
   storage_path: string;
   file_name: string;
@@ -24,13 +25,15 @@ export type EditorialAsset = {
 };
 export type AssetInput = {
   editorial_item_id: string;
+  source?: "standalone" | "canonical";
   file: File;
   alt_text: string;
   attribution: string;
   license_type: "owned" | "licensed" | "permission" | "public_domain" | "unknown";
   rights_document_id: string | null;
 };
-const bucket = "editorial-media-private";
+const standaloneBucket = "editorial-media-private";
+const canonicalBucket = "communications-editorial-private";
 const allowed = new Set(["image/jpeg", "image/png", "image/webp", "image/gif", "application/pdf", "video/mp4", "video/webm", "video/quicktime", "audio/mpeg", "audio/wav"]);
 const maxBytes = 25 * 1024 * 1024; // Browser upload ceiling; larger video belongs in controlled Drive storage.
 
@@ -50,7 +53,8 @@ export function useEditorialAssets() {
 export function useUploadEditorialAsset() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ editorial_item_id, file, alt_text, attribution, license_type, rights_document_id }: AssetInput) => {
+    mutationFn: async ({ editorial_item_id, source = "standalone", file, alt_text, attribution, license_type, rights_document_id }: AssetInput) => {
+      const bucket = source === "canonical" ? canonicalBucket : standaloneBucket;
       if (!allowed.has(file.type)) throw new Error("Unsupported media type. Use images, PDF, supported video, or audio.");
       if (file.size < 1 || file.size > maxBytes) throw new Error("This uploader supports files up to 25 MB. Use approved Drive storage for larger recordings.");
       const client = ensureSupabase() as any;
@@ -61,7 +65,9 @@ export function useUploadEditorialAsset() {
       const uploaded = await client.storage.from(bucket).upload(path, file, { contentType: file.type, upsert: false, cacheControl: "3600" });
       if (uploaded.error) throw uploaded.error;
       const { data, error } = await client.from("editorial_assets").insert({
-        editorial_item_id, file_name: file.name, storage_path: path,
+        editorial_item_id: source === "standalone" ? editorial_item_id : null,
+        communications_editorial_item_id: source === "canonical" ? editorial_item_id : null,
+        bucket_name: bucket, file_name: file.name, storage_path: path,
         content_type: file.type, file_size: file.size,
         alt_text, attribution, license_type, rights_document_id,
       }).select().single();
@@ -114,7 +120,7 @@ export function useReviewEditorialAsset() {
 }
 
 export async function getEditorialAssetPreview(asset: EditorialAsset): Promise<string> {
-  const { data, error } = await ensureSupabase().storage.from(bucket).createSignedUrl(asset.storage_path, 60);
+  const { data, error } = await ensureSupabase().storage.from(asset.bucket_name).createSignedUrl(asset.storage_path, 60);
   if (error || !data?.signedUrl) throw error || new Error("Could not open private media.");
   return data.signedUrl;
 }

@@ -449,6 +449,7 @@ export default function DepartmentOperationsHub({ lane }: { lane: DepartmentLane
                     <CardDescription className="flex flex-wrap gap-2"><Badge>{pretty(selected.status)}</Badge>
                       <Badge variant="outline">Workflow version {selected.current_version ?? 0}</Badge>
                       {selected.work_item_id && <Link className="text-primary underline" to={"/work-items?workItemId=" + selected.work_item_id}>Open linked task</Link>}
+                      {tab === "editorial" && <Link className="text-primary underline" to={"/communications/media?story=" + selected.id}>Open private editorial media</Link>}
                     </CardDescription></CardHeader>
                   <CardContent className="space-y-3">
                     <div className="space-y-1"><Label>Title</Label><Input value={draft.title} maxLength={240} disabled={!editable} onChange={e => setDraft(v => ({ ...v, title: e.target.value }))} /></div>

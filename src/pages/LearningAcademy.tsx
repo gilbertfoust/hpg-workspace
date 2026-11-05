@@ -28,6 +28,7 @@ type Lesson = {
   requiresCanonicalMarketing?: boolean;
   requiresCanonicalPublishing?: boolean;
   requiresCanonicalIssuePublishing?: boolean;
+  requiresCanonicalMedia?: boolean;
 };
 
 type Track = { id: string; title: string; audience: string; lessons: Lesson[] };
@@ -54,6 +55,7 @@ const tracks: Track[] = [
     { id: "editorial-calendar", name: "Plan the editorial calendar", goal: "Schedule an upcoming story or release and see it on the internal calendar.", path: "/communications/editorial", area: "communications", requiresEditorial: true, readiness: "pending", steps: ["Open Editorial Production Desk and create a real article or interview brief.", "Save its planned release date.", "Open the Calendar tab to locate the scheduled item. This date does not automatically publish content."], practice: "Locate the saved planned date without changing a live published item." },
     { id: "interview-controls", name: "Document interview consent", goal: "Link stored release evidence before an interview is approved.", path: "/communications/editorial", area: "communications", requiresEditorial: true, readiness: "pending", steps: ["Open an existing Interview item.", "Attach a signed consent/release from the authorized Documents area.", "Confirm the agreed publication scope and add a transcript link if available.", "Submit the saved version for a separate editorial review."], practice: "Identify which document demonstrates consent for a real interview." },
     { id: "publish-magazine", name: "Assemble and publish an HPG magazine", goal: "Arrange approved contributions and release a controlled public edition.", path: "/communications/editorial", area: "communications", requiresPublications: true, readiness: "pending", steps: ["Create an issue and add the relevant article contributions.", "Arrange the order, print an internal proof, and verify each contribution is approved.", "Submit the saved issue for an independent review. Authors cannot approve their own work.", "After approval, select Publish to HPG Publications, choose a unique URL slug, and confirm the text is approved for public release.", "Open the public edition and verify the article contents. A publisher can withdraw a released page if necessary."], practice: "Explain the distinction between an internal proof, editorial approval, and public release." },
+    { id: "canonical-media", name: "Attach private media to a Communications story", goal: "Link recordings and photographs to the original story while retaining independent rights review.", path: "/communications/media", area: "communications", requiresCanonicalMedia: true, readiness: "pending", steps: ["Open a real story in Communications Operations and choose Open private editorial media.", "Confirm that Original Communications Operations is the media source, then select the story; the file will remain in the canonical private storage bucket.", "Upload an authorized photo, PDF, audio or short video file with an attribution and rights basis. Store larger recordings through approved organizational Drive storage.", "Attach the permission or license document where required, and save any corrected attribution or alternative text while the record is pending.", "A separate authorized reviewer clears or rejects media rights. Rights clearance does not publish the file, expose it publicly, or override a story's consent and editorial approval steps."], practice: "Find the story-linked media record and distinguish Pending, Cleared, and Rejected rights states." },
     { id: "media-rights", name: "Manage editorial media and rights", goal: "Store interviews, photos and recordings privately and review rights before use.", path: "/communications/media", area: "communications", requiresMedia: true, readiness: "pending", steps: ["Open Editorial Media Library and choose a real editorial item.", "Upload the file with a creator credit, description, and verifiable rights basis.", "Attach a permission or license record for material that requires it.", "A different authorized reviewer checks the evidence and clears or rejects the asset.", "Remember: clearance does not publish the private media or make the file publicly accessible."], practice: "Locate a private media asset and identify its rights review status." },
   ] },
   { id: "marketing", title: "Social Media & Marketing", audience: "Campaign planners and social-media staff", lessons: [
@@ -82,14 +84,15 @@ const tracks: Track[] = [
   ] },
 ];
 
-const isReady = (lesson: Lesson, editorReady: boolean, publicationReady: boolean, mediaReady: boolean, canonicalCommsReady: boolean, canonicalMarketingReady: boolean, canonicalPublisherReady: boolean, canonicalIssueReady: boolean) =>
+const isReady = (lesson: Lesson, editorReady: boolean, publicationReady: boolean, mediaReady: boolean, canonicalCommsReady: boolean, canonicalMarketingReady: boolean, canonicalPublisherReady: boolean, canonicalIssueReady: boolean, canonicalMediaReady: boolean) =>
   lesson.readiness === "navigation" || (!!lesson.requiresEditorial && editorReady) ||
   (!!lesson.requiresPublications && editorReady && publicationReady) ||
   (!!lesson.requiresMedia && editorReady && mediaReady) ||
   (!!lesson.requiresCanonicalCommunications && canonicalCommsReady) ||
   (!!lesson.requiresCanonicalMarketing && canonicalMarketingReady) ||
   (!!lesson.requiresCanonicalPublishing && canonicalCommsReady && canonicalPublisherReady) ||
-  (!!lesson.requiresCanonicalIssuePublishing && canonicalCommsReady && canonicalIssueReady);
+  (!!lesson.requiresCanonicalIssuePublishing && canonicalCommsReady && canonicalIssueReady) ||
+  (!!lesson.requiresCanonicalMedia && canonicalCommsReady && canonicalMediaReady);
 
 const isAllowed = (lesson: Lesson, role?: string | null, access?: Parameters<typeof canAccessArea>[2]) =>
   !lesson.area || canAccessArea(role, lesson.area, access);
@@ -161,6 +164,18 @@ export default function LearningAcademy() {
     },
   });
   const canonicalIssueReady = canonicalIssueSchemaReadiness.data === true;
+  const canonicalMediaReadiness = useQuery({
+    queryKey: ["canonical-media-schema-readiness", user?.id],
+    enabled: canonicalCommsReady,
+    retry: false,
+    queryFn: async () => {
+      const result = await ensureSupabase()
+        .from("editorial_assets" as never)
+        .select("communications_editorial_item_id", { head: true }).limit(1);
+      return !result.error;
+    },
+  });
+  const canonicalMediaReady = canonicalMediaReadiness.data === true;
   const [params, setParams] = useSearchParams();
   const selectedTrackId = params.get("track") || "start";
   const activeTrack = tracks.find(track => track.id === selectedTrackId) || tracks[0];
@@ -184,8 +199,8 @@ export default function LearningAcademy() {
 
   const selectedLesson = activeTrack.lessons.find(lesson => lesson.id === selectedLessonId);
   const availableLessons = useMemo(
-    () => tracks.flatMap(track => track.lessons).filter(lesson => isReady(lesson, editorReady, publicationReady, mediaReady, canonicalCommsReady, canonicalMarketingReady, canonicalPublisherReady, canonicalIssueReady) && isAllowed(lesson, access?.role, access)),
-    [access, editorReady, publicationReady, mediaReady, canonicalCommsReady, canonicalMarketingReady, canonicalPublisherReady, canonicalIssueReady],
+    () => tracks.flatMap(track => track.lessons).filter(lesson => isReady(lesson, editorReady, publicationReady, mediaReady, canonicalCommsReady, canonicalMarketingReady, canonicalPublisherReady, canonicalIssueReady, canonicalMediaReady) && isAllowed(lesson, access?.role, access)),
+    [access, editorReady, publicationReady, mediaReady, canonicalCommsReady, canonicalMarketingReady, canonicalPublisherReady, canonicalIssueReady, canonicalMediaReady],
   );
   const doneCount = availableLessons.filter(lesson => completed.includes(lesson.id)).length;
   const percent = availableLessons.length ? Math.round(doneCount / availableLessons.length * 100) : 0;
@@ -239,7 +254,7 @@ export default function LearningAcademy() {
                   <CardDescription>{selectedLesson.goal}</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-5">
-                  {!isReady(selectedLesson, editorReady, publicationReady, mediaReady, canonicalCommsReady, canonicalMarketingReady, canonicalPublisherReady, canonicalIssueReady) ? (
+                  {!isReady(selectedLesson, editorReady, publicationReady, mediaReady, canonicalCommsReady, canonicalMarketingReady, canonicalPublisherReady, canonicalIssueReady, canonicalMediaReady) ? (
                     <p className="rounded-lg border border-dashed p-4 text-sm">This workflow is not ready for hands-on training. Its lesson will be activated when the underlying feature is verified.</p>
                   ) : (
                     <>
