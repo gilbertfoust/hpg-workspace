@@ -13,6 +13,7 @@ import { useCurrentProfile } from "@/hooks/useProfiles";
 import { useUserRole } from "@/hooks/useUserRole";
 import { UserIdentityChip } from "@/components/layout/UserIdentityChip";
 import { WorkspaceNgoSelector } from "@/components/layout/WorkspaceNgoSelector";
+import AcademyScreenGuide from "@/components/onboarding/AcademyScreenGuide";
 
 interface MainLayoutProps {
   children: ReactNode;
@@ -57,6 +58,7 @@ export function MainLayout({ children, title, subtitle, actions }: MainLayoutPro
         aria-hidden="true"
       />
       <AppSidebar />
+      <AcademyScreenGuide />
       
       <div className="flex-1 flex flex-col min-w-0 relative z-10">
         {/* Top header bar */}

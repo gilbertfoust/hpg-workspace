@@ -4,7 +4,10 @@ import { readFileSync } from "node:fs";
 import assert from "node:assert/strict";
 const file = path => readFileSync(path,"utf8");
 
-const core=file("src/pages/LearningAcademy.tsx");
+const core=file("src/data/academyCoreTracks.ts");
+const learningPage=file("src/pages/LearningAcademy.tsx");
+const liveOverlay=file("src/components/onboarding/AcademyScreenGuide.tsx");
+const layout=file("src/components/layout/MainLayout.tsx");
 const supplemental=file("src/data/academyWorkspaceTracks.ts");
 const routes=file("src/App.tsx");
 const practice=file("src/pages/AcademyPracticeLab.tsx");
@@ -31,10 +34,14 @@ for(const lesson of addedLessons)assert.ok(
 );
 
 assert.ok(core.includes("supplementalWorkspaceTracks"),"Expanded catalog must be imported");
-assert.ok(core.includes("AcademyNarratedSteps"),"Every viewed lesson needs accessible narration");
-assert.ok(core.includes("AcademyLessonResources"),"Approved instructional resources must appear in lessons");
-assert.ok(core.includes('to="/learning/practice"'),"Learner should reach safe simulated practice");
+assert.ok(learningPage.includes("AcademyNarratedSteps"),"Every viewed lesson needs accessible narration");
+assert.ok(learningPage.includes("AcademyLessonResources"),"Approved instructional resources must appear in lessons");
+assert.ok(learningPage.includes('to="/learning/practice"'),"Learner should reach safe simulated practice");
 assert.ok(routes.includes('path="/learning/practice"'),"Safe practice route missing");
+assert.ok(learningPage.includes("?academyLesson="),"Open screen should pass current tutorial context");
+assert.ok(layout.includes("<AcademyScreenGuide />"),"Application layout should show the in-screen guide");
+assert.ok(liveOverlay.includes("academy.mark.mutateAsync"),"A learner should explicitly save progress");
+assert.ok(!/\.from\(|\.rpc\(|ensureSupabase|fetch\(/.test(liveOverlay),"Live guide must not mutate operational records");
 assert.ok(!/ensureSupabase|\.rpc\(|\.from\(|fetch\(|localStorage/.test(practice),
   "Practice lab must not contact production systems or save simulation data");
 
