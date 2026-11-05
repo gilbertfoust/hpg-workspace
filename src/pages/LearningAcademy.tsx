@@ -8,7 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { useAuth } from "@/contexts/AuthContext";
-import { useUserRole } from "@/hooks/useUserRole";
+import { useUserRole, isAdminRole } from "@/hooks/useUserRole";
+import { toast } from "sonner";
+import { useAcademyProgress, useAcademyTeamProgress } from "@/hooks/useAcademyProgress";
 import { canAccessArea, type AccessArea } from "@/lib/accessControl";
 import { ensureSupabase } from "@/integrations/supabase/client";
 
@@ -100,6 +102,8 @@ const isAllowed = (lesson: Lesson, role?: string | null, access?: Parameters<typ
 export default function LearningAcademy() {
   const { user } = useAuth();
   const { data: access } = useUserRole();
+  const academy = useAcademyProgress();
+  const team = useAcademyTeamProgress();
   const editorialReadiness = useQuery({
     queryKey: ["editorial-academy-readiness", user?.id],
     enabled: !!user?.id && canAccessArea(access?.role, "communications", access),
@@ -181,17 +185,19 @@ export default function LearningAcademy() {
   const activeTrack = tracks.find(track => track.id === selectedTrackId) || tracks[0];
   const [selectedLessonId, setSelectedLessonId] = useState<string | null>(null);
   const [step, setStep] = useState(0);
-  const [completed, setCompleted] = useState<string[]>([]);
+  const [legacyCompleted, setLegacyCompleted] = useState<string[]>([]);
+  const completed = (academy.progress.data || []).map(item => item.lesson_id);
   const storageKey = user?.id ? "hpg-academy:v1:" + user.id : null;
+  const mayViewTeam = isAdminRole(access?.role) || (team.data || []).length > 0;
 
   useEffect(() => {
-    setCompleted([]);
+    setLegacyCompleted([]);
     if (!storageKey) return;
     try {
       const saved: unknown = JSON.parse(window.localStorage.getItem(storageKey) || "[]");
-      if (Array.isArray(saved)) setCompleted(saved.filter((value): value is string => typeof value === "string"));
+      if (Array.isArray(saved)) setLegacyCompleted(saved.filter((value): value is string => typeof value === "string"));
     } catch {
-      setCompleted([]);
+      setLegacyCompleted([]);
     }
   }, [storageKey]);
 
@@ -205,11 +211,35 @@ export default function LearningAcademy() {
   const doneCount = availableLessons.filter(lesson => completed.includes(lesson.id)).length;
   const percent = availableLessons.length ? Math.round(doneCount / availableLessons.length * 100) : 0;
 
-  const markComplete = (id: string) => {
-    if (!storageKey) return;
-    const next = Array.from(new Set([...completed, id]));
-    setCompleted(next);
-    try { window.localStorage.setItem(storageKey, JSON.stringify(next)); } catch { /* storage unavailable */ }
+  const legacyEligible = legacyCompleted.filter(id =>
+    availableLessons.some(lesson => lesson.id === id) && !completed.includes(id));
+  const markComplete = async (id: string) => {
+    if (completed.includes(id)) return;
+    try {
+      await academy.mark.mutateAsync(id);
+      toast.success("Practice completion saved to your HPG account.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Training progress could not be saved.");
+    }
+  };
+  const undoCompletion = async (id: string) => {
+    try {
+      await academy.undo.mutateAsync(id);
+      toast.success("Self-reported completion corrected.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not correct your training record.");
+    }
+  };
+  const importLocalProgress = async () => {
+    if (!storageKey || legacyEligible.length === 0) return;
+    try {
+      const count = await academy.importLegacy.mutateAsync(legacyEligible);
+      window.localStorage.removeItem(storageKey);
+      setLegacyCompleted([]);
+      toast.success(count + " local practice completions imported to your HPG account.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Device progress could not be imported.");
+    }
   };
 
   return (
@@ -222,17 +252,31 @@ export default function LearningAcademy() {
               <h2 className="text-xl font-semibold">Welcome. Start with one useful action.</h2>
               <p className="text-sm text-muted-foreground">Open the real workspace screens, follow the guided instructions, and return when ready. Training never creates fake accounting entries, grant applications, or board votes.</p>
               <div className="flex items-center gap-3"><Progress value={percent} className="max-w-sm" /><span className="whitespace-nowrap text-xs text-muted-foreground">{doneCount}/{availableLessons.length} lessons</span></div>
-              <p className="text-xs text-muted-foreground">Completion is self-reported and saved on this device only; it is not an official HR training record.</p>
+              <p className="text-xs text-muted-foreground">Completion is self-reported and saved to your HPG account across devices. It is not an official HR certification or competency assessment.</p>
+              {mayViewTeam && <Button asChild variant="outline" size="sm"><Link to="/learning/team">View authorized team progress</Link></Button>}
+              {academy.progress.error && <p role="alert" className="text-sm text-destructive">Account progress is unavailable. Completions will not be saved until this connection works.</p>}
+              {academy.progress.isLoading && <p className="text-xs text-muted-foreground">Loading your saved learning history…</p>}
             </div>
           </CardContent>
         </Card>
 
+        {legacyEligible.length > 0 && academy.progress.isSuccess && <Card>
+          <CardContent className="flex flex-wrap items-center gap-3 p-4">
+            <div className="min-w-56 flex-1">
+              <p className="font-medium">Previous device-only progress found</p>
+              <p className="text-sm text-muted-foreground">{legacyEligible.length} previously marked lessons can be copied to your account if you choose. No import happens automatically.</p>
+            </div>
+            <Button variant="outline" disabled={academy.importLegacy.isPending} onClick={importLocalProgress}>
+              {academy.importLegacy.isPending ? "Importing…" : "Import my earlier progress"}
+            </Button>
+          </CardContent>
+        </Card>}
         <div className="grid gap-6 lg:grid-cols-[285px_minmax(0,1fr)]">
           <Card className="h-fit">
             <CardHeader><CardTitle className="text-base">Learning paths</CardTitle><CardDescription>Select your area of work.</CardDescription></CardHeader>
             <CardContent className="space-y-1">
               {tracks.map(track => {
-                const allowed = track.lessons.some(lesson => isAllowed(lesson, access?.role, access) && isReady(lesson, editorReady, publicationReady, mediaReady));
+                const allowed = track.lessons.some(lesson => isAllowed(lesson, access?.role, access) && isReady(lesson, editorReady, publicationReady, mediaReady, canonicalCommsReady, canonicalMarketingReady, canonicalPublisherReady, canonicalIssueReady, canonicalMediaReady));
                 return (
                   <Button key={track.id} size="sm" variant={activeTrack.id === track.id ? "secondary" : "ghost"}
                     className="h-auto w-full justify-start py-2 text-left whitespace-normal"
@@ -260,7 +304,7 @@ export default function LearningAcademy() {
                     <>
                       <div className="flex items-center justify-between text-sm">
                         <Badge variant="secondary">Step {step + 1} of {selectedLesson.steps.length}</Badge>
-                        {completed.includes(selectedLesson.id) && <Badge variant="outline"><CheckCircle2 className="mr-1 h-3 w-3" /> Completed on this device</Badge>}
+                        {completed.includes(selectedLesson.id) && <Badge variant="outline"><CheckCircle2 className="mr-1 h-3 w-3" /> Self-reported complete</Badge>}
                       </div>
                       <div className="rounded-xl border bg-muted/30 p-5">
                         <p className="text-base font-medium">{selectedLesson.steps[step]}</p>
@@ -273,11 +317,12 @@ export default function LearningAcademy() {
                         {step < selectedLesson.steps.length - 1 ? (
                           <Button onClick={() => setStep(previous => previous + 1)}>Next <ArrowRight className="ml-2 h-4 w-4" /></Button>
                         ) : (
-                          <Button onClick={() => markComplete(selectedLesson.id)} disabled={completed.includes(selectedLesson.id)}>
+                          <Button onClick={() => markComplete(selectedLesson.id)} disabled={completed.includes(selectedLesson.id) || academy.mark.isPending || !academy.progress.isSuccess}>
                             <CheckCircle2 className="mr-2 h-4 w-4" /> {completed.includes(selectedLesson.id) ? "Completed" : "I completed this practice"}
                           </Button>
                         )}
                       </div>
+                      {completed.includes(selectedLesson.id) && <Button size="sm" variant="ghost" disabled={academy.undo.isPending} onClick={() => undoCompletion(selectedLesson.id)}>Correct my completion record</Button>}
                       <div className="rounded-lg border-l-4 border-primary bg-primary/5 p-4 text-sm"><strong>Practice check:</strong> {selectedLesson.practice}</div>
                     </>
                   )}
@@ -289,7 +334,7 @@ export default function LearningAcademy() {
                 <div className="grid gap-3">
                   {activeTrack.lessons.map(lesson => {
                     const allowed = isAllowed(lesson, access?.role, access);
-                    const pending = !isReady(lesson, editorReady, publicationReady, mediaReady);
+                    const pending = !isReady(lesson, editorReady, publicationReady, mediaReady, canonicalCommsReady, canonicalMarketingReady, canonicalPublisherReady, canonicalIssueReady, canonicalMediaReady);
                     return (
                       <Card key={lesson.id}>
                         <CardContent className="flex flex-wrap items-center gap-4 p-4">
