@@ -129,6 +129,7 @@ const ROUTE_AREA_PREFIXES: { prefix: string; area: AccessArea }[] = [
   { prefix: "/modules/curriculum", area: "program" },
   { prefix: "/reports", area: "reports" },
   { prefix: "/board/hub", area: "reports" },
+  { prefix: "/research", area: "documents" },
   { prefix: "/documents", area: "documents" },
   { prefix: "/work-items", area: "work_items" },
   { prefix: "/my-queue", area: "work_items" },
