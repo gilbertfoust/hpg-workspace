@@ -12,7 +12,7 @@ begin
   if has_function_privilege('anon','public.decide_communications_consent(uuid,text,text,text,timestamptz)','EXECUTE') then
     raise exception 'Anonymous users can call consent decision';
   end if;
-  if not has_function_privilege('authenticated','public.decide_communications_consent(uuid,text,text,timestamptz)','EXECUTE') then
+  if not has_function_privilege('authenticated','public.decide_communications_consent(uuid,text,text,text,timestamptz)','EXECUTE') then
     raise exception 'Authenticated reviewer RPC is not callable';
   end if;
   if not exists(
