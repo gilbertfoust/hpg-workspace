@@ -46,16 +46,20 @@ begin
     raise exception 'A submitted and reviewed editorial version is required' using errcode='23514';
   end if;
   select * into version from public.communications_content_versions
-    where editorial_item_id=p_id and version=story.current_version;
+    where editorial_item_id=p_id and version=story.current_version for share;
   if not found or version.status not in ('editor_accepted','final')
     or length(btrim(version.body_markdown))<20 then
     raise exception 'The current editorial text has not passed independent review' using errcode='23514';
   end if;
   -- Prevent the private media library and signed file URLs from leaking via
   -- pasted Markdown. Human review must also check names and sensitive details.
-  if version.body_markdown ~* '(editorial-media-private|/storage/v1/object/sign/)' then
+  if concat_ws(' ',version.headline,version.dek,version.body_markdown,story.pitch_summary) ~* '(editorial-media-private|/storage/v1/object/sign/)' then
     raise exception 'Remove private storage links from text before publishing' using errcode='23514';
   end if;
+  -- Freeze evidence rows during the final authorization/release transaction.
+  perform 1 from public.communications_sources where editorial_item_id=p_id for share;
+  perform 1 from public.communications_rights_consents where editorial_item_id=p_id for share;
+  perform 1 from public.communications_fact_checks where editorial_item_id=p_id for share;
   if exists(
     select 1 from public.communications_fact_checks fact
     where fact.editorial_item_id=p_id and fact.result in ('pending','disputed')
