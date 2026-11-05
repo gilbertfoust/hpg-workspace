@@ -6,6 +6,11 @@ on:
     paths:
       - 'src/pages/LearningAcademy.tsx'
       - 'src/pages/AcademyTeamProgress.tsx'
+      - 'src/pages/AcademyAssessments.tsx'
+      - 'src/pages/BoardHub.tsx'
+      - 'src/hooks/useAcademyAssessments.ts'
+      - 'src/hooks/useBoardMeetings.ts'
+      - 'src/components/onboarding/AcademySupervisorReview.tsx'
       - 'src/hooks/useAcademyProgress.ts'
       - 'src/pages/ContentStudio.tsx'
       - 'src/pages/EditorialDesk.tsx'
@@ -38,4 +43,4 @@ jobs:
       - name: TypeScript check
         run: npx tsc --noEmit
       - name: Lint new learning and studio pages
-        run: npx eslint src/pages/LearningAcademy.tsx src/pages/AcademyTeamProgress.tsx src/hooks/useAcademyProgress.ts src/pages/ContentStudio.tsx src/pages/DepartmentOperationsHub.tsx src/pages/CanonicalMagazinePanel.tsx src/components/onboarding/GuidedWalkthrough.tsx src/hooks/useDepartmentOperations.ts src/pages/EditorialDesk.tsx src/pages/EditorialMediaDesk.tsx src/pages/Publications.tsx src/hooks/useEditorial.ts src/hooks/useEditorialAssets.ts src/hooks/usePublications.ts
+        run: npx eslint src/pages/LearningAcademy.tsx src/pages/AcademyTeamProgress.tsx src/pages/AcademyAssessments.tsx src/pages/BoardHub.tsx src/hooks/useAcademyAssessments.ts src/hooks/useBoardMeetings.ts src/components/onboarding/AcademySupervisorReview.tsx src/hooks/useAcademyProgress.ts src/pages/ContentStudio.tsx src/pages/DepartmentOperationsHub.tsx src/pages/CanonicalMagazinePanel.tsx src/components/onboarding/GuidedWalkthrough.tsx src/hooks/useDepartmentOperations.ts src/pages/EditorialDesk.tsx src/pages/EditorialMediaDesk.tsx src/pages/Publications.tsx src/hooks/useEditorial.ts src/hooks/useEditorialAssets.ts src/hooks/usePublications.ts
