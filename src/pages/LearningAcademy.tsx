@@ -31,6 +31,7 @@ type Lesson = {
   requiresCanonicalPublishing?: boolean;
   requiresCanonicalIssuePublishing?: boolean;
   requiresCanonicalMedia?: boolean;
+  requiresBoardHub?: boolean;
 };
 
 type Track = { id: string; title: string; audience: string; lessons: Lesson[] };
@@ -82,11 +83,11 @@ const tracks: Track[] = [
   ] },
   { id: "board", title: "Board of Directors", audience: "Board directors and governance officers", lessons: [
     { id: "board-dashboard", name: "Read organizational reports", goal: "Find authorized oversight materials using board-level permissions.", path: "/reports", area: "reports", readiness: "navigation", steps: ["Open Reports.", "Review only reports available to your role.", "Record questions or requests through approved board communication channels; do not edit staff records."], practice: "Find an authorized report and identify one oversight question." },
-    { id: "board-hub", name: "Board meeting and voting hub", goal: "Access agendas, minutes, committee assignments, and recorded votes.", readiness: "pending", steps: ["A dedicated board hub and voting workflow are not yet verified in this application."], practice: "Use the existing authorized governance process until a verified board workflow is introduced." },
+    { id: "board-hub", name: "Use HPG Board meeting and voting workflow", goal: "Read agendas, record attendance, vote on open motions, approve minutes and follow Board work items.", path: "/board/hub", area: "reports", requiresBoardHub: true, readiness: "pending", steps: ["Open the HPG Board of Directors Hub and choose a governed meeting. If the list is empty, an authorized meeting administrator must create a draft; do not invent a meeting for practice.", "Review the agenda, original motion text, evidence packet, scheduled date and explicit quorum rule.", "A current eligible director records their own attendance before voting. Only the administrator can open a motion after the meeting starts and quorum checks pass.", "Cast a Yes, No or Recused ballot only on an open motion; a source-linked motion must have current supporting evidence. A director involved in the source work may be required to recuse.", "Minutes are submitted after motions conclude and approved separately by eligible directors. Approved meeting actions are assigned through workspace work items."], practice: "Locate the quorum, meeting status and the next permitted action. Explain why a draft motion cannot receive ballots." },
   ] },
 ];
 
-const isReady = (lesson: Lesson, editorReady: boolean, publicationReady: boolean, mediaReady: boolean, canonicalCommsReady: boolean, canonicalMarketingReady: boolean, canonicalPublisherReady: boolean, canonicalIssueReady: boolean, canonicalMediaReady: boolean) =>
+const isReady = (lesson: Lesson, editorReady: boolean, publicationReady: boolean, mediaReady: boolean, canonicalCommsReady: boolean, canonicalMarketingReady: boolean, canonicalPublisherReady: boolean, canonicalIssueReady: boolean, canonicalMediaReady: boolean, boardReady: boolean) =>
   lesson.readiness === "navigation" || (!!lesson.requiresEditorial && editorReady) ||
   (!!lesson.requiresPublications && editorReady && publicationReady) ||
   (!!lesson.requiresMedia && editorReady && mediaReady) ||
@@ -94,7 +95,8 @@ const isReady = (lesson: Lesson, editorReady: boolean, publicationReady: boolean
   (!!lesson.requiresCanonicalMarketing && canonicalMarketingReady) ||
   (!!lesson.requiresCanonicalPublishing && canonicalCommsReady && canonicalPublisherReady) ||
   (!!lesson.requiresCanonicalIssuePublishing && canonicalCommsReady && canonicalIssueReady) ||
-  (!!lesson.requiresCanonicalMedia && canonicalCommsReady && canonicalMediaReady);
+  (!!lesson.requiresCanonicalMedia && canonicalCommsReady && canonicalMediaReady) ||
+  (!!lesson.requiresBoardHub && boardReady);
 
 const isAllowed = (lesson: Lesson, role?: string | null, access?: Parameters<typeof canAccessArea>[2]) =>
   !lesson.area || canAccessArea(role, lesson.area, access);
@@ -180,6 +182,16 @@ export default function LearningAcademy() {
     },
   });
   const canonicalMediaReady = canonicalMediaReadiness.data === true;
+  const boardReadiness = useQuery({
+    queryKey: ["board-academy-workflow-ready",user?.id],
+    enabled: !!user?.id && canAccessArea(access?.role,"reports",access),
+    retry: false,
+    queryFn: async () => {
+      const result=await ensureSupabase().rpc("can_read_bod_meetings" as never);
+      return !result.error && result.data === true;
+    }
+  });
+  const boardReady = boardReadiness.data === true;
   const [params, setParams] = useSearchParams();
   const selectedTrackId = params.get("track") || "start";
   const activeTrack = tracks.find(track => track.id === selectedTrackId) || tracks[0];
@@ -205,8 +217,8 @@ export default function LearningAcademy() {
 
   const selectedLesson = activeTrack.lessons.find(lesson => lesson.id === selectedLessonId);
   const availableLessons = useMemo(
-    () => tracks.flatMap(track => track.lessons).filter(lesson => isReady(lesson, editorReady, publicationReady, mediaReady, canonicalCommsReady, canonicalMarketingReady, canonicalPublisherReady, canonicalIssueReady, canonicalMediaReady) && isAllowed(lesson, access?.role, access)),
-    [access, editorReady, publicationReady, mediaReady, canonicalCommsReady, canonicalMarketingReady, canonicalPublisherReady, canonicalIssueReady, canonicalMediaReady],
+    () => tracks.flatMap(track => track.lessons).filter(lesson => isReady(lesson, editorReady, publicationReady, mediaReady, canonicalCommsReady, canonicalMarketingReady, canonicalPublisherReady, canonicalIssueReady, canonicalMediaReady, boardReady) && isAllowed(lesson, access?.role, access)),
+    [access, editorReady, publicationReady, mediaReady, canonicalCommsReady, canonicalMarketingReady, canonicalPublisherReady, canonicalIssueReady, canonicalMediaReady, boardReady],
   );
   const doneCount = availableLessons.filter(lesson => completed.includes(lesson.id)).length;
   const percent = availableLessons.length ? Math.round(doneCount / availableLessons.length * 100) : 0;
@@ -253,7 +265,10 @@ export default function LearningAcademy() {
               <p className="text-sm text-muted-foreground">Open the real workspace screens, follow the guided instructions, and return when ready. Training never creates fake accounting entries, grant applications, or board votes.</p>
               <div className="flex items-center gap-3"><Progress value={percent} className="max-w-sm" /><span className="whitespace-nowrap text-xs text-muted-foreground">{doneCount}/{availableLessons.length} lessons</span></div>
               <p className="text-xs text-muted-foreground">Completion is self-reported and saved to your HPG account across devices. It is not an official HR certification or competency assessment.</p>
-              {mayViewTeam && <Button asChild variant="outline" size="sm"><Link to="/learning/team">View authorized team progress</Link></Button>}
+              <div className="flex flex-wrap gap-2">
+                <Button asChild variant="outline" size="sm"><Link to="/learning/assessments">Take a role-related knowledge check</Link></Button>
+                {mayViewTeam && <Button asChild variant="outline" size="sm"><Link to="/learning/team">View authorized team progress and signoffs</Link></Button>}
+              </div>
               {academy.progress.error && <p role="alert" className="text-sm text-destructive">Account progress is unavailable. Completions will not be saved until this connection works.</p>}
               {academy.progress.isLoading && <p className="text-xs text-muted-foreground">Loading your saved learning history…</p>}
             </div>
@@ -276,7 +291,7 @@ export default function LearningAcademy() {
             <CardHeader><CardTitle className="text-base">Learning paths</CardTitle><CardDescription>Select your area of work.</CardDescription></CardHeader>
             <CardContent className="space-y-1">
               {tracks.map(track => {
-                const allowed = track.lessons.some(lesson => isAllowed(lesson, access?.role, access) && isReady(lesson, editorReady, publicationReady, mediaReady, canonicalCommsReady, canonicalMarketingReady, canonicalPublisherReady, canonicalIssueReady, canonicalMediaReady));
+                const allowed = track.lessons.some(lesson => isAllowed(lesson, access?.role, access) && isReady(lesson, editorReady, publicationReady, mediaReady, canonicalCommsReady, canonicalMarketingReady, canonicalPublisherReady, canonicalIssueReady, canonicalMediaReady, boardReady));
                 return (
                   <Button key={track.id} size="sm" variant={activeTrack.id === track.id ? "secondary" : "ghost"}
                     className="h-auto w-full justify-start py-2 text-left whitespace-normal"
@@ -298,7 +313,7 @@ export default function LearningAcademy() {
                   <CardDescription>{selectedLesson.goal}</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-5">
-                  {!isReady(selectedLesson, editorReady, publicationReady, mediaReady, canonicalCommsReady, canonicalMarketingReady, canonicalPublisherReady, canonicalIssueReady, canonicalMediaReady) ? (
+                  {!isReady(selectedLesson, editorReady, publicationReady, mediaReady, canonicalCommsReady, canonicalMarketingReady, canonicalPublisherReady, canonicalIssueReady, canonicalMediaReady, boardReady) ? (
                     <p className="rounded-lg border border-dashed p-4 text-sm">This workflow is not ready for hands-on training. Its lesson will be activated when the underlying feature is verified.</p>
                   ) : (
                     <>
@@ -334,7 +349,7 @@ export default function LearningAcademy() {
                 <div className="grid gap-3">
                   {activeTrack.lessons.map(lesson => {
                     const allowed = isAllowed(lesson, access?.role, access);
-                    const pending = !isReady(lesson, editorReady, publicationReady, mediaReady, canonicalCommsReady, canonicalMarketingReady, canonicalPublisherReady, canonicalIssueReady, canonicalMediaReady);
+                    const pending = !isReady(lesson, editorReady, publicationReady, mediaReady, canonicalCommsReady, canonicalMarketingReady, canonicalPublisherReady, canonicalIssueReady, canonicalMediaReady, boardReady);
                     return (
                       <Card key={lesson.id}>
                         <CardContent className="flex flex-wrap items-center gap-4 p-4">
