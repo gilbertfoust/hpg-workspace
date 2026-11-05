@@ -1,4 +1,7 @@
 import { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useAuth } from "@/contexts/AuthContext";
+import { ensureSupabase } from "@/integrations/supabase/client";
 import { Link } from "react-router-dom";
 import { ArrowLeft, BookOpen, CheckCircle2, ClipboardCheck, LockKeyhole, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
@@ -18,6 +21,15 @@ const pretty = (s: string) => s.replaceAll("_"," ").replace(/\b\w/g,ch=>ch.toUpp
 const errorText = (e: unknown) => e instanceof Error ? e.message : "Assessment could not be processed.";
 
 export default function AcademyAssessments() {
+  const {user}=useAuth();
+  const boardEligibility=useQuery({
+    queryKey:["academy-board-quiz-eligibility",user?.id],
+    enabled:!!user?.id,retry:false,
+    queryFn:async()=>{
+      const result=await ensureSupabase().rpc("can_read_bod_meetings" as never);
+      return !result.error && result.data === true;
+    }
+  });
   const catalog=useAcademyAssessments();
   const attempts=useAssessmentAttempts();
   const submit=useSubmitAssessment();
@@ -25,7 +37,7 @@ export default function AcademyAssessments() {
   const paper=useAssessmentPaper(selected);
   const [answers,setAnswers]=useState<Record<string,number>>({});
   const [result,setResult]=useState<AssessmentResult | null>(null);
-  const list=useMemo(()=>catalog.data||[],[catalog.data]);
+  const list=useMemo(()=>(catalog.data||[]).filter(item=>item.assessment_id!=="board"||boardEligibility.data===true),[catalog.data,boardEligibility.data]);
   const selectedCount=paper.data?.questions.filter(q=>answers[q.id]!==undefined).length||0;
   const total=paper.data?.questions.length||0;
   const latest=(id:string)=>(attempts.data||[]).find(a=>a.assessment_id===id);
