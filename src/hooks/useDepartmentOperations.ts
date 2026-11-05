@@ -49,7 +49,7 @@ export type OperationsRecord = {
 export type OperationsPerson = { id: string; full_name: string; user_id?: string; can_final_approve?: boolean };
 export type OperationsCalendarEntry = { id: string; title: string; kind: string; status: string; starts_at: string | null };
 export type OperationsSource = { id: string; editorial_item_id: string; source_name: string; source_type: string; source_url: string | null; consent_status: string; attribution_status: string };
-export type OperationsRights = { id: string; editorial_item_id: string; subject_reference: string; consent_type: string; status: string; evidence_url: string | null; };
+export type OperationsRights = { id: string; editorial_item_id: string; subject_reference: string; consent_type: string; status: string; evidence_url: string | null; scope_notes: string | null; expires_at: string | null; verified_by_user_id: string | null; };
 export type OperationsPlacement = { id: string; publication_id: string; editorial_item_id: string; section_name: string | null; position: number; };
 export type OperationsAccount = { id: string; platform: string; scope_name: string; handle: string | null; ownership_status: string; public_url: string | null };
 export type OperationsResponse = {
@@ -91,7 +91,7 @@ export function useDepartmentOperations(lane: DepartmentLane) {
           client.rpc("get_communications_assignable_users"),
           client.from("communications_editorial_calendar").select("title,entity_id,event_type,status,starts_at").order("starts_at", { ascending: true }).limit(200),
           client.from("communications_sources").select("id,editorial_item_id,source_name,source_type,source_url,consent_status,attribution_status").order("created_at", { ascending: false }).limit(500),
-          client.from("communications_rights_consents").select("id,editorial_item_id,subject_reference,consent_type,status,evidence_url").order("created_at", { ascending: false }).limit(500),
+          client.from("communications_rights_consents").select("id,editorial_item_id,subject_reference,consent_type,status,evidence_url,scope_notes,expires_at,verified_by_user_id").order("created_at", { ascending: false }).limit(500),
           client.from("communications_publication_items").select("id,publication_id,editorial_item_id,section_name,position").order("position", { ascending: true }).limit(500),
         ]);
         for (const r of [summary, editorial, publications, people, calendar, sources, rights, placements]) fail(r);
@@ -138,6 +138,7 @@ type RpcAction =
   | { action: "version"; lane: DepartmentLane; entityType: string; id: string; headline?: string; body?: string; summary?: string }
   | { action: "source"; lane: DepartmentLane; id: string; sourceName: string; sourceType: string; sourceUrl: string; consentStatus: string }
   | { action: "consent"; lane: DepartmentLane; id: string; subject: string; consentType: string }
+  | { action: "consentDecision"; lane: DepartmentLane; id: string; decision: "granted" | "not_required" | "declined" | "requested"; evidenceUrl: string; scopeNotes: string; expiresAt: string | null }
   | { action: "place"; lane: DepartmentLane; id: string; editorialId: string; sectionName: string }
   | { action: "removePlacement"; lane: DepartmentLane; id: string; placementId: string }
   | { action: "approve"; lane: DepartmentLane; entityType: string; id: string; approvalType: string; decision: "approved" | "changes_requested" | "rejected"; notes: string };
@@ -193,6 +194,16 @@ export function useDepartmentAction(lane: DepartmentLane) {
             name = "submit_marketing_version";
             args = { p_entity_type: act.entityType, p_entity_id: act.id, p_change_summary: act.summary || "Submitted from HPG departmental operations" };
           }
+          break;
+        case "consentDecision":
+          if (lane !== "communications") throw new Error("Consent review belongs to Communications.");
+          name = "decide_communications_consent";
+          args = {
+            p_id: act.id, p_decision: act.decision,
+            p_evidence_url: act.evidenceUrl.trim() || null,
+            p_scope_notes: act.scopeNotes.trim(),
+            p_expires_at: act.expiresAt,
+          };
           break;
         case "place":
           if (lane !== "communications") throw new Error("Publication assembly belongs to Communications.");
