@@ -376,7 +376,7 @@ export default function DepartmentOperationsHub({ lane }: { lane: DepartmentLane
           <Button size="sm" variant="outline" asChild><Link to={"/learning?track=" + lane}><GraduationCap className="mr-1 h-4 w-4" /> Tutorial</Link></Button>
           <Button size="sm" variant="outline" onClick={() => operations.refetch()}><RefreshCcw className="mr-1 h-4 w-4" /> Refresh</Button>
           <Button size="sm" variant="outline" asChild><Link to={communication ? "/communications/editorial" : "/marketing/assignments"}>
-            {communication ? "HPG Publications Desk" : "Assignment tracking"}</Link></Button>
+            {communication ? "Standalone editorial editor" : "Assignment tracking"}</Link></Button>
         </CardContent>
       </Card>
       {operations.isLoading && <p className="text-sm text-muted-foreground">Checking department permissions and loading canonical records…</p>}
@@ -618,7 +618,7 @@ export default function DepartmentOperationsHub({ lane }: { lane: DepartmentLane
                 </Card>}
                 <Card><CardContent className="space-y-2 p-4 text-sm text-muted-foreground">
                   <p><strong>Release controls:</strong> Scheduling, distribution and publishing are not automatic. Approved releases require the separate verified-evidence workflow.</p>
-                  {communication ? <Button size="sm" variant="outline" asChild><Link to="/communications/editorial">Open HPG native editorial edition desk</Link></Button> :
+                  {communication ? <Button size="sm" variant="outline" asChild><Link to="/communications/editorial">Open standalone editorial edition desk</Link></Button> :
                     <Button size="sm" variant="outline" asChild><Link to="/modules/marketing">Marketing dashboard</Link></Button>}
                 </CardContent></Card>
               </div>}
