@@ -113,6 +113,11 @@ export default function DepartmentOperationsHub({ lane }: { lane: DepartmentLane
   const [sourceConsent, setSourceConsent] = useState("not_required");
   const [consentSubject, setConsentSubject] = useState("");
   const [consentType, setConsentType] = useState("interview");
+  const [reviewConsentId, setReviewConsentId] = useState("none");
+  const [reviewConsentDecision, setReviewConsentDecision] = useState<"granted" | "not_required" | "declined" | "requested">("granted");
+  const [reviewConsentEvidence, setReviewConsentEvidence] = useState("");
+  const [reviewConsentScope, setReviewConsentScope] = useState("");
+  const [reviewConsentExpiry, setReviewConsentExpiry] = useState("");
   const [placementCandidate, setPlacementCandidate] = useState("none");
   const [sectionName, setSectionName] = useState("");
   const [publicSlug, setPublicSlug] = useState("");
@@ -163,6 +168,7 @@ export default function DepartmentOperationsHub({ lane }: { lane: DepartmentLane
     setPublicSlug(selected.title.toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g, "")
       .replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 82));
     setReleaseConfirmed(false); setWithdrawReason("");
+    setReviewConsentId("none"); setReviewConsentEvidence(""); setReviewConsentScope(""); setReviewConsentExpiry("");
   }, [selectedId, selected?.updated_at, selected?.current_version, tab]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const newRecord = () => {
@@ -312,6 +318,20 @@ export default function DepartmentOperationsHub({ lane }: { lane: DepartmentLane
       await action.mutateAsync({ action: "consent", lane, id: selected.id, subject: consentSubject, consentType });
       setConsentSubject("");
       toast.success("Required consent recorded; proof and verification are still needed");
+    } catch (error) { toast.error(errText(error)); }
+  };
+  const reviewConsent = async () => {
+    if (reviewConsentId === "none") return;
+    try {
+      await action.mutateAsync({
+        action: "consentDecision", lane, id: reviewConsentId,
+        decision: reviewConsentDecision,
+        evidenceUrl: reviewConsentEvidence.trim(),
+        scopeNotes: reviewConsentScope.trim(),
+        expiresAt: reviewConsentExpiry ? new Date(reviewConsentExpiry + "T12:00:00").toISOString() : null,
+      });
+      setReviewConsentId("none"); setReviewConsentEvidence(""); setReviewConsentScope(""); setReviewConsentExpiry("");
+      toast.success("Independent consent decision and evidence recorded");
     } catch (error) { toast.error(errText(error)); }
   };
   const addPlacement = async () => {
@@ -501,6 +521,8 @@ export default function DepartmentOperationsHub({ lane }: { lane: DepartmentLane
                         <span className="flex-1">{right.subject_reference}</span>
                         <Badge variant="outline">{pretty(right.consent_type)}</Badge>
                         <Badge variant="secondary">{pretty(right.status)}</Badge>
+                        {right.expires_at && <span className="text-xs text-muted-foreground">Expires {new Date(right.expires_at).toLocaleDateString()}</span>}
+                        {right.evidence_url?.startsWith("https://") && <a href={right.evidence_url} target="_blank" rel="noopener noreferrer" className="text-primary underline">View evidence</a>}
                       </div>)}
                     </div>
                     <div className="space-y-2 rounded-lg border p-3">
@@ -512,6 +534,45 @@ export default function DepartmentOperationsHub({ lane }: { lane: DepartmentLane
                       <Button size="sm" variant="outline" disabled={action.isPending || consentSubject.trim().length < 2} onClick={addConsentRequirement}>Save pending consent requirement</Button>
                       <p className="text-xs text-muted-foreground">This only records that consent is required. It does not certify that permission was granted or verified.</p>
                     </div>
+                    {publisherPermission.data === true && editorialRights.length > 0 &&
+                      !["published","archived","canceled"].includes(selected.status) && <div data-tour="consent-review" className="space-y-3 rounded-lg border border-primary/20 p-3">
+                      <p className="text-sm font-semibold">Independent consent review</p>
+                      <p className="text-xs text-muted-foreground">Only an authorized Communications reviewer other than the person who registered the requirement can record a decision. Granted permission requires an HTTPS evidence link and a defined scope.</p>
+                      <div className="space-y-1"><Label>Consent record</Label>
+                        <Select value={reviewConsentId} onValueChange={setReviewConsentId}><SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent><SelectItem value="none">Choose rights record</SelectItem>
+                            {editorialRights.map(right => <SelectItem key={right.id} value={right.id}>{right.subject_reference} — {pretty(right.status)}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-1"><Label>Decision</Label>
+                        <Select value={reviewConsentDecision} onValueChange={value => setReviewConsentDecision(value as typeof reviewConsentDecision)}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="granted">Permission granted — evidence required</SelectItem>
+                            <SelectItem value="not_required">Not required — explain why</SelectItem>
+                            <SelectItem value="requested">Permission requested / reopened</SelectItem>
+                            <SelectItem value="declined">Permission declined</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-1"><Label>Scope and decision rationale</Label>
+                        <Textarea rows={3} value={reviewConsentScope} onChange={e => setReviewConsentScope(e.target.value)}
+                          placeholder="Describe the specific publication, media use, audience, permissions or reason for this decision" />
+                      </div>
+                      <div className="space-y-1"><Label>Evidence link (HTTPS; required if granted)</Label>
+                        <Input type="url" value={reviewConsentEvidence} onChange={e => setReviewConsentEvidence(e.target.value)}
+                          placeholder="https://... to the authorized release or permission document" />
+                      </div>
+                      {reviewConsentDecision === "granted" && <div className="space-y-1">
+                        <Label>Consent expiration, if applicable</Label>
+                        <Input type="date" value={reviewConsentExpiry} onChange={e => setReviewConsentExpiry(e.target.value)} />
+                      </div>}
+                      <Button variant="outline" disabled={action.isPending || reviewConsentId === "none" ||
+                        reviewConsentScope.trim().length < 10 ||
+                        (reviewConsentDecision === "granted" && !/^https:\/\/\S+$/i.test(reviewConsentEvidence.trim()))}
+                        onClick={reviewConsent}>Record independent decision</Button>
+                    </div>}
                   </CardContent>
                 </Card>}
                 {tab === "publications" && <Card>
