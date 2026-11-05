@@ -16,6 +16,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useDepartmentAction, useDepartmentOperations, type DepartmentLane, type OperationsRecord } from "@/hooks/useDepartmentOperations";
 import { GuidedWalkthrough, type WalkthroughStep } from "@/components/onboarding/GuidedWalkthrough";
+import CanonicalMagazinePanel from "@/pages/CanonicalMagazinePanel";
 import { ensureSupabase } from "@/integrations/supabase/client";
 import { usePublications, usePublishCommunicationsEditorial, useWithdrawCommunicationsEditorial } from "@/hooks/usePublications";
 
@@ -126,7 +127,7 @@ export default function DepartmentOperationsHub({ lane }: { lane: DepartmentLane
   const data = operations.data;
   const records: OperationsRecord[] = data ? data[tab] || [] : [];
   const selected = records.find(row => row.id === selectedId);
-  const livePublication = publicCatalog.data?.find(item => item.communications_editorial_item_id === selectedId);
+  const livePublication = publicCatalog.data?.find(item => tab === "publications" ? item.communications_publication_id === selectedId : item.communications_editorial_item_id === selectedId);
   const publicUrl = (slug: string) => new URL(import.meta.env.BASE_URL + "publications/" + slug, window.location.origin).toString();
   const scheduledReady = !!selected?.scheduled_at && new Date(selected.scheduled_at).getTime() <= Date.now();
   const editorialSources = (data?.sources || []).filter(item => item.editorial_item_id === selectedId);
@@ -600,6 +601,9 @@ export default function DepartmentOperationsHub({ lane }: { lane: DepartmentLane
                       </div>}
                   </CardContent>
                 </Card>}
+                {tab === "publications" && selected.publication_type === "magazine_issue" &&
+                  <CanonicalMagazinePanel key={selected.id} issue={selected}
+                    authorized={publisherPermission.data === true} livePublication={livePublication} />}
                 {tab === "editorial" && ["scheduled","published"].includes(selected.status) && <Card data-tour="canonical-public-release">
                   <CardHeader><CardTitle className="text-base">HPG public edition</CardTitle>
                     <CardDescription>Publish an immutable copy of approved text to HPG Publications. This is separate from external social posting, distribution emails and private media storage.</CardDescription>
