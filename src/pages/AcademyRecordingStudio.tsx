@@ -41,7 +41,7 @@ export default function AcademyRecordingStudio() {
     blobRef.current=null;setPreview(null);setFileSize(0);setFileType("");
   },[]);
   useEffect(()=>()=>{
-    try{recorderRef.current?.state!=="inactive"&&recorderRef.current?.stop();}catch{/**/}
+    try{if(recorderRef.current && recorderRef.current.state!=="inactive") recorderRef.current.stop();}catch{/**/}
     streamRef.current?.getTracks().forEach(t=>t.stop());
     if(previewRef.current)URL.revokeObjectURL(previewRef.current);
   },[]);
