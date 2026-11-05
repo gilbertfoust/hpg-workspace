@@ -358,7 +358,7 @@ export function AppSidebar() {
               <NavItem to="/dashboard" icon={<LayoutDashboard className="w-4 h-4" />} label={isCollapsed ? "" : "Dashboard"} />
                <NavItem to="/learning" icon={<BookOpen className="w-4 h-4" />} label={isCollapsed ? "" : "Learning Academy"} />
               <NavItem to="/learning/assessments" icon={<GraduationCap className="w-4 h-4" />} label={isCollapsed ? "" : "Knowledge Checks"} />
-              {boardHubAccess && <NavItem to="/board/hub" icon={<Scale className="w-4 h-4" />} label={isCollapsed ? "" : "Board of Directors Hub"} />
+              {boardHubAccess && <NavItem to="/board/hub" icon={<Scale className="w-4 h-4" />} label={isCollapsed ? "" : "Board of Directors Hub"} />}
               {canAccessArea(role, "ngos", userRole) && <NavItem to="/modules/ngo-coordination" icon={<Bot className="w-4 h-4" />} label={isCollapsed ? "" : "HPG Assistant"} />}
               <NavItem to="/my-queue" icon={<ListChecks className="w-4 h-4" />} label={isCollapsed ? "" : "My Queue"} />
               <NavItem to="/dept-queue" icon={<Users className="w-4 h-4" />} label={isCollapsed ? "" : "Dept Queue"} />
