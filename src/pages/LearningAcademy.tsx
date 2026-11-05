@@ -1,12 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useSearchParams } from "react-router-dom";
-import { ArrowLeft, ArrowRight, BookOpen, CheckCircle2, Circle, ExternalLink, GraduationCap, LockKeyhole, Wrench } from "lucide-react";
+import { ArrowLeft, ArrowRight, BookOpen, CheckCircle2, Circle, ExternalLink, GraduationCap, LockKeyhole, Search, Wrench } from "lucide-react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Input } from "@/components/ui/input";
+import { supplementalWorkspaceTracks } from "@/data/academyWorkspaceTracks";
+import AcademyNarratedSteps from "@/components/onboarding/AcademyNarratedSteps";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole, isAdminRole } from "@/hooks/useUserRole";
 import { toast } from "sonner";
@@ -85,6 +88,7 @@ const tracks: Track[] = [
     { id: "board-dashboard", name: "Read organizational reports", goal: "Find authorized oversight materials using board-level permissions.", path: "/reports", area: "reports", readiness: "navigation", steps: ["Open Reports.", "Review only reports available to your role.", "Record questions or requests through approved board communication channels; do not edit staff records."], practice: "Find an authorized report and identify one oversight question." },
     { id: "board-hub", name: "Use HPG Board meeting and voting workflow", goal: "Read agendas, record attendance, vote on open motions, approve minutes and follow Board work items.", path: "/board/hub", area: "reports", requiresBoardHub: true, readiness: "pending", steps: ["Open the HPG Board of Directors Hub and choose a governed meeting. If the list is empty, an authorized meeting administrator must create a draft; do not invent a meeting for practice.", "Review the agenda, original motion text, evidence packet, scheduled date and explicit quorum rule.", "A current eligible director records their own attendance before voting. Only the administrator can open a motion after the meeting starts and quorum checks pass.", "Cast a Yes, No or Recused ballot only on an open motion; a source-linked motion must have current supporting evidence. A director involved in the source work may be required to recuse.", "Minutes are submitted after motions conclude and approved separately by eligible directors. Approved meeting actions are assigned through workspace work items."], practice: "Locate the quorum, meeting status and the next permitted action. Explain why a draft motion cannot receive ballots." },
   ] },
+  ...supplementalWorkspaceTracks,
 ];
 
 const isReady = (lesson: Lesson, editorReady: boolean, publicationReady: boolean, mediaReady: boolean, canonicalCommsReady: boolean, canonicalMarketingReady: boolean, canonicalPublisherReady: boolean, canonicalIssueReady: boolean, canonicalMediaReady: boolean, boardReady: boolean) =>
@@ -196,6 +200,7 @@ export default function LearningAcademy() {
   const selectedTrackId = params.get("track") || "start";
   const activeTrack = tracks.find(track => track.id === selectedTrackId) || tracks[0];
   const [selectedLessonId, setSelectedLessonId] = useState<string | null>(null);
+  const [lessonSearch, setLessonSearch] = useState("");
   const [step, setStep] = useState(0);
   const [legacyCompleted, setLegacyCompleted] = useState<string[]>([]);
   const completed = (academy.progress.data || []).map(item => item.lesson_id);
@@ -213,13 +218,20 @@ export default function LearningAcademy() {
     }
   }, [storageKey]);
 
-  useEffect(() => { setSelectedLessonId(null); setStep(0); }, [selectedTrackId]);
+  useEffect(() => { setSelectedLessonId(params.get("lesson")); setStep(0); }, [selectedTrackId]);
 
   const selectedLesson = activeTrack.lessons.find(lesson => lesson.id === selectedLessonId);
   const availableLessons = useMemo(
     () => tracks.flatMap(track => track.lessons).filter(lesson => isReady(lesson, editorReady, publicationReady, mediaReady, canonicalCommsReady, canonicalMarketingReady, canonicalPublisherReady, canonicalIssueReady, canonicalMediaReady, boardReady) && isAllowed(lesson, access?.role, access)),
     [access, editorReady, publicationReady, mediaReady, canonicalCommsReady, canonicalMarketingReady, canonicalPublisherReady, canonicalIssueReady, canonicalMediaReady, boardReady],
   );
+  const foundLessons = lessonSearch.trim().length >= 2
+    ? tracks.flatMap(track => track.lessons
+        .filter(lesson => isAllowed(lesson, access?.role, access)
+          && (lesson.name + " " + lesson.goal + " " + track.title + " " + lesson.steps.join(" "))
+            .toLowerCase().includes(lessonSearch.trim().toLowerCase()))
+        .map(lesson => ({trackId:track.id,trackTitle:track.title,lesson})))
+    : [];
   const doneCount = availableLessons.filter(lesson => completed.includes(lesson.id)).length;
   const percent = availableLessons.length ? Math.round(doneCount / availableLessons.length * 100) : 0;
 
@@ -255,18 +267,19 @@ export default function LearningAcademy() {
   };
 
   return (
-    <MainLayout title="HPG Workspace Learning Academy" subtitle="Learn your role inside the actual workspace—one task at a time.">
+    <MainLayout title="HPG Executive Professional Academy — Workspace Training" subtitle="One of five parallel Academy divisions. Learn HPG internal systems safely, one task at a time.">
       <div className="mx-auto max-w-6xl space-y-6">
         <Card className="border-primary/20 bg-card/95">
           <CardContent className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center">
             <div className="rounded-xl bg-primary/10 p-3"><GraduationCap className="h-8 w-8 text-primary" /></div>
             <div className="flex-1 space-y-2">
-              <h2 className="text-xl font-semibold">Welcome. Start with one useful action.</h2>
-              <p className="text-sm text-muted-foreground">Open the real workspace screens, follow the guided instructions, and return when ready. Training never creates fake accounting entries, grant applications, or board votes.</p>
+              <h2 className="text-xl font-semibold">Workspace Training: learn your role inside HPG.</h2>
+              <p className="text-sm text-muted-foreground">This free internal track is one of five equal divisions of the HPG Executive Professional Academy. The other divisions also use HPG Workspace as their learning platform, but are not part of Workspace Training. Guided lessons never create fake accounting entries, grant applications, or Board votes.</p>
               <div className="flex items-center gap-3"><Progress value={percent} className="max-w-sm" /><span className="whitespace-nowrap text-xs text-muted-foreground">{doneCount}/{availableLessons.length} lessons</span></div>
               <p className="text-xs text-muted-foreground">Completion is self-reported and saved to your HPG account across devices. It is not an official HR certification or competency assessment.</p>
               <div className="flex flex-wrap gap-2">
                 <Button asChild variant="outline" size="sm"><Link to="/learning/assessments">Take a role-related knowledge check</Link></Button>
+                <Button asChild variant="outline" size="sm"><Link to="/learning/practice">Open the safe practice lab</Link></Button>
                 {mayViewTeam && <Button asChild variant="outline" size="sm"><Link to="/learning/team">View authorized team progress and signoffs</Link></Button>}
               </div>
               {academy.progress.error && <p role="alert" className="text-sm text-destructive">Account progress is unavailable. Completions will not be saved until this connection works.</p>}
@@ -275,6 +288,24 @@ export default function LearningAcademy() {
           </CardContent>
         </Card>
 
+        <Card><CardContent className="space-y-3 p-4">
+          <label htmlFor="academy-search" className="text-sm font-semibold">Search Workspace Training instructions</label>
+          <div className="relative"><Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground"/>
+            <Input id="academy-search" className="pl-9" value={lessonSearch}
+              onChange={e=>setLessonSearch(e.target.value)}
+              placeholder="Search roles, modules, records, approvals or procedures" />
+          </div>
+          {lessonSearch.trim().length >= 2 && <div className="max-h-72 space-y-2 overflow-y-auto">
+            {foundLessons.length===0&&<p className="text-sm text-muted-foreground">No accessible lessons match this search.</p>}
+            {foundLessons.map(found=><button key={found.lesson.id} type="button"
+              onClick={()=>{setParams({track:found.trackId,lesson:found.lesson.id});setLessonSearch("");}}
+              className="flex w-full items-center justify-between gap-2 rounded-md border p-3 text-left hover:bg-muted/40">
+              <span><span className="block text-sm font-medium">{found.lesson.name}</span>
+                <span className="text-xs text-muted-foreground">{found.trackTitle}</span></span>
+              <BookOpen className="h-4 w-4 shrink-0 text-muted-foreground"/>
+            </button>)}
+          </div>}
+        </CardContent></Card>
         {legacyEligible.length > 0 && academy.progress.isSuccess && <Card>
           <CardContent className="flex flex-wrap items-center gap-3 p-4">
             <div className="min-w-56 flex-1">
@@ -324,6 +355,7 @@ export default function LearningAcademy() {
                       <div className="rounded-xl border bg-muted/30 p-5">
                         <p className="text-base font-medium">{selectedLesson.steps[step]}</p>
                       </div>
+                      <AcademyNarratedSteps title={selectedLesson.name} steps={selectedLesson.steps} currentStep={step} />
                       {selectedLesson.path && (
                         <Button asChild variant="outline"><Link to={selectedLesson.path}><ExternalLink className="mr-2 h-4 w-4" /> Open workspace screen</Link></Button>
                       )}
