@@ -182,7 +182,7 @@ const hubsSections: HubConfig[] = [
     items: [
       { to: "/modules/communications", icon: <MessageSquare className="w-4 h-4" />, label: "Communications Operations" },
       { to: "/communications/assignments", icon: <ClipboardList className="w-4 h-4" />, label: "Communications Assignments" },
-      { to: "/communications/editorial", icon: <Newspaper className="w-4 h-4" />, label: "Editorial Production" },
+      { to: "/communications/editorial", icon: <Newspaper className="w-4 h-4" />, label: "Standalone Editorial Desk" },
       { to: "/communications/media", icon: <FolderOpen className="w-4 h-4" />, label: "Editorial Media Library" },
       { to: "/modules/marketing", icon: <Megaphone className="w-4 h-4" />, label: "Marketing Operations" },
       { to: "/marketing/assignments", icon: <ClipboardList className="w-4 h-4" />, label: "Marketing Assignments" },

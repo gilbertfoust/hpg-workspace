@@ -8,7 +8,8 @@ import { ensureSupabase } from "@/integrations/supabase/client";
 export type PublicContribution = { title: string; summary: string; kind: string; body_markdown: string };
 export type Publication = {
   id: string;
-  editorial_item_id: string;
+  editorial_item_id: string | null;
+  communications_editorial_item_id: string | null;
   slug: string;
   kind: string;
   title: string;
@@ -26,7 +27,7 @@ export function usePublications() {
     queryKey: ["publications", "live"],
     queryFn: async () => {
       const { data, error } = await api().from("editorial_publications")
-        .select("id, editorial_item_id, slug, kind, title, summary, body_markdown, contributions, editorial_revision, published_at, is_live")
+        .select("id, editorial_item_id, communications_editorial_item_id, slug, kind, title, summary, body_markdown, contributions, editorial_revision, published_at, is_live")
         .eq("is_live", true).order("published_at", { ascending: false });
       if (error) throw error;
       return data || [];
@@ -40,7 +41,7 @@ export function usePublication(slug?: string) {
     enabled: !!slug,
     queryFn: async () => {
       const { data, error } = await api().from("editorial_publications")
-        .select("id, editorial_item_id, slug, kind, title, summary, body_markdown, contributions, editorial_revision, published_at, is_live")
+        .select("id, editorial_item_id, communications_editorial_item_id, slug, kind, title, summary, body_markdown, contributions, editorial_revision, published_at, is_live")
         .eq("slug", slug).eq("is_live", true).maybeSingle();
       if (error) throw error;
       return data as Publication | null;
@@ -74,6 +75,43 @@ export function useWithdrawNative() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["publications"] });
       qc.invalidateQueries({ queryKey: ["editorial"] });
+    },
+  });
+}
+
+/** Canonical Communications web editions preserve the original approval history.
+ *  These RPCs never directly insert or mutate the public snapshot table.
+ */
+export function usePublishCommunicationsEditorial() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, slug }: { id: string; slug: string }): Promise<Publication> => {
+      const { data, error } = await api().rpc("publish_communications_editorial_native", {
+        p_id: id, p_slug: slug,
+      });
+      if (error) throw error;
+      return data as Publication;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["publications"] });
+      qc.invalidateQueries({ queryKey: ["department-operations", "communications"] });
+    },
+  });
+}
+
+export function useWithdrawCommunicationsEditorial() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, reason }: { id: string; reason: string }) => {
+      const { data, error } = await api().rpc("withdraw_communications_editorial_native", {
+        p_id: id, p_reason: reason,
+      });
+      if (error) throw error;
+      return data === true;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["publications"] });
+      qc.invalidateQueries({ queryKey: ["department-operations", "communications"] });
     },
   });
 }

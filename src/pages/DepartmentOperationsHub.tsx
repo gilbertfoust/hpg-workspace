@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { ArrowRight, CalendarDays, ClipboardCheck, FileText, GraduationCap, Megaphone, Newspaper, Plus, RefreshCcw, ShieldCheck, Users } from "lucide-react";
 import { toast } from "sonner";
@@ -9,11 +10,14 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useDepartmentAction, useDepartmentOperations, type DepartmentLane, type OperationsRecord } from "@/hooks/useDepartmentOperations";
 import { GuidedWalkthrough, type WalkthroughStep } from "@/components/onboarding/GuidedWalkthrough";
+import { ensureSupabase } from "@/integrations/supabase/client";
+import { usePublications, usePublishCommunicationsEditorial, useWithdrawCommunicationsEditorial } from "@/hooks/usePublications";
 
 type RecordKind = "editorial" | "publications" | "campaigns" | "posts";
 const kindBoard: Record<RecordKind, string> = {
@@ -81,6 +85,19 @@ export default function DepartmentOperationsHub({ lane }: { lane: DepartmentLane
   const communication = lane === "communications";
   const operations = useDepartmentOperations(lane);
   const action = useDepartmentAction(lane);
+  const publicCatalog = usePublications();
+  const publisher = usePublishCommunicationsEditorial();
+  const withdrawPublication = useWithdrawCommunicationsEditorial();
+  const publisherPermission = useQuery({
+    queryKey: ["communications-publisher-authorization", lane],
+    enabled: lane === "communications" && !!operations.data,
+    retry: false,
+    queryFn: async () => {
+      const result = await ensureSupabase().rpc("is_communications_approver" as never);
+      if (result.error) throw result.error;
+      return result.data === true;
+    },
+  });
   const [tab, setTab] = useState<RecordKind>(communication ? "editorial" : "campaigns");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
@@ -98,9 +115,15 @@ export default function DepartmentOperationsHub({ lane }: { lane: DepartmentLane
   const [consentType, setConsentType] = useState("interview");
   const [placementCandidate, setPlacementCandidate] = useState("none");
   const [sectionName, setSectionName] = useState("");
+  const [publicSlug, setPublicSlug] = useState("");
+  const [releaseConfirmed, setReleaseConfirmed] = useState(false);
+  const [withdrawReason, setWithdrawReason] = useState("");
   const data = operations.data;
   const records: OperationsRecord[] = data ? data[tab] || [] : [];
   const selected = records.find(row => row.id === selectedId);
+  const livePublication = publicCatalog.data?.find(item => item.communications_editorial_item_id === selectedId);
+  const publicUrl = (slug: string) => new URL(import.meta.env.BASE_URL + "publications/" + slug, window.location.origin).toString();
+  const scheduledReady = !!selected?.scheduled_at && new Date(selected.scheduled_at).getTime() <= Date.now();
   const editorialSources = (data?.sources || []).filter(item => item.editorial_item_id === selectedId);
   const editorialRights = (data?.rights || []).filter(item => item.editorial_item_id === selectedId);
   const placements = (data?.placements || []).filter(item => item.publication_id === selectedId).sort((a,b) => a.position-b.position);
@@ -137,6 +160,9 @@ export default function DepartmentOperationsHub({ lane }: { lane: DepartmentLane
     });
     setStage("none"); setVersionBody(""); setVersionSummary("");
     setSourceName(""); setSourceUrl(""); setConsentSubject(""); setPlacementCandidate("none");
+    setPublicSlug(selected.title.toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 82));
+    setReleaseConfirmed(false); setWithdrawReason("");
   }, [selectedId, selected?.updated_at, selected?.current_version, tab]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const newRecord = () => {
@@ -303,6 +329,22 @@ export default function DepartmentOperationsHub({ lane }: { lane: DepartmentLane
       toast.success("Story removed from the issue");
     } catch (error) { toast.error(errText(error)); }
   };
+  const publishCanonical = async () => {
+    if (!selected || !releaseConfirmed) return;
+    try {
+      const snapshot = await publisher.mutateAsync({ id: selected.id, slug: publicSlug });
+      setReleaseConfirmed(false);
+      toast.success("Approved editorial text released: " + publicUrl(snapshot.slug));
+    } catch (error) { toast.error(errText(error)); }
+  };
+  const withdrawCanonical = async () => {
+    if (!selected) return;
+    try {
+      await withdrawPublication.mutateAsync({ id: selected.id, reason: withdrawReason.trim() });
+      setWithdrawReason("");
+      toast.success("Public edition withdrawn. Previously cached copies may still exist.");
+    } catch (error) { toast.error(errText(error)); }
+  };
   const canSubmitVersion = !!selected && (tab === "editorial" ? ["assigned", "reporting", "drafting", "revisions"].includes(selected.status) :
     tab === "campaigns" ? ["strategy", "planning", "production", "changes_requested"].includes(selected.status) :
       tab === "posts" && ["brief", "drafting", "creative", "changes_requested"].includes(selected.status));
@@ -334,7 +376,7 @@ export default function DepartmentOperationsHub({ lane }: { lane: DepartmentLane
           <Button size="sm" variant="outline" asChild><Link to={"/learning?track=" + lane}><GraduationCap className="mr-1 h-4 w-4" /> Tutorial</Link></Button>
           <Button size="sm" variant="outline" onClick={() => operations.refetch()}><RefreshCcw className="mr-1 h-4 w-4" /> Refresh</Button>
           <Button size="sm" variant="outline" asChild><Link to={communication ? "/communications/editorial" : "/marketing/assignments"}>
-            {communication ? "HPG Publications Desk" : "Assignment tracking"}</Link></Button>
+            {communication ? "Standalone editorial editor" : "Assignment tracking"}</Link></Button>
         </CardContent>
       </Card>
       {operations.isLoading && <p className="text-sm text-muted-foreground">Checking department permissions and loading canonical records…</p>}
@@ -497,6 +539,42 @@ export default function DepartmentOperationsHub({ lane }: { lane: DepartmentLane
                       </div>}
                   </CardContent>
                 </Card>}
+                {tab === "editorial" && ["scheduled","published"].includes(selected.status) && <Card data-tour="canonical-public-release">
+                  <CardHeader><CardTitle className="text-base">HPG public edition</CardTitle>
+                    <CardDescription>Publish an immutable copy of approved text to HPG Publications. This is separate from external social posting, distribution emails and private media storage.</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {livePublication && <div className="rounded-md border p-3">
+                      <p className="text-sm font-semibold">Public text is live</p>
+                      <a className="block break-all text-sm text-primary underline" href={publicUrl(livePublication.slug)} target="_blank" rel="noopener noreferrer">{publicUrl(livePublication.slug)}</a>
+                    </div>}
+                    {selected.status === "scheduled" && publisherPermission.data === true && !livePublication && <>
+                      <div className="space-y-1"><Label htmlFor="canonical-public-slug">Public URL name</Label>
+                        <Input id="canonical-public-slug" value={publicSlug}
+                          onChange={e => setPublicSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))} placeholder="approved-story" />
+                      </div>
+                      <label className="flex items-start gap-2 text-sm">
+                        <Checkbox checked={releaseConfirmed} onCheckedChange={checked => setReleaseConfirmed(checked === true)} />
+                        I have reviewed the exact final text, current approvals, consent, embargo, sensitive information, and rights for this public release.
+                      </label>
+                      {!scheduledReady && <p className="text-sm text-muted-foreground">The scheduled release time has not arrived. Publication will remain locked until then.</p>}
+                      <Button onClick={publishCanonical} disabled={publisher.isPending || !scheduledReady || !releaseConfirmed ||
+                        !/^[a-z0-9]+(-[a-z0-9]+)*$/.test(publicSlug) || publicSlug.length < 4 || publicSlug.length > 90}>
+                        {publisher.isPending ? "Releasing…" : "Publish approved text to HPG"}
+                      </Button>
+                    </>}
+                    {livePublication && publisherPermission.data === true && <div className="space-y-2 border-t pt-3">
+                      <Label>Withdraw the public edition (reason required)</Label>
+                      <Textarea rows={2} value={withdrawReason} onChange={e => setWithdrawReason(e.target.value)}
+                        placeholder="Explain why this public page must be withdrawn" />
+                      <Button variant="outline" disabled={withdrawPublication.isPending || withdrawReason.trim().length < 10} onClick={withdrawCanonical}>
+                        Withdraw from public archive
+                      </Button>
+                    </div>}
+                    {selected.status === "published" && !livePublication && <p className="text-sm text-muted-foreground">This item has a recorded publication history, but no currently live HPG Publications snapshot. It may have been withdrawn or published elsewhere. Do not assume the historical URL is still accessible.</p>}
+                    <p className="text-xs text-muted-foreground">The database rechecks the current independent editorial, fact-check, publication and applicable Legal approvals before any release. No consent documents or private media are copied to this page.</p>
+                  </CardContent>
+                </Card>}
                 {!!stageOptions.length && <Card data-tour="department-transition">
                   <CardHeader><CardTitle className="text-base">Move to the next stage</CardTitle><CardDescription>Stages must pass the underlying source, approvals, rights and evidence gates. No external publishing is triggered.</CardDescription></CardHeader>
                   <CardContent className="flex flex-wrap gap-2">
@@ -540,7 +618,7 @@ export default function DepartmentOperationsHub({ lane }: { lane: DepartmentLane
                 </Card>}
                 <Card><CardContent className="space-y-2 p-4 text-sm text-muted-foreground">
                   <p><strong>Release controls:</strong> Scheduling, distribution and publishing are not automatic. Approved releases require the separate verified-evidence workflow.</p>
-                  {communication ? <Button size="sm" variant="outline" asChild><Link to="/communications/editorial">Open HPG native editorial edition desk</Link></Button> :
+                  {communication ? <Button size="sm" variant="outline" asChild><Link to="/communications/editorial">Open standalone editorial edition desk</Link></Button> :
                     <Button size="sm" variant="outline" asChild><Link to="/modules/marketing">Marketing dashboard</Link></Button>}
                 </CardContent></Card>
               </div>}

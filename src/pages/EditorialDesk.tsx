@@ -188,18 +188,18 @@ export default function EditorialDesk() {
     } catch (error) { toast.error(describeError(error)); }
   };
 
-  return <MainLayout title="Editorial Production Desk" subtitle="Editorial calendar, interviews, magazine assembly, approvals and publication records.">
+  return <MainLayout title="Standalone Editorial Desk" subtitle="Independent editorial drafts and issue publishing. Canonical Communications workflow is separate.">
     <div className="space-y-5">
       <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-card/95 p-4">
         <div className="flex-1">
-          <p className="font-semibold">Publication controls are separate from ordinary task completion.</p>
-          <p className="text-sm text-muted-foreground">Approval requires an authorized second reviewer. A publication record requires a URL where an approved edition or item has already been released; this system does not itself publish to an external website.</p>
+          <p className="font-semibold">This standalone desk is separate from the canonical Communications Operations workflow.</p>
+          <p className="text-sm text-muted-foreground">For new organizational stories and interviews, use Communications Operations so versions, sources, consent, and approvals remain in one workflow. This standalone editor retains its own records and can publish approved text to HPG Publications, but it does not synchronize with Communications Operations or post to outside platforms.</p>
         </div>
         <Button asChild variant="outline" size="sm"><Link to="/learning?track=communications"><GraduationCap className="mr-2 h-4 w-4" /> Tutorial</Link></Button>
-        <Button asChild variant="outline" size="sm"><Link to="/modules/communications">Assignments</Link></Button>
+        <Button asChild variant="outline" size="sm"><Link to="/modules/communications">Canonical Communications Operations</Link></Button>
         <Button asChild variant="outline" size="sm"><Link to="/communications/media">Media library</Link></Button>
         <Button asChild variant="outline" size="sm"><Link to="/publications">Publications</Link></Button>
-        <Button onClick={() => setCreateOpen(true)} disabled={!editorial.data?.canWrite}><Plus className="mr-2 h-4 w-4" /> New content</Button>
+        <Button onClick={() => setCreateOpen(true)} disabled={!editorial.data?.canWrite}><Plus className="mr-2 h-4 w-4" /> New standalone content</Button>
       </div>
 
       {editorial.isLoading && <Card><CardContent className="p-6">Checking editorial access and loading records…</CardContent></Card>}
@@ -207,7 +207,7 @@ export default function EditorialDesk() {
         <div className="flex items-center gap-2 font-semibold"><LockKeyhole className="h-4 w-4" /> Editorial production is not configured or accessible yet.</div>
         <p className="text-sm text-muted-foreground">The editorial database migration and role permissions must be verified before publication controls can be used. Assignment tracking remains available in Communications Studio.</p>
         <p className="break-words text-xs text-destructive">{describeError(editorial.error)}</p>
-        <Button asChild variant="outline" size="sm"><Link to="/modules/communications">Return to Communications Studio</Link></Button>
+        <Button asChild variant="outline" size="sm"><Link to="/modules/communications">Return to Communications Operations</Link></Button>
       </CardContent></Card>}
 
       {editorial.data && !editorial.data.canWrite && <Card><CardContent className="p-6 text-sm">This desk is restricted to authorized communications and editorial staff. Contact your department administrator if access is expected.</CardContent></Card>}
