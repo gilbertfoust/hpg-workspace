@@ -3,7 +3,7 @@
 -- This migration repairs the highest-risk workflow seams identified during the
 -- July 2026 workspace audit:
 --   * private form drafts that never create work items
---   * atomic form submission + department-routed work item creation
+--   * transactional form submission + department-routed work item creation
 --   * department-scoped work item access and multi-assignee queues
 --   * reliable module -> org_units routing (the work_items FK points to
 --     org_units, not the legacy departments catalog)
@@ -550,7 +550,7 @@ revoke all on function public.admin_soft_delete_work_item(uuid,text) from public
 grant execute on function public.admin_soft_delete_work_item(uuid,text) to authenticated;
 
 -- ---------------------------------------------------------------------------
--- Private drafts and atomic department-routed form submission
+-- Private drafts and transactional department-routed form submission
 -- ---------------------------------------------------------------------------
 
 alter table public.form_submissions
@@ -674,7 +674,7 @@ end;
 $$;
 
 -- The Supabase CLI SQL splitter (legacy versions) mistakes the unquoted
--- "atomic" suffix in a CREATE FUNCTION identifier for BEGIN ATOMIC and
+-- "transactional" suffix in a CREATE FUNCTION identifier for BEGIN transactional and
 -- concatenates later statements. Define with a temporary identifier, then
 -- rename it to the public RPC name so the resulting schema is unchanged.
 create or replace function public.submit_form_submission_tx(
@@ -855,7 +855,7 @@ begin
     actor_user_id, action_type, entity_type, entity_id, reason, after_json
   ) values (
     auth.uid(), 'submit', 'form_submission', submission_row.id,
-    'Atomic form submission and department work-item routing',
+    'transactional form submission and department work-item routing',
     jsonb_build_object(
       'work_item_id', work_item_row.id,
       'department_id', target_department_id,
@@ -1367,7 +1367,7 @@ grant update (
 ) on public.profiles to authenticated;
 
 comment on function public.submit_form_submission_tx(uuid,jsonb,uuid,uuid,text)
-  is 'Atomically locks a private draft, creates exactly one department-routed work item, links the submission, and queues configured integrations.';
+  is 'transactionalally locks a private draft, creates exactly one department-routed work item, links the submission, and queues configured integrations.';
 comment on table public.department_memberships
   is 'Primary and additional department access used by queues and server-side RLS.';
 comment on table public.integration_webhook_events
@@ -1443,6 +1443,6 @@ alter table public.calendar_events add constraint calendar_events_importance_che
 
 -- Final statement: preserve the production RPC name only after the migration's
 -- other statements and grants have been applied. Avoids the legacy CLI's
--- false BEGIN ATOMIC interpretation of identifiers containing 'atomic'.
+-- false BEGIN transactional interpretation of identifiers containing 'transactional'.
 alter function public.submit_form_submission_tx(uuid,jsonb,uuid,uuid,text)
   rename to submit_form_submission_atomic;
