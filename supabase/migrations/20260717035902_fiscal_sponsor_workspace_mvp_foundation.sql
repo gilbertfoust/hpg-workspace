@@ -673,7 +673,11 @@ begin
 end;
 $$;
 
-create or replace function public.submit_form_submission_atomic(
+-- The Supabase CLI SQL splitter (legacy versions) mistakes the unquoted
+-- "atomic" suffix in a CREATE FUNCTION identifier for BEGIN ATOMIC and
+-- concatenates later statements. Define with a temporary identifier, then
+-- rename it to the public RPC name so the resulting schema is unchanged.
+create or replace function public.submit_form_submission_tx(
   p_form_template_id uuid,
   p_payload_json jsonb default '{}'::jsonb,
   p_ngo_id uuid default null,
@@ -866,7 +870,9 @@ begin
     'idempotent_replay', false
   );
 end;
-$$;
+$;
+alter function public.submit_form_submission_tx(uuid,jsonb,uuid,uuid,text)
+  rename to submit_form_submission_atomic;
 
 revoke all on function public.save_form_draft(uuid,jsonb,uuid,uuid,smallint) from public, anon;
 grant execute on function public.save_form_draft(uuid,jsonb,uuid,uuid,smallint) to authenticated;
