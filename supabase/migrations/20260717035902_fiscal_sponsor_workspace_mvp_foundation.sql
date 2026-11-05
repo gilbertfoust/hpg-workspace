@@ -871,13 +871,10 @@ begin
   );
 end;
 $;
-alter function public.submit_form_submission_tx(uuid,jsonb,uuid,uuid,text)
-  rename to submit_form_submission_atomic;
-
 revoke all on function public.save_form_draft(uuid,jsonb,uuid,uuid,smallint) from public, anon;
 grant execute on function public.save_form_draft(uuid,jsonb,uuid,uuid,smallint) to authenticated;
-revoke all on function public.submit_form_submission_atomic(uuid,jsonb,uuid,uuid,text) from public, anon;
-grant execute on function public.submit_form_submission_atomic(uuid,jsonb,uuid,uuid,text) to authenticated;
+revoke all on function public.submit_form_submission_tx(uuid,jsonb,uuid,uuid,text) from public, anon;
+grant execute on function public.submit_form_submission_tx(uuid,jsonb,uuid,uuid,text) to authenticated;
 
 -- ---------------------------------------------------------------------------
 -- Documents: repair uploader/department delete permissions
@@ -1369,7 +1366,7 @@ grant update (
   country_code, phone, bio
 ) on public.profiles to authenticated;
 
-comment on function public.submit_form_submission_atomic(uuid,jsonb,uuid,uuid,text)
+comment on function public.submit_form_submission_tx(uuid,jsonb,uuid,uuid,text)
   is 'Atomically locks a private draft, creates exactly one department-routed work item, links the submission, and queues configured integrations.';
 comment on table public.department_memberships
   is 'Primary and additional department access used by queues and server-side RLS.';
@@ -1443,3 +1440,9 @@ alter table public.calendar_events
 alter table public.calendar_events drop constraint if exists calendar_events_importance_check;
 alter table public.calendar_events add constraint calendar_events_importance_check
   check (importance in ('normal','important','critical'));
+
+-- Final statement: preserve the production RPC name only after the migration's
+-- other statements and grants have been applied. Avoids the legacy CLI's
+-- false BEGIN ATOMIC interpretation of identifiers containing 'atomic'.
+alter function public.submit_form_submission_tx(uuid,jsonb,uuid,uuid,text)
+  rename to submit_form_submission_atomic;
