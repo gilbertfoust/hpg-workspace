@@ -177,6 +177,17 @@ jobs:
             -f supabase/tests/academy_progress_security_smoke.sql \
             2>&1 | tee academy-progress-security-smoke.log
 
+      - name: Run Academy assessment and supervisor signoff security smoke test
+        if: steps.database-scope.outputs.database_changed == 'true'
+        id: academy-assessment-smoke
+        shell: bash
+        run: |
+          set -o pipefail
+          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" \
+            -v ON_ERROR_STOP=1 \
+            -f supabase/tests/academy_assessment_signoff_smoke.sql \
+            2>&1 | tee academy-assessment-signoff-smoke.log
+
       - name: Run database lint
         if: steps.database-scope.outputs.database_changed == 'true'
         id: database-lint
@@ -201,6 +212,7 @@ jobs:
             canonical-magazine-smoke.log
             canonical-editorial-media-smoke.log
             academy-progress-security-smoke.log
+            academy-assessment-signoff-smoke.log
             supabase-lint.log
           if-no-files-found: ignore
           retention-days: 7
