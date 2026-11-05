@@ -4,6 +4,7 @@ import { ArrowLeft, GraduationCap, Search, Users } from "lucide-react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { useUserRole, isAdminRole } from "@/hooks/useUserRole";
 import { useAcademyCatalog, useAcademyTeamProgress } from "@/hooks/useAcademyProgress";
+import AcademySupervisorReview from "@/components/onboarding/AcademySupervisorReview";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -104,6 +105,7 @@ export default function AcademyTeamProgress() {
             </CardContent>
           </Card>
         </div>
+        {chosen && <AcademySupervisorReview userId={chosen.user_id} />}
       </>}
     </div>
   </MainLayout>;

@@ -213,6 +213,15 @@ export function AppSidebar() {
   const canAccessAdminConfig = canAccessAdmin(userRole?.role);
   const role = userRole?.role;
   const canManageNgoAccess = canManageNgoPortalAccounts(role, userRole);
+  const { data: boardHubAccess } = useQuery({
+    queryKey: ["board-hub-sidebar-access", user?.id],
+    enabled: !!user?.id && canAccessArea(role, "reports", userRole),
+    retry: false,
+    queryFn: async () => {
+      const result = await ensureSupabase().rpc("can_read_bod_meetings" as never);
+      return !result.error && result.data === true;
+    },
+  });
   const { data: departmentAccess } = useQuery({
     queryKey: ["department-sidebar-authorization", user?.id],
     enabled: !!user?.id && canAccessArea(role, "communications", userRole),
@@ -348,6 +357,8 @@ export function AppSidebar() {
               {/* Main Navigation */}
               <NavItem to="/dashboard" icon={<LayoutDashboard className="w-4 h-4" />} label={isCollapsed ? "" : "Dashboard"} />
                <NavItem to="/learning" icon={<BookOpen className="w-4 h-4" />} label={isCollapsed ? "" : "Learning Academy"} />
+              <NavItem to="/learning/assessments" icon={<GraduationCap className="w-4 h-4" />} label={isCollapsed ? "" : "Knowledge Checks"} />
+              {boardHubAccess && <NavItem to="/board/hub" icon={<Scale className="w-4 h-4" />} label={isCollapsed ? "" : "Board of Directors Hub"} />}
               {canAccessArea(role, "ngos", userRole) && <NavItem to="/modules/ngo-coordination" icon={<Bot className="w-4 h-4" />} label={isCollapsed ? "" : "HPG Assistant"} />}
               <NavItem to="/my-queue" icon={<ListChecks className="w-4 h-4" />} label={isCollapsed ? "" : "My Queue"} />
               <NavItem to="/dept-queue" icon={<Users className="w-4 h-4" />} label={isCollapsed ? "" : "Dept Queue"} />
