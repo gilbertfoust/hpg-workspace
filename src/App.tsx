@@ -70,6 +70,8 @@ import HPGAssistantHistory from "./pages/HPGAssistantHistory";
 import MyWorkspaceProfile from "./pages/MyWorkspaceProfile";
 import LearningAcademy from "./pages/LearningAcademy";
 import AcademyTeamProgress from "./pages/AcademyTeamProgress";
+import AcademyAssessments from "./pages/AcademyAssessments";
+import BoardHub from "./pages/BoardHub";
 import ContentStudio from "./pages/ContentStudio";
 import DepartmentOperationsHub from "./pages/DepartmentOperationsHub";
 import EditorialDesk from "./pages/EditorialDesk";
@@ -204,6 +206,8 @@ const App = () => {
                 <Route path="/profile" element={<P><MyWorkspaceProfile /></P>} />
                 <Route path="/learning" element={<P><LearningAcademy /></P>} />
                 <Route path="/learning/team" element={<P><AcademyTeamProgress /></P>} />
+                <Route path="/learning/assessments" element={<P><AcademyAssessments /></P>} />
+                <Route path="/board/hub" element={<P><BoardHub /></P>} />
                 <Route path="/hpg-assistant" element={<P><NGOCoordinationModule /></P>} />
                 <Route path="/hpg-assistant/history" element={<P><HPGAssistantHistory /></P>} />
 
