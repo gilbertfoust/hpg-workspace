@@ -69,6 +69,7 @@ import PartnershipsDashboard from "./pages/PartnershipsDashboard";
 import HPGAssistantHistory from "./pages/HPGAssistantHistory";
 import MyWorkspaceProfile from "./pages/MyWorkspaceProfile";
 import LearningAcademy from "./pages/LearningAcademy";
+import AcademyTeamProgress from "./pages/AcademyTeamProgress";
 import ContentStudio from "./pages/ContentStudio";
 import DepartmentOperationsHub from "./pages/DepartmentOperationsHub";
 import EditorialDesk from "./pages/EditorialDesk";
@@ -202,6 +203,7 @@ const App = () => {
                 <Route path="/dashboard" element={<P><Dashboard /></P>} />
                 <Route path="/profile" element={<P><MyWorkspaceProfile /></P>} />
                 <Route path="/learning" element={<P><LearningAcademy /></P>} />
+                <Route path="/learning/team" element={<P><AcademyTeamProgress /></P>} />
                 <Route path="/hpg-assistant" element={<P><NGOCoordinationModule /></P>} />
                 <Route path="/hpg-assistant/history" element={<P><HPGAssistantHistory /></P>} />
 
