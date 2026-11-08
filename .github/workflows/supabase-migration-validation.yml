@@ -7,6 +7,7 @@ on:
       - 'supabase/migrations/**'
       - 'supabase/functions/**'
       - 'supabase/tests/**'
+      - 'supabase/fixtures/legacy-replay/**'
       - 'supabase/config.toml'
       - '.github/workflows/supabase-migration-validation.yml'
   workflow_dispatch:
@@ -44,7 +45,7 @@ jobs:
 
           printf '%s\n' "$CHANGED_FILES"
 
-          if grep -Eq '^supabase/(migrations|tests)/|^supabase/config\.toml$' <<< "$CHANGED_FILES"; then
+          if grep -Eq '^supabase/(migrations|tests|fixtures/legacy-replay)/|^supabase/config\.toml$' <<< "$CHANGED_FILES"; then
             echo "database_changed=true" >> "$GITHUB_OUTPUT"
             echo "Database migrations, tests, or configuration changed; the complete replay will run."
           else
@@ -79,6 +80,20 @@ jobs:
           supabase start --help
           supabase db reset --help
 
+      - name: Restore missing legacy schema in disposable replay only
+        if: steps.database-scope.outputs.database_changed == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          # These tables existed on production before the corresponding
+          # historical migrations but were provisioned outside source control.
+          # Reproduce metadata only for clean CI replay. Never touch production.
+          cp supabase/fixtures/legacy-replay/20260710044399_hpg_legacy_volunteer_hr_baseline.sql supabase/migrations/
+          cp supabase/fixtures/legacy-replay/20260929143337_hpg_workspace_notification_baseline.sql supabase/migrations/
+          test -f supabase/migrations/20260710044399_hpg_legacy_volunteer_hr_baseline.sql
+          test -f supabase/migrations/20260929143337_hpg_workspace_notification_baseline.sql
+          echo 'Using two empty, production-derived schema fixtures in disposable CI only.'
+
       - name: Start database-only Supabase stack
         if: steps.database-scope.outputs.database_changed == 'true'
         id: supabase-start
@@ -98,6 +113,16 @@ jobs:
         run: |
           set -o pipefail
           supabase db reset --local 2>&1 | tee supabase-reset.log
+
+      - name: Verify isolated historical schema baseline
+        if: steps.database-scope.outputs.database_changed == 'true'
+        shell: bash
+        run: |
+          set -o pipefail
+          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" \
+            -v ON_ERROR_STOP=1 \
+            -f supabase/tests/legacy_replay_baseline_smoke.sql \
+            2>&1 | tee legacy-replay-baseline-smoke.log
 
       - name: Run Agent OS activation fee smoke test
         if: steps.database-scope.outputs.database_changed == 'true'
@@ -269,6 +294,7 @@ jobs:
           path: |
             supabase-start.log
             supabase-reset.log
+            legacy-replay-baseline-smoke.log
             activation-fee-smoke.log
             editorial-smoke.log
             editorial-publications-smoke.log
