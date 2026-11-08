@@ -46,8 +46,8 @@ do $$
 begin
   perform public.review_editorial_asset(gen_random_uuid(),'cleared','');
   raise exception 'An anonymous reviewer unexpectedly succeeded';
-exception when others then
-  if sqlerrm not like '%Editorial asset reviewer permission required%' then raise; end if;
+exception when insufficient_privilege then
+  null;
 end $$;
 
 select 'editorial_publication_security_passed' as result;
