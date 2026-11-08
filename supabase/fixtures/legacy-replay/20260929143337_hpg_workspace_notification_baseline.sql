@@ -16,6 +16,30 @@ create schema if not exists private;
 revoke all on schema private from public,anon;
 grant usage on schema private to authenticated,service_role;
 
+-- The live NGO activity ledger also predates its first checked-in usage.
+-- Source: production pg_catalog table definition and NGO-scoped RLS policy.
+create table if not exists public.ngo_activity_history (
+  id uuid primary key default gen_random_uuid(),
+  ngo_id uuid not null references public.ngos(id),
+  actor_user_id uuid,
+  occurred_at timestamptz not null default now(),
+  action text not null,
+  record_type text not null,
+  record_id uuid,
+  record_name text,
+  summary text not null,
+  details jsonb not null default '{}'::jsonb
+);
+create index if not exists ngo_activity_history_lookup
+  on public.ngo_activity_history(ngo_id,occurred_at desc);
+alter table public.ngo_activity_history enable row level security;
+revoke all on public.ngo_activity_history from public,anon,authenticated;
+grant select on public.ngo_activity_history to authenticated;
+grant all on public.ngo_activity_history to service_role;
+create policy "HPG staff read NGO history"
+  on public.ngo_activity_history for select to authenticated
+  using (public.is_internal_user() or public.is_admin_user());
+
 -- September approval notifications attach genuine correspondence to an NGO's
 -- CRM organization. The full CRM enrichment was performed on live HPG
 -- separately from the early source-controlled schema. Restore only the
