@@ -228,7 +228,7 @@ AS $function$
   and (
     p_assessment<>'board' or (select public.can_read_bod_meetings())
   );
-$function$
+$function$;
 
 -- Change only question display order, never the private answer keys.
 CREATE OR REPLACE FUNCTION public.get_academy_assessment(p_assessment text)
@@ -253,7 +253,7 @@ begin
     where q.assessment_id=p_assessment),'[]'::jsonb)
   );
 end;
-$function$
+$function$;
 
 -- Enforce the documented retry limits and study interval server-side.
 CREATE OR REPLACE FUNCTION public.submit_academy_assessment(p_assessment text, p_answers jsonb)
