@@ -318,5 +318,5 @@ begin
   return jsonb_build_object('id',result.id,'score',correct,'total',total,
     'percent',percentage,'passed',result.passed,'submitted_at',result.submitted_at);
 end;
-$function$
+$function$;
 
