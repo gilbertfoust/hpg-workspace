@@ -9,6 +9,13 @@
 -- The later migrations may adjust notification_kind/status constraints.
 -- No email is queued or sent by this script; the queue starts empty.
 
+-- The production project also has this private backend function namespace.
+-- It was provisioned outside migration history, and Sep 29 creates functions
+-- there. A schema grant alone never authorizes calling an RPC.
+create schema if not exists private;
+revoke all on schema private from public,anon;
+grant usage on schema private to authenticated,service_role;
+
 create table if not exists public.workspace_admin_notification_events (
   id uuid primary key default gen_random_uuid(),
   notification_kind text not null,
