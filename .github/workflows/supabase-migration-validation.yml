@@ -92,11 +92,13 @@ jobs:
           cp supabase/fixtures/legacy-replay/20260929143337_hpg_workspace_notification_baseline.sql supabase/migrations/
           cp supabase/fixtures/legacy-replay/20260929163008_hpg_client_error_baseline.sql supabase/migrations/
           cp supabase/fixtures/legacy-replay/20261105002499_hpg_communications_baseline.sql supabase/migrations/
+          cp supabase/fixtures/legacy-replay/20261105141499_hpg_academy_board_baseline.sql supabase/migrations/
           test -f supabase/migrations/20260710044399_hpg_legacy_volunteer_hr_baseline.sql
           test -f supabase/migrations/20260929143337_hpg_workspace_notification_baseline.sql
           test -f supabase/migrations/20260929163008_hpg_client_error_baseline.sql
           test -f supabase/migrations/20261105002499_hpg_communications_baseline.sql
-          echo 'Using four empty, production-derived schema fixtures in disposable CI only.'
+          test -f supabase/migrations/20261105141499_hpg_academy_board_baseline.sql
+          echo 'Using empty, production-derived schema fixtures in disposable CI only.'
 
       - name: Start database-only Supabase stack
         if: steps.database-scope.outputs.database_changed == 'true'

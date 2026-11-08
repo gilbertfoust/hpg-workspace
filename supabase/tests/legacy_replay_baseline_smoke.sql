@@ -6,7 +6,7 @@ declare
   predicate regprocedure;
 begin
   foreach name in array array[
-    'volunteer_applications','hr_email_outbox','workspace_admin_notification_events'
+    'volunteer_applications','hr_email_outbox','workspace_admin_notification_events','bod_memberships'
   ] loop
     if to_regclass('public.'||name) is null then
       raise exception 'Missing original production object: %',name;
@@ -47,20 +47,25 @@ begin
     raise exception 'Historical baseline fixture should not invent emails or notification events';
   end if;
 
-  foreach name in array array['is_communications_staff', 'is_communications_approver'] loop
+  foreach name in array array[
+    'is_communications_staff', 'is_communications_approver',
+    'current_workspace_identity_active', 'can_read_bod_meetings'
+  ] loop
     predicate := to_regprocedure('public.' || name || '()');
     if predicate is null then
-      raise exception 'Missing legacy Communications predicate: %', name;
+      raise exception 'Missing legacy authorization predicate: %', name;
     end if;
     if has_function_privilege('anon', predicate, 'EXECUTE')
       or not has_function_privilege('authenticated', predicate, 'EXECUTE') then
-      raise exception 'Communications predicate % has unexpected execute grants', name;
+      raise exception 'Authorization predicate % has unexpected execute grants', name;
     end if;
   end loop;
 
   if public.is_communications_staff() is distinct from false
-    or public.is_communications_approver() is distinct from false then
-    raise exception 'Communications predicates must reject a session without a user';
+    or public.is_communications_approver() is distinct from false
+    or public.current_workspace_identity_active() is distinct from false
+    or public.can_read_bod_meetings() is distinct from false then
+    raise exception 'Authorization predicates must reject a session without a user';
   end if;
 end
 $check$;

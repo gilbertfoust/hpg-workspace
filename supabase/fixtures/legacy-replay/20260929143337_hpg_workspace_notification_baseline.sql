@@ -16,6 +16,60 @@ create schema if not exists private;
 revoke all on schema private from public,anon;
 grant usage on schema private to authenticated,service_role;
 
+-- Source-controlled notification triggers and Academy access checks expect
+-- the profile lifecycle fields and active identity predicate from live HPG.
+alter table public.profiles
+  add column access_status text not null default 'active'
+    constraint profiles_access_status_check check (access_status in ('active', 'deactivated')),
+  add column deleted_at timestamptz;
+
+create function private.workspace_actor_is_active(p_user_id uuid)
+returns boolean
+language sql stable security definer
+set search_path = ''
+as $$
+  select exists (
+    select 1 from public.profiles p
+    join public.user_roles r on r.user_id=p.id and r.role::text=p.role
+    where p.id=p_user_id and p.is_approved is true
+      and lower(btrim(coalesce(p.approval_status,'')))='approved'
+      and p.access_status='active'
+  );
+$$;
+revoke all on function private.workspace_actor_is_active(uuid) from public, anon, authenticated;
+
+create function public.current_session_has_privileged_aal2()
+returns boolean
+language sql stable security definer
+set search_path = ''
+as $$
+  select coalesce(auth.jwt() ->> 'role', '') = 'service_role'
+    or (
+      auth.uid() is not null
+      and coalesce(auth.jwt() ->> 'aal', '') = 'aal2'
+    );
+$$;
+revoke all on function public.current_session_has_privileged_aal2() from public, anon;
+grant execute on function public.current_session_has_privileged_aal2() to authenticated, service_role;
+
+create function public.current_workspace_identity_active()
+returns boolean
+language sql stable security definer
+set search_path = ''
+as $$
+  select auth.uid() is not null
+    and private.workspace_actor_is_active(auth.uid())
+    and exists (
+      select 1 from public.profiles p where p.id=auth.uid()
+      and (p.role not in (
+        'super_admin','admin_pm','vp_operations','vp_programs',
+        'vp_development','vp_finance','vp_communications'
+      ) or public.current_session_has_privileged_aal2())
+    );
+$$;
+revoke all on function public.current_workspace_identity_active() from public, anon;
+grant execute on function public.current_workspace_identity_active() to authenticated, service_role;
+
 -- The live NGO activity ledger also predates its first checked-in usage.
 -- Source: production pg_catalog table definition and NGO-scoped RLS policy.
 create table if not exists public.ngo_activity_history (
