@@ -8,8 +8,8 @@ import { Badge } from "@/components/ui/badge";
  * generator. Captions/transcripts are the authored lesson text, not AI output.
  * Does not pretend a recorded video exists.
  */
-export default function AcademyNarratedSteps({ title, steps, currentStep }: {
-  title: string; steps: string[]; currentStep: number;
+export default function AcademyNarratedSteps({ title, steps, currentStep, languageCode = "en" }: {
+  title: string; steps: string[]; currentStep: number; languageCode?: string;
 }) {
   const [speaking, setSpeaking] = useState(false);
   const [paused, setPaused] = useState(false);
@@ -23,12 +23,12 @@ export default function AcademyNarratedSteps({ title, steps, currentStep }: {
     if (typeof window !== "undefined" && "speechSynthesis" in window) window.speechSynthesis.cancel();
     setSpeaking(false); setPaused(false);
     return () => { if (typeof window !== "undefined" && "speechSynthesis" in window) window.speechSynthesis.cancel(); };
-  }, [selected, title]);
+  }, [selected, title, languageCode]);
   const start = () => {
     if (!supported || !selected) return;
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(title + ". Step " + (currentStep+1) + ". " + selected);
-    utterance.lang = "en-US";
+    utterance.lang = languageCode === "fr" ? "fr-FR" : languageCode === "es" ? "es-ES" : languageCode === "pt" ? "pt-BR" : "en-US";
     utterance.rate = 0.92;
     utterance.onend = () => { setSpeaking(false); setPaused(false); };
     utterance.onerror = () => { setSpeaking(false); setPaused(false); };
