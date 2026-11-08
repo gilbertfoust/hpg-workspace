@@ -18,6 +18,11 @@ on:
       - 'src/components/onboarding/AcademyLessonResources.tsx'
       - 'src/hooks/useAcademyLessonResources.ts'
       - 'scripts/validate-academy-curriculum.mjs'
+      - 'src/pages/AcademyLearningPlan.tsx'
+      - 'src/pages/AcademyCurriculum.tsx'
+      - 'src/hooks/useAcademyLearningPlans.ts'
+      - 'src/hooks/useAcademyRemediation.ts'
+      - 'scripts/validate-academy-management.mjs'
       - 'src/pages/AcademyTeamProgress.tsx'
       - 'src/pages/AcademyAssessments.tsx'
       - 'src/pages/BoardHub.tsx'
@@ -55,7 +60,9 @@ jobs:
       - run: npm ci
       - name: Verify Academy lessons, workflow routes, private simulation and media authoring
         run: node scripts/validate-academy-curriculum.mjs
+      - name: Verify role-based Academy course management
+        run: node scripts/validate-academy-management.mjs
       - name: TypeScript check
         run: npx tsc --noEmit
       - name: Lint new learning and studio pages
-        run: npx eslint src/pages/LearningAcademy.tsx src/data/academyCoreTracks.ts src/components/onboarding/AcademyScreenGuide.tsx src/pages/AcademyPracticeLab.tsx src/pages/AcademyRecordingStudio.tsx src/pages/AcademyReadinessCenter.tsx src/pages/WorkspaceResearchLibrary.tsx src/hooks/useWorkspaceResearchLibrary.ts src/hooks/useAcademyReadiness.ts src/data/academyWorkspaceTracks.ts src/components/onboarding/AcademyNarratedSteps.tsx src/components/onboarding/AcademyLessonResources.tsx src/hooks/useAcademyLessonResources.ts src/pages/AcademyTeamProgress.tsx src/pages/AcademyAssessments.tsx src/pages/BoardHub.tsx src/hooks/useAcademyAssessments.ts src/hooks/useBoardMeetings.ts src/components/onboarding/AcademySupervisorReview.tsx src/hooks/useAcademyProgress.ts src/pages/ContentStudio.tsx src/pages/DepartmentOperationsHub.tsx src/pages/CanonicalMagazinePanel.tsx src/components/onboarding/GuidedWalkthrough.tsx src/hooks/useDepartmentOperations.ts src/pages/EditorialDesk.tsx src/pages/EditorialMediaDesk.tsx src/pages/Publications.tsx src/hooks/useEditorial.ts src/hooks/useEditorialAssets.ts src/hooks/usePublications.ts
+        run: npx eslint src/pages/LearningAcademy.tsx src/data/academyCoreTracks.ts src/components/onboarding/AcademyScreenGuide.tsx src/pages/AcademyPracticeLab.tsx src/pages/AcademyRecordingStudio.tsx src/pages/AcademyReadinessCenter.tsx src/pages/WorkspaceResearchLibrary.tsx src/hooks/useWorkspaceResearchLibrary.ts src/hooks/useAcademyReadiness.ts src/data/academyWorkspaceTracks.ts src/components/onboarding/AcademyNarratedSteps.tsx src/components/onboarding/AcademyLessonResources.tsx src/hooks/useAcademyLessonResources.ts src/pages/AcademyLearningPlan.tsx src/pages/AcademyCurriculum.tsx src/hooks/useAcademyLearningPlans.ts src/hooks/useAcademyRemediation.ts src/pages/AcademyTeamProgress.tsx src/pages/AcademyAssessments.tsx src/pages/BoardHub.tsx src/hooks/useAcademyAssessments.ts src/hooks/useBoardMeetings.ts src/components/onboarding/AcademySupervisorReview.tsx src/hooks/useAcademyProgress.ts src/pages/ContentStudio.tsx src/pages/DepartmentOperationsHub.tsx src/pages/CanonicalMagazinePanel.tsx src/components/onboarding/GuidedWalkthrough.tsx src/hooks/useDepartmentOperations.ts src/pages/EditorialDesk.tsx src/pages/EditorialMediaDesk.tsx src/pages/Publications.tsx src/hooks/useEditorial.ts src/hooks/useEditorialAssets.ts src/hooks/usePublications.ts
