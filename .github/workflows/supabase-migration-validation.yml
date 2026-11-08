@@ -7,6 +7,7 @@ on:
       - 'supabase/migrations/**'
       - 'supabase/functions/**'
       - 'supabase/tests/**'
+      - 'supabase/fixtures/legacy-replay/**'
       - 'supabase/config.toml'
       - '.github/workflows/supabase-migration-validation.yml'
   workflow_dispatch:
@@ -44,7 +45,7 @@ jobs:
 
           printf '%s\n' "$CHANGED_FILES"
 
-          if grep -Eq '^supabase/(migrations|tests)/|^supabase/config\.toml$' <<< "$CHANGED_FILES"; then
+          if grep -Eq '^supabase/(migrations|tests|fixtures/legacy-replay)/|^supabase/config\.toml$' <<< "$CHANGED_FILES"; then
             echo "database_changed=true" >> "$GITHUB_OUTPUT"
             echo "Database migrations, tests, or configuration changed; the complete replay will run."
           else
@@ -79,6 +80,28 @@ jobs:
           supabase start --help
           supabase db reset --help
 
+      - name: Restore missing legacy schema in disposable replay only
+        if: steps.database-scope.outputs.database_changed == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          # These tables existed on production before the corresponding
+          # historical migrations but were provisioned outside source control.
+          # Reproduce metadata only for clean CI replay. Never touch production.
+          cp supabase/fixtures/legacy-replay/20260710044399_hpg_legacy_volunteer_hr_baseline.sql supabase/migrations/
+          cp supabase/fixtures/legacy-replay/20260929143337_hpg_workspace_notification_baseline.sql supabase/migrations/
+          cp supabase/fixtures/legacy-replay/20260929163008_hpg_client_error_baseline.sql supabase/migrations/
+          cp supabase/fixtures/legacy-replay/20261105002499_hpg_communications_baseline.sql supabase/migrations/
+          cp supabase/fixtures/legacy-replay/20261105141499_hpg_academy_board_baseline.sql supabase/migrations/
+          cp supabase/fixtures/legacy-replay/20261107205959_hpg_academy_scheduler_baseline.sql supabase/migrations/
+          test -f supabase/migrations/20260710044399_hpg_legacy_volunteer_hr_baseline.sql
+          test -f supabase/migrations/20260929143337_hpg_workspace_notification_baseline.sql
+          test -f supabase/migrations/20260929163008_hpg_client_error_baseline.sql
+          test -f supabase/migrations/20261105002499_hpg_communications_baseline.sql
+          test -f supabase/migrations/20261105141499_hpg_academy_board_baseline.sql
+          test -f supabase/migrations/20261107205959_hpg_academy_scheduler_baseline.sql
+          echo 'Using empty, production-derived schema fixtures in disposable CI only.'
+
       - name: Start database-only Supabase stack
         if: steps.database-scope.outputs.database_changed == 'true'
         id: supabase-start
@@ -99,8 +122,18 @@ jobs:
           set -o pipefail
           supabase db reset --local 2>&1 | tee supabase-reset.log
 
+      - name: Verify isolated historical schema baseline
+        if: ${{ !cancelled() && steps.database-reset.outcome == 'success' }}
+        shell: bash
+        run: |
+          set -o pipefail
+          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" \
+            -v ON_ERROR_STOP=1 \
+            -f supabase/tests/legacy_replay_baseline_smoke.sql \
+            2>&1 | tee legacy-replay-baseline-smoke.log
+
       - name: Run Agent OS activation fee smoke test
-        if: steps.database-scope.outputs.database_changed == 'true'
+        if: ${{ !cancelled() && steps.database-reset.outcome == 'success' }}
         id: activation-fee-smoke-test
         shell: bash
         run: |
@@ -111,7 +144,7 @@ jobs:
             2>&1 | tee activation-fee-smoke.log
 
       - name: Run editorial security smoke test
-        if: steps.database-scope.outputs.database_changed == 'true'
+        if: ${{ !cancelled() && steps.database-reset.outcome == 'success' }}
         id: editorial-smoke
         shell: bash
         run: |
@@ -122,7 +155,7 @@ jobs:
             2>&1 | tee editorial-smoke.log
 
       - name: Run publication and media security smoke test
-        if: steps.database-scope.outputs.database_changed == 'true'
+        if: ${{ !cancelled() && steps.database-reset.outcome == 'success' }}
         id: editorial-publications-smoke
         shell: bash
         run: |
@@ -133,7 +166,7 @@ jobs:
             2>&1 | tee editorial-publications-smoke.log
 
       - name: Run canonical Communications release security smoke test
-        if: steps.database-scope.outputs.database_changed == 'true'
+        if: ${{ !cancelled() && steps.database-reset.outcome == 'success' }}
         id: canonical-release-smoke
         shell: bash
         run: |
@@ -144,7 +177,7 @@ jobs:
             2>&1 | tee canonical-communications-release-smoke.log
 
       - name: Run Communications consent-review security smoke test
-        if: steps.database-scope.outputs.database_changed == 'true'
+        if: ${{ !cancelled() && steps.database-reset.outcome == 'success' }}
         id: communications-consent-smoke
         shell: bash
         run: |
@@ -155,7 +188,7 @@ jobs:
             2>&1 | tee communications-consent-smoke.log
 
       - name: Run canonical magazine release security smoke test
-        if: steps.database-scope.outputs.database_changed == 'true'
+        if: ${{ !cancelled() && steps.database-reset.outcome == 'success' }}
         id: canonical-magazine-smoke
         shell: bash
         run: |
@@ -166,7 +199,7 @@ jobs:
             2>&1 | tee canonical-magazine-smoke.log
 
       - name: Run canonical Communications private media security smoke test
-        if: steps.database-scope.outputs.database_changed == 'true'
+        if: ${{ !cancelled() && steps.database-reset.outcome == 'success' }}
         id: canonical-private-media-smoke
         shell: bash
         run: |
@@ -177,7 +210,7 @@ jobs:
             2>&1 | tee canonical-editorial-media-smoke.log
 
       - name: Run Learning Academy privacy and manager access smoke test
-        if: steps.database-scope.outputs.database_changed == 'true'
+        if: ${{ !cancelled() && steps.database-reset.outcome == 'success' }}
         id: academy-progress-smoke
         shell: bash
         run: |
@@ -188,7 +221,7 @@ jobs:
             2>&1 | tee academy-progress-security-smoke.log
 
       - name: Run Academy assessment and supervisor signoff security smoke test
-        if: steps.database-scope.outputs.database_changed == 'true'
+        if: ${{ !cancelled() && steps.database-reset.outcome == 'success' }}
         id: academy-assessment-smoke
         shell: bash
         run: |
@@ -199,7 +232,7 @@ jobs:
             2>&1 | tee academy-assessment-signoff-smoke.log
 
       - name: Run expanded Academy training and media security smoke test
-        if: steps.database-scope.outputs.database_changed == 'true'
+        if: ${{ !cancelled() && steps.database-reset.outcome == 'success' }}
         id: academy-expanded-smoke
         shell: bash
         run: |
@@ -210,7 +243,7 @@ jobs:
             2>&1 | tee academy-workflow-expansion-smoke.log
 
       - name: Run Academy readiness and staff acceptance privacy smoke test
-        if: steps.database-scope.outputs.database_changed == 'true'
+        if: ${{ !cancelled() && steps.database-reset.outcome == 'success' }}
         id: academy-readiness-smoke
         shell: bash
         run: |
@@ -221,7 +254,7 @@ jobs:
             2>&1 | tee academy-readiness-acceptance-smoke.log
 
       - name: Run internal research library privacy and review smoke test
-        if: steps.database-scope.outputs.database_changed == 'true'
+        if: ${{ !cancelled() && steps.database-reset.outcome == 'success' }}
         id: workspace-research-smoke
         shell: bash
         run: |
@@ -232,7 +265,7 @@ jobs:
             2>&1 | tee workspace-research-library-smoke.log
 
       - name: Check Academy role paths, curriculum and notices
-        if: steps.database-scope.outputs.database_changed == 'true'
+        if: ${{ !cancelled() && steps.database-reset.outcome == 'success' }}
         id: academy-management-smoke
         shell: bash
         run: |
@@ -243,7 +276,7 @@ jobs:
             2>&1 | tee academy-pathways-curriculum-smoke.log
 
       - name: Verify Academy assigned learning, provider evidence and translations
-        if: steps.database-scope.outputs.database_changed == 'true'
+        if: ${{ !cancelled() && steps.database-reset.outcome == 'success' }}
         id: academy-phases5-8-smoke
         shell: bash
         run: |
@@ -254,7 +287,7 @@ jobs:
             2>&1 | tee academy-phase5-8-smoke.log
 
       - name: Run database lint
-        if: steps.database-scope.outputs.database_changed == 'true'
+        if: ${{ !cancelled() && steps.database-reset.outcome == 'success' }}
         id: database-lint
         shell: bash
         run: |
@@ -269,6 +302,7 @@ jobs:
           path: |
             supabase-start.log
             supabase-reset.log
+            legacy-replay-baseline-smoke.log
             activation-fee-smoke.log
             editorial-smoke.log
             editorial-publications-smoke.log
