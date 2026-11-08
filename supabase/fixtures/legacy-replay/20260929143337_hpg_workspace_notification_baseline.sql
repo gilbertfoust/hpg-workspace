@@ -16,6 +16,32 @@ create schema if not exists private;
 revoke all on schema private from public,anon;
 grant usage on schema private to authenticated,service_role;
 
+-- September approval notifications attach genuine correspondence to an NGO's
+-- CRM organization. The full CRM enrichment was performed on live HPG
+-- separately from the early source-controlled schema. Restore only the
+-- columns needed for replay, as evidenced by the November 8 production catalog.
+alter table public.crm_organizations
+  add column if not exists ngo_id uuid references public.ngos(id) on delete cascade,
+  add column if not exists relationship_status text not null default 'prospect',
+  add column if not exists source_system text not null default 'manual',
+  add column if not exists source_reference text;
+create unique index if not exists crm_organizations_canonical_ngo_idx
+  on public.crm_organizations(ngo_id) where ngo_id is not null;
+
+alter table public.crm_interactions
+  add column if not exists external_key text,
+  add column if not exists direction text not null default 'internal',
+  add column if not exists channel text,
+  add column if not exists outcome text,
+  add column if not exists status text not null default 'completed',
+  add column if not exists follow_up_needed boolean not null default false,
+  add column if not exists evidence_source text,
+  add column if not exists evidence_strength smallint,
+  add column if not exists source_reference text,
+  add column if not exists date_precision text not null default 'day';
+create unique index if not exists crm_interactions_external_key_unique
+  on public.crm_interactions(external_key);
+
 create table if not exists public.workspace_admin_notification_events (
   id uuid primary key default gen_random_uuid(),
   notification_kind text not null,
