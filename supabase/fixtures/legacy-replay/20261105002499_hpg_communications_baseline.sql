@@ -7,6 +7,54 @@
 -- Git history are intentionally deferred until a separately reviewed
 -- whole-module metadata parity reconciliation.
 
+-- Restore the live authorization predicates referenced by the canonical
+-- magazine and private-media migrations. Keep their role checks intact.
+create function private.communications_department_id()
+returns uuid
+language sql stable security definer
+set search_path = pg_catalog, public
+as $$
+  select unit.id
+  from public.org_units unit
+  where lower(trim(unit.department_name)) = 'communications'
+    and unit.sub_department_name is null
+  order by unit.created_at, unit.id
+  limit 1;
+$$;
+revoke all on function private.communications_department_id() from public, anon, authenticated;
+
+create function public.is_communications_staff()
+returns boolean
+language sql stable security definer
+set search_path = pg_catalog, public, private
+as $$
+  select public.is_internal_user()
+    and public.can_access_workspace_area('communications');
+$$;
+revoke all on function public.is_communications_staff() from public, anon;
+grant execute on function public.is_communications_staff() to authenticated, service_role;
+
+create function public.is_communications_approver()
+returns boolean
+language sql stable security definer
+set search_path = pg_catalog, public, private
+as $$
+  select public.is_communications_staff()
+    and (
+      public.is_admin_user()
+      or public.is_department_member(private.communications_department_id())
+    )
+    and exists (
+      select 1
+      from public.profiles profile
+      where profile.id = (select auth.uid())
+        and profile.role in ('super_admin', 'admin_pm', 'vp_communications', 'department_lead')
+        and profile.is_approved
+        and lower(trim(profile.approval_status)) = 'approved'
+    );
+$$;
+revoke all on function public.is_communications_approver() from public, anon;
+grant execute on function public.is_communications_approver() to authenticated, service_role;
 
 create table if not exists public.communications_editorial_items (
   "id" uuid default gen_random_uuid() not null,

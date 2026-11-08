@@ -1,7 +1,9 @@
 -- Validate authoritative shape of historical objects previously missing
 -- from repository-only clean replay. This test does not create application data.
 do $check$
-declare name text;
+declare
+  name text;
+  predicate regprocedure;
 begin
   foreach name in array array[
     'volunteer_applications','hr_email_outbox','workspace_admin_notification_events'
@@ -43,6 +45,22 @@ begin
   if exists(select 1 from public.hr_email_outbox limit 1)
     or exists(select 1 from public.workspace_admin_notification_events limit 1) then
     raise exception 'Historical baseline fixture should not invent emails or notification events';
+  end if;
+
+  foreach name in array array['is_communications_staff', 'is_communications_approver'] loop
+    predicate := to_regprocedure('public.' || name || '()');
+    if predicate is null then
+      raise exception 'Missing legacy Communications predicate: %', name;
+    end if;
+    if has_function_privilege('anon', predicate, 'EXECUTE')
+      or not has_function_privilege('authenticated', predicate, 'EXECUTE') then
+      raise exception 'Communications predicate % has unexpected execute grants', name;
+    end if;
+  end loop;
+
+  if public.is_communications_staff() is distinct from false
+    or public.is_communications_approver() is distinct from false then
+    raise exception 'Communications predicates must reject a session without a user';
   end if;
 end
 $check$;
