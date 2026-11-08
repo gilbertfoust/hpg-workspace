@@ -90,9 +90,11 @@ jobs:
           # Reproduce metadata only for clean CI replay. Never touch production.
           cp supabase/fixtures/legacy-replay/20260710044399_hpg_legacy_volunteer_hr_baseline.sql supabase/migrations/
           cp supabase/fixtures/legacy-replay/20260929143337_hpg_workspace_notification_baseline.sql supabase/migrations/
+          cp supabase/fixtures/legacy-replay/20260929163008_hpg_client_error_baseline.sql supabase/migrations/
           test -f supabase/migrations/20260710044399_hpg_legacy_volunteer_hr_baseline.sql
           test -f supabase/migrations/20260929143337_hpg_workspace_notification_baseline.sql
-          echo 'Using two empty, production-derived schema fixtures in disposable CI only.'
+          test -f supabase/migrations/20260929163008_hpg_client_error_baseline.sql
+          echo 'Using three empty, production-derived schema fixtures in disposable CI only.'
 
       - name: Start database-only Supabase stack
         if: steps.database-scope.outputs.database_changed == 'true'
