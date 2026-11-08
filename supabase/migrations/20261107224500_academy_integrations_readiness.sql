@@ -21,8 +21,8 @@ begin
   select count(*) into research_count from public.workspace_research_sources
     where status='reviewed';
   select count(*) into directors from public.bod_memberships
-    where is_active and (term_starts_at is null or term_starts_at<=now())
-      and (term_ends_at is null or term_ends_at>now());
+    where is_active and (term_starts_on is null or term_starts_on<=current_date)
+      and (term_ends_on is null or term_ends_on>=current_date);
   select count(*) into media_count from public.academy_lesson_resources
     where status='published' and resource_kind='recorded_demo';
   return jsonb_build_object(
