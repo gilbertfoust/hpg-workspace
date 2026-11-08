@@ -57,6 +57,9 @@ export function MainLayout({ children, title, subtitle, actions }: MainLayoutPro
         style={{ backgroundImage: `url('${import.meta.env.BASE_URL}images/hpg-command-center-2.png')` }}
         aria-hidden="true"
       />
+      <a href="#workspace-main-content" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-3 focus:z-[100] focus:rounded-md focus:bg-background focus:px-4 focus:py-2 focus:text-foreground focus:shadow-lg">
+        Skip navigation and go to main content
+      </a>
       <AppSidebar />
       <AcademyScreenGuide />
       
@@ -149,7 +152,7 @@ export function MainLayout({ children, title, subtitle, actions }: MainLayoutPro
         )}
 
         {/* Main content */}
-        <main className="flex-1 p-6">
+        <main id="workspace-main-content" tabIndex={-1} className="flex-1 p-6">
           {children}
         </main>
       </div>
