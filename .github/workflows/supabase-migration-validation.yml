@@ -58,16 +58,26 @@ jobs:
           echo "This pull request changes Edge Function or workflow code only."
           echo "The Edge Function validation job remains required; database replay is reserved for migration, SQL test, and Supabase configuration changes."
 
-      - name: Set up Node
+      - name: Set up Node for pinned database CLI
         if: steps.database-scope.outputs.database_changed == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: '22'
-          cache: npm
 
-      - name: Install dependencies
+      - name: Install supported Supabase CLI v2
         if: steps.database-scope.outputs.database_changed == 'true'
-        run: npm ci
+        uses: supabase/setup-cli@v3
+        with:
+          # v2.72.8 has a documented false BEGIN ATOMIC migration splitter bug.
+          # Pin a post-fix v2 release; do not silently upgrade to breaking v3.
+          version: 2.122.1
+
+      - name: Verify CLI version and local-only command flags
+        if: steps.database-scope.outputs.database_changed == 'true'
+        run: |
+          supabase --version
+          supabase start --help
+          supabase db reset --help
 
       - name: Start database-only Supabase stack
         if: steps.database-scope.outputs.database_changed == 'true'
@@ -79,7 +89,7 @@ jobs:
           # database smoke tests, and SQL linting. Keeping only Postgres makes
           # the validation job faster and more reliable on hosted runners.
           EXCLUDED_SERVICES="studio,imgproxy,mailpit,storage-api,realtime,edge-runtime,logflare,vector,supavisor,gotrue,kong,postgres-meta,postgrest"
-          npx supabase start -x "$EXCLUDED_SERVICES" 2>&1 | tee supabase-start.log
+          supabase start -x "$EXCLUDED_SERVICES" 2>&1 | tee supabase-start.log
 
       - name: Rebuild database from migrations
         if: steps.database-scope.outputs.database_changed == 'true'
@@ -87,7 +97,7 @@ jobs:
         shell: bash
         run: |
           set -o pipefail
-          npx supabase db reset --local 2>&1 | tee supabase-reset.log
+          supabase db reset --local 2>&1 | tee supabase-reset.log
 
       - name: Run Agent OS activation fee smoke test
         if: steps.database-scope.outputs.database_changed == 'true'
@@ -232,13 +242,24 @@ jobs:
             -f supabase/tests/academy_pathways_curriculum_reminders_smoke.sql \
             2>&1 | tee academy-pathways-curriculum-smoke.log
 
+      - name: Verify Academy assigned learning, provider evidence and translations
+        if: steps.database-scope.outputs.database_changed == 'true'
+        id: academy-phases5-8-smoke
+        shell: bash
+        run: |
+          set -o pipefail
+          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" \
+            -v ON_ERROR_STOP=1 \
+            -f supabase/tests/academy_phase5_8_security_smoke.sql \
+            2>&1 | tee academy-phase5-8-smoke.log
+
       - name: Run database lint
         if: steps.database-scope.outputs.database_changed == 'true'
         id: database-lint
         shell: bash
         run: |
           set -o pipefail
-          npx supabase db lint --local --level warning 2>&1 | tee supabase-lint.log
+          supabase db lint --local --level warning 2>&1 | tee supabase-lint.log
 
       - name: Upload Supabase validation diagnostics
         if: always() && steps.database-scope.outputs.database_changed == 'true'
@@ -261,17 +282,18 @@ jobs:
             academy-readiness-acceptance-smoke.log
             workspace-research-library-smoke.log
             academy-pathways-curriculum-smoke.log
+            academy-phase5-8-smoke.log
             supabase-lint.log
           if-no-files-found: ignore
           retention-days: 7
 
       - name: Show local service status
         if: always() && steps.database-scope.outputs.database_changed == 'true'
-        run: npx supabase status || true
+        run: supabase status || true
 
       - name: Stop local Supabase stack
         if: always() && steps.database-scope.outputs.database_changed == 'true'
-        run: npx supabase stop --no-backup || true
+        run: supabase stop --no-backup || true
 
   check-edge-functions:
     runs-on: ubuntu-latest

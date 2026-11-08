@@ -8,6 +8,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useCurrentProfile } from "@/hooks/useProfiles";
+import { useAcademyLessonTranslations, type AcademyLanguage } from "@/hooks/useAcademyTranslations";
+import { academyLabel, supportedAcademyLanguages, languageText } from "@/lib/academyLocalization";
 import { tracks, type Lesson } from "@/data/academyCoreTracks";
 import AcademyNarratedSteps from "@/components/onboarding/AcademyNarratedSteps";
 import AcademyLessonResources from "@/components/onboarding/AcademyLessonResources";
@@ -132,6 +136,12 @@ export default function LearningAcademy() {
   const activeTrack = tracks.find(track => track.id === selectedTrackId) || tracks[0];
   const [selectedLessonId, setSelectedLessonId] = useState<string | null>(null);
   const [lessonSearch, setLessonSearch] = useState("");
+  const profile=useCurrentProfile();
+  const [instructionLanguage,setInstructionLanguage]=useState<AcademyLanguage>("en");
+  useEffect(()=>{
+    const preferred=profile.data?.preferred_language;
+    if(preferred==="fr"||preferred==="es"||preferred==="pt"||preferred==="en") setInstructionLanguage(preferred);
+  },[profile.data?.preferred_language]);
   const [step, setStep] = useState(0);
   const [legacyCompleted, setLegacyCompleted] = useState<string[]>([]);
   const completed = (academy.progress.data || []).map(item => item.lesson_id);
@@ -152,6 +162,14 @@ export default function LearningAcademy() {
   useEffect(() => { setSelectedLessonId(params.get("lesson")); setStep(0); }, [selectedTrackId]);
 
   const selectedLesson = activeTrack.lessons.find(lesson => lesson.id === selectedLessonId);
+  const languageRecords=useAcademyLessonTranslations(selectedLesson?.id);
+  const candidate=languageRecords.data?.find(x=>x.language_code===instructionLanguage&&x.status==="reviewed");
+  const reviewedTranslation=candidate&&candidate.translated_steps.length===selectedLesson?.steps.length?candidate:null;
+  const displayedSteps=reviewedTranslation?.translated_steps||selectedLesson?.steps||[];
+  const displayedTitle=reviewedTranslation?.translated_title||selectedLesson?.name||"";
+  const displayedGoal=reviewedTranslation?.translated_objective||selectedLesson?.goal||"";
+  const displayedPractice=reviewedTranslation?.translated_practice||selectedLesson?.practice||"";
+  const spokenLanguage=reviewedTranslation?instructionLanguage:"en";
   const availableLessons = useMemo(
     () => tracks.flatMap(track => track.lessons).filter(lesson => isReady(lesson, editorReady, publicationReady, mediaReady, canonicalCommsReady, canonicalMarketingReady, canonicalPublisherReady, canonicalIssueReady, canonicalMediaReady, boardReady) && isAllowed(lesson, access?.role, access)),
     [access, editorReady, publicationReady, mediaReady, canonicalCommsReady, canonicalMarketingReady, canonicalPublisherReady, canonicalIssueReady, canonicalMediaReady, boardReady],
@@ -205,6 +223,14 @@ export default function LearningAcademy() {
             <div className="rounded-xl bg-primary/10 p-3"><GraduationCap className="h-8 w-8 text-primary" /></div>
             <div className="flex-1 space-y-2">
               <h2 className="text-xl font-semibold">Workspace Training: learn your role inside HPG.</h2>
+              <div className="flex flex-wrap items-center gap-2">
+                <label htmlFor="academy-instruction-language" className="text-xs font-medium">{languageText[instructionLanguage].language}</label>
+                <Select value={instructionLanguage} onValueChange={v=>setInstructionLanguage(v as AcademyLanguage)}>
+                  <SelectTrigger id="academy-instruction-language" className="w-44"><SelectValue/></SelectTrigger>
+                  <SelectContent>{supportedAcademyLanguages.map(l=><SelectItem key={l.code} value={l.code}>{l.name}</SelectItem>)}</SelectContent>
+                </Select>
+                <span className="text-xs text-muted-foreground">Unreviewed translations always fall back to the English source.</span>
+              </div>
               <p className="text-sm text-muted-foreground">This free internal track is one of five equal divisions of the HPG Executive Professional Academy. The other divisions also use HPG Workspace as their learning platform, but are not part of Workspace Training. Guided lessons never create fake accounting entries, grant applications, or Board votes.</p>
               <div className="flex items-center gap-3"><Progress value={percent} className="max-w-sm" /><span className="whitespace-nowrap text-xs text-muted-foreground">{doneCount}/{availableLessons.length} lessons</span></div>
               <p className="text-xs text-muted-foreground">Completion is self-reported and saved to your HPG account across devices. It is not an official HR certification or competency assessment.</p>
@@ -214,6 +240,8 @@ export default function LearningAcademy() {
                 <Button asChild variant="outline" size="sm"><Link to="/learning/practice">Open the safe practice lab</Link></Button>
                 {isAdminRole(access?.role)&&<Button asChild variant="outline" size="sm"><Link to="/learning/studio">Author instructional recordings</Link></Button>}
                 {isAdminRole(access?.role)&&<Button asChild variant="outline" size="sm"><Link to="/learning/readiness">Review completion evidence and remaining gaps</Link></Button>}
+                {isAdminRole(access?.role)&&<Button asChild variant="outline" size="sm"><Link to="/learning/integrations">Inspect real integrations</Link></Button>}
+                {isAdminRole(access?.role)&&<Button asChild variant="outline" size="sm"><Link to="/learning/translations">Review lesson translations</Link></Button>}
                 {mayViewTeam && <Button asChild variant="outline" size="sm"><Link to="/learning/team">View authorized team progress and signoffs</Link></Button>}
               </div>
               {academy.progress.error && <p role="alert" className="text-sm text-destructive">Account progress is unavailable. Completions will not be saved until this connection works.</p>}
@@ -280,7 +308,7 @@ export default function LearningAcademy() {
                     className="h-auto w-full justify-start py-2 text-left whitespace-normal"
                     disabled={!allowed} onClick={() => setParams({ track: track.id })}>
                     {!allowed ? <LockKeyhole className="mr-2 h-4 w-4 shrink-0" /> : <BookOpen className="mr-2 h-4 w-4 shrink-0" />}
-                    {track.title}
+                    {academyLabel(track.id,instructionLanguage)}
                   </Button>
                 );
               })}
@@ -292,8 +320,9 @@ export default function LearningAcademy() {
               <Card>
                 <CardHeader>
                   <Button variant="ghost" size="sm" className="w-fit px-0" onClick={() => { setSelectedLessonId(null); setStep(0); }}><ArrowLeft className="mr-2 h-4 w-4" /> All lessons</Button>
-                  <CardTitle>{selectedLesson.name}</CardTitle>
-                  <CardDescription>{selectedLesson.goal}</CardDescription>
+                  <CardTitle lang={spokenLanguage}>{displayedTitle}</CardTitle>
+                  <CardDescription lang={spokenLanguage}>{displayedGoal}</CardDescription>
+                  {instructionLanguage!=="en"&&<p className="text-xs text-muted-foreground">{reviewedTranslation?languageText[instructionLanguage].reviewedTranslation:languageText[instructionLanguage].englishFallback}</p>}
                 </CardHeader>
                 <CardContent className="space-y-5">
                   {!isReady(selectedLesson, editorReady, publicationReady, mediaReady, canonicalCommsReady, canonicalMarketingReady, canonicalPublisherReady, canonicalIssueReady, canonicalMediaReady, boardReady) ? (
@@ -301,20 +330,20 @@ export default function LearningAcademy() {
                   ) : (
                     <>
                       <div className="flex items-center justify-between text-sm">
-                        <Badge variant="secondary">Step {step + 1} of {selectedLesson.steps.length}</Badge>
+                        <Badge variant="secondary">Step {step + 1} of {displayedSteps.length}</Badge>
                         {completed.includes(selectedLesson.id) && <Badge variant="outline"><CheckCircle2 className="mr-1 h-3 w-3" /> Self-reported complete</Badge>}
                       </div>
                       <div className="rounded-xl border bg-muted/30 p-5">
-                        <p className="text-base font-medium">{selectedLesson.steps[step]}</p>
+                        <p lang={spokenLanguage} className="text-base font-medium">{displayedSteps[step]}</p>
                       </div>
-                      <AcademyNarratedSteps title={selectedLesson.name} steps={selectedLesson.steps} currentStep={step} />
+                      <AcademyNarratedSteps title={displayedTitle} steps={displayedSteps} currentStep={step} languageCode={spokenLanguage} />
                       <AcademyLessonResources lessonId={selectedLesson.id} />
                       {selectedLesson.path && (
-                        <Button asChild variant="outline"><Link to={selectedLesson.path + "?academyLesson=" + encodeURIComponent(selectedLesson.id)}><ExternalLink className="mr-2 h-4 w-4" /> Open workspace screen with guided instructions</Link></Button>
+                        <Button asChild variant="outline"><Link to={selectedLesson.path + "?academyLesson=" + encodeURIComponent(selectedLesson.id)+"&academyLanguage="+instructionLanguage}><ExternalLink className="mr-2 h-4 w-4" /> Open workspace screen with guided instructions</Link></Button>
                       )}
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <Button variant="outline" disabled={step === 0} onClick={() => setStep(previous => Math.max(0, previous - 1))}><ArrowLeft className="mr-2 h-4 w-4" /> Previous</Button>
-                        {step < selectedLesson.steps.length - 1 ? (
+                        {step < displayedSteps.length - 1 ? (
                           <Button onClick={() => setStep(previous => previous + 1)}>Next <ArrowRight className="ml-2 h-4 w-4" /></Button>
                         ) : (
                           <Button onClick={() => markComplete(selectedLesson.id)} disabled={completed.includes(selectedLesson.id) || academy.mark.isPending || !academy.progress.isSuccess}>
@@ -323,7 +352,7 @@ export default function LearningAcademy() {
                         )}
                       </div>
                       {completed.includes(selectedLesson.id) && <Button size="sm" variant="ghost" disabled={academy.undo.isPending} onClick={() => undoCompletion(selectedLesson.id)}>Correct my completion record</Button>}
-                      <div className="rounded-lg border-l-4 border-primary bg-primary/5 p-4 text-sm"><strong>Practice check:</strong> {selectedLesson.practice}</div>
+                      <div className="rounded-lg border-l-4 border-primary bg-primary/5 p-4 text-sm"><strong>{languageText[instructionLanguage].practiceCheck}:</strong> <span lang={spokenLanguage}>{displayedPractice}</span></div>
                     </>
                   )}
                 </CardContent>
