@@ -2,7 +2,9 @@ import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { ensureSupabase } from "@/integrations/supabase/client";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
+import { useMyAcademyPlan } from "@/hooks/useAcademyLearningPlans";
+import { useAcademyAssessmentRecovery } from "@/hooks/useAcademyRemediation";
 import { ArrowLeft, BookOpen, CheckCircle2, ClipboardCheck, LockKeyhole, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { MainLayout } from "@/components/layout/MainLayout";
@@ -31,13 +33,18 @@ export default function AcademyAssessments() {
     }
   });
   const catalog=useAcademyAssessments();
+  const {plan}=useMyAcademyPlan();
+  const [searchParams]=useSearchParams();
   const attempts=useAssessmentAttempts();
   const submit=useSubmitAssessment();
-  const [selected,setSelected]=useState<string | undefined>();
+  const [selected,setSelected]=useState<string | undefined>(searchParams.get("assessment")||undefined);
   const paper=useAssessmentPaper(selected);
+  const recovery=useAcademyAssessmentRecovery(selected);
   const [answers,setAnswers]=useState<Record<string,number>>({});
   const [result,setResult]=useState<AssessmentResult | null>(null);
-  const list=useMemo(()=>(catalog.data||[]).filter(item=>item.assessment_id!=="board"||boardEligibility.data===true),[catalog.data,boardEligibility.data]);
+  const list=useMemo(()=>(catalog.data||[]).filter(item=>
+    (plan.data||[]).some(x=>x.track_id===item.track_id&&x.status==="assigned")
+      &&(item.assessment_id!=="board"||boardEligibility.data===true)),[catalog.data,boardEligibility.data,plan.data]);
   const selectedCount=paper.data?.questions.filter(q=>answers[q.id]!==undefined).length||0;
   const total=paper.data?.questions.length||0;
   const latest=(id:string)=>(attempts.data||[]).find(a=>a.assessment_id===id);
@@ -49,6 +56,7 @@ export default function AcademyAssessments() {
     try {
       const output=await submit.mutateAsync({id:selected,answers});
       setResult(output);
+      recovery.refetch();
       toast.success("Knowledge check recorded on your HPG account.");
     } catch(e){toast.error(errorText(e));}
   };
@@ -62,9 +70,11 @@ export default function AcademyAssessments() {
           <p className="text-sm text-muted-foreground">Questions measure understanding of documented HPG procedures. Passing is not a professional certification or independent demonstration of job performance. A supervisor may separately record an evidence-based endorsement.</p>
         </div>
         <Button variant="outline" size="sm" asChild><Link to="/learning"><ArrowLeft className="mr-2 h-4 w-4"/>Back to Academy</Link></Button>
+        <Button variant="outline" size="sm" asChild><Link to="/learning/plan">My assigned courses</Link></Button>
       </CardContent></Card>
       {(catalog.error||attempts.error)&&<p role="alert" className="text-sm text-destructive">Assessments are unavailable for this account: {errorText(catalog.error||attempts.error)}.</p>}
-      {catalog.isLoading&&<p className="text-sm text-muted-foreground">Checking eligible learning tracks…</p>}
+      {(catalog.isLoading||plan.isLoading)&&<p className="text-sm text-muted-foreground">Checking your actual assigned learning tracks…</p>}
+      {!selected&&plan.isSuccess&&list.length===0&&<p className="text-sm text-muted-foreground">No knowledge checks are assigned to this role yet. Ask your authorized manager or administrator to review your course assignments.</p>}
       {!selected ? <div className="grid gap-3 sm:grid-cols-2">
         {list.map(item=><Card key={item.assessment_id}><CardHeader>
           <CardTitle className="text-lg">{item.title}</CardTitle>
@@ -87,7 +97,15 @@ export default function AcademyAssessments() {
           <CardDescription>Responses are scored on the server. They are visible in your own history; supervisors see scores and endorsements but not your individual response selections.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          {paper.isLoading&&<p className="text-sm text-muted-foreground">Loading private question paper…</p>}
+          {paper.isLoading&&<p className="text-sm text-muted-foreground">Loading private question paper with randomized question order…</p>}
+          {recovery.data&&<div className="space-y-3 rounded-lg border p-4">
+            <h3 className="text-sm font-semibold">Study and retake guidance</h3>
+            <p className="text-sm">Attempts over the last 24 hours: {recovery.data.attempts_last_24h}/{recovery.data.daily_attempt_limit}.</p>
+            {recovery.data.retry_after&&new Date(recovery.data.retry_after)>new Date()&&<p className="text-sm text-amber-700 dark:text-amber-300">A study interval is required before the next attempt: {new Date(recovery.data.retry_after).toLocaleString()}.</p>}
+            {recovery.data.review_required&&<p className="text-sm text-muted-foreground">Review the course instruction and practice before trying again. This guidance does not reveal the private answer key.</p>}
+            <div className="flex flex-wrap gap-2">{recovery.data.suggested_lessons.map(item=><Button variant="outline" size="sm" key={item.id} asChild>
+              <Link to={"/learning?track="+selected+"&lesson="+item.id}>{item.title}</Link></Button>)}</div>
+          </div>}
           {paper.error&&<p role="alert" className="text-sm text-destructive">{errorText(paper.error)}</p>}
           {paper.data&& !result &&<>
             <div className="flex items-center gap-3">
@@ -105,7 +123,7 @@ export default function AcademyAssessments() {
                 </div>)}
               </RadioGroup>
             </fieldset>)}
-            <Button disabled={submit.isPending||selectedCount!==total||!total} onClick={grade}>
+            <Button disabled={submit.isPending||selectedCount!==total||!total||!!(recovery.data?.retry_after&&new Date(recovery.data.retry_after)>new Date())} onClick={grade}>
               {submit.isPending?"Evaluating…":"Submit knowledge check"}
             </Button>
           </>}

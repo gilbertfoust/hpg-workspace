@@ -15,6 +15,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole, isAdminRole } from "@/hooks/useUserRole";
 import { toast } from "sonner";
 import { useAcademyProgress, useAcademyTeamProgress } from "@/hooks/useAcademyProgress";
+import { useMyAcademyPlan } from "@/hooks/useAcademyLearningPlans";
+import { useAcademyCourseNotices } from "@/hooks/useAcademyRemediation";
 import { canAccessArea } from "@/lib/accessControl";
 import { ensureSupabase } from "@/integrations/supabase/client";
 
@@ -36,6 +38,8 @@ export default function LearningAcademy() {
   const { user } = useAuth();
   const { data: access } = useUserRole();
   const academy = useAcademyProgress();
+  const paths = useMyAcademyPlan();
+  const notices = useAcademyCourseNotices();
   const team = useAcademyTeamProgress();
   const editorialReadiness = useQuery({
     queryKey: ["editorial-academy-readiness", user?.id],
@@ -205,6 +209,7 @@ export default function LearningAcademy() {
               <div className="flex items-center gap-3"><Progress value={percent} className="max-w-sm" /><span className="whitespace-nowrap text-xs text-muted-foreground">{doneCount}/{availableLessons.length} lessons</span></div>
               <p className="text-xs text-muted-foreground">Completion is self-reported and saved to your HPG account across devices. It is not an official HR certification or competency assessment.</p>
               <div className="flex flex-wrap gap-2">
+                <Button asChild variant="outline" size="sm"><Link to="/learning/plan">My assigned learning plan</Link></Button>
                 <Button asChild variant="outline" size="sm"><Link to="/learning/assessments">Take a role-related knowledge check</Link></Button>
                 <Button asChild variant="outline" size="sm"><Link to="/learning/practice">Open the safe practice lab</Link></Button>
                 {isAdminRole(access?.role)&&<Button asChild variant="outline" size="sm"><Link to="/learning/studio">Author instructional recordings</Link></Button>}
@@ -217,6 +222,24 @@ export default function LearningAcademy() {
           </CardContent>
         </Card>
 
+        {(paths.plan.data?.length||0)>0&&<Card><CardHeader>
+          <CardTitle className="text-lg">Your automatically assigned courses</CardTitle>
+          <CardDescription>Assigned from your actual approved HPG profile. Self-directed exploration does not change required courses or module permissions.</CardDescription>
+        </CardHeader><CardContent className="flex flex-wrap gap-2">
+          {(paths.plan.data||[]).filter(x=>x.status==="assigned").map(x=><Button key={x.track_id} variant="outline" size="sm" asChild>
+            <Link to={"/learning?track="+x.track_id}>{x.title} · {x.completed_count}/{x.lesson_count}</Link>
+          </Button>)}
+        </CardContent></Card>}
+        {!!notices.query.data?.filter(x=>!x.seen_at).length&&<Card><CardHeader>
+          <CardTitle className="text-lg">Training due-date reminders</CardTitle>
+          <CardDescription>Private notices for explicitly scheduled internal courses. No external email is sent automatically.</CardDescription>
+        </CardHeader><CardContent className="space-y-2">
+          {(notices.query.data||[]).filter(x=>!x.seen_at).map(item=><div key={item.id} className="flex flex-wrap items-center gap-2 rounded-md border p-3">
+            <p className="min-w-60 flex-1 text-sm">{item.message} · {item.due_date}</p>
+            <Button size="sm" variant="outline" asChild><Link to={"/learning?track="+item.track_id}>Open course</Link></Button>
+            <Button size="sm" variant="ghost" onClick={()=>notices.markSeen.mutate(item.id)}>Dismiss</Button>
+          </div>)}
+        </CardContent></Card>}
         <Card><CardContent className="space-y-3 p-4">
           <label htmlFor="academy-search" className="text-sm font-semibold">Search Workspace Training instructions</label>
           <div className="relative"><Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground"/>

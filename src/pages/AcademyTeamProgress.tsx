@@ -5,6 +5,7 @@ import { MainLayout } from "@/components/layout/MainLayout";
 import { useUserRole, isAdminRole } from "@/hooks/useUserRole";
 import { useAcademyCatalog, useAcademyTeamProgress } from "@/hooks/useAcademyProgress";
 import AcademySupervisorReview from "@/components/onboarding/AcademySupervisorReview";
+import { useAcademyTeamCourseAssignments } from "@/hooks/useAcademyLearningPlans";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -16,6 +17,7 @@ const dateLabel = (value: string | null) => value ? new Date(value).toLocaleDate
 export default function AcademyTeamProgress() {
   const { data: userRole } = useUserRole();
   const team = useAcademyTeamProgress();
+  const assignments=useAcademyTeamCourseAssignments();
   const catalog = useAcademyCatalog();
   const [search, setSearch] = useState("");
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
@@ -25,6 +27,8 @@ export default function AcademyTeamProgress() {
   const titles = new Map((catalog.data || []).map(lesson => [lesson.lesson_id, lesson.title]));
   const completedTotal = (team.data || []).reduce((sum, member) => sum + member.completed_count, 0);
   const activeCount = (team.data || []).filter(member => member.completed_count > 0).length;
+  const overdue=(assignments.data||[]).filter(a=>a.required&&a.due_at&&new Date(a.due_at)<new Date()).length;
+  const dueSoon=(assignments.data||[]).filter(a=>a.required&&a.due_at&&new Date(a.due_at)>=new Date()&&new Date(a.due_at)<=new Date(Date.now()+7*86400000)).length;
   const canViewReport = isAdminRole(userRole?.role) || (team.data || []).length > 0;
 
   return <MainLayout title="Learning Academy — Team Progress"
@@ -61,6 +65,16 @@ export default function AcademyTeamProgress() {
           <Card><CardContent className="p-4"><p className="text-sm text-muted-foreground">Self-reported lesson completions</p>
             <p className="text-3xl font-semibold">{completedTotal}</p></CardContent></Card>
         </div>
+        <Card><CardHeader><CardTitle className="text-base">Role-based course assignments and due dates</CardTitle>
+          <CardDescription>Only courses assigned to staff within your authorized management scope appear here. Due dates are explicit administrative targets, not professional qualifications.</CardDescription>
+        </CardHeader><CardContent className="space-y-3">
+          <div className="flex flex-wrap gap-2"><Badge variant="secondary">{(assignments.data||[]).length} active course assignments</Badge>
+            <Badge variant={overdue?"destructive":"outline"}>{overdue} past due</Badge>
+            <Badge variant="outline">{dueSoon} due within 7 days</Badge>
+            <Button variant="outline" size="sm" asChild><Link to="/learning/plan">Manage course assignments</Link></Button>
+          </div>
+          {assignments.error&&<p className="text-sm text-destructive">Assignment reporting is unavailable for your permission scope.</p>}
+        </CardContent></Card>
         <div className="grid gap-4 lg:grid-cols-[minmax(290px,1fr)_minmax(0,1.3fr)]">
           <Card className="h-fit">
             <CardHeader><CardTitle className="flex gap-2 text-lg"><Users className="h-5 w-5" /> Team roster</CardTitle>
