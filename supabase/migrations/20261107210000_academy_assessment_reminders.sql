@@ -248,9 +248,9 @@ begin
     'passing_percent',paper.passing_percent,
     'questions',coalesce((select jsonb_agg(jsonb_build_object(
       'id',q.question_id,'prompt',q.prompt,'options',q.options
-    ) order by q.position) from private.academy_assessment_questions q
-    where q.assessment_id=p_assessment
-    order by md5(q.question_id||':'||(select auth.uid())::text||':'||current_date::text)),'[]'::jsonb)
+    ) order by md5(q.question_id||':'||(select auth.uid())::text||':'||current_date::text))
+    from private.academy_assessment_questions q
+    where q.assessment_id=p_assessment),'[]'::jsonb)
   );
 end;
 $function$
