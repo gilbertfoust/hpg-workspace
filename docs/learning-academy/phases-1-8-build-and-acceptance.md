@@ -66,6 +66,22 @@ connection, translation review, historical database replay, recorded instruction
 or real-role acceptance remains unverified.** Final training videos and human
 acceptance are intentionally postponed, per direction.
 
+## Phase 8 replay finding — November 8, 2026
+
+The upgraded Supabase CLI (v2.122.1) resolves the earlier false
+`BEGIN ATOMIC` parsing error, but a complete clean migration replay **still
+does not pass**. A July 17 production-security migration expects
+`public.hr_email_outbox` and a September 29 account-approval migration expects
+`public.workspace_admin_notification_events`, which are present in the live
+project but not created by the earlier source-controlled migrations. The
+legacy migrations already applied to production are deliberately left
+unchanged here. Issue #150 tracks recovery of a complete, authoritative
+schema baseline before full clean-install certification.
+
+Phase 8's automated frontend/build/Academy checks and new database RLS
+smoke tests are distinct from full historic migration replay. Passing
+these checks **must not** be reported as a successful full clean rebuild.
+
 ## External service handoffs
 
 For social providers: identify platform owner -> approve developer application ->
