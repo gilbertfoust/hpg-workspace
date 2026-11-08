@@ -240,6 +240,8 @@ export default function LearningAcademy() {
                 <Button asChild variant="outline" size="sm"><Link to="/learning/practice">Open the safe practice lab</Link></Button>
                 {isAdminRole(access?.role)&&<Button asChild variant="outline" size="sm"><Link to="/learning/studio">Author instructional recordings</Link></Button>}
                 {isAdminRole(access?.role)&&<Button asChild variant="outline" size="sm"><Link to="/learning/readiness">Review completion evidence and remaining gaps</Link></Button>}
+                {isAdminRole(access?.role)&&<Button asChild variant="outline" size="sm"><Link to="/learning/integrations">Inspect real integrations</Link></Button>}
+                {isAdminRole(access?.role)&&<Button asChild variant="outline" size="sm"><Link to="/learning/translations">Review lesson translations</Link></Button>}
                 {mayViewTeam && <Button asChild variant="outline" size="sm"><Link to="/learning/team">View authorized team progress and signoffs</Link></Button>}
               </div>
               {academy.progress.error && <p role="alert" className="text-sm text-destructive">Account progress is unavailable. Completions will not be saved until this connection works.</p>}
