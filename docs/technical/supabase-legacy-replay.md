@@ -14,6 +14,10 @@ despite the real production environment still functioning.
 - September 29, 2026: \`workspace_account_approval_notifications.sql\`
   assumes \`public.workspace_admin_notification_events\` already exists,
   including a named notification-kind check constraint.
+- November 5–7, 2026: editorial and Academy migrations depend on live
+  Communications permissions, profile access status, Board memberships,
+  and the PostgreSQL scheduler extension. The fixtures restore the missing
+  schema and access checks, and install \`pg_cron\` in the test database.
 - The older Supabase CLI statement splitter also misparsed function names
   containing "atomic"; the CI now uses pinned CLI v2.122.1. See upstream
   https://github.com/supabase/cli/issues/5020.
