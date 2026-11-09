@@ -11,11 +11,16 @@ declare
   draft_practice text := 'Repérez le tableau de bord et le lien de retour.';
 begin
   -- Supply the signup trigger's required profile role for this test only.
-  alter table public.profiles alter column role set default 'admin_pm';
+  alter table public.profiles
+    alter column role set default 'admin_pm',
+    alter column is_approved set default true,
+    alter column approval_status set default 'approved';
   insert into auth.users(id, email, raw_app_meta_data) values
     (author_id, author_id || '@example.invalid', '{"creation_source":"workspace_admin"}'),
     (reviewer_id, reviewer_id || '@example.invalid', '{"creation_source":"workspace_admin"}');
-  alter table public.profiles alter column role drop default;
+  insert into public.user_roles(user_id, role) values
+    (author_id, 'admin_pm'), (reviewer_id, 'admin_pm')
+    on conflict do nothing;
 
   insert into public.academy_lesson_translations (
     lesson_id, language_code, translated_title, translated_objective,
@@ -31,6 +36,7 @@ begin
   end;
 
   perform set_config('request.jwt.claims', jsonb_build_object('sub', author_id, 'role', 'authenticated')::text, true);
+  perform set_config('request.jwt.claim.sub', author_id::text, true);
   begin
     perform public.review_academy_lesson_translation('welcome', 'fr', 'publish');
     raise exception 'An administrator published an unassigned draft';
@@ -51,6 +57,10 @@ begin
   end;
 
   perform set_config('request.jwt.claims', jsonb_build_object('sub', reviewer_id, 'role', 'authenticated')::text, true);
+  perform set_config('request.jwt.claim.sub', reviewer_id::text, true);
+  if (select auth.uid()) is distinct from reviewer_id or not (select public.is_admin_user()) then
+    raise exception 'The disposable reviewer session does not have an administrator role';
+  end if;
   perform public.review_academy_lesson_translation('welcome', 'fr', 'publish');
   if not exists (
     select 1 from public.academy_lesson_translations t
