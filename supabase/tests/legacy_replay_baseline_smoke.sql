@@ -6,7 +6,8 @@ declare
   predicate regprocedure;
 begin
   foreach name in array array[
-    'volunteer_applications','hr_email_outbox','workspace_admin_notification_events','bod_memberships'
+    'volunteer_applications','hr_email_outbox','workspace_admin_notification_events','bod_memberships',
+    'marketing_channel_accounts','marketing_social_posts','communications_approvals'
   ] loop
     if to_regclass('public.'||name) is null then
       raise exception 'Missing original production object: %',name;
@@ -45,6 +46,17 @@ begin
   if exists(select 1 from public.hr_email_outbox limit 1)
     or exists(select 1 from public.workspace_admin_notification_events limit 1) then
     raise exception 'Historical baseline fixture should not invent emails or notification events';
+  end if;
+
+  if exists(select 1 from public.marketing_channel_accounts)
+    or exists(select 1 from public.marketing_social_posts)
+    or exists(select 1 from public.communications_approvals) then
+    raise exception 'The release baseline must not seed provider evidence or approvals';
+  end if;
+
+  if has_function_privilege('authenticated',
+    'public.record_communications_release(text,uuid,text,timestamptz,text,text,text,text)', 'EXECUTE') then
+    raise exception 'The replay release helper must only be callable by the restricted publisher';
   end if;
 
   foreach name in array array[
