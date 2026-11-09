@@ -10,11 +10,16 @@ declare
   draft_steps jsonb := '["Ouvrez le tableau de bord.", "Repérez le menu latéral.", "Retournez à l’Académie."]';
   draft_practice text := 'Repérez le tableau de bord et le lien de retour.';
 begin
+  -- The historical signup trigger cannot supply the required profile role in
+  -- a fresh replay. Build explicit test identities within this transaction.
+  alter table auth.users disable trigger on_auth_user_created;
   insert into auth.users(id, email) values
     (author_id, author_id || '@example.invalid'),
     (reviewer_id, reviewer_id || '@example.invalid');
-  update public.profiles set role = 'admin_pm'
-    where id in (author_id, reviewer_id);
+  alter table auth.users enable trigger on_auth_user_created;
+  insert into public.profiles(id, email, full_name, role) values
+    (author_id, author_id || '@example.invalid', 'Academy test author', 'admin_pm'),
+    (reviewer_id, reviewer_id || '@example.invalid', 'Academy test reviewer', 'admin_pm');
 
   insert into public.academy_lesson_translations (
     lesson_id, language_code, translated_title, translated_objective,
