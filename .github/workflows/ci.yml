@@ -22,5 +22,8 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      - name: Type-check application
+        run: npm run typecheck
+
       - name: Build project
         run: npm run build

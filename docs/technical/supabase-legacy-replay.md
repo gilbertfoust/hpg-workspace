@@ -18,6 +18,12 @@ despite the real production environment still functioning.
   Communications permissions, profile access status, Board memberships,
   and the PostgreSQL scheduler extension. The fixtures restore the missing
   schema and access checks, and install \`pg_cron\` in the test database.
+- November 9, 2026: strict SQL lint revealed additional historical
+  dependencies in documents, NGO activation and closure, Marketing readiness,
+  and the native Communications publication routines. The release fixture
+  recreates the needed fields and source-matched approval checks. Its publishing
+  helpers cover standalone editorial and magazine releases and explicitly reject
+  transitions outside that subset.
 - The older Supabase CLI statement splitter also misparsed function names
   containing "atomic"; the CI now uses pinned CLI v2.122.1. See upstream
   https://github.com/supabase/cli/issues/5020.
@@ -43,7 +49,7 @@ then evolve these definitions in their documented order.
 
 Historical migrations already applied to production are preserved unchanged
 byte-for-byte. CI injection leaves the checked-in production migration list
-unmodified. No migration is applied to the live database by this repair.
+unmodified. Only the production migrations are eligible to run on the live database.
 
 ## What a successful CI run proves
 
@@ -54,6 +60,9 @@ unmodified. No migration is applied to the live database by this repair.
 4. Existing privacy, security, editorial, Academy and agent tests pass.
 5. The original HR outbox and workspace notification tables have RLS,
    uniqueness/FK constraints, and no invented mail or notification rows.
+6. PL/pgSQL lint reports warnings and fails CI on errors. The retired
+   disconnected expense-payment RPC retains its two unused parameters for
+   compatibility and rejects calls that omit a posted ledger payment.
 
 ## What it does not prove
 

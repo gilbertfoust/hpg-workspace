@@ -122,6 +122,7 @@ const ensureSupabase = () => {
   if (!supabase) {
     throw getSupabaseNotConfiguredError();
   }
+  return supabase;
 };
 
 export interface SaveFormWorkflowInput {

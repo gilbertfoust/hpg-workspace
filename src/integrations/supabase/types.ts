@@ -2443,6 +2443,7 @@ export type Database = {
           opportunity_id: string | null
           reporting_due_at: string | null
           stage: string
+          status: string | null
           submitted_at: string | null
           title: string
           updated_at: string
@@ -2461,6 +2462,7 @@ export type Database = {
           opportunity_id?: string | null
           reporting_due_at?: string | null
           stage?: string
+          status?: string | null
           submitted_at?: string | null
           title: string
           updated_at?: string
@@ -2479,6 +2481,7 @@ export type Database = {
           opportunity_id?: string | null
           reporting_due_at?: string | null
           stage?: string
+          status?: string | null
           submitted_at?: string | null
           title?: string
           updated_at?: string
@@ -3465,7 +3468,7 @@ export type Database = {
           primary_contact_id: string | null
           region: string | null
           state_province: string | null
-          status: Database["public"]["Enums"]["ngo_status"] | null
+          status: string | null
           updated_at: string
           website: string | null
         }
@@ -3484,7 +3487,7 @@ export type Database = {
           primary_contact_id?: string | null
           region?: string | null
           state_province?: string | null
-          status?: Database["public"]["Enums"]["ngo_status"] | null
+          status?: string | null
           updated_at?: string
           website?: string | null
         }
@@ -3503,7 +3506,7 @@ export type Database = {
           primary_contact_id?: string | null
           region?: string | null
           state_province?: string | null
-          status?: Database["public"]["Enums"]["ngo_status"] | null
+          status?: string | null
           updated_at?: string
           website?: string | null
         }
@@ -4027,6 +4030,98 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      potential_sponsees: {
+        Row: {
+          assigned_owner_user_id: string | null
+          city: string | null
+          contact_person: string | null
+          country: string | null
+          created_at: string
+          created_by_user_id: string | null
+          email: string | null
+          id: string
+          mission_area: string | null
+          next_follow_up_date: string | null
+          notes: string | null
+          organization_name: string
+          outreach_status: Database["public"]["Enums"]["sponsee_outreach_status"]
+          phone: string | null
+          sponsorship_fit: string | null
+          state_province: string | null
+          updated_at: string
+          website: string | null
+        }
+        Insert: {
+          assigned_owner_user_id?: string | null
+          city?: string | null
+          contact_person?: string | null
+          country?: string | null
+          created_at?: string
+          created_by_user_id?: string | null
+          email?: string | null
+          id?: string
+          mission_area?: string | null
+          next_follow_up_date?: string | null
+          notes?: string | null
+          organization_name: string
+          outreach_status?: Database["public"]["Enums"]["sponsee_outreach_status"]
+          phone?: string | null
+          sponsorship_fit?: string | null
+          state_province?: string | null
+          updated_at?: string
+          website?: string | null
+        }
+        Update: {
+          assigned_owner_user_id?: string | null
+          city?: string | null
+          contact_person?: string | null
+          country?: string | null
+          created_at?: string
+          created_by_user_id?: string | null
+          email?: string | null
+          id?: string
+          mission_area?: string | null
+          next_follow_up_date?: string | null
+          notes?: string | null
+          organization_name?: string
+          outreach_status?: Database["public"]["Enums"]["sponsee_outreach_status"]
+          phone?: string | null
+          sponsorship_fit?: string | null
+          state_province?: string | null
+          updated_at?: string
+          website?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "potential_sponsees_assigned_owner_user_id_fkey"
+            columns: ["assigned_owner_user_id"]
+            isOneToOne: false
+            referencedRelation: "ngo_access_review_queue"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "potential_sponsees_assigned_owner_user_id_fkey"
+            columns: ["assigned_owner_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "potential_sponsees_created_by_user_id_fkey"
+            columns: ["created_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "ngo_access_review_queue"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "potential_sponsees_created_by_user_id_fkey"
+            columns: ["created_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -5860,6 +5955,108 @@ export type Database = {
         }
         Relationships: []
       }
+      upload_notification_events: {
+        Row: {
+          created_at: string
+          department_id: string | null
+          document_id: string | null
+          error_message: string | null
+          id: string
+          metadata_json: Json
+          module: string
+          notification_status: string
+          notification_type: string
+          processed_at: string | null
+          recipient: string | null
+          work_item_id: string
+        }
+        Insert: {
+          created_at?: string
+          department_id?: string | null
+          document_id?: string | null
+          error_message?: string | null
+          id?: string
+          metadata_json?: Json
+          module: string
+          notification_status?: string
+          notification_type: string
+          processed_at?: string | null
+          recipient?: string | null
+          work_item_id: string
+        }
+        Update: {
+          created_at?: string
+          department_id?: string | null
+          document_id?: string | null
+          error_message?: string | null
+          id?: string
+          metadata_json?: Json
+          module?: string
+          notification_status?: string
+          notification_type?: string
+          processed_at?: string | null
+          recipient?: string | null
+          work_item_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "upload_notification_events_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "org_units"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "upload_notification_events_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "upload_notification_events_work_item_id_fkey"
+            columns: ["work_item_id"]
+            isOneToOne: false
+            referencedRelation: "bod_nomination_profile_cards"
+            referencedColumns: ["current_work_item_id"]
+          },
+          {
+            foreignKeyName: "upload_notification_events_work_item_id_fkey"
+            columns: ["work_item_id"]
+            isOneToOne: false
+            referencedRelation: "compliance_due_diligence_profile_cards"
+            referencedColumns: ["current_work_item_id"]
+          },
+          {
+            foreignKeyName: "upload_notification_events_work_item_id_fkey"
+            columns: ["work_item_id"]
+            isOneToOne: false
+            referencedRelation: "ngo_portal_request_statuses"
+            referencedColumns: ["work_item_id"]
+          },
+          {
+            foreignKeyName: "upload_notification_events_work_item_id_fkey"
+            columns: ["work_item_id"]
+            isOneToOne: false
+            referencedRelation: "partnership_fsa_profile_cards"
+            referencedColumns: ["current_work_item_id"]
+          },
+          {
+            foreignKeyName: "upload_notification_events_work_item_id_fkey"
+            columns: ["work_item_id"]
+            isOneToOne: false
+            referencedRelation: "partnership_fsa_profile_cards_pre_application_intake"
+            referencedColumns: ["current_work_item_id"]
+          },
+          {
+            foreignKeyName: "upload_notification_events_work_item_id_fkey"
+            columns: ["work_item_id"]
+            isOneToOne: false
+            referencedRelation: "work_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -5986,6 +6183,125 @@ export type Database = {
           },
         ]
       }
+      work_item_admin_records: {
+        Row: {
+          archive_reason: string
+          completed_at: string
+          completed_by_user_id: string | null
+          created_at: string
+          department_id: string | null
+          id: string
+          module: Database["public"]["Enums"]["module_type"] | null
+          ngo_id: string | null
+          notes: string | null
+          record_status: string
+          snapshot_json: Json | null
+          title: string
+          work_item_id: string
+        }
+        Insert: {
+          archive_reason?: string
+          completed_at?: string
+          completed_by_user_id?: string | null
+          created_at?: string
+          department_id?: string | null
+          id?: string
+          module?: Database["public"]["Enums"]["module_type"] | null
+          ngo_id?: string | null
+          notes?: string | null
+          record_status?: string
+          snapshot_json?: Json | null
+          title: string
+          work_item_id: string
+        }
+        Update: {
+          archive_reason?: string
+          completed_at?: string
+          completed_by_user_id?: string | null
+          created_at?: string
+          department_id?: string | null
+          id?: string
+          module?: Database["public"]["Enums"]["module_type"] | null
+          ngo_id?: string | null
+          notes?: string | null
+          record_status?: string
+          snapshot_json?: Json | null
+          title?: string
+          work_item_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "work_item_admin_records_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "org_units"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_item_admin_records_ngo_id_fkey"
+            columns: ["ngo_id"]
+            isOneToOne: false
+            referencedRelation: "ngo_master_profile_cards"
+            referencedColumns: ["ngo_id"]
+          },
+          {
+            foreignKeyName: "work_item_admin_records_ngo_id_fkey"
+            columns: ["ngo_id"]
+            isOneToOne: false
+            referencedRelation: "ngo_onboarding_readiness"
+            referencedColumns: ["ngo_id"]
+          },
+          {
+            foreignKeyName: "work_item_admin_records_ngo_id_fkey"
+            columns: ["ngo_id"]
+            isOneToOne: false
+            referencedRelation: "ngos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_item_admin_records_work_item_id_fkey"
+            columns: ["work_item_id"]
+            isOneToOne: true
+            referencedRelation: "bod_nomination_profile_cards"
+            referencedColumns: ["current_work_item_id"]
+          },
+          {
+            foreignKeyName: "work_item_admin_records_work_item_id_fkey"
+            columns: ["work_item_id"]
+            isOneToOne: true
+            referencedRelation: "compliance_due_diligence_profile_cards"
+            referencedColumns: ["current_work_item_id"]
+          },
+          {
+            foreignKeyName: "work_item_admin_records_work_item_id_fkey"
+            columns: ["work_item_id"]
+            isOneToOne: true
+            referencedRelation: "ngo_portal_request_statuses"
+            referencedColumns: ["work_item_id"]
+          },
+          {
+            foreignKeyName: "work_item_admin_records_work_item_id_fkey"
+            columns: ["work_item_id"]
+            isOneToOne: true
+            referencedRelation: "partnership_fsa_profile_cards"
+            referencedColumns: ["current_work_item_id"]
+          },
+          {
+            foreignKeyName: "work_item_admin_records_work_item_id_fkey"
+            columns: ["work_item_id"]
+            isOneToOne: true
+            referencedRelation: "partnership_fsa_profile_cards_pre_application_intake"
+            referencedColumns: ["current_work_item_id"]
+          },
+          {
+            foreignKeyName: "work_item_admin_records_work_item_id_fkey"
+            columns: ["work_item_id"]
+            isOneToOne: true
+            referencedRelation: "work_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       work_items: {
         Row: {
           approval_policy: Json | null
@@ -6004,12 +6320,12 @@ export type Database = {
           evidence_status: Database["public"]["Enums"]["evidence_status"] | null
           external_visible: boolean | null
           id: string
-          module: Database["public"]["Enums"]["module_type"]
+          module: string
           ngo_id: string | null
           owner_user_id: string | null
-          priority: Database["public"]["Enums"]["priority_level"] | null
+          priority: string | null
           start_date: string | null
-          status: Database["public"]["Enums"]["work_item_status"] | null
+          status: string | null
           title: string
           trello_card_id: string | null
           trello_sync: boolean | null
@@ -6035,12 +6351,12 @@ export type Database = {
             | null
           external_visible?: boolean | null
           id?: string
-          module: Database["public"]["Enums"]["module_type"]
+          module: string
           ngo_id?: string | null
           owner_user_id?: string | null
-          priority?: Database["public"]["Enums"]["priority_level"] | null
+          priority?: string | null
           start_date?: string | null
-          status?: Database["public"]["Enums"]["work_item_status"] | null
+          status?: string | null
           title: string
           trello_card_id?: string | null
           trello_sync?: boolean | null
@@ -6066,12 +6382,12 @@ export type Database = {
             | null
           external_visible?: boolean | null
           id?: string
-          module?: Database["public"]["Enums"]["module_type"]
+          module?: string
           ngo_id?: string | null
           owner_user_id?: string | null
-          priority?: Database["public"]["Enums"]["priority_level"] | null
+          priority?: string | null
           start_date?: string | null
-          status?: Database["public"]["Enums"]["work_item_status"] | null
+          status?: string | null
           title?: string
           trello_card_id?: string | null
           trello_sync?: boolean | null
@@ -6121,6 +6437,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      finance_calculate_admin_fee: {
+        Args: { _amount: number; _grant_id?: string; _ngo_id?: string }
+        Returns: {
+          fee_percentage: number
+          pass_through_amount: number
+          rule_id: string
+          suggested_fee: number
+        }[]
+      }
       get_my_department: { Args: never; Returns: string }
       get_my_ngo_id: { Args: never; Returns: string }
       get_my_role: {
@@ -6207,6 +6532,13 @@ export type Database = {
         | "closed"
       org_type: "ngo" | "partner" | "funder" | "vendor" | "applicant"
       priority_level: "low" | "medium" | "high"
+      sponsee_outreach_status:
+        | "research"
+        | "contacted"
+        | "in_conversation"
+        | "on_hold"
+        | "declined"
+        | "converted"
       work_item_status:
         | "draft"
         | "not_started"
@@ -6401,6 +6733,14 @@ export const Constants = {
       ],
       org_type: ["ngo", "partner", "funder", "vendor", "applicant"],
       priority_level: ["low", "medium", "high"],
+      sponsee_outreach_status: [
+        "research",
+        "contacted",
+        "in_conversation",
+        "on_hold",
+        "declined",
+        "converted",
+      ],
       work_item_status: [
         "draft",
         "not_started",
