@@ -21,7 +21,8 @@ grant usage on schema private to authenticated,service_role;
 alter table public.profiles
   add column access_status text not null default 'active'
     constraint profiles_access_status_check check (access_status in ('active', 'deactivated')),
-  add column deleted_at timestamptz;
+  add column deleted_at timestamptz,
+  add column deletion_requested_at timestamptz;
 
 create function private.workspace_actor_is_active(p_user_id uuid)
 returns boolean

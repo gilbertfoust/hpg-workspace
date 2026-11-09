@@ -33,6 +33,9 @@ export default function AcademyTranslationEditor(){
   const {data:records,isLoading:loading,error}=useAcademyLessonTranslations(lessonId);
   const actions=useAcademyTranslationAdministration(lessonId);
   const found=(records||[]).find(x=>x.language_code===language);
+  const needsAuthor=found?.authored_by===null;
+  const reviewRestriction=needsAuthor?"Save the prepared draft under an administrator account first."
+    :found?.authored_by===user?.id?"A separate authorized administrator must review the translation.":undefined;
   useEffect(()=>{
     setTitle(found?.translated_title||"");
     setObjective(found?.translated_objective||"");
@@ -95,7 +98,7 @@ export default function AcademyTranslationEditor(){
             {error&&<p className="text-sm text-destructive" role="alert">Translation details could not be loaded.</p>}
             <div className="flex flex-wrap gap-2">
               <Badge variant={found?.status==="reviewed"?"secondary":"outline"}>
-                {found?.status||"not translated"}</Badge>
+                {needsAuthor?"Prepared draft":found?.status||"not translated"}</Badge>
               {found&&<Badge variant="outline">Version {found.version}</Badge>}
             </div>
             <div className="space-y-1"><Label>Translated title</Label><Input value={title}
@@ -107,10 +110,15 @@ export default function AcademyTranslationEditor(){
               <Textarea rows={3} value={steps[i]||""} onChange={e=>setStep(i,e.target.value)}/></div>)}
             <div className="space-y-1"><Label>Translated practice check</Label><Textarea rows={3} value={practice}
               onChange={e=>{setPractice(e.target.value);setDirty(true);}}/></div>
-            <Button disabled={actions.save.isPending||!complete||!dirty} onClick={save}>Save private translation draft</Button>
+            {needsAuthor&&<p className="text-sm text-muted-foreground">
+              Check this prepared translation against the English lesson, then save it under your account for another administrator to review.
+            </p>}
+            <Button disabled={actions.save.isPending||!complete||(!dirty&&!needsAuthor)} onClick={save}>
+              {needsAuthor?"Save for independent review":"Save private translation draft"}
+            </Button>
             {found?.status==="draft"&&<Button variant="outline"
-              disabled={actions.review.isPending||found.authored_by===user?.id}
-              title={found.authored_by===user?.id?"A separate authorized administrator must review the translation.":undefined}
+              disabled={actions.review.isPending||!!reviewRestriction}
+              title={reviewRestriction}
               onClick={()=>review("publish")}>
               <ShieldCheck className="mr-2 h-4 w-4"/>Independently approve translation
             </Button>}

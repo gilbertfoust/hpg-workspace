@@ -12,7 +12,7 @@ export type LessonTranslation={
   translated_title:string;translated_objective:string;
   translated_steps:string[];translated_practice:string;
   status:"draft"|"reviewed"|"withdrawn";
-  version:number;authored_by:string;reviewed_by:string|null;
+  version:number;authored_by:string|null;reviewed_by:string|null;
   reviewed_at:string|null;
 };
 export function useAcademyLessonTranslations(lessonId?:string){

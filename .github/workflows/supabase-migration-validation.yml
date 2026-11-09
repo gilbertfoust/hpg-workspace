@@ -284,6 +284,7 @@ jobs:
           psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" \
             -v ON_ERROR_STOP=1 \
             -f supabase/tests/academy_phase5_8_security_smoke.sql \
+            -f supabase/tests/academy_prepared_translation_drafts_smoke.sql \
             2>&1 | tee academy-phase5-8-smoke.log
 
       - name: Run database lint
