@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ComponentProps } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -24,7 +24,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { CreateCalendarEventDialog } from "@/components/calendar/CreateCalendarEventDialog";
 import { addDays, isSameDay, isAfter, isBefore, parseISO, startOfDay, format } from "date-fns";
 
-const statusMap: Record<string, string> = {
+const statusMap: Partial<Record<string, ComponentProps<typeof StatusChip>["status"]>> = {
   draft: "draft",
   not_started: "not-started",
   in_progress: "in-progress",
@@ -36,13 +36,6 @@ const statusMap: Record<string, string> = {
   rejected: "rejected",
   complete: "complete",
   canceled: "canceled",
-};
-
-const priorityMap: Record<string, string> = {
-  low: "Low",
-  medium: "Med",
-  high: "High",
-  urgent: "High",
 };
 
 const eventTypeIcon = (type: CalendarEvent["event_type"]) => {
@@ -219,27 +212,30 @@ export default function CalendarPage() {
                 </div>
               ))}
 
-              {selectedDateWorkItems.map((item: WorkItem) => (
-                <div key={item.id} className="flex items-start gap-3 p-3 rounded-lg border">
-                  <Clock className="w-4 h-4 text-muted-foreground mt-0.5" />
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <p className="font-medium truncate">{item.title}</p>
-                      <StatusChip status={statusMap[item.status] || item.status} />
-                      {item.priority && <PriorityBadge priority={priorityMap[item.priority] || item.priority} />}
-                    </div>
-                    <div className="flex flex-wrap gap-3 mt-1 text-xs text-muted-foreground">
-                      {item.ngo_id && (
-                        <span className="inline-flex items-center gap-1">
-                          <Building2 className="w-3 h-3" />
-                          {ngoMap.get(item.ngo_id) || "NGO"}
-                        </span>
-                      )}
-                      <span className="capitalize">{item.module?.replace("_", " ") || "General"}</span>
+              {selectedDateWorkItems.map((item: WorkItem) => {
+                const status = statusMap[item.status];
+                return (
+                  <div key={item.id} className="flex items-start gap-3 p-3 rounded-lg border">
+                    <Clock className="w-4 h-4 text-muted-foreground mt-0.5" />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="font-medium truncate">{item.title}</p>
+                        {status ? <StatusChip status={status} /> : <span className="status-chip">{item.status}</span>}
+                        {item.priority && <PriorityBadge priority={item.priority} />}
+                      </div>
+                      <div className="flex flex-wrap gap-3 mt-1 text-xs text-muted-foreground">
+                        {item.ngo_id && (
+                          <span className="inline-flex items-center gap-1">
+                            <Building2 className="w-3 h-3" />
+                            {ngoMap.get(item.ngo_id) || "NGO"}
+                          </span>
+                        )}
+                        <span className="capitalize">{item.module?.replace("_", " ") || "General"}</span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </CardContent>
           </Card>
 

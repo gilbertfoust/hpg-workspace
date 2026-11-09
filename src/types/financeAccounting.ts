@@ -528,7 +528,9 @@ export interface FinanceDepositLine {
   fund_id: string | null; ngo_id: string | null; grant_application_id: string | null;
   restriction_type: string | null; donor_source: string | null; memo: string | null; line_number: number;
 }
-export type FinanceDepositLineInput = Omit<FinanceDepositLine, "id" | "deposit_id"> & { id?: string };
+export type FinanceDepositLineInput =
+  Pick<FinanceDepositLine, "revenue_account_id" | "amount" | "ngo_id" | "line_number">
+  & Partial<Omit<FinanceDepositLine, "revenue_account_id" | "amount" | "ngo_id" | "line_number" | "deposit_id">>;
 export interface FinanceDeposit {
   id: string; deposit_number: string; deposit_date: string; source_type: FinanceDepositSource;
   ngo_id: string | null;

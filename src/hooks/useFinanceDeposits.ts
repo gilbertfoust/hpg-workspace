@@ -84,9 +84,9 @@ export const useCalculateAdminFee = (amount: number, ngoId?: string | null, gran
   enabled: !!supabase && amount > 0,
   queryFn: async (): Promise<FinanceAdminFeeCalculation | null> => {
     ensureSupabase();
-    const { data, error } = await supabase.rpc("finance_calculate_admin_fee" as never, {
+    const { data, error } = await supabase.rpc("finance_calculate_admin_fee", {
       _amount: amount, _ngo_id: ngoId ?? null, _grant_id: grantId ?? null,
-    } as never);
+    });
     if (error) throw error;
     const row = Array.isArray(data) ? data[0] : data;
     if (!row) return null;

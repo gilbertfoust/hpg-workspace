@@ -45,7 +45,7 @@ jobs:
 
           printf '%s\n' "$CHANGED_FILES"
 
-          if grep -Eq '^supabase/(migrations|tests|fixtures/legacy-replay)/|^supabase/config\.toml$' <<< "$CHANGED_FILES"; then
+          if grep -Eq '^supabase/(migrations|tests|fixtures/legacy-replay)/|^supabase/config\.toml$|^\.github/workflows/supabase-migration-validation\.yml$' <<< "$CHANGED_FILES"; then
             echo "database_changed=true" >> "$GITHUB_OUTPUT"
             echo "Database migrations, tests, or configuration changed; the complete replay will run."
           else
@@ -94,12 +94,14 @@ jobs:
           cp supabase/fixtures/legacy-replay/20261105002499_hpg_communications_baseline.sql supabase/migrations/
           cp supabase/fixtures/legacy-replay/20261105141499_hpg_academy_board_baseline.sql supabase/migrations/
           cp supabase/fixtures/legacy-replay/20261107205959_hpg_academy_scheduler_baseline.sql supabase/migrations/
+          cp supabase/fixtures/legacy-replay/20261109141432_hpg_release_lint_baseline.sql supabase/migrations/
           test -f supabase/migrations/20260710044399_hpg_legacy_volunteer_hr_baseline.sql
           test -f supabase/migrations/20260929143337_hpg_workspace_notification_baseline.sql
           test -f supabase/migrations/20260929163008_hpg_client_error_baseline.sql
           test -f supabase/migrations/20261105002499_hpg_communications_baseline.sql
           test -f supabase/migrations/20261105141499_hpg_academy_board_baseline.sql
           test -f supabase/migrations/20261107205959_hpg_academy_scheduler_baseline.sql
+          test -f supabase/migrations/20261109141432_hpg_release_lint_baseline.sql
           echo 'Using empty, production-derived schema fixtures in disposable CI only.'
 
       - name: Start database-only Supabase stack
@@ -293,7 +295,7 @@ jobs:
         shell: bash
         run: |
           set -o pipefail
-          supabase db lint --local --level warning 2>&1 | tee supabase-lint.log
+          supabase db lint --local --level warning --fail-on error 2>&1 | tee supabase-lint.log
 
       - name: Upload Supabase validation diagnostics
         if: always() && steps.database-scope.outputs.database_changed == 'true'

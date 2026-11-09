@@ -47,7 +47,7 @@ const countRows = async (
   configure?: (query: SnapshotCountQuery) => SnapshotCountQuery,
 ) => {
   try {
-    let query = supabase.from(table).select("id", { count: "exact", head: true }) as unknown as SnapshotCountQuery;
+    let query = supabase.from(table as never).select("id", { count: "exact", head: true }) as unknown as SnapshotCountQuery;
     if (configure) query = configure(query);
     const { count, error } = await query.abortSignal(signal);
     if (error) return { count: 0, connected: false, error: error.message as string };
