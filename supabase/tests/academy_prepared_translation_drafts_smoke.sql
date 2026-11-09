@@ -12,9 +12,9 @@ declare
 begin
   -- Supply the signup trigger's required profile role for this test only.
   alter table public.profiles alter column role set default 'admin_pm';
-  insert into auth.users(id, email) values
-    (author_id, author_id || '@example.invalid'),
-    (reviewer_id, reviewer_id || '@example.invalid');
+  insert into auth.users(id, email, raw_app_meta_data) values
+    (author_id, author_id || '@example.invalid', '{"creation_source":"workspace_admin"}'),
+    (reviewer_id, reviewer_id || '@example.invalid', '{"creation_source":"workspace_admin"}');
   alter table public.profiles alter column role drop default;
 
   insert into public.academy_lesson_translations (
