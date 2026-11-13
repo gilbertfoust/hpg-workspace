@@ -19,7 +19,7 @@ type Case = {id:string; organization_name:string; organization_type:string; geog
   contact_name:string|null; contact_email:string|null; program_alignment:string|null; summary:string;
   stage:string; review_status:string; next_action:string|null; next_action_due_at:string|null;
   proposal_narrative:string|null; requested_resources:string|null; estimated_cost_notes:string|null;
-  source_prospect_id:string|null; created_at:string; updated_at:string;};
+  source_prospect_id:string|null; partner_id:string|null; pipeline_id:string|null; created_at:string; updated_at:string;};
 type Activity = {id:string;case_id:string;activity_type:string;details:string;created_at:string;};
 type Prospect = {id:string;prospect_name:string;prospect_type:string;geography:string|null;};
 type CaseResource={id:string;case_id:string;title:string;url:string;resource_type:string;created_at:string};
@@ -85,6 +85,8 @@ export default function PartnershipDevelopmentPortal(){
      } else if(variables.name==="partnership_portal_record_activity"){
        setLog({type:"outreach",details:"",next:"",due:"",stage:"unchanged"});
        setNotice("Outreach or meeting activity recorded.");
+     } else if(variables.name==="partnership_portal_save_draft"){
+       setNotice("Partnership proposal draft saved to the existing case. It has not been submitted for approval.");
      } else if(variables.name==="partnership_portal_submit_review"){
        setNotice("Proposal submitted for Development triage. No Board approval has been granted.");
      } else if(variables.name==="partnership_portal_link_resource"){
@@ -109,6 +111,8 @@ export default function PartnershipDevelopmentPortal(){
   p_next_action:log.next||null,p_due_at:log.due?new Date(log.due).toISOString():null,
   p_new_stage:log.stage==="unchanged"?null:log.stage}});};
  const submit=()=>{if(!selected)return;action.mutate({name:"partnership_portal_submit_review",args:{
+  p_case_id:selected.id,p_proposal:proposal.narrative,p_resources:proposal.resources,p_cost_notes:proposal.cost}});};
+ const saveDraft=()=>{if(!selected)return;action.mutate({name:"partnership_portal_save_draft",args:{
   p_case_id:selected.id,p_proposal:proposal.narrative,p_resources:proposal.resources,p_cost_notes:proposal.cost}});};
  const addResource=()=>{if(!selected)return;action.mutate({name:"partnership_portal_link_resource",args:{
   p_case_id:selected.id,p_title:resource.title,p_url:resource.url,p_type:resource.type}});};
@@ -187,6 +191,7 @@ export default function PartnershipDevelopmentPortal(){
         <div className="flex justify-between gap-2"><b>{c.organization_name}</b><Badge variant="secondary">{label(c.stage)}</Badge></div>
         <p className="text-xs text-muted-foreground mt-2">{c.geography||"Region to confirm"} · {c.program_alignment||"Program to confirm"}</p>
         <p className="text-sm mt-2">{c.next_action||"No follow-up recorded"}</p>
+        {c.pipeline_id&&<Badge className="mt-2" variant="outline">Linked to Development Partnership Pipeline</Badge>}
        </button>)}
        {!cases.length&&<p className="text-sm text-muted-foreground">The dedicated partnership pipeline is empty. Import existing leads or create your first case.</p>}
       </CardContent></Card>
@@ -221,8 +226,12 @@ export default function PartnershipDevelopmentPortal(){
        <div><Label>Proposal, target beneficiaries, deliverables and outcomes (at least 60 characters)</Label><Textarea rows={6} value={proposal.narrative} onChange={e=>setProposal(v=>({...v,narrative:e.target.value}))}/></div>
        <div><Label>Resources, partner/HPG responsibilities, staffing and dependencies</Label><Textarea rows={4} value={proposal.resources} onChange={e=>setProposal(v=>({...v,resources:e.target.value}))}/></div>
        <div><Label>Budget forecast, funding, compliance and risk questions</Label><Textarea rows={3} value={proposal.cost} onChange={e=>setProposal(v=>({...v,cost:e.target.value}))}/></div>
+       <div className="flex flex-wrap gap-2">
+       <Button variant="outline" disabled={!selected||action.isPending||!["not_submitted","changes_requested"].includes(selected.review_status)} onClick={saveDraft}>Save draft without submission</Button>
        <Button disabled={!selected||action.isPending||proposal.narrative.trim().length<60||proposal.resources.trim().length<10||!["not_submitted","changes_requested"].includes(selected.review_status)}
         onClick={submit}><ClipboardCheck className="mr-2 h-4 w-4"/>Submit review request</Button>
+       </div>
+       <p className="text-xs text-muted-foreground">Drafts remain in this case if the browser is closed. Submission routes an approval request but never grants approval.</p>
       </CardContent></Card>
      {cases.filter(x=>x.review_status==="submitted").map(x=><Card key={x.id}><CardContent className="p-3 text-sm"><b>{x.organization_name}</b> — Under departmental/executive review, not approved.</CardContent></Card>)}
     </TabsContent>
@@ -265,7 +274,7 @@ export default function PartnershipDevelopmentPortal(){
     </TabsContent>
     <TabsContent value="resources" className="space-y-4">
      <Card><CardHeader><CardTitle>Partnership, Development & Academy documentation</CardTitle>
-      <CardDescription>Curated Confluence descriptions and operational procedures; individual access permissions still apply.</CardDescription></CardHeader>
+      <CardDescription>Direct links to existing Development, Board, Academy and legal resources. No duplicate forms are recreated here; individual Confluence permissions still apply.</CardDescription></CardHeader>
       <CardContent className="grid gap-2 md:grid-cols-2">{references.map(([title,url])=>
        <a key={url} href={url} target="_blank" rel="noopener noreferrer" className="flex justify-between gap-2 items-center border rounded p-3 text-sm hover:bg-muted/40">
         <span>{title}</span><ExternalLink className="h-4 w-4 shrink-0"/></a>)}</CardContent></Card>
