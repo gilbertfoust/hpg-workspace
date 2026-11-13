@@ -146,6 +146,7 @@ const hubsSections: HubConfig[] = [
     basePaths: ["/development", "/partnerships", "/crm", "/grants", "/procurement", "/revenue"],
     items: [
       { to: "/development", icon: <DollarSign className="w-4 h-4" />, label: "Development" },
+      { to: "/development/partnership-reviews", icon: <ClipboardList className="w-4 h-4" />, label: "Partnership Reviews" },
       { to: "/development/potential-sponsees", icon: <Handshake className="w-4 h-4" />, label: "Potential Sponsees" },
       { to: "/partnerships", icon: <Handshake className="w-4 h-4" />, label: "Partnerships" },
       { to: "/crm", icon: <Contact className="w-4 h-4" />, label: "CRM" },
@@ -213,6 +214,15 @@ export function AppSidebar() {
   const canAccessAdminConfig = canAccessAdmin(userRole?.role);
   const role = userRole?.role;
   const canManageNgoAccess = canManageNgoPortalAccounts(role, userRole);
+  const { data: partnershipPortalAccess } = useQuery({
+    queryKey: ["partnership-portal-sidebar-access", user?.id],
+    enabled: !!user?.id && canAccessArea(role, "reports", userRole),
+    retry: false,
+    queryFn: async () => {
+      const result = await ensureSupabase().rpc("can_access_partnership_portal" as never);
+      return !result.error && result.data === true;
+    },
+  });
   const { data: boardHubAccess } = useQuery({
     queryKey: ["board-hub-sidebar-access", user?.id],
     enabled: !!user?.id && canAccessArea(role, "reports", userRole),
@@ -358,6 +368,7 @@ export function AppSidebar() {
               <NavItem to="/dashboard" icon={<LayoutDashboard className="w-4 h-4" />} label={isCollapsed ? "" : "Dashboard"} />
                <NavItem to="/learning" icon={<BookOpen className="w-4 h-4" />} label={isCollapsed ? "" : "Learning Academy"} />
               <NavItem to="/learning/assessments" icon={<GraduationCap className="w-4 h-4" />} label={isCollapsed ? "" : "Knowledge Checks"} />
+              {partnershipPortalAccess && <NavItem to="/board/partnership-development" icon={<Handshake className="w-4 h-4" />} label={isCollapsed ? "" : "Partnership Development"} />}
               {boardHubAccess && <NavItem to="/board/hub" icon={<Scale className="w-4 h-4" />} label={isCollapsed ? "" : "Board of Directors Hub"} />}
               {canAccessArea(role, "ngos", userRole) && <NavItem to="/modules/ngo-coordination" icon={<Bot className="w-4 h-4" />} label={isCollapsed ? "" : "HPG Assistant"} />}
               <NavItem to="/my-queue" icon={<ListChecks className="w-4 h-4" />} label={isCollapsed ? "" : "My Queue"} />

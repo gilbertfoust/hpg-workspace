@@ -64,6 +64,7 @@ import MyQueue from "./pages/MyQueue";
 import DeptQueue from "./pages/DeptQueue";
 import HRDashboard from "./pages/HRDashboard";
 import DevelopmentDashboard from "./pages/DevelopmentDashboard";
+import PartnershipDevelopmentReviews from "./pages/PartnershipDevelopmentReviews";
 import PotentialSponsees from "./pages/PotentialSponsees";
 import PartnershipsDashboard from "./pages/PartnershipsDashboard";
 import HPGAssistantHistory from "./pages/HPGAssistantHistory";
@@ -80,6 +81,7 @@ import AcademyIntegrationReadiness from "./pages/AcademyIntegrationReadiness";
 import AcademyTranslationEditor from "./pages/AcademyTranslationEditor";
 import WorkspaceResearchLibrary from "./pages/WorkspaceResearchLibrary";
 import BoardHub from "./pages/BoardHub";
+import PartnershipDevelopmentPortal from "./pages/PartnershipDevelopmentPortal";
 import ContentStudio from "./pages/ContentStudio";
 import DepartmentOperationsHub from "./pages/DepartmentOperationsHub";
 import EditorialDesk from "./pages/EditorialDesk";
@@ -224,6 +226,7 @@ const App = () => {
                 <Route path="/learning/translations" element={<P><AcademyTranslationEditor /></P>} />
                 <Route path="/research/library" element={<P><WorkspaceResearchLibrary /></P>} />
                 <Route path="/board/hub" element={<P><BoardHub /></P>} />
+                <Route path="/board/partnership-development" element={<P><PartnershipDevelopmentPortal /></P>} />
                 <Route path="/hpg-assistant" element={<P><NGOCoordinationModule /></P>} />
                 <Route path="/hpg-assistant/history" element={<P><HPGAssistantHistory /></P>} />
 
@@ -249,6 +252,7 @@ const App = () => {
                 {/* Department dashboards */}
                 <Route path="/hr" element={<Navigate to="/erp/hr" replace />} />
                 <Route path="/development" element={<P><DevelopmentDashboard /></P>} />
+                <Route path="/development/partnership-reviews" element={<P><PartnershipDevelopmentReviews /></P>} />
                 <Route path="/development/potential-sponsees" element={<P><PotentialSponsees /></P>} />
                 <Route path="/proposal-collaboration" element={<P><ProposalCollaborationPage /></P>} />
                 <Route path="/communications/editorial" element={<P><EditorialDesk /></P>} />
