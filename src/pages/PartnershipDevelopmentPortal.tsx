@@ -24,7 +24,8 @@ type Activity = {id:string;case_id:string;activity_type:string;details:string;cr
 type Prospect = {id:string;prospect_name:string;prospect_type:string;geography:string|null;};
 type CaseResource={id:string;case_id:string;title:string;url:string;resource_type:string;created_at:string};
 type SupportRequest={id:string;case_id:string;request_type:string;details:string;status:string;work_item_id:string|null;created_at:string};
-type Portfolio = {cases:Case[];activities:Activity[];available_prospects:Prospect[];resources:CaseResource[];support_requests:SupportRequest[];};
+type ReviewRequest={id:string;case_id:string;status:string;created_at:string;work_item_id:string|null};
+type Portfolio = {cases:Case[];activities:Activity[];available_prospects:Prospect[];resources:CaseResource[];support_requests:SupportRequest[];review_requests:ReviewRequest[];};
 const references=[
  ["Board Partnership Development Operating Hub","https://humanitypathways.atlassian.net/wiki/spaces/BODS/pages/607125514/Partnership+Development+Working-Board+Operating+Hub+Proposed"],
  ["Partnership Development Resource Hub","https://humanitypathways.atlassian.net/wiki/spaces/DDS/pages/22315118/Partnership+Development+Board+Portfolio+Resource+Hub+Proposed"],
@@ -68,6 +69,7 @@ export default function PartnershipDevelopmentPortal(){
  const cases=data.data?.cases??[];
  const activities=data.data?.activities??[];
  const selected=cases.find(c=>c.id===caseId)??cases[0];
+ const selectedReview=(data.data?.review_requests??[]).find(x=>x.case_id===selected?.id);
  useEffect(()=>{
    setLog({type:"outreach",details:"",next:"",due:"",stage:"unchanged"});
    setProposal({narrative:selected?.proposal_narrative??"",resources:selected?.requested_resources??"",cost:selected?.estimated_cost_notes??""});
@@ -154,7 +156,7 @@ export default function PartnershipDevelopmentPortal(){
     </TabsList>
     <TabsContent value="dashboard" className="grid gap-4 md:grid-cols-2">
      <Card><CardHeader><CardTitle>My next actions</CardTitle></CardHeader><CardContent className="space-y-2">
-      {cases.filter(c=>c.next_action).slice(0,10).map(c=><div key={c.id} className="border-b pb-2 text-sm">
+      {cases.filter(c=>c.next_action).sort((a,b)=>(a.next_action_due_at??'9999').localeCompare(b.next_action_due_at??'9999')).slice(0,10).map(c=><div key={c.id} className="border-b pb-2 text-sm">
         <b>{c.organization_name}</b><p>{c.next_action}</p><p className="text-muted-foreground">{date(c.next_action_due_at)}</p></div>)}
       {!cases.some(c=>c.next_action)&&<p className="text-sm text-muted-foreground">No next actions recorded yet.</p>}
      </CardContent></Card>
@@ -204,7 +206,7 @@ export default function PartnershipDevelopmentPortal(){
       <div><Label>Discussion, commitments and outcomes</Label><Textarea rows={5} value={log.details} onChange={e=>setLog(v=>({...v,details:e.target.value}))}/></div>
       <div><Label>Next action</Label><Input value={log.next} onChange={e=>setLog(v=>({...v,next:e.target.value}))}/></div>
       <div className="grid grid-cols-2 gap-2">
-       <div><Label>Follow-up date</Label><Input type="datetime-local" value={log.due} onChange={e=>setLog(v=>({...v,due:e.target.value}))}/></div>
+       <div><Label>Follow-up date and time (your local timezone)</Label><Input type="datetime-local" value={log.due} onChange={e=>setLog(v=>({...v,due:e.target.value}))}/></div>
        <div><Label>Case stage (locked during review)</Label><Select disabled={selected?.review_status!=="not_submitted"&&selected?.review_status!=="changes_requested"} value={log.stage} onValueChange={stage=>setLog(v=>({...v,stage}))}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>
         {["unchanged","identified","outreach","discovery","proposal","closed"].map(x=><SelectItem key={x} value={x}>{label(x)}</SelectItem>)}
        </SelectContent></Select></div>
@@ -222,7 +224,11 @@ export default function PartnershipDevelopmentPortal(){
       <CardDescription>Submitting a proposal is not executive or Board approval; the governed approval and contract processes remain separate.</CardDescription></CardHeader>
       <CardContent className="space-y-3">
        <CasePicker cases={cases} selected={selected?.id??""} choose={setCaseId}/>
-       {selected&&<Badge variant="secondary">{label(selected.review_status)}</Badge>}
+       {selected&&<div className="flex flex-wrap items-center gap-2">
+    <Badge variant="secondary">{label(selected.review_status)}</Badge>
+    {selectedReview&&<Badge variant="outline">Development handoff: {label(selectedReview.status)}</Badge>}
+    {selected?.pipeline_id&&<Badge variant="outline">Linked to original Partnership Pipeline</Badge>}
+   </div>}
        <div><Label>Proposal, target beneficiaries, deliverables and outcomes (at least 60 characters)</Label><Textarea rows={6} value={proposal.narrative} onChange={e=>setProposal(v=>({...v,narrative:e.target.value}))}/></div>
        <div><Label>Resources, partner/HPG responsibilities, staffing and dependencies</Label><Textarea rows={4} value={proposal.resources} onChange={e=>setProposal(v=>({...v,resources:e.target.value}))}/></div>
        <div><Label>Budget forecast, funding, compliance and risk questions</Label><Textarea rows={3} value={proposal.cost} onChange={e=>setProposal(v=>({...v,cost:e.target.value}))}/></div>
