@@ -64,11 +64,11 @@ create table if not exists public.partnership_portal_cases (
 -- canonical tables exist, rather than recreating shadow Development/Board tables.
 do $key$
 begin
- if to_regclass('public.development_outreach_prospects') is not null then
+ if to_regclass('public.development_outreach_prospects') is not null and not exists (select 1 from pg_constraint where conrelid='public.partnership_portal_cases'::regclass and conname in ('partnership_portal_source_prospect_fk','partnership_portal_cases_source_prospect_id_fkey')) then
    alter table public.partnership_portal_cases add constraint partnership_portal_source_prospect_fk
    foreign key (source_prospect_id) references public.development_outreach_prospects(id) on delete set null;
  end if;
- if to_regclass('public.bod_meeting_agenda') is not null then
+ if to_regclass('public.bod_meeting_agenda') is not null and not exists (select 1 from pg_constraint where conrelid='public.partnership_portal_cases'::regclass and conname in ('partnership_portal_board_motion_fk','partnership_portal_cases_board_motion_id_fkey')) then
    alter table public.partnership_portal_cases add constraint partnership_portal_board_motion_fk
    foreign key (board_motion_id) references public.bod_meeting_agenda(id) on delete set null;
  end if;
