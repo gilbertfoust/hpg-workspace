@@ -16,7 +16,7 @@ import { ClipboardCheck } from "lucide-react";
 type Support={id:string;case_id:string;request_type:string;details:string;status:string;created_at:string;work_item_id:string|null;organization_name:string;program_alignment:string|null;geography:string|null;};
 type Shareable={prospects:{id:string;prospect_name:string;prospect_type:string;geography:string|null}[];portfolio_users:{user_id:string;full_name:string;operational_title:string}[];shared:{prospect_id:string;user_id:string;revoked_at:string|null}[]};
 type Review = {
- id:string;case_id:string;status:string;created_at:string;work_item_id:string|null;
+ id:string;case_id:string;status:string;created_at:string;work_item_id:string|null;partner_id:string|null;pipeline_id:string|null;
  organization_name:string;program_alignment:string|null;geography:string|null;
  proposal_narrative:string|null;requested_resources:string|null;estimated_cost_notes:string|null;
  owner_user_id:string;
@@ -74,6 +74,7 @@ export default function PartnershipDevelopmentReviews(){
    <div><b>Proposed relationship and results</b><p className="whitespace-pre-wrap">{r.proposal_narrative||"No narrative provided"}</p></div>
    <div><b>Resource and department dependencies</b><p className="whitespace-pre-wrap">{r.requested_resources||"Unspecified"}</p></div>
    <div><b>Budget and risk questions</b><p className="whitespace-pre-wrap">{r.estimated_cost_notes||"Not provided"}</p></div>
+   {r.pipeline_id&&<div><Button variant="outline" size="sm" asChild><Link to="/partnerships">Open linked Development Partnership Pipeline</Link></Button></div>}
    {r.work_item_id
      ?<Button variant="outline" asChild><Link to={"/work-items?workItemId="+encodeURIComponent(r.work_item_id)}>Open governed review work item</Link></Button>
      :<Button disabled={r.status!=="submitted"||triage.isPending} onClick={()=>triage.mutate(r.id)}>Accept and route to Development work queue</Button>}
