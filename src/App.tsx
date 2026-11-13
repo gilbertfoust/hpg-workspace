@@ -80,6 +80,7 @@ import AcademyIntegrationReadiness from "./pages/AcademyIntegrationReadiness";
 import AcademyTranslationEditor from "./pages/AcademyTranslationEditor";
 import WorkspaceResearchLibrary from "./pages/WorkspaceResearchLibrary";
 import BoardHub from "./pages/BoardHub";
+import PartnershipDevelopmentPortal from "./pages/PartnershipDevelopmentPortal";
 import ContentStudio from "./pages/ContentStudio";
 import DepartmentOperationsHub from "./pages/DepartmentOperationsHub";
 import EditorialDesk from "./pages/EditorialDesk";
@@ -224,6 +225,7 @@ const App = () => {
                 <Route path="/learning/translations" element={<P><AcademyTranslationEditor /></P>} />
                 <Route path="/research/library" element={<P><WorkspaceResearchLibrary /></P>} />
                 <Route path="/board/hub" element={<P><BoardHub /></P>} />
+                <Route path="/board/partnership-development" element={<P><PartnershipDevelopmentPortal /></P>} />
                 <Route path="/hpg-assistant" element={<P><NGOCoordinationModule /></P>} />
                 <Route path="/hpg-assistant/history" element={<P><HPGAssistantHistory /></P>} />
 
