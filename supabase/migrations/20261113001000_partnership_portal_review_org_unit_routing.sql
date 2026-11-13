@@ -19,10 +19,10 @@ begin
  and deleted_at is null limit 1;
  if wid is null then
    insert into public.work_items(module,type,title,description,department_id,created_by_user_id,
-     status,priority,evidence_required,approval_required,external_visible,shared_governance_required,source_system,source_event_id)
+     status,priority,evidence_required,approval_required,external_visible,source_system,source_event_id)
    values('partnership','Partnership Proposal Review',left('Partnership review — '||c.organization_name,240),
      'Partnership proposal from the Board-linked portfolio. Development must coordinate Finance, Compliance, Program and General Counsel input as applicable, then executive and Board approvals where required. No legal or financial commitment authorized. Case: '||c.id::text,
-     dept,uid,'Not Started','High',true,true,false,false,'partnership_portal_review',r.case_id::text)
+     dept,uid,'Not Started','High',true,true,false,'partnership_portal_review',r.case_id::text)
    returning id into wid;
  end if;
  update public.partnership_portal_review_requests set status='routed',work_item_id=wid,
