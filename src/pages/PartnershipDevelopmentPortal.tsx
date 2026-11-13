@@ -180,7 +180,6 @@ export default function PartnershipDevelopmentPortal(){
        <Button disabled={!selected||action.isPending||proposal.narrative.trim().length<60||proposal.resources.trim().length<10||selected.review_status==="submitted"}
         onClick={submit}><ClipboardCheck className="mr-2 h-4 w-4"/>Submit review request</Button>
       </CardContent></Card>
-     </Card>
      {cases.filter(x=>x.review_status==="submitted").map(x=><Card key={x.id}><CardContent className="p-3 text-sm"><b>{x.organization_name}</b> — Under departmental/executive review, not approved.</CardContent></Card>)}
     </TabsContent>
     <TabsContent value="resources" className="space-y-4">
