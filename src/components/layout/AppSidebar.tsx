@@ -146,6 +146,7 @@ const hubsSections: HubConfig[] = [
     basePaths: ["/development", "/partnerships", "/crm", "/grants", "/procurement", "/revenue"],
     items: [
       { to: "/development", icon: <DollarSign className="w-4 h-4" />, label: "Development" },
+      { to: "/development/partnership-reviews", icon: <ClipboardList className="w-4 h-4" />, label: "Partnership Reviews" },
       { to: "/development/potential-sponsees", icon: <Handshake className="w-4 h-4" />, label: "Potential Sponsees" },
       { to: "/partnerships", icon: <Handshake className="w-4 h-4" />, label: "Partnerships" },
       { to: "/crm", icon: <Contact className="w-4 h-4" />, label: "CRM" },
