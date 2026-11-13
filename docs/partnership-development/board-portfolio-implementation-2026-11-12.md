@@ -38,3 +38,17 @@ A transaction-rolled-back access test established that an active Board member wi
 3. Confirm his actual operational charter, accountable supervisor, and written Board authority.
 4. End-to-end browser tests, including denied access for unrelated Board members and external NGOs.
 5. Confirm Development assignment, legal/finance routing, Board motion packet, and archive retention before any real partnership execution.
+
+
+## Proposed 2026 working-Board direction (November 12 follow-up)
+This portfolio would become a defined **working Board** responsibility combining externally facing partnership cultivation, advocacy, external affairs, public engagement, community and media relations, and the relationship-building part of strategic planning. George P. Brooks expressly proposed serving as a connector, advocate, ambassador and strategic voice, with tangible outcomes rather than ceremonial Board participation.
+
+**Division of responsibility**: George develops and stewards external relationships and reports actionable opportunities. Development—including Yogesh's research and the grant-writing/budget-preparation functions—provides verified funding and program intelligence, grant applications, estimates and implementation documentation. Christie coordinates the two-way handoff. George can refer an identified prospect to Development for qualification, and Development can route approved leads to George for relationship cultivation. General Counsel, Program, Finance, Compliance and the Board remain responsible for their ordinary approvals. Communications reviews public representations and institutional messaging.
+
+**Academy relationship**: Juanita Burgess's own preferred proposed Board designation is *Board Director, Leadership & Organizational Development*. Her October role description emphasizes Board development, organizational effectiveness and succession planning; a separate proposed delegation would place her in charge of staff, sponsored-NGO, other-NGO and stakeholder training sections of the HPG Executive Professional Academy, only after the proper authorization. George's portfolio could cultivate institutional teaching partners, sponsors, speakers, hosts and regional collaborators without taking over curriculum governance.
+
+**Other proposed Board portfolios (not for George's email)**: Camille would combine Finance Committee service with policy/compliance oversight, preserving independent review and segregation of duties. Christie would be at-large and proposed to act temporarily as Secretary following the required appointment. Gilbert remains proposed President and Myron Treasurer. These are not recorded as appointments by this software change.
+
+**No premature targets**: The portal presents actual activity counts; 90-day numerical targets are to be set jointly rather than being invented or treated as approved quotas.
+
+**Private Confluence governance draft for Board consideration:** https://humanitypathways.atlassian.net/wiki/pages/resumedraft.action?draftId=607027201&draftShareId=38ab6b61-aaab-4295-8911-29554cdf5509 . This draft is not an adopted bylaw, motion or assignment.
