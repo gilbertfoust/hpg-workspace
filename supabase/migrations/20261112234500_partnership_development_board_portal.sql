@@ -43,7 +43,7 @@ create table if not exists public.partnership_portal_cases (
   contact_email text,
   summary text not null default '',
   program_alignment text,
-  source_prospect_id uuid references public.development_outreach_prospects(id) on delete set null,
+  source_prospect_id uuid,
   crm_organization_id uuid references public.crm_organizations(id) on delete set null,
   stage text not null default 'identified' check (stage in ('identified','outreach','discovery','proposal','review_requested','approved','active','closed')),
   next_action text,
@@ -52,13 +52,28 @@ create table if not exists public.partnership_portal_cases (
   requested_resources text,
   estimated_cost_notes text,
   review_status text not null default 'not_submitted' check(review_status in ('not_submitted','submitted','changes_requested','approved','rejected')),
-  board_motion_id uuid references public.bod_meeting_agenda(id) on delete set null,
+  board_motion_id uuid,
   owner_user_id uuid not null references auth.users(id),
   created_by uuid not null references auth.users(id),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   constraint partnership_no_self_approval check ((stage not in ('approved','active')) or (review_status='approved' and board_motion_id is not null))
 );
+-- Existing production tables are not all present in the repository's local replay
+-- baseline. Keep optional keys soft for replay; wire real FKs wherever their
+-- canonical tables exist, rather than recreating shadow Development/Board tables.
+do $key$
+begin
+ if to_regclass('public.development_outreach_prospects') is not null then
+   alter table public.partnership_portal_cases add constraint partnership_portal_source_prospect_fk
+   foreign key (source_prospect_id) references public.development_outreach_prospects(id) on delete set null;
+ end if;
+ if to_regclass('public.bod_meeting_agenda') is not null then
+   alter table public.partnership_portal_cases add constraint partnership_portal_board_motion_fk
+   foreign key (board_motion_id) references public.bod_meeting_agenda(id) on delete set null;
+ end if;
+end $key$;
+
 create index if not exists partnership_portal_owner_stage_idx on public.partnership_portal_cases(owner_user_id,stage,updated_at desc);
 create index if not exists partnership_portal_prospect_idx on public.partnership_portal_cases(source_prospect_id);
 alter table public.partnership_portal_cases enable row level security;
