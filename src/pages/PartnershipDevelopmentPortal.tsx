@@ -72,12 +72,12 @@ export default function PartnershipDevelopmentPortal(){
  const submit=()=>{if(!selected)return;action.mutate({name:"partnership_portal_submit_review",args:{
   p_case_id:selected.id,p_proposal:proposal.narrative,p_resources:proposal.resources,p_cost_notes:proposal.cost}});};
  const stats=[
- {name:"Prospects",count:cases.filter(c=>["identified","outreach"].includes(c.stage)).length,target:"30"},
- {name:"Outreach activities",count:activities.filter(a=>a.activity_type==="outreach").length,target:"20"},
- {name:"Meetings",count:activities.filter(a=>a.activity_type==="meeting").length,target:"10"},
- {name:"Proposals",count:cases.filter(c=>["proposal","review_requested","approved","active"].includes(c.stage)).length,target:"5"},
+ {name:"Prospects",count:cases.filter(c=>["identified","outreach"].includes(c.stage)).length,target:"To agree"},
+ {name:"Outreach activities",count:activities.filter(a=>a.activity_type==="outreach").length,target:"To agree"},
+ {name:"Meetings",count:activities.filter(a=>a.activity_type==="meeting").length,target:"To agree"},
+ {name:"Proposals",count:cases.filter(c=>["proposal","review_requested","approved","active"].includes(c.stage)).length,target:"To agree"},
  {name:"Reviews pending",count:cases.filter(c=>c.review_status==="submitted").length,target:"—"},
- {name:"Approved partners",count:cases.filter(c=>c.stage==="active").length,target:"3"},
+ {name:"Approved partners",count:cases.filter(c=>c.stage==="active").length,target:"To agree"},
  ];
  if(access.isLoading)return <MainLayout title="Partnership Development"><p className="p-4">Checking Board portfolio access…</p></MainLayout>;
  if(access.data!==true)return <MainLayout title="Partnership Development" subtitle="Board-linked operational portfolio">
@@ -85,7 +85,7 @@ export default function PartnershipDevelopmentPortal(){
     Access requires an authenticated Workspace account, active Board membership and recorded operational authorization.
     A Board role alone does not permit access to Development records. No director is automatically assigned.
   </AlertDescription></Alert></MainLayout>;
- return <MainLayout title="Partnership Development" subtitle="Board portfolio • Institutional relationships and resource development">
+ return <MainLayout title="Partnership Development" subtitle="Proposed working Board portfolio • Partnerships, advocacy, external affairs and strategic outreach">
   <div className="space-y-5">
    <Alert><Handshake className="h-4 w-4"/><AlertTitle>Board governance and operational authority are separate</AlertTitle>
     <AlertDescription>This portfolio records relationship development and proposals. It never authorizes funding, binding agreements, project activation or Board votes.</AlertDescription></Alert>
@@ -188,11 +188,13 @@ export default function PartnershipDevelopmentPortal(){
       <CardContent className="grid gap-2 md:grid-cols-2">{references.map(([title,url])=>
        <a key={url} href={url} target="_blank" rel="noopener noreferrer" className="flex justify-between gap-2 items-center border rounded p-3 text-sm hover:bg-muted/40">
         <span>{title}</span><ExternalLink className="h-4 w-4 shrink-0"/></a>)}</CardContent></Card>
-     <Card><CardHeader><CardTitle>Cross-department relationships</CardTitle></CardHeader><CardContent className="space-y-2 text-sm">
-      <p><b>Christie / Development:</b> grant research coordination and funding intelligence.</p>
-      <p><b>Yogesh / Research:</b> grant research, evidence and funder reports; grant writing remains separately managed.</p>
-      <p><b>Juanita / Academy:</b> proposed training lead for HPG personnel, sponsored NGOs, other NGOs and stakeholders, subject to organizational approval.</p>
-      <p><b>Program and Academy:</b> curriculum, learner support and educational event delivery remain with designated program owners.</p>
+     <Card><CardHeader><CardTitle>Proposed operating model: external relationships and strategy</CardTitle><CardDescription>Working-Board authority remains subject to Board approval and written delegation.</CardDescription></CardHeader><CardContent className="space-y-2 text-sm">
+      <p><b>Portfolio responsibility:</b> cultivate institutional partnerships, advocacy, civic and community engagement, public affairs, media contacts, sponsorship relationships and the external relationship-building component of strategic planning. Keep a documented pipeline of leads, meetings, collaboration opportunities and outcomes.</p>
+      <p><b>Two-way handoff:</b> Development research can generate targets for external cultivation; relationships developed here return to Development for grant writing, eligibility checks, budget planning, proposals and coordination. Program, Finance, Compliance, Counsel and authorized Board processes retain their applicable approvals.</p>
+      <p><b>Christie / Development:</b> coordinate research-to-outreach handoffs, proposal preparation and two-way performance reporting.</p>
+      <p><b>Yogesh / Research:</b> identify and screen funders and potential partners; Development retains grant research, budgets with Finance, and grant/proposal writing.</p>
+      <p><b>Juanita / Academy:</b> proposed leadership and organizational development oversight, including delegated training sections for HPG personnel, sponsored NGOs, other NGOs and stakeholders, subject to approvals.</p>
+      <p><b>Program and Academy:</b> program ownership, curriculum approval, learner support and educational event delivery remain with authorized program leaders; externally cultivated partners can support those activities.</p>
      </CardContent></Card>
     </TabsContent>
     <TabsContent value="governance" className="grid gap-4 md:grid-cols-2">
